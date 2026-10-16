@@ -8,6 +8,7 @@ Maintained by Lead (93ca0cd6-c546-456f-b97f-c3c9c4115a14). Peers: read, don't ed
 - New workspace package: its owner adds only its own workspace entry + `scripts/env.mjs npm install` lockfile delta (additions only) in the creating commit, and it must pass root check there. Consumer manifests stay with their owners.
 - Root e2e: each owner sets E2E_PORT inside its own range (default 4150 = foundation) until harness uses free ports.
 - Messaging a running Peer interrupts its current tool call; batch non-urgent notes.
+- Integration window (Lead serializes, one owner at a time; Lead makes no dev commit during a window): owner merges `origin/dev` into scope branch → candidate SHA → owner checks on that exact candidate → Lead review → "go" → owner fast-forwards dev.
 - Integration into `dev` (grant c): owner Peer fast-forwards (`--ff-only`) after Lead reviews scope and ownership; owner's meaningful checks pass on the exact final SHA; entry added to Merge log.
 - Keep the main checkout clean.
 
@@ -25,7 +26,7 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 | rules: proposal + pure engine | fd99d2a9 | packages/rules, docs/rules | 4500–4599 (E2E_PORT for root check) |
 | visual → scene (branch visual-2) | d9e8c62b | packages/scene, docs/visual (preview/ being retired) | 4200–4299 |
 | game UI | 990963ac | apps/web/src/game/**, apps/web/src/ui/**, App.tsx, styles.css, provisional/** (handed over), docs/ui; user-facing LAN helpers | 4400–4499 |
-| voice investigation | 87bbae25 | spikes/voice, docs/voice | 4300–4399 |
+| voice (spike → product) | 87bbae25 | spikes/voice, docs/voice, packages/voice (new) | 4300–4399 |
 | review (read-only, done): rules 9af74b8 | 09a95d56 (codex) | none | — |
 
 ## Milestones
@@ -54,7 +55,7 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Visual preview approval (+ 7 visual questions).
 - Remaining rules: Q01, Q02, Q04, Q05, Q08, Q12, Q13, Q17, Q18, Q19, Q21, Q23; other phase durations; moderator powers beyond Yes count + listen (removal, act-for, set wolf target, speech, ballot visibility); reveal.historyAtEnd.
 - Clarified by Human: disconnection gives no immunity from nomination/execution; eliminated offline → reconnect restores ghost state (Hunter pending mechanics apply), never resurrects. Regression tests: rules + foundation.
-- Pending to Human: UI language default (browser vi/en), in-person = voice fully off + wolves text, night private notes vs plain panel; rules interpretations (no-Witch second step runs; nobody/player tie → player; who-voted hidden).
+- Pending to Human: rules interpretations (no-Witch second step runs; nobody/player tie → player); balance (Q17/Q18) evidence sent.
 - Hosting trust (server host can read secrets): (a) accept + (b) guide non-player host. [asked]
 - First playtest network path; HTTPS options with verified costs incl. zero-cost (LAN voice-off = partial only, not voice acceptance). [asked; proposal later]
 
@@ -70,7 +71,9 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Q07 wolves: living wolves see each other's picks; plurality; ties random among tied top. (Moderator-set target, wolf-on-wolf: still provisional.)
 - Q09/Q10 nomination: unique top vote-getter tried, no majority needed; Skip counted; tie at top (incl. Skip) or Skip top → no trial; 30 s defense; then Yes/No.
 - Q11 night: fixed 60 s total regardless of roles/early completion (internal split not separately approved; both steps always full length).
-- Q22 votes: nomination + Yes/No run to deadline; no interim tallies or others' ballots to players (incl. reconnect/snapshots); voter sees own choice. Moderator mid-vote visibility provisional.
+- Q22 votes (SUPERSEDED twice, final 2026-10-16): day nomination + Yes/No are OPEN ballots shown live (voter → target/Skip, voter → Yes/No) to every view incl. reconnect; changes accurate; counts derivable; no tally-secrecy claims. Fixed deadlines, no early close. Night actions/wolf channel unchanged and private.
+- UI: language follows browser vi/en, switchable, remembered; in-person rooms voice off, wolves private text at night; no-action night roles get a plain waiting panel (no suspect notes in v1).
+- Disconnect clarification: no immunity from nomination/execution/night kills; reconnect restores ghost state, never resurrects; offline Hunter keeps pending turn.
 - Q25 channels (voice+text): day public (living); night living wolves only; defense only accused speaks; ghosts own channel + hear public (Hunter pending isolated); moderator listen-only all channels. No membership/participant/speaking leaks.
 - Q15/Q26 disconnect: submitted choices persist; missing → pass at deadline; disconnected stay alive and in denominator; reconnect restores same state; automatic mode pauses timers while ALL player seats disconnected (moderator/spectator don't block), remaining durations preserved. Removal powers pending.
 
@@ -81,7 +84,7 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Outside writes by voice (besides brew): Homebrew bottle in ~/Library/Caches/Homebrew; /tmp/voice-results.txt; probable Go telemetry in ~/Library/Application Support/go/telemetry; Playwright temp profiles in OS temp (normally auto-removed). Not undone.
 - Outside writes 15:07+ (2026-10-16): ~/Library/Preferences/com.google.chrome.for.testing.plist created 15:07:14 (key points at voice worktree's Chrome for Testing → likely voice; confirming). ~/Library/Application Support/Google/Chrome for Testing/Crashpad/settings.dat (pre-existing) probably rewritten by visual full-Chrome runs 14:25–14:59 (+ others; mtime 15:13:30). /tmp/dbg.ts (empty) by visual 15:07:17. Not undone. Full Chrome only if writes provably repo-local; WebKit (grant b) used for GPU captures.
 - Crashpad settings.dat also modified 15:38:24; not claimed by visual/game-ui; foreign puppeteer chrome (~/.cache/hyperframes, another project) seen on machine. Attribution open.
-- Brew autoremove removed libnghttp3 1.18.0 + libngtcp2 1.25.0 (beyond grant a). No restore approved; voice Peer doing read-only provenance + exact-restore analysis.
+- Brew autoremove removed libnghttp3 1.18.0 + libngtcp2 1.25.0 (beyond grant a). Read-only: no dependents, likely orphaned curl deps; reinstall gives same versions but marked on-request. Lead recommends leave removed. Awaiting Human.
 - Foundation `pkill -f apps/server/src/main.ts` ~15:20:50 may have hit other worktrees' servers; now exact PIDs only.
 - Lead: aborted verification worktree (npm ci inside repo) removed; no outside writes known.
 - Outside write by Lead: /tmp/null (331 B, npm ci output) 14:31, command mistake. Not undone.
@@ -102,6 +105,12 @@ Grant c merges into `dev`, newest last. Format: date · branch · ff from → he
 - 2026-10-16 · rules-5 · ff 1e4a300 → 013206a · scope packages/rules, docs/rules. Owner root check: rules 183/183, server 20/20, e2e 13/13. Known flake (Q20 vs foundation assertion) fixed in foundation-3.
 - 2026-10-16 · foundation-3 · ff 013206a → 3663e63 · scope apps/server, packages/protocol, e2e, docs/architecture, lockfile 1 line. Owner: rules 183/183, server 49 + 1 todo (moderator speech), e2e 13/13.
 - 2026-10-16 · visual-2 · ff 3663e63 → a280efe · scope packages/scene, preview/ removed, docs/visual, workspace line + lockfile additions. Owner: rules 183/183, scene 12/12, server 49, e2e 13/13.
+
+- 2026-10-16 · rules-6 · → 8cc710d · moderator listen-only default; strict config. Owner: rules 185/185, server 49+1 todo, e2e 13.
+- 2026-10-16 · visual-3 · → c7fccf3 · mount seam/poses docs, scene 17/17. Owner root check exit 0 (E2E_PORT 4250).
+- 2026-10-16 · game-ui · → e181de0 · first screens (owner report pending in this log).
+- 2026-10-16 · rules-7 · → 69b0c76 · offline tests + participation-only voted status (superseded by open ballots).
+- 2026-10-16 · voice · → 30a95ea · candidate reviewed by Lead; owner on 30a95ea: plain 4/4 + 52/52, TLS 4/4 + 52/52, headless shell.
 
 ## Acceptance evidence
 - foundation b3d9ece: Lead re-ran `node scripts/env.mjs npm run check` 14:31 → typecheck ok, server 10/10, e2e 7/7 (8-browser auto isolation, 7+mod isolation, lobby, reconnect, 2nd tab, Pixel 7 emu). Chromium only. No new ~/.npm logs. Superseded by the merged revision (see Merge log).
