@@ -6,8 +6,9 @@
     "node": ">=24.12"
   },
   "workspaces": [
-    "packages/*",
-    "apps/*",
+    "packages/protocol",
+    "apps/server",
+    "apps/web",
     "e2e"
   ],
   "scripts": {
