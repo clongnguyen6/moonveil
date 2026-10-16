@@ -1,21 +1,6 @@
 // Wire-level knowledge isolation with real browsers. Uses the FIXTURE engine (no real rules).
 import { expect, type Player, test } from '../harness/index.ts';
-
-type G = { phase: string; me?: { secret: string; inGroup: boolean }; group?: { key: string; members: string[] }; reveal?: { seat: string; secret: string }[] };
-const g = (p: Player) => p.view().game as G;
-
-function assertNoLeaks(players: Player[], groupKey: string, group: string[], uptoFrames?: Map<Player, number>) {
-  const secrets = new Map(players.map((p) => [p.seat, g(p).me!.secret]));
-  for (const p of players) {
-    const wire = p.frames.slice(0, uptoFrames?.get(p)).map((f) => f.raw).join('\n');
-    for (const [seat, s] of secrets) if (seat !== p.seat) expect(wire.includes(s), `${p.name} saw ${seat}'s secret`).toBe(false);
-    if (!group.includes(p.seat)) {
-      expect(wire.includes(groupKey), `${p.name} saw group key`).toBe(false);
-      expect(wire.includes('"group"'), `${p.name} got a group object`).toBe(false);
-      expect(wire.includes('"inGroup":true'), `${p.name} saw membership`).toBe(false);
-    }
-  }
-}
+import { assertNoLeaks, endedAt, type FixtureGame, fixtureGame as g } from './fixture-helpers.ts';
 
 test('automatic mode, 8 browsers: each client receives only what its seat may know', async ({ table }) => {
   test.setTimeout(120_000);
@@ -44,9 +29,7 @@ test('automatic mode, 8 browsers: each client receives only what its seat may kn
 
   // Through the whole game until the reveal, nothing leaks; then everyone sees the reveal.
   for (const p of players) await expect(p.page.getByTestId('reveal')).toBeVisible({ timeout: 45_000 });
-  const beforeReveal = new Map(
-    players.map((p) => [p, p.frames.findIndex((f) => f.msg.t === 'state' && f.msg.view.status === 'ended')]),
-  );
+  const beforeReveal = new Map(players.map((p) => [p, endedAt(p)]));
   assertNoLeaks(players, key, group, beforeReveal);
   for (const p of players) await expect(p.page.locator('[data-testid=reveal] li')).toHaveCount(8);
 });
@@ -66,7 +49,7 @@ test('moderator mode, 7 players + moderator: moderator sees secrets, players do 
     await expect(p.page.getByTestId('reveal')).toHaveCount(0);
     await expect(p.page.getByTestId('advance')).toHaveCount(0);
   }
-  const mv = mod.view().game as Required<G>;
+  const mv = mod.view().game as Required<FixtureGame>;
   for (const p of players) expect(mv.reveal.find((r) => r.seat === p.seat)!.secret).toBe(g(p).me!.secret);
   assertNoLeaks(players, mv.group!.key, mv.group!.members);
 
