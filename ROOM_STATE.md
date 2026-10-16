@@ -34,5 +34,9 @@ Maintained by Lead (93ca0cd6-c546-456f-b97f-c3c9c4115a14). Peers: read, don't ed
 - Standing permission to ff-merge scope branches into `dev` (not main) after owner checks + Lead diff review? [raised to Supervisor]
 - Coming: rules proposal, preview approval, voice provider/cost.
 
+## Risks / notes
+- Some web doc fetches are being rejected by the permission system; Peers source claims locally and label provenance; don't retry denied calls.
+- Voice Peer installed livekit-server via Homebrew (outside Moonveil, before the rule was stated). No further global installs; tools stay inside Moonveil. Record for later removal.
+
 ## Acceptance evidence
 - (none yet)
