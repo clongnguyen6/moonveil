@@ -354,6 +354,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     perf: (): PerfStats | null => perfOn ? { n: perf.frames.length, frame: stat(perf.frames), update: stat(perf.update), lightmap: stat(perf.lightmap), render: stat(perf.render) } : null,
     perfReset() { perf.frames.length = perf.update.length = perf.lightmap.length = perf.render.length = 0; },
     walkLocal(x, y) { walkLocalReq = { x, y }; },
+    localPose() { const me = avatars.get(input.me.seat); return me ? { seat: me.seat, x: me.x, y: me.y, facing: me.facing, moving: me.mode === 'walk' } : null; },
     night: () => nightLevel,
     destroy() {
       destroyed = true;

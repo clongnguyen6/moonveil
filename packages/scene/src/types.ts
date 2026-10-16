@@ -73,6 +73,7 @@ export interface SceneHandle {
   perf(): PerfStats | null;
   perfReset(): void;
   walkLocal(x: number, y: number): void;
+  localPose(): Pose | null;
   night(): number;
   destroy(): void;
 }
