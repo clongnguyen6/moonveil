@@ -21,6 +21,7 @@ import {
   type VoiceGrant,
 } from '@moonveil/protocol';
 import type { PhaseInfo, RulesEngine, Viewer } from './rules/engine.ts';
+import type { RoomSnapshot, RoomStore } from './store.ts';
 import type { VoiceGateway } from './voice.ts';
 
 export interface Conn {
@@ -85,6 +86,21 @@ export interface RoomDeps<S> {
   scheduler: Scheduler;
   now: () => number;
   seed: () => string;
+  store?: RoomStore;
+}
+
+type StoredSeat = Omit<Seat, 'conn'>;
+interface StoredRoom {
+  mode: Mode;
+  voiceMode: VoiceMode;
+  status: 'lobby' | 'playing' | 'ended';
+  hostId: SeatId;
+  players: StoredSeat[];
+  moderator: StoredSeat | null;
+  game: unknown;
+  published: [SeatId, boolean][];
+  chat: [string, ChatMessage[]][];
+  lastActive: number;
 }
 
 export class Room<S = unknown> {
@@ -114,6 +130,7 @@ export class Room<S = unknown> {
   private poseTimer: unknown = null;
   private speakingOn = new Map<string, Set<SeatId>>();
   private speakingTimer: unknown = null;
+  private savedJson = '';
   private deps: RoomDeps<S>;
 
   constructor(code: string, mode: Mode, creator: Profile, deps: RoomDeps<S>, voiceMode: VoiceMode = 'remote') {
@@ -381,6 +398,7 @@ export class Room<S = unknown> {
       const box = s.conn ? this.outbox.get(s.conn) : undefined;
       if (s.conn && box?.listening.has(channel)) s.conn.send({ t: 'chat', channel, msg });
     }
+    this.persist();
   }
 
   // --- movement / speaking ---
@@ -492,6 +510,59 @@ export class Room<S = unknown> {
     }
     this.outbox.clear();
     this.deps.voice.closeRoom(this.code);
+    this.deps.store?.remove(this.code);
+  }
+
+  // --- persistence (restart recovery) ---
+
+  private stored(): StoredRoom {
+    const strip = ({ conn: _, ...rest }: Seat): StoredSeat => rest;
+    return {
+      mode: this.mode,
+      voiceMode: this.voiceMode,
+      status: this.status,
+      hostId: this.hostId,
+      players: this.players.map(strip),
+      moderator: this.moderator ? strip(this.moderator) : null,
+      game: this.game,
+      published: [...this.published],
+      chat: [...this.chat],
+      lastActive: this.lastActive,
+    };
+  }
+
+  // Save when persistent state changed. Volatile state (sockets, poses, speaking, timers) is not saved.
+  private persist() {
+    const store = this.deps.store;
+    if (!store || this.closed) return;
+    const json = JSON.stringify(this.stored());
+    if (json === this.savedJson) return;
+    this.savedJson = json;
+    const snap: RoomSnapshot = { v: 1, engine: this.deps.engine.id, code: this.code, savedAt: this.deps.now(), room: JSON.parse(json) };
+    store.save(snap);
+  }
+
+  // Rebuild after a restart. Nobody is connected, so an automatic match is paused at the last save:
+  // server downtime counts as paused wall time (approved pause rule); the first player back resumes it.
+  static restore<S>(snap: RoomSnapshot, deps: RoomDeps<S>): Room<S> {
+    if (snap.engine !== deps.engine.id) throw new Error(`room ${snap.code}: saved with engine ${snap.engine}, running ${deps.engine.id}`);
+    const r = snap.room as StoredRoom;
+    const room = new Room<S>(snap.code, r.mode, { name: 'restore', appearance: { color: 'moss', hat: 'none' } }, deps, r.voiceMode);
+    const seat = (s: StoredSeat): Seat => ({ ...s, conn: null });
+    room.players = r.players.map(seat);
+    room.moderator = r.moderator ? seat(r.moderator) : null;
+    room.hostId = r.hostId;
+    room.status = r.status;
+    room.game = r.game as S | null;
+    room.published = new Map(r.published);
+    room.chat = new Map(r.chat);
+    room.lastActive = r.lastActive;
+    room.savedJson = JSON.stringify(r);
+    if (room.game !== null && room.mode === 'automatic' && room.status === 'playing') {
+      room.game = deps.engine.pause(room.game, snap.savedAt);
+    }
+    if (room.status === 'playing') room.afterChange();
+    return room;
   }
 
   // --- projection ---
@@ -572,5 +643,6 @@ export class Room<S = unknown> {
         s.conn.send({ t: 'speaking', seats: JSON.parse(speaking) as SeatId[] });
       }
     }
+    this.persist();
   }
 }

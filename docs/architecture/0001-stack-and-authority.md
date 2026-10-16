@@ -63,7 +63,7 @@ Server-authoritative social-deduction game. 7–10 players typical, more desirab
 - Presence freeze during secret phases: players can't see who dropped at night.
 - Ghost, dead-player knowledge and channels: engine-defined. The shell carries whatever `view`/`channels` return.
 - Moderator ≠ creator, mode switch in lobby, moderator handoff: not supported.
-- Rooms are in memory, so a server restart drops rooms. The client then falls back to the join form.
+- Restart recovery: rooms persisted to `.data/rooms` and restored on boot (0003). The host operator can read secrets on disk and in memory.
 - One seat per browser profile per room. Two players on one device is unsupported.
 - Player cap is the engine's `maxPlayers` (fixture: 3–20). Larger rooms are untested.
 - Traffic analysis (timing/size padding, voice uplink): deferred until TLS is decided; proposed bundle in 0005 P10.

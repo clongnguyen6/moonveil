@@ -1,4 +1,5 @@
-// Run via `npm run e2e` (root) so browsers/tmp live in .cache/. Port E2E_PORT (default 4150).
+// Run via `npm run e2e` (root) so browsers/tmp live in .cache/. Port E2E_PORT (default 4150) and E2E_PORT+1.
+// Other scopes running this harness: set E2E_PORT inside your own port range to avoid collisions.
 import { defineConfig, devices } from '@playwright/test';
 
 const port = Number(process.env.E2E_PORT ?? 4150);
