@@ -42,7 +42,8 @@ for (const mode of ['automatic', 'moderator'] as const) {
       uiStats.attempted = uiStats.done = 0;
       uiStats.misses = [];
       uiStats.byType = {};
-      const stats = { ballotSteps: 0, reloads: 0, reloadMs: 0, ballotRecheckAfterReload: '', drops: 0, ghostChecks: 0, overflowChecks: 0 };
+      uiStats.wolfPicks = [];
+      const stats = { ballotSteps: 0, reloads: 0, reloadMs: 0, ballotRecheckAfterReload: '', drops: 0, ghostChecks: 0, overflowChecks: 0, wolfPicksChecked: 0 };
       const report = (result: string) =>
         console.log(`UIMATCH ${JSON.stringify({ project: info.project.name, mode, seats, result, strict: STRICT, landed: uiStats.done, intended: uiStats.attempted, byType: uiStats.byType, misses: uiStats.misses, ...stats })}`);
       try {
@@ -107,7 +108,16 @@ for (const mode of ['automatic', 'moderator'] as const) {
         seats + 3, // acceptance: win condition within seats + 3 days
       );
       expect(m.driver.view().status).toBe('ended');
-      assertOutcome(game(m.players[0]!) as GameView);
+      const final = game(m.players[0]!) as GameView;
+      assertOutcome(final);
+      // Night actions reach the engine: every accepted wolf pick (last per wolf per night) is in that night's record.
+      const nights = (final.reveal?.history ?? []).flatMap((h) => (h.t === 'night' ? [h] : []));
+      const last = new Map(uiStats.wolfPicks.map((w) => [`${w.night}/${w.seat}`, w]));
+      for (const w of last.values()) {
+        const rec = nights.find((n) => n.night === w.night)?.record;
+        expect(rec?.wolfPicks[w.seat], `night ${w.night}: wolf seat ${w.seat} pick ${w.target} missing from the night record`).toBe(w.target);
+      }
+      stats.wolfPicksChecked = last.size;
       for (const p of m.players) assertSeatIsolationViews(states(p));
       expect(uiStats.done, 'UI actions performed').toBeGreaterThan(0);
       // Acceptance (E2E_UI_STRICT=1): every intended UI action must land. Quick runs: at least 80%.

@@ -29,6 +29,8 @@ export const uiStats = {
   misses: [] as { seat: string; action: string; step: string; reason: string }[],
   // Landed actions per type (e.g. wolf.pick) for failure reports.
   byType: {} as Record<string, number>,
+  // Engine-accepted wolf picks, checked against the end-of-match night records.
+  wolfPicks: [] as { night: number; seat: number; target: number }[],
 };
 const CLICK_MS = 1_500;
 let lastReason = '';
@@ -49,17 +51,56 @@ const stepOf = (p: Player) => {
   const g = game(p) as GameView | null;
   return g ? `${g.night}/${g.day}/${g.step.kind}` : '';
 };
+// "Landed" = the engine accepted it: the seat's own wire view must show the effect (not just a DOM click).
+function reflected(p: Player, action: string): boolean {
+  const g = game(p) as GameView | null;
+  const me = g?.me;
+  if (!g || !me) return false;
+  const [type, raw] = action.split(':') as [string, string];
+  const val: unknown = /^\d+$/.test(raw) ? Number(raw) : raw === 'heal-yes' ? true : raw === 'heal-no' ? false : raw === 'vote-yes' ? 'yes' : raw === 'vote-no' ? 'no' : raw;
+  const cur = (me.actions.find((a) => a.type === type) as { current?: unknown } | undefined)?.current;
+  switch (type) {
+    case 'wolf.pick':
+      return (g.pack?.picks?.[me.seat] ?? cur) === val;
+    case 'guard.protect':
+    case 'witch.poison':
+    case 'witch.heal':
+      return cur === val;
+    case 'hunter.shoot':
+      return cur === val || g.publicLog.some((e) => e.t === 'shot' && (e as { by?: number }).by === me.seat);
+    case 'seer.inspect':
+      return me.facts.some((f) => f.k === 'inspect' && (f as { target?: number }).target === val);
+    case 'vote.nominate':
+    case 'vote.confirm':
+      return (me as { ballot?: unknown }).ballot === val;
+    default:
+      return true;
+  }
+}
+async function engineAccepted(p: Player, action: string, framesBefore: number): Promise<boolean> {
+  for (let i = 0; i < 20; i++) {
+    if (reflected(p, action)) return true;
+    await p.page.waitForTimeout(100);
+  }
+  const err = p.frames.slice(framesBefore).filter((f) => f.msg.t === 'error').at(-1);
+  lastReason = err ? `server rejected: ${(err.msg as { message?: string }).message}` : 'click landed but the engine state does not show it';
+  return false;
+}
+
 async function act(p: Player, action: string, fn: () => Promise<boolean>) {
   uiStats.attempted++;
   lastReason = '';
   const decidedAt = stepOf(p);
-  const ok = await fn();
+  const framesBefore = p.frames.length;
+  const ok = (await fn()) && (await engineAccepted(p, action, framesBefore));
   // A step that closed between the decision and the click is pacing, not a UI fault; still a miss in strict mode.
   if (!ok && stepOf(p) !== decidedAt) lastReason = `step closed before the action (pacing): ${lastReason}`;
   if (ok) {
     uiStats.done++;
     const type = action.split(':')[0]!;
     uiStats.byType[type] = (uiStats.byType[type] ?? 0) + 1;
+    const g = game(p) as GameView | null;
+    if (type === 'wolf.pick' && g?.me) uiStats.wolfPicks.push({ night: g.night, seat: g.me.seat, target: Number(action.split(':')[1]) });
   }
   else uiStats.misses.push({ seat: `${p.name}/${(game(p) as GameView | null)?.me?.seat}`, action, step: (game(p) as GameView | null)?.step.kind ?? '?', reason: lastReason || 'unknown' });
 }
