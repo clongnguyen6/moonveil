@@ -1,0 +1,75 @@
+// Dev harness: runs the scene against the fixture stub server (no real server). Also the capture/perf target.
+// URL: ?scene=lobby|seating|night|day|ghost|ended  ?n=4..16  ?viewer=moderator|s1..s16  ?cam=fit|tight  ?panel=0  ?audio=0  ?speak=0  ?perf=1
+import { mountScene } from '../src/index.ts';
+import { phaseLabel } from '../src/choreo.ts';
+import { FakeServer, type FixtureScene } from '../fixtures/index.ts';
+import type { SceneHandle, SceneInput, Pose } from '../src/types.ts';
+import { Hud } from './hud.ts';
+
+const q = new URLSearchParams(location.search);
+const n = Math.max(4, Math.min(16, parseInt(q.get('n') ?? '10', 10) || 10));
+const initial = (q.get('scene') as FixtureScene) || 'lobby';
+const viewerParam = q.get('viewer');
+const viewer = viewerParam === 'moderator' ? 'moderator' : viewerParam && /^s\d+$/.test(viewerParam) ? viewerParam : undefined;   // seat id, e.g. s1
+
+const server = new FakeServer(initial, n, viewer);
+if (q.get('speak') === '0') server.autoSpeak = false;
+const host = document.getElementById('scene')!;
+const scene: SceneHandle = mountScene(host, { input: server.input, camera: (q.get('cam') as 'fit' | 'tight') || undefined, perf: q.get('perf') === '1' });
+server.onPoses((f) => scene.setPoses(f));
+server.onSpeaking((s) => scene.setSpeaking(s));
+scene.on('move', (p: Pose) => { server.move(p.seat, p.x, p.y, p.facing); });
+
+const hud = new Hud(document.body, {
+  setScene: (s) => { server.setScene(s); scene.setInput(server.input); banner(s); },
+  setSpeak: (on) => scene.setSpeakingLocal(on),
+  setAutoSpeak: (on) => { server.autoSpeak = on; },
+  setAudio: (on) => scene.setAudio(on),
+  emote: () => scene.emote('👋'),
+  setCamera: (m) => scene.setCamera(m),
+}, { panel: q.get('panel') !== '0', touch: navigator.maxTouchPoints > 0 || matchMedia('(pointer: coarse)').matches });
+hud.markScene(initial); hud.markCam(q.get('cam') === 'tight' ? 'tight' : window.innerHeight > window.innerWidth * 1.1 && window.innerWidth < 600 ? 'tight' : 'fit');
+scene.setSafeArea({ top: 56 });
+
+const BANNERS: Record<FixtureScene, [string, string]> = {
+  lobby: ['Lobby', 'Walk around the camp while everyone arrives'], seating: ['Day 1', 'Gather around the fire'], night: ['Night falls', 'Everyone returns to their tent'],
+  day: ['Dawn', 'Day 2 — back to the fire'], ghost: ['You are a ghost', 'Drift anywhere. Only other ghosts can see you'], ended: ['Match over', 'Roles revealed'],
+};
+let bannerTimer = 0;
+function banner(s: FixtureScene) { const b = BANNERS[s]; hud.banner({ title: b[0], sub: b[1] }); clearTimeout(bannerTimer); bannerTimer = window.setTimeout(() => hud.banner(null), s === 'night' || s === 'day' ? 4000 : 2800); }
+banner(initial);
+
+if (q.get('audio') !== '0') {
+  const start = async () => { await scene.setAudio(true); hud.markAudio(true); };
+  window.addEventListener('pointerdown', start, { once: true });
+  window.addEventListener('keydown', start, { once: true });
+  if (!q.has('scene')) hud.toast('Tap or press a key to start the ambience', 4000);
+}
+
+let last = performance.now();
+function loop(now: number) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  server.update(dt);
+  const inp: SceneInput = server.input;
+  const alive = inp.seats.length ? inp.seats.filter((s) => s.alive).length : inp.players.length;
+  hud.setPhase(phaseLabel(inp), inp.phase === 'lobby' ? `· ${inp.players.length} campers` : inp.me.kind === 'moderator' ? '· moderator' : inp.seats.find((s) => s.seat === inp.me.seat)?.alive === false ? '· ghost view' : `· ${alive} alive`, inp.phase === 'night');
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// automation hooks for captures / perf
+declare global { interface Window { __moonveil?: Record<string, unknown> } }
+window.__moonveil = {
+  setScene: (s: FixtureScene) => { server.setScene(s); scene.setInput(server.input); hud.markScene(s); banner(s); },
+  setSpeak: (on: boolean) => { scene.setSpeakingLocal(on); hud.setMic(on); },
+  setCamera: (m: 'fit' | 'tight') => { scene.setCamera(m); hud.markCam(m); },
+  walk: (x: number, y: number) => scene.walkLocal(x, y),
+  emote: (s: string) => scene.emote(s),
+  night: () => scene.night(),
+  localPose: () => scene.localPose(),
+  time: () => scene.time(),
+  perf: () => scene.perf(),
+  perfReset: () => scene.perfReset(),
+  ready: false,
+};
+void scene.ready.then(() => { window.__moonveil!.ready = true; console.log(`moonveil scene harness: ${n} players, ${initial}`); });
