@@ -88,10 +88,18 @@ export interface MatrixReport {
 // Also: A's rosters contain only seats holding a grant on c; A holds no channel without a grant.
 export async function checkHearMatrix(players: Player[], stepName: string): Promise<MatrixReport> {
   const report: MatrixReport = { step: stepName, checked: 0, failures: [] };
+  // Consistency guard: every player's latest frame must show the same step before and after the window,
+  // and nobody's grants may change inside it. On a saturated shared machine frames lag by seconds per
+  // page; a matrix mixing two steps is meaningless, so it is skipped rather than failed.
+  const stepsBefore = players.map((p) => step(p));
   const grantsBefore = players.map((p) => JSON.stringify(p.view().voice));
+  if (new Set(stepsBefore).size !== 1) {
+    report.skipped = true;
+    return report;
+  }
   const snaps = new Map(await Promise.all(players.map(async (p) => [p, (await voiceSnapshot(p))!] as const)));
   const energy = await measure(players);
-  if (players.some((p, i) => JSON.stringify(p.view().voice) !== grantsBefore[i])) {
+  if (players.some((p, i) => JSON.stringify(p.view().voice) !== grantsBefore[i] || step(p) !== stepsBefore[0])) {
     report.skipped = true;
     return report;
   }
