@@ -86,7 +86,8 @@ export async function seatRealMatch(table: Table, opts: { mode: Mode; seats: num
   const host = await table.player(opts.mode === 'moderator' ? 'Mod' : 'P0', ctx);
   await host.page.goto('/');
   await clientCall(host, 'create', [opts.mode, profile(host.name)]);
-  await expect.poll(() => host.frames.some((f) => f.msg.t === 'welcome')).toBe(true);
+  // The room code is read from the first state frame (welcome may arrive alone first).
+  await expect.poll(() => host.frames.some((f) => f.msg.t === 'state')).toBe(true);
   const code = host.view().code;
   const players: Player[] = opts.mode === 'automatic' ? [host] : [];
   while (players.length < opts.seats) {
@@ -95,7 +96,7 @@ export async function seatRealMatch(table: Table, opts: { mode: Mode; seats: num
     await clientCall(p, 'join', [code, profile(p.name)]);
     players.push(p);
   }
-  for (const p of players) await expect.poll(() => p.frames.some((f) => f.msg.t === 'welcome')).toBe(true);
+  for (const p of players) await expect.poll(() => p.frames.some((f) => f.msg.t === 'state')).toBe(true);
   for (const p of players) await send(p, { t: 'ready', ready: true });
   await expect.poll(() => host.view().canStart).toBe(true);
   await send(host, { t: 'start' });
