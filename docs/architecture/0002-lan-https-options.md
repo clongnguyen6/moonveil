@@ -1,5 +1,7 @@
 # 0002: HTTPS for phones: options (corrected 2026-10-16)
 
+Hosting shapes (single vs split host, why serverless isn't import-and-play): see 0007.
+
 Status: options for Human + voice owner. Paper only; nothing installed, no certs, no system changes.
 Detailed per-option evidence: `docs/voice/SECURE_CONTEXT.md` (voice owner, tested parts tagged). This note adds foundation's view and corrects my first version.
 

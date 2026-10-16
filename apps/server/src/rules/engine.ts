@@ -31,7 +31,14 @@ export interface RulesEngine<S> {
   readonly id: string;
   readonly minPlayers: number;
   readonly maxPlayers: number;
-  setup(input: { seats: readonly SeatId[]; seed: string }): S;
+  // `deck`: host-customized role counts (validated by `decks.validate` first). Absent = engine default.
+  setup(input: { seats: readonly SeatId[]; seed: string; deck?: Record<string, number> }): S;
+  // Optional host deck customization (lobby). Absent = engine has no deck notion (fixture).
+  decks?: {
+    default(playerCount: number): Record<string, number> | null;
+    // null = valid for this player count; else the engine's reason.
+    validate(counts: Record<string, number>, playerCount: number): string | null;
+  };
   phase(state: S): PhaseInfo;
   // Player action. Engine validates seat, phase, target. Server only routes.
   submit(state: S, seat: SeatId, action: unknown): Result<S>;

@@ -4,7 +4,7 @@ Status: **proposal, v0.8, 2026-10-16**. v0.2 was revised after an independent re
 Only what is listed under "Approved rules" is accepted. Everything else is **provisional** until you approve it.
 The engine implements each provisional recommendation as a named setting (`config.*`) or one isolated function.
 Approved rules are fixed engine behaviour, no longer settings.
-Related drafts (all provisional): `BALANCE.md` (bot screening), `NARRATION.md` (phase text, EN/VI), `QUICK_REFERENCE.md` (player help).
+**Start here for open items:** `DECISIONS_REMAINING.md` (one page, batched). Related drafts (all provisional): `BALANCE.md` (bot screening), `NARRATION.md` (phase text, EN/VI), `QUICK_REFERENCE.md` (player help).
 
 ## Still open (summary)
 

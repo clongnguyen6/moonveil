@@ -1,0 +1,39 @@
+{
+  "name": "@moonveil/voice",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Moonveil voice: LiveKit adapter for the server's VoiceGateway (grants -> rooms/tokens, rotation), browser VoiceClient, LiveKit dev tooling.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./tooling/livekit": "./tooling/livekit.mjs",
+    "./client/react": "./src/client/react.ts"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 'test/**/*.test.ts'",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.client.json",
+    "livekit": "node tooling/livekit.mjs",
+    "check": "npm run typecheck && npm test"
+  },
+  "engines": {
+    "node": ">=24.12"
+  },
+  "dependencies": {
+    "@moonveil/protocol": "*",
+    "livekit-client": "2.22.4",
+    "livekit-server-sdk": "2.19.1"
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0"
+  }
+}
