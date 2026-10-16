@@ -18,7 +18,9 @@
     "test": "node scripts/env.mjs npm run test --workspaces --if-present",
     "e2e:install": "node scripts/env.mjs npx playwright install --only-shell chromium webkit",
     "e2e": "node scripts/env.mjs npm run e2e -w @moonveil/e2e",
-    "check": "npm run typecheck && npm test && npm run e2e"
+    "check": "npm run typecheck && npm test && npm run e2e",
+    "e2e:scale": "node scripts/env.mjs npm run e2e -w @moonveil/e2e -- scale --project desktop-chromium",
+    "bench": "node scripts/env.mjs node apps/server/bench/fanout.ts"
   },
   "devDependencies": {
     "typescript": "7.0.2"

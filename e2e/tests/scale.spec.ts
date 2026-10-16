@@ -1,4 +1,4 @@
-// Opt-in scale run: E2E_SCALE=10,12,16 npm run e2e -- scale. FIXTURE engine. Logs one `SCALE {json}` line per size.
+// Opt-in scale run: E2E_SCALE=10,12,16 npm run e2e:scale (sampler: scripts/sample-resources.mjs). FIXTURE engine. Logs one `SCALE {json}` line per size.
 // The last player uses Pixel 7 emulation to check the lobby list on a phone at that size.
 import { devices } from '@playwright/test';
 import { expect, type Player, test } from '../harness/index.ts';
