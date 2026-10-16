@@ -44,8 +44,27 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
 {
   const ps = [];
   for (const n of NAMES) ps.push(await mk(n));
+  // Built dist served by the real server (not vite): the new shell renders, the old shell is gone.
+  await ps[0].page.goto(`${base}/`);
+  ok('dist: production entry renders GameApp (entry + app roots present)', (await ps[0].page.locator('[data-testid=app] [data-testid=entry]').count()) === 1);
+  ok('dist: old shell markup absent (.shell/.roomhead)', (await ps[0].page.locator('.shell, .roomhead, .provisional').count()) === 0);
+  ok('dist: title and lang from the UI', /Moonveil/.test(await ps[0].page.title()) && /^(vi|en)$/.test(await ps[0].page.locator('html').getAttribute('lang')));
   const code = await ps[0].create('automatic');
   for (const p of ps.slice(1)) await p.join(code);
+  // Host deck (P12): default shown; invalid custom deck -> error + start blocked; reset -> default again.
+  const host = ps[0];
+  ok('deck: lobby shows the engine default deck', (await host.page.locator('[data-testid=deck][data-custom=false]').count()) === 1 && (await host.page.locator('[data-testid=deck-counts] [data-role=wolf]').getAttribute('data-count')) !== '0');
+  await host.page.getByTestId('deck-edit').click();
+  await host.page.locator('[data-role=wolf] button[aria-label^="-"]').click();
+  await host.page.locator('[data-role=wolf] button[aria-label^="-"]').click();
+  await host.page.getByTestId('deck-apply').click();
+  await host.page.waitForTimeout(400);
+  const deckErr = (await host.page.locator('[data-testid=deck-error], [data-testid=error]').count()) > 0;
+  ok('deck: an invalid custom deck is rejected (engine error shown)', deckErr);
+  if ((await host.page.locator('[data-testid=deck-reset]').count()) > 0) await host.page.getByTestId('deck-reset').click();
+  await host.page.waitForTimeout(300);
+  ok('deck: back to default', (await host.page.locator('[data-testid=deck][data-custom=false]').count()) === 1);
+  ok('deck: non-host sees the deck but no controls', (await ps[1].page.locator('[data-testid=deck]').count()) === 1 && (await ps[1].page.locator('[data-testid=deck-edit]').count()) === 0);
   for (const p of ps) await p.ready();
   await ps[0].page.getByTestId('start').click();
   for (const p of ps) await p.waitStep('night.main', 15_000);
@@ -83,8 +102,9 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   // wolf chat: private
   const w = wolves[0];
   await w.page.getByTestId('open-chat').click();
-  const tabs = w.page.locator('.tabs .tab');
-  if (await tabs.count()) await tabs.filter({ hasText: /Wolves|Sói/ }).click();
+  const tabs = w.page.locator('[data-testid=chat-tab]');
+  if (await tabs.count()) await w.page.locator('[data-testid=chat-tab][data-channel=wolves]').click();
+  ok('chat-tab hook present with data-channel', (await tabs.count()) === 0 || (await w.page.locator('[data-testid=chat-tab][data-channel=wolves]').count()) === 1);
   await w.page.getByTestId('chat-input').fill('grr');
   await w.page.getByTestId('chat-send').click();
   await w.page.waitForTimeout(600);
@@ -99,6 +119,8 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   const counts = new Set();
   for (const p of ps) counts.add(await p.page.locator('.topbar .tools .btn').count());
   ok('night: identical top-bar button count on every seat', counts.size === 1);
+  ok('voice bar reports a mic state hook (data-mic) on every seat', (await Promise.all(ps.map((p) => p.page.locator('[data-testid=voice][data-mic]').count()))).every((n) => n === 1));
+  ok('voice: no second VoiceClient; UI reads the client\'s instance (null without a voice backend)', (await ps[0].page.evaluate(() => (globalThis.__moonveil?.voice ?? null) === null || typeof globalThis.__moonveil.voice.getSnapshot === 'function')));
   // wait for night.witch (fixed 40 s) then dawn (20 s)
   for (const p of ps) await p.waitStep('night.witch', 60_000);
   const witch = ps.find((p) => roles.get(p.seat) === 'witch');
@@ -117,7 +139,7 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
     await ghost.page.getByTestId('open-chat').click();
     const ghostTabs = await ghost.page.locator('.tabs .tab').allInnerTexts();
     ok('ghost: chat offers the Ghosts channel (listen+speak) and public (listen)', ghostTabs.some((x) => /Ghosts|Ma/.test(x)));
-    await ghost.page.locator('.tabs .tab').filter({ hasText: /Ghosts|Ma/ }).click();
+    await ghost.page.locator('[data-testid=chat-tab][data-channel=ghosts]').click();
     await ghost.page.getByTestId('chat-input').fill('boo');
     await ghost.page.getByTestId('chat-send').click();
     await ghost.page.waitForTimeout(500);
@@ -136,7 +158,13 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   await r.page.waitForSelector('[data-testid=conn][data-status=open]', { timeout: 15_000 });
   await r.page.waitForSelector('[data-testid=room]');
   ok('reconnect (reload): same seat, same step rendered', r.seat === r.view().me.seat && (await r.step()) === stepBefore);
-  ok('reconnect: no secret gained (own role unchanged, others still null)', r.game().me.role === roles.get(r.seat) && r.game().seats.every((s) => s.seat === r.game().me.seat || s.role === null || s.role === 'hunter'));
+  {
+    const g = r.game();
+    const revealed = new Set(g.publicLog.filter((e) => e.t === 'roleRevealed').map((e) => e.seat));
+    const isWolf = roles.get(r.seat) === 'wolf';
+    const legit = g.seats.every((s) => s.seat === g.me.seat || s.role === null || revealed.has(s.seat) || (isWolf && s.role === 'wolf' && roles.get(g.seatIds[s.seat]) === 'wolf'));
+    ok('reconnect: no secret gained (own role unchanged; others only pack-for-wolves or publicly revealed)', g.me.role === roles.get(r.seat) && legit);
+  }
   for (const p of ps) await p.ctx.close();
 }
 

@@ -24,6 +24,7 @@ export const vi: Strings = {
   micTitle: 'Micro', micIdle: 'Kiểm tra mic trước khi chơi.', micCheck: 'Kiểm tra micro', micChecking: 'Đang nghe…', micOk: 'Mic hoạt động. Nói thử để thấy vạch nhảy.',
   micDenied: 'Micro bị chặn.', micDeniedHelp: 'Cho phép mic trong cài đặt trình duyệt, hoặc chơi bằng chat chữ.', micUnsupported: 'Trình duyệt này không thu được âm thanh.',
   micInsecure: 'Thoại cần kết nối bảo mật (https).', micRetry: 'Thử lại', micText: 'Chơi bằng chữ', micTextOn: 'Chỉ chat chữ. Bạn vẫn nghe được người khác.',
+  micWaitingSession: 'Thoại sẽ kết nối khi phòng sẵn sàng.', micOkVoice: 'Mic đang hoạt động trong kênh trại.', micFailed: 'Không khởi động được micro.',
   micInPerson: 'Phòng chơi trực tiếp: tắt thoại, nói chuyện tại bàn. Sói nhắn chữ ban đêm.', micLater: 'Có thể đổi bất cứ lúc nào bằng nút mic.',
 
   roleWolf: 'Sói', roleVillager: 'Dân làng', roleSeer: 'Tiên tri', roleGuard: 'Bảo vệ', roleWitch: 'Phù thủy', roleHunter: 'Thợ săn',
@@ -85,7 +86,8 @@ export const vi: Strings = {
   modAlive: 'sống', modDead: 'chết', modDisconnected: 'mất kết nối', modInPerson: 'Phòng chơi trực tiếp',
 
   chatTitle: 'Chat', chatPh: 'Nhắn gì đó…', chatNone: 'Chưa có tin nhắn.', chatQuiet: 'Đang yên lặng. Chat mở khi bạn được nói.', chatListenOnly: 'Lúc này bạn chỉ đọc, không viết được.', chatPublic: 'Trại', chatWolves: 'Sói', chatGhosts: 'Ma',
-  voiceMic: 'Mic', voiceMute: 'Tắt mic', voiceUnmute: 'Bật mic', voiceMuted: 'Đã tắt mic', voiceListen: 'Chỉ nghe', voiceOff: 'Tắt thoại', voiceTalking: 'Đang nói', voiceChannel: 'Kênh',
+  voiceMic: 'Mic', voiceMicOff: 'Mic không dùng được', voiceUnlock: 'Bật âm thanh',
+  deckTitle: 'Bộ vai', deckDefault: 'mặc định', deckCustom: 'tùy chỉnh', deckNone: 'Chưa có bộ vai mặc định cho {n} người.', deckTotal: '{n} vai · {players} người', deckEdit: 'Tùy chỉnh', deckReset: 'Dùng mặc định', deckApply: 'Áp dụng', voiceMute: 'Tắt mic', voiceUnmute: 'Bật mic', voiceMuted: 'Đã tắt mic', voiceListen: 'Chỉ nghe', voiceOff: 'Tắt thoại', voiceTalking: 'Đang nói', voiceChannel: 'Kênh',
 
   helpTitle: 'Cách chơi', helpFlow: 'Mỗi đêm sói chọn nạn nhân và các vai đặc biệt hành động. Sáng ra công bố người chết. Ban ngày mọi người thảo luận, đề cử một người, nghe biện hộ rồi bỏ phiếu Có hoặc Không.',
   helpWin: 'Dân thắng khi hết sói. Sói thắng khi số sói ít nhất bằng tất cả những người còn sống khác, kể cả các vai đặc biệt.',

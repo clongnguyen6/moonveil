@@ -23,6 +23,7 @@ export const en = {
   micTitle: 'Microphone', micIdle: 'Check your mic before the match.', micCheck: 'Check microphone', micChecking: 'Listening…', micOk: 'Mic works. Say something to see the meter move.',
   micDenied: 'Microphone blocked.', micDeniedHelp: 'Allow the mic in your browser settings, or play by text chat.', micUnsupported: 'This browser cannot capture audio.',
   micInsecure: 'Voice needs a secure (https) connection.', micRetry: 'Try again', micText: 'Play by text', micTextOn: 'Text only. You still hear others.',
+  micWaitingSession: 'Voice connects when the room is ready.', micOkVoice: 'Mic is live in the camp channel.', micFailed: 'Microphone could not start.',
   micInPerson: 'In-person room: voice is off, talk at the table. Wolves use text at night.', micLater: 'You can change this any time from the mic button.',
 
   roleWolf: 'Wolf', roleVillager: 'Villager', roleSeer: 'Seer', roleGuard: 'Guard', roleWitch: 'Witch', roleHunter: 'Hunter',
@@ -84,7 +85,8 @@ export const en = {
   modAlive: 'alive', modDead: 'dead', modDisconnected: 'disconnected', modInPerson: 'In-person room',
 
   chatTitle: 'Chat', chatPh: 'Message…', chatNone: 'No messages yet.', chatQuiet: 'Quiet for now. Chat opens when you may talk.', chatListenOnly: 'You can read, not write, here now.', chatPublic: 'Camp', chatWolves: 'Wolves', chatGhosts: 'Ghosts',
-  voiceMic: 'Mic', voiceMute: 'Mute', voiceUnmute: 'Unmute', voiceMuted: 'Muted', voiceListen: 'Listen only', voiceOff: 'Voice off', voiceTalking: 'Talking', voiceChannel: 'Channel',
+  voiceMic: 'Mic', voiceMicOff: 'Mic unavailable', voiceUnlock: 'Enable audio',
+  deckTitle: 'Roles', deckDefault: 'default', deckCustom: 'custom', deckNone: 'No default deck for {n} players yet.', deckTotal: '{n} roles · {players} players', deckEdit: 'Customize', deckReset: 'Use default', deckApply: 'Apply', voiceMute: 'Mute', voiceUnmute: 'Unmute', voiceMuted: 'Muted', voiceListen: 'Listen only', voiceOff: 'Voice off', voiceTalking: 'Talking', voiceChannel: 'Channel',
 
   helpTitle: 'How to play', helpFlow: 'Each night the wolves pick a victim and special roles act. At dawn the dead are announced. By day everyone talks, nominates one player, hears their defense and votes Yes or No.',
   helpWin: 'The village wins when no wolves remain. The wolves win when they are at least as many as everyone else alive, special roles included.',

@@ -32,5 +32,6 @@ export function clientSession(client: Client): Session {
     send: (msg: OutMessage) => client.send(msg),
     onPoses: (fn: (poses: Pose[]) => void) => client.onPoses(fn),
     inviteBase,
+    voice: () => client.voice,
   };
 }

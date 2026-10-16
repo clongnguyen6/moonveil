@@ -2,6 +2,7 @@
 // (./stub) implements the same surface in-browser. Keeping the UI on this interface means screens never
 // know whether a socket or a stub is behind them.
 import type { ClientMessageInput, ErrorCode, Mode, Pose, Profile, SeatId, SeatView, VoiceMode } from '@moonveil/protocol';
+import type { VoiceClient } from '@moonveil/voice/client';
 import type { ChatEntry } from './types.ts';
 
 export type ConnStatus = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'replaced' | 'ended';
@@ -35,6 +36,8 @@ export interface Session {
   send(msg: OutMessage): boolean;
   /** Invite link origin (LAN URL when the host browses on localhost); absent on the stub. */
   inviteBase?(): Promise<string>;
+  /** The one VoiceClient (client.ts creates it lazily); null until voice sessions arrive. Absent on the stub. */
+  voice?(): VoiceClient | null;
   /** Pose frames (≤ 10 Hz) for the scene; absent on the stub. */
   onPoses?(fn: (poses: Pose[]) => void): () => void;
 }

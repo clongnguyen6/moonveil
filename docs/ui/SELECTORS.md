@@ -24,6 +24,14 @@ visual changes. Text is localized (vi/en) and must not be asserted on. Everythin
 `[data-testid=edit-profile]`, `[data-testid=save-profile]`, `[data-testid=leave]`, `[data-testid=mic][data-status=idle|checking|ok|denied|unsupported|insecure|inPerson]`,
 `[data-testid=mic-check]`, `[data-testid=mic-retry]`, `[data-testid=mic-text]`.
 
+## Lobby deck (host customization, P12)
+`[data-testid=deck][data-custom=true|false][data-error=true|false]`, `[data-testid=deck-counts] [data-role=<role>][data-count=<n>]`, `[data-testid=deck-error]`,
+host only: `[data-testid=deck-edit]` → `[data-role=<role>] button[aria-label^="+"|"-"]` → `[data-testid=deck-apply]`; `[data-testid=deck-reset]` when custom. Server errors also land in `[data-testid=error]`.
+
+## Voice (single VoiceClient from client.ts, `__moonveil.voice`)
+`[data-testid=voice][data-speak=<channels>][data-mic=idle|requesting|granted|denied|failed|…][data-muted]` in the match top bar; `[data-testid=audio-unlock]` when autoplay is blocked.
+Lobby `[data-testid=mic][data-status=…]`: with a VoiceClient, `ok|checking|idle|denied|failed` from its snapshot plus `[data-testid=mic-mute]` / `[data-testid=mic-reload]`; without one (in-person, stub), the local check hooks listed above.
+
 ## Match
 | Hook | Meaning |
 |---|---|
@@ -45,7 +53,7 @@ visual changes. Text is localized (vi/en) and must not be asserted on. Everythin
 
 ## Sheets
 `[data-testid=role-sheet]` → `[data-testid=role-card][data-shown]` (tap to reveal) → `[data-testid=my-role]`, `[data-testid=facts]`, `[data-testid=roles-in-play]`.
-`[data-testid=chat-sheet]` → `.tabs .tab` (only channels with a listen grant), `[data-testid=chat-log][data-channel]`, `[data-testid=chat-input]`, `[data-testid=chat-send]`, `[data-testid=chat-listen-only]`, `[data-testid=chat-quiet]` (no grants at all).
+`[data-testid=chat-sheet]` → `[data-testid=chat-tab][data-channel=<channel>]` (only channels with a listen grant), `[data-testid=chat-log][data-channel]`, `[data-testid=chat-input]`, `[data-testid=chat-send]`, `[data-testid=chat-listen-only]`, `[data-testid=chat-quiet]` (no grants at all).
 `[data-testid=help-sheet]` → `[data-testid=help-provisional]`.
 
 ## Moderator

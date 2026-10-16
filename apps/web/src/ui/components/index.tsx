@@ -113,11 +113,11 @@ export function Toasts({ items }: { items: ToastItem[] }) {
   );
 }
 
-export function Tabs<K extends string>({ tabs, value, onChange }: { tabs: { key: K; label: string }[]; value: K; onChange: (k: K) => void }) {
+export function Tabs<K extends string>({ tabs, value, onChange, testId, dataKey }: { tabs: { key: K; label: string }[]; value: K; onChange: (k: K) => void; testId?: string; dataKey?: string }) {
   return (
     <div className="tabs" role="tablist">
       {tabs.map((x) => (
-        <button key={x.key} role="tab" className="tab" aria-selected={value === x.key} onClick={() => onChange(x.key)}>{x.label}</button>
+        <button key={x.key} role="tab" className="tab" aria-selected={value === x.key} data-testid={testId} {...(dataKey ? { [`data-${dataKey}`]: x.key } : {})} onClick={() => onChange(x.key)}>{x.label}</button>
       ))}
     </div>
   );

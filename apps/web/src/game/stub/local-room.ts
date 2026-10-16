@@ -2,7 +2,7 @@
 // screenshotted before foundation wires the engine into apps/server. Mirrors Room.buildView() from
 // apps/server/src/room.ts (view shape, grants, fixed phase deadlines). Never shipped to players.
 import type { Mode, Profile, PublicSeat, SeatId, SeatView, VoiceGrant } from '@moonveil/protocol';
-import { type Command, type HostState, type RulesEngine, createRulesEngine } from '@moonveil/rules';
+import { type Command, type DeckCounts, type HostState, type RulesEngine, createRulesEngine, defaultDeck, resolveConfig, validateDeck } from '@moonveil/rules';
 import { type ConnStatus, type OutMessage, type Session, type SessionState, emptySession } from '../session.ts';
 import type { ChannelId, ChatEntry } from '../types.ts';
 import { pickBotAction } from './bots.ts';
@@ -49,6 +49,8 @@ export class LocalRoom implements Session {
   chat: ChatEntry[] = [];
   speaking: SeatId[] = [];
   error: SessionState['error'] = null;
+  customDeck: Record<string, number> | null = null;
+  private config = resolveConfig();
   private seed: string;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private botTimer: ReturnType<typeof setTimeout> | null = null;
@@ -137,6 +139,18 @@ export class LocalRoom implements Session {
         case 'start':
           this.start();
           break;
+        case 'deck': {
+          if (this.status !== 'lobby' || me.id !== this.hostId) throw new Error('host, lobby only');
+          if (msg.counts) {
+            const err = validateDeck(msg.counts as DeckCounts, this.players.length, this.config);
+            if (err) {
+              this.error = { code: 'invalid-action', message: err };
+              break;
+            }
+          }
+          this.customDeck = msg.counts;
+          break;
+        }
         case 'act': {
           if (!this.game) throw new Error('no game');
           const r = me.kind === 'moderator' ? this.engine.moderate(this.game, msg.action) : this.engine.submit(this.game, me.id, msg.action);
@@ -234,13 +248,18 @@ export class LocalRoom implements Session {
     if (!s) throw new Error('seat gone');
     return s;
   }
+  private deckError(): string | null {
+    return this.customDeck ? validateDeck(this.customDeck as DeckCounts, this.players.length, this.config) : null;
+  }
   private canStart(): boolean {
     const k = this.players.length;
-    return this.status === 'lobby' && k >= this.engine.minPlayers && k <= this.engine.maxPlayers && this.players.every((p) => p.ready);
+    return this.status === 'lobby' && k >= this.engine.minPlayers && k <= this.engine.maxPlayers && this.players.every((p) => p.ready) && this.deckError() === null;
   }
   start() {
     if (!this.canStart()) throw new Error('need enough ready players');
-    this.game = this.engine.setup({ seats: this.players.map((p) => p.id), seed: this.seed });
+    const deck = this.customDeck as DeckCounts | null;
+    const eng = deck ? createRulesEngine({ deck: () => deck }) : this.engine;
+    this.game = eng.setup({ seats: this.players.map((p) => p.id), seed: this.seed });
     this.status = 'playing';
     this.enterPhase();
   }
@@ -306,6 +325,7 @@ export class LocalRoom implements Session {
       phaseEndsAt: this.phaseEndsAt,
       phaseDurationMs: this.game && this.phaseEndsAt !== null ? this.engine.phase(this.game).durationMs : null,
       voiceMode: this.voiceMode,
+      deck: this.status === 'lobby' ? { default: defaultDeck(this.players.length, this.config), custom: this.customDeck, error: this.deckError() } : null,
       game: this.game ? this.engine.view(this.game, isMod ? { kind: 'moderator' } : { kind: 'seat', seat: me.id }) : null,
       voice: grants,
     };

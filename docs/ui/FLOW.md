@@ -81,6 +81,12 @@ Match (frame = scene host + top bar + dock)
 - Moderator narration cues: Settings → "Narration cues", default off.
 - Remove / abort: hidden; appear only when the rules config carries `moderator.canRemove` / `moderator.canAbort`.
 
+## Voice (foundation-6)
+`client.ts` owns the one `VoiceClient` (lazy, `__moonveil.voice`). The UI reads its snapshot through `Session.voice()` (`ui/voice/useVoiceClient.ts`): mic state, mute, denied/failed, autoplay unlock. No second instance; the local getUserMedia check (`ui/voice/mic.ts`) is used only when no VoiceClient exists (in-person rooms, stub).
+
+## Host deck (foundation-6, P12)
+Lobby `DeckCard` renders `view.deck` (engine default for the player count, host custom counts, engine validation error; start is blocked on error). Host: Customize (± per role) → Apply (`{t:'deck', counts}`), Use default (`counts: null`). Counts and roles come from the engine, never hard-coded.
+
 ## Scene mount (docs/visual/MOUNT.md, adopted)
 `ui/SceneMount.tsx` mounts `@moonveil/scene` into `.scene-slot` in lobby and match: `toSceneInput(view, gameView)` on every snapshot, `setSpeaking` from the `speaking` frame, `setPoses(fromWirePoses(.., 'normalized'))` from `poses` frames, `on('move')` → `{t:'move'}`, `setSafeArea({top})` from the measured top bar, `setAudio` from Settings → "Camp ambience" (default off; starts after a gesture). Decisions for visual: (1) poses/speaking live in `SessionState` (client adapter taps the socket until foundation adds a hook, P2); (2) top bar height measured; (3) avatar taps ignored in v1; (4) ambience toggle in Settings, default off.
 
