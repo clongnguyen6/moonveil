@@ -5,18 +5,18 @@ Concrete, smallest-useful. Each item says what the UI does meanwhile.
 ## P1. Moderator route — DONE in foundation-3 (moderator sends `act` with a rules Command → `engine.moderate`). UI uses it.
 
 ## P2. Text chat — DONE in foundation-3 (`say`, `chat`, `chatlog` by listen grant). UI uses the protocol `ChatMessage`.
-Still missing on the client side (foundation owns `client.ts`): the `Client` drops `chat`/`chatlog`/`speaking`/`poses` frames. Request: either
+Client side DONE in foundation-4 (`ClientState.chat/speaking/voiceMode/serverOffsetMs`, `client.onPoses`). Earlier text: Request: either
 (a) `ClientState` gains `chat: Record<channel, ChatMessage[]>` and `speaking: SeatId[]` maintained from those frames (chatlog replaces, chat appends, channel removed when its listen grant goes), or
 (b) a `client.onFrame(fn)` listener so the UI adapter keeps that state itself.
 Meanwhile the UI adapter (`src/game/client-session.ts`) taps the socket's message events; labelled interim.
 
-## P3. Voice mode flag (foundation, protocol) — in-person play
+## P3. Voice mode flag — DONE in foundation-4 (`SeatView.voiceMode`, `create.voiceMode`). UI: in-person checkbox at creation; mic hidden, text kept.
 `SeatView.voiceMode: 'remote' | 'inPerson'` (room setting at creation, creator's choice). UI: hides the mic, shows "voice off, talk at the table", keeps chat. Voice scope: issue no tokens when `inPerson` (RECOMMENDATION.md §6).
 Meanwhile: `SessionState.voiceMode` defaults to `remote`.
 
 ## P4. Speaking indicators — DONE on the wire in foundation-3 (`speaking` frame). Client-side state: see P2.
 
-## P5. Phase start time (foundation, protocol) — nice to have
+## P5. Phase duration — DONE in foundation-4 (`phaseDurationMs` + server `now`); the timer ring uses the server clock.
 `SeatView.phaseStartedAt: number | null` next to `phaseEndsAt`, so the timer ring is exact after reconnect. Meanwhile the ring starts from the moment the deadline was first seen; the number is always exact.
 
 ## P6. Moderator enters the Yes count (rules) — DONE in dev 58abc9e
@@ -25,7 +25,7 @@ Meanwhile: `SessionState.voiceMode` defaults to `remote`.
 ## P7. Ballots out of the projection (rules) — DONE in dev 58abc9e
 Players get `votes: null` mid-vote and `me.ballot`; UI reads `me.ballot` only. Still open (provisional, rules): `moderator.seesLiveBallots` and `day.showWhoVoted`. The UI never renders `votes`/`voted`, so either decision needs no UI change.
 
-## P8. Workspace + typing (foundation)
+## P8. Workspace + typing (foundation) — DONE (rules + scene declared in apps/web)
 - `packages/rules` is in root `workspaces` on dev (done). `apps/web/package.json` still needs `"@moonveil/rules": "*"` so the dependency is declared, not just hoisted.
 - `SeatView.game` typed as `HostView | null` once wired (INTEGRATION.md item 3).
 
@@ -38,3 +38,9 @@ Night actions produce frames only from acting seats. Option: clients send a `noo
 ## Rules questions (for the rules owner)
 - `day.openVotes`, `day.accusedVotesOnConfirm`, `reveal.historyAtEnd`: UI follows the projection; no change needed if they flip.
 - Help text needs public rule settings to describe the match truthfully (e.g. Guard repeat rule, Seer result kind, timers). Request a public `rules` summary in the projection (`{ seer.result, guard.noRepeatTarget, witch.*, timing.* }`) so help copy reads settings instead of hard-coding them. Until then help lists only approved rules + "other details follow the match settings".
+
+## P11. `@moonveil/scene` in the web manifest — DONE in foundation-4
+`apps/web/package.json` needs `"@moonveil/scene": "*"` (the shell imports it for the mount; resolves today only by hoisting).
+
+## P12. Deck preview + host customization in the lobby (foundation + rules)
+Batch A: decks are engine config and host customization is engine-validated. The lobby has no deck data before start (`SeatView` carries only `limits`). Request: `SeatView.deck: { default: Record<Role, number>; custom: Record<Role, number> | null }` for the current player count, and a host message `{ t: 'deck', counts }` validated by `validateDeck()` (error → `invalid-action`). UI then shows the deck in the lobby and a host editor; until then only the dealt deck (`roleCounts`) is shown after start.

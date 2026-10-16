@@ -1,6 +1,6 @@
-// Moderator console. Approved: the moderator listens to everything, cannot speak, see ballots or act for
-// players (pending). Controls: close step, Yes-count entry (in-person verdict), remove player, abort.
-// Secret state shown = whatever the moderator projection carries (roles, night record), minus ballots.
+// Moderator console. Approved powers: close step, enter the Yes count (in-person verdict), listen to every channel.
+// Day ballots are open to every viewer (approved), so the moderator sees them like anyone else (Log tab + public log).
+// Speaking, acting for seats, removal and abort are provisional: hidden unless the engine config enables them.
 import { useState } from 'react';
 import { useSettings } from '../../game/local-store.ts';
 import { mod } from '../../game/commands.ts';
@@ -52,10 +52,8 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
               </label>
               <p className="hint">{t('modYesHint')}</p>
               <Button kind="secondary" testId="yes-apply" onClick={() => sendMod(mod.yesCount(yes))}>{t('modApply')}</Button>
-              <p className="muted" style={{ fontSize: 'var(--fs-0)' }}>{t('modNoBallots')}</p>
             </div>
           )}
-          {(g.step.kind === 'day.vote') && <p className="muted">{t('modNoBallots')}</p>}
           <Button wide testId="close-step" disabled={ended} onClick={() => setAsk({ text: t('modCloseConfirm', { step: stepName }), yes: t('modCloseStep'), run: () => sendMod(mod.closeStep()) })}>{t('modCloseStep')} →</Button>
           {canAbort && <Button kind="danger" testId="abort" disabled={ended} onClick={() => setAsk({ text: t('modAbortConfirm'), yes: t('modAbort'), danger: true, run: () => sendMod(mod.abort()) })}>{t('modAbort')}</Button>}
         </div>
