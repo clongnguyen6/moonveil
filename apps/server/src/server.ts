@@ -22,6 +22,8 @@ const TYPES: Record<string, string> = {
 export interface ServerOptions extends RegistryOptions {
   staticDir?: string;
   heartbeatMs?: number;
+  // LAN base URLs players can reach (empty when bound to loopback). Served at GET /api/lan.
+  lanUrls?: () => string[];
 }
 
 // Same-origin check (CSWSH). Non-browser clients send no Origin and are allowed.
@@ -44,6 +46,12 @@ export function createMoonveilServer(opts: ServerOptions): { http: Server; regis
     const url = new URL(req.url ?? '/', 'http://x');
     if (url.pathname === '/healthz') {
       res.writeHead(200, { 'content-type': 'text/plain' }).end('ok');
+      return;
+    }
+    if (url.pathname === '/api/lan' && req.method === 'GET') {
+      res
+        .writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' })
+        .end(JSON.stringify({ urls: opts.lanUrls?.() ?? [] }));
       return;
     }
     if (!staticDir || (req.method !== 'GET' && req.method !== 'HEAD')) {

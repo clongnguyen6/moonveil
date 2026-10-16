@@ -138,3 +138,16 @@ test('ws + REAL engine: 7 sockets, start, wolf chat only to wolves, illegal move
     await srv2.stop();
   }
 });
+
+test('GET /api/lan: LAN invite URLs from the host option; [] by default', async () => {
+  assert.deepEqual(await (await fetch(`${base}/api/lan`)).json(), { urls: [] });
+  const lan = createMoonveilServer({ engine: () => createFixtureEngine() as RulesEngine<unknown>, lanUrls: () => ['http://192.168.1.20:4100'] });
+  await new Promise<void>((r) => lan.http.listen(PORT + 3, '127.0.0.1', r));
+  try {
+    const r = await fetch(`http://127.0.0.1:${PORT + 3}/api/lan`);
+    assert.equal(r.headers.get('cache-control'), 'no-store');
+    assert.deepEqual(await r.json(), { urls: ['http://192.168.1.20:4100'] });
+  } finally {
+    await lan.stop();
+  }
+});

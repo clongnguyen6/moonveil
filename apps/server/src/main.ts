@@ -3,6 +3,7 @@
 // MOONVEIL_ROOM_IDLE_MS (close rooms with no connection for this long; default 30 min),
 // MOONVEIL_ENGINE (default real rules engine; `fixture` = test stub, used by browser e2e until the real-game UI exists),
 // MOONVEIL_DATA_DIR (restart recovery, default <repo>/.data/rooms, gitignored; MOONVEIL_PERSIST=0 disables).
+import { networkInterfaces } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRulesEngine } from '@moonveil/rules';
@@ -27,8 +28,19 @@ const engine = (): RulesEngine<unknown> =>
 const store =
   process.env.MOONVEIL_PERSIST === '0' ? undefined : fileRoomStore(process.env.MOONVEIL_DATA_DIR ?? join(here, '../../../.data/rooms'));
 
+// Reachable LAN URLs, only when bound beyond loopback (HOST=0.0.0.0 or a LAN IP). http until TLS is chosen (ADR 0002).
+const lanUrls = (): string[] => {
+  if (host === '127.0.0.1' || host === 'localhost' || host === '::1') return [];
+  const addrs = Object.values(networkInterfaces())
+    .flat()
+    .filter((a) => a && a.family === 'IPv4' && !a.internal)
+    .map((a) => a!.address);
+  return (host === '0.0.0.0' ? addrs : addrs.filter((a) => a === host)).map((a) => `http://${a}:${port}`);
+};
+
 const { http, stop, registry } = createMoonveilServer({
   engine,
+  lanUrls,
   ...(store ? { store } : {}),
   staticDir: process.env.STATIC_DIR ?? join(here, '../../web/dist'),
   ...(process.env.MOONVEIL_ROOM_IDLE_MS ? { idleMs: Number(process.env.MOONVEIL_ROOM_IDLE_MS) } : {}),

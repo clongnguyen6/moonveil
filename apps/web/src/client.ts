@@ -41,6 +41,31 @@ type Intent =
 const tokenKey = (code: string) => `moonveil.seat.${code}`;
 export const storedToken = (code: string) => localStorage.getItem(tokenKey(code));
 
+// Platform capabilities for the UI's fallbacks (mic check, copy link, wake lock). Secure context gates all three.
+export function capabilities() {
+  const n = navigator as Navigator & { wakeLock?: unknown };
+  return {
+    secureContext: globalThis.isSecureContext === true,
+    microphone: typeof navigator.mediaDevices?.getUserMedia === 'function',
+    clipboardWrite: typeof navigator.clipboard?.writeText === 'function',
+    wakeLock: typeof n.wakeLock === 'object' && n.wakeLock !== null,
+  };
+}
+
+// Base URL for invite links. A host browsing on localhost gets the server's LAN URL (if bound to the LAN),
+// since a localhost link is useless to phones. Falls back to location.origin.
+export async function inviteBase(): Promise<string> {
+  const loopback = /^(localhost|127\.|\[::1\])/.test(location.hostname);
+  if (!loopback) return location.origin;
+  try {
+    const r = await fetch('/api/lan', { cache: 'no-store' });
+    const { urls } = (await r.json()) as { urls: string[] };
+    return urls[0] ?? location.origin;
+  } catch {
+    return location.origin;
+  }
+}
+
 const BACKOFF = [250, 500, 1000, 2000, 4000];
 const WATCHDOG_MS = HEARTBEAT_MS * 2.5;
 

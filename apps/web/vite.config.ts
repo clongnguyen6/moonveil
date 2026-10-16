@@ -8,7 +8,10 @@ export default defineConfig({
     host: process.env.HOST ?? '127.0.0.1',
     port: Number(process.env.WEB_PORT ?? 4101),
     strictPort: true,
-    proxy: { '/ws': { target: `ws://127.0.0.1:${process.env.PORT ?? 4100}`, ws: true } },
+    proxy: {
+      '/ws': { target: `ws://127.0.0.1:${process.env.PORT ?? 4100}`, ws: true },
+      '/api': { target: `http://127.0.0.1:${process.env.PORT ?? 4100}` },
+    },
   },
   build: { target: 'es2022' },
 });
