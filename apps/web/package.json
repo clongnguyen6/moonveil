@@ -10,6 +10,7 @@
   "dependencies": {
     "@moonveil/protocol": "*",
     "@moonveil/rules": "*",
+    "@moonveil/scene": "*",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },

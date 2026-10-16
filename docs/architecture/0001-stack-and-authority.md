@@ -46,6 +46,7 @@ Server-authoritative social-deduction game. 7–10 players typical, more desirab
      - Message ids are random.
      - Speaking indicators are re-published per viewer, filtered by `listen`, and only for speakers that still hold `speak`.
      - Poses: lobby, everyone. Play: only seats with `listen` on `ghosts` move and see poses (ghosts, moderator). Living seats get no pose frames; nothing after the end.
+     - Coordinates are scene world units (`@moonveil/scene` WORLD), `facing` ±1. The server validates with the scene's own geometry: `isWalkable(createMap(players))` for living lobby moves, `inWorld` for ghosts. Invalid moves are dropped silently.
 7. **Voice seam.** `apps/server/src/voice.ts` defines `VoiceGateway.setGrants(room, seat, grants)`, and the seat sees its own grants in `view.voice`. A provider adapter must:
    - mint tokens only from server grants,
    - revoke them on change,

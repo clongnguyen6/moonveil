@@ -20,6 +20,7 @@ import {
   type ServerMessage,
   type VoiceGrant,
 } from '@moonveil/protocol';
+import { createMap, inWorld, isWalkable, type MapLayout } from '@moonveil/scene/map';
 import type { PhaseInfo, RulesEngine, Viewer } from './rules/engine.ts';
 import type { RoomSnapshot, RoomStore } from './store.ts';
 import type { VoiceGateway } from './voice.ts';
@@ -415,8 +416,19 @@ export class Room<S = unknown> {
     return this.grantsFor(seat).some((g) => g.channel === GHOST_CHANNEL && g.listen);
   }
 
-  private move(seat: Seat, m: { x: number; y: number; facing: number; moving: boolean }) {
+  private mapCache: MapLayout | null = null;
+  private map(): MapLayout {
+    // Same layout the renderer builds (createMap(playerCount), default seed).
+    const n = this.players.length;
+    if (!this.mapCache || this.mapCache.playerCount !== Math.max(4, Math.min(16, n))) this.mapCache = createMap(n);
+    return this.mapCache;
+  }
+
+  private move(seat: Seat, m: { x: number; y: number; facing: 1 | -1; moving: boolean }) {
     if (!this.mayMove(seat) || !this.rateOk(this.moveTimes, seat.id, MOVE_RATE)) return;
+    // Living (lobby) walk the camp; ghosts (play) drift anywhere in the world. Invalid moves are dropped.
+    const ok = this.status === 'lobby' ? isWalkable(this.map(), m.x, m.y) : inWorld(m.x, m.y);
+    if (!ok) return;
     this.poses.set(seat.id, { seat: seat.id, x: m.x, y: m.y, facing: m.facing, moving: m.moving });
     if (this.poseTimer === null) {
       this.poseTimer = this.deps.scheduler.set(POSE_TICK_MS, () => {

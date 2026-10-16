@@ -127,7 +127,7 @@ test('ws + REAL engine: 7 sockets, start, wolf chat only to wolves, illegal move
     const wolves = clients.filter((c) => lastView(c).game.me.role === 'wolf');
     const others = clients.filter((c) => !wolves.includes(c));
     const before = others.map((o) => o.msgs.length);
-    others[0]!.ws.send(JSON.stringify({ t: 'move', x: 0.5, y: 0.5, facing: 0, moving: true })); // living during play: dropped
+    others[0]!.ws.send(JSON.stringify({ t: 'move', x: 500, y: 800, facing: 1, moving: true })); // living during play: dropped
     wolves[0]!.ws.send(JSON.stringify({ t: 'say', ref: 'w', channel: 'wolves', text: 'over the wire' }));
     await until(() => wolves.every((w) => w.msgs.some((m) => m.t === 'chat')));
     await new Promise((r) => setTimeout(r, 100));
