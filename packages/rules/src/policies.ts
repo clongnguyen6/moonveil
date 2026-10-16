@@ -1,6 +1,6 @@
 // Isolated rule policies: one decision per function. Approved ones are fixed; provisional ones are selected by config.
 // Pure: no state mutation, no IO.
-import { DEFENSE_SECONDS, type DeckCounts, NIGHT_TOTAL_SECONDS, type RulesConfig } from './config.ts';
+import { DEFAULT_DECKS, DEFENSE_SECONDS, type DeckCounts, MAX_PER_SPECIAL_ROLE, NIGHT_TOTAL_SECONDS, PLAYERS_MAX, PLAYERS_MIN, type RulesConfig } from './config.ts';
 import { nextInt } from './rng.ts';
 import type { DeathCause, MatchState, Outcome, Pick, Role, Seat, SeatState } from './types.ts';
 import { ROLES } from './types.ts';
@@ -113,16 +113,20 @@ export function hunterTriggers(cause: DeathCause): boolean {
   return cause !== 'removed';
 }
 
-/** Q17 */
-export function defaultDeck(playerCount: number, config: RulesConfig): DeckCounts | null {
-  const deck = config.distribution[String(playerCount)];
+/** APPROVED Batch A: the default deck for a supported table size, else null. */
+export function defaultDeck(playerCount: number): DeckCounts | null {
+  const deck = DEFAULT_DECKS[playerCount];
   return deck ? { ...deck } : null;
 }
 
-/** Q17/Q18: returns error message or null. */
+/**
+ * APPROVED Batch A (2026-10-16): 7-15 players; at most one of each special role; at least one Wolf, fewer Wolves
+ * than Village; and no setup the Wolves could win on the first night (one bite plus every Witch poison).
+ * `config.firstNightKill` (provisional Q23) decides whether night 1 has a bite. Returns an error message or null.
+ */
 export function validateDeck(deck: DeckCounts, playerCount: number, config: RulesConfig): string | null {
-  if (playerCount < config.players.min || playerCount > config.players.max) {
-    return `player count ${playerCount} outside ${config.players.min}-${config.players.max}`;
+  if (!Number.isInteger(playerCount) || playerCount < PLAYERS_MIN || playerCount > PLAYERS_MAX) {
+    return `player count ${playerCount} outside ${PLAYERS_MIN}-${PLAYERS_MAX}`;
   }
   let total = 0;
   for (const r of ROLES) {
@@ -134,14 +138,11 @@ export function validateDeck(deck: DeckCounts, playerCount: number, config: Rule
   if (deck.wolf < 1) return 'need at least one wolf';
   if (deck.wolf >= playerCount - deck.wolf) return 'wolves must be fewer than village';
   for (const r of ['seer', 'guard', 'witch', 'hunter'] as const) {
-    if (deck[r] > config.limits.maxPerSpecialRole) return `too many ${r}`;
+    if (deck[r] > MAX_PER_SPECIAL_ROLE) return `too many ${r}`;
   }
-  // F3: parity at the first dawn is reached if village - wolves <= deaths an ordinary first night can cause.
-  const check = config.limits.firstDawnParityCheck;
-  if (check !== 'off') {
-    const deaths = (config.firstNightKill ? 1 : 0) + (check === 'biteAndPoison' ? deck.witch : 0);
-    if (playerCount - 2 * deck.wolf <= deaths) return 'first night could force a wolf win (parity at first dawn)';
-  }
+  // Parity at the first dawn is reached if village - wolves <= deaths an ordinary first night can cause.
+  const deaths = (config.firstNightKill ? 1 : 0) + deck.witch;
+  if (playerCount - 2 * deck.wolf <= deaths) return 'first night could force a wolf win (parity at first dawn)';
   return null;
 }
 

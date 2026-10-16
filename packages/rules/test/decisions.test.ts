@@ -113,7 +113,7 @@ describe('APPROVED Q09/Q10 nomination (tested separately from execution)', () =>
     s = close(s);
     assert.deepEqual(s.step, { kind: 'day.defense', day: 1, accused: 7 });
     assert.deepEqual(stepTiming(s), { seconds: 30, earlyCloseReady: false });
-    const eng = createRulesEngine({ config: { players: { min: 6, max: 16 } } });
+    const eng = createRulesEngine();
     assert.equal(eng.phase({ seatIds: R10.map((_, i) => `s${i}`), match: s, clock: null }).durationMs, 30_000);
     assert.equal(close(s).step.kind, 'day.confirm');
     let t = close(night(match(R10), { bite: 'pass' }));

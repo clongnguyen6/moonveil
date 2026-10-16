@@ -6,7 +6,7 @@ import { createRulesEngine, project, type HostState, type MatchState } from '../
 import { alive, close, match, night, ok, S } from './helpers.ts';
 
 const IDS = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
-const eng = createRulesEngine({ config: { players: { min: 1, max: 99 } } });
+const eng = createRulesEngine();
 const host = (m: MatchState = match()): HostState => ({ seatIds: IDS, match: m, clock: null });
 const persist = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 

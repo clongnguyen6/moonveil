@@ -7,8 +7,8 @@ import { runCell, wilson } from '../sim/balance.ts';
 import { playMatch } from '../sim/bots.ts';
 
 describe('balance sim (provisional tooling)', () => {
-  it('every default deck 6-16 terminates under both policies', () => {
-    for (let n = 6; n <= 16; n++) {
+  it('every default deck 7-15 terminates under both policies', () => {
+    for (let n = 7; n <= 15; n++) {
       for (const policy of ['heuristic', 'random'] as const) {
         for (let seed = 0; seed < 3; seed++) {
           const r = playMatch({ seed: n * 100 + seed, players: n, policy });
@@ -20,7 +20,7 @@ describe('balance sim (provisional tooling)', () => {
 
   it('is deterministic per seed', () => {
     assert.deepEqual(playMatch({ seed: 42, players: 9, policy: 'heuristic' }), playMatch({ seed: 42, players: 9, policy: 'heuristic' }));
-    const deck = defaultDeck(8, DEFAULT_CONFIG)!;
+    const deck = defaultDeck(8)!;
     assert.deepEqual(runCell(8, 'heuristic', deck, 10), runCell(8, 'heuristic', deck, 10));
   });
 
