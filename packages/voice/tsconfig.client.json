@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": [
+      "es2023",
+      "dom",
+      "dom.iterable"
+    ],
+    "types": [
+      "node",
+      "react"
+    ]
+  },
+  "include": [
+    "src/client.ts",
+    "src/client",
+    "test/client"
+  ]
+}
