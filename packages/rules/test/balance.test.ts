@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { DEFAULT_CONFIG, defaultDeck } from '../src/index.ts';
 import { runCell, wilson } from '../sim/balance.ts';
-import { playMatch } from '../sim/bots.ts';
+import { playMatch, SMART_VILLAGE } from '../sim/bots.ts';
 
 describe('balance sim (provisional tooling)', () => {
   it('every default deck 6-16 terminates under both policies', () => {
@@ -22,6 +22,14 @@ describe('balance sim (provisional tooling)', () => {
     assert.deepEqual(playMatch({ seed: 42, players: 9, policy: 'heuristic' }), playMatch({ seed: 42, players: 9, policy: 'heuristic' }));
     const deck = defaultDeck(8, DEFAULT_CONFIG)!;
     assert.deepEqual(runCell(8, 'heuristic', deck, 10), runCell(8, 'heuristic', deck, 10));
+  });
+
+  it('smarter-village preset terminates and is deterministic', () => {
+    for (const n of [10, 13, 15]) {
+      const r = playMatch({ seed: n, players: n, policy: 'heuristic', knobs: SMART_VILLAGE });
+      assert.ok(['wolves', 'village', 'draw'].includes(r.winner));
+      assert.deepEqual(r, playMatch({ seed: n, players: n, policy: 'heuristic', knobs: SMART_VILLAGE }));
+    }
   });
 
   it('Wilson interval sanity', () => {

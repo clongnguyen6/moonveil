@@ -27,7 +27,13 @@ export const HEURISTIC_DEFAULTS = {
   guardSelf: 0.2,
   /** Open ballots (approved): chance a villager without a claim to follow joins the current live vote leader. */
   followLiveVotes: 0.4,
+  /** Smarter village: the Seer claims publicly by this day even without having found a wolf (99 = only after finding one). */
+  seerClaimDay: 99,
+  /** Smarter village: villagers never accuse, and vote No on, a player cleared by a Seer they trust. */
+  respectClears: false,
 };
+/** Sensitivity preset bounding the bot artifact (village coordinates around the Seer). */
+export const SMART_VILLAGE: Partial<typeof HEURISTIC_DEFAULTS> = { seerClaimDay: 2, respectClears: true, trustRealSeer: 0.9, followLiveVotes: 0.2 };
 export type Knobs = typeof HEURISTIC_DEFAULTS;
 let K: Knobs = HEURISTIC_DEFAULTS;
 
@@ -178,7 +184,7 @@ function discuss(s: MatchState, table: Table, rng: Rng): void {
       const p = project(s, { kind: 'seat', seat });
       if (p.me?.role !== 'seer') continue;
       const res = seerResults(p);
-      if (res.wolves.some(isAlive)) {
+      if (res.wolves.some(isAlive) || s.day >= K.seerClaimDay) {
         table.real = { seat, ...res };
         // Documented hidden-state use #2: which living wolf counter-claims.
         const wolves = s.seats.filter((x) => x.alive && x.role === 'wolf');
@@ -227,7 +233,7 @@ function accuse(p: Projection, s: MatchState, table: Table, rng: Rng): Seat | nu
   if (table.real?.seat === me.seat) return table.real.wolves.find(alive) ?? null;
   const follow = claimTarget(table, alive, rng);
   if (follow !== null && follow !== me.seat) return follow;
-  const lead = mostAccused(table, alive);
+  const lead = mostAccused(table, alive, K.respectClears ? new Set(table.real?.clears ?? []) : new Set());
   if (lead !== null && lead !== me.seat && rng.chance(K.bandwagon)) return lead;
   const cleared = new Set(table.real?.clears ?? []);
   const pool = others.filter((x) => !cleared.has(x));
@@ -305,6 +311,7 @@ function heuristicChoice(a: AvailableAction, p: Projection, s: MatchState, table
       if (accused === seat) return { type: a.type, seat, choice: 'no' };
       if (claimedWolf === accused) return { type: a.type, seat, choice: 'yes' };
       if (table.real?.seat === accused) return { type: a.type, seat, choice: rng.chance(1 - K.trustRealSeer) ? 'yes' : 'no' };
+      if (K.respectClears && table.real?.clears.includes(accused) && rng.chance(K.trustRealSeer)) return { type: a.type, seat, choice: 'no' };
       if (table.accusations.get(seat) === accused) return { type: a.type, seat, choice: 'yes' };
       return { type: a.type, seat, choice: rng.chance(K.confirmYes) ? 'yes' : 'no' };
     }
