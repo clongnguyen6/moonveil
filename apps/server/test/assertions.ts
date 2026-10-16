@@ -42,7 +42,7 @@ export function assertOpenBallotsViews(latest: readonly SeatView[]): boolean {
   return true;
 }
 
-// Final outcome consistent with the approved win conditions (+ Q14 zero survivors = draw).
+// Final outcome consistent with the approved win conditions (+ Q14 zero survivors = draw, rules-12 stalemate draw).
 export function assertOutcome(final: GameView) {
   assert.ok(final.outcome, 'outcome set');
   const roles = final.reveal!.roles;
@@ -57,7 +57,10 @@ export function assertOutcome(final: GameView) {
       assert.ok(lw === 0 && lv > 0, `village win needs no wolves: ${lw} vs ${lv}`);
       break;
     case 'draw':
-      assert.equal(alive.length, 0, 'draw = zero survivors');
+      // Q14 zero survivors, or rules-12 F1-A stalemate (three consecutive cycles without a death).
+      if (final.outcome.reason === 'stalemate') {
+        assert.ok(final.publicLog.some((e) => e.t === ('stalemateWarning' as string)), 'stalemate draw without a prior warning');
+      } else assert.equal(alive.length, 0, 'draw = zero survivors');
       break;
     default:
       assert.fail(`unexpected winner ${final.outcome.winner}`);

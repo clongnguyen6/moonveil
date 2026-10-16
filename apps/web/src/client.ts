@@ -246,7 +246,7 @@ export class Client {
         if (location.pathname !== `/r/${m.code}`) history.replaceState(null, '', `/r/${m.code}`);
         return;
       case 'state':
-        this.set({ view: m.view, voiceMode: m.view.voiceMode ?? 'remote', serverOffsetMs: m.now - Date.now() });
+        this.set({ view: m.view, voiceMode: m.view.voiceMode, serverOffsetMs: m.now - Date.now() });
         return;
       case 'chatlog':
         this.set({ chat: { ...this.state.chat, [m.channel]: m.messages } });

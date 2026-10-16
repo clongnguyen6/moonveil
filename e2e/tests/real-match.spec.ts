@@ -4,7 +4,7 @@
 import type { GameView, SeatView } from '@moonveil/protocol';
 import { assertOpenBallotsViews, assertOutcome, assertSeatIsolationViews } from '../../apps/server/test/assertions.ts';
 import { expect, type Player, test } from '../harness/index.ts';
-import { game, runRealMatch, seatRealMatch, send } from '../harness/match.ts';
+import { game, protocolActor, runRealMatch, seatRealMatch, send } from '../harness/match.ts';
 
 const REAL_PORT = Number(process.env.E2E_REAL_PORT ?? 4152);
 const states = (p: Player): SeatView[] => p.frames.flatMap((f) => (f.msg.t === 'state' ? [f.msg.view] : []));
@@ -57,7 +57,7 @@ for (const mode of ['automatic', 'moderator'] as const) {
             wolfChat = true;
           }
         }
-      });
+      }, 200, protocolActor, seats + 3); // acceptance: win condition within seats + 3 days
       expect(m.driver.view().status).toBe('ended');
       const finals = m.players.map((p) => game(p) as GameView);
       assertOutcome(finals[0]!);

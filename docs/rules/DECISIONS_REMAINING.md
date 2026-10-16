@@ -1,6 +1,6 @@
 # Rules still to decide — one page
 
-Status: 2026-10-16, for the decision-maker. Batch A is decided; everything else below is **provisional**. The app already runs on the "Recommend" column, except rows marked ⚠, where a "yes" changes a setting. Details and sky2 evidence: `PROPOSAL.md` (Qxx). Bot results: `BALANCE.md`. Bots are not players.
+Status: 2026-10-16, for the decision-maker. Batches A and F are decided; everything else below (Batches B–E) is **provisional**. The app already runs on the "Recommend" column, except rows marked ⚠, where a "yes" changes a setting. Details and sky2 evidence: `PROPOSAL.md` (Qxx). Bot results: `BALANCE.md`. Bots are not players.
 
 **Reply format:** "Batch A yes", or "Batch A yes except A3: alternative".
 **Blocks first playtest** = needs an answer before colleagues play; everything else can wait for playtest feedback.
@@ -25,6 +25,7 @@ Now fixed in the engine (`PROPOSAL.md` Q17/Q18). **Batches B–E below are still
 | B4 | May the Hunter's turn end as soon as the shot is taken? | Yes | Always wait the full 20 s | One person's choice; nothing else is pending, so ending early hides nothing |
 
 ## Batch C — Moderated games (blocks a *moderated* playtest only)
+*Decided separately on 2026-10-16: the moderator may end the match with no winner. The rows below are still pending.*
 | # | Question | Recommend | Alternative | Evidence |
 |---|---|---|---|---|
 | C1 (Q16) ⚠ | Moderator speaks aloud in the app | **Yes, in public** (they narrate) | No; text cues only (today's setting) | They already hear everything (approved); in a room they speak anyway |
@@ -51,3 +52,13 @@ Now fixed in the engine (`PROPOSAL.md` Q17/Q18). **Batches B–E below are still
 | E3 | Second night step when the setup has no Witch | Keep it (the night is always 2 steps, 60 s) | One 60 s step | The setup is public, so either way leaks nothing; two steps keeps one screen flow |
 | E4 (Q24 history) | End-of-match recap | Show all roles **and** the full night history | Roles only | Roles at the end are approved; the history is the open part |
 | E5 (Q12/Q13) | Death-chain mechanics | Deaths in a batch happen together; Hunters who die together shoot together; victory is checked once the chain ends (and after a removal) | — (follows the approved rules) | Already tested |
+
+## Batch F — A match that can't end — DECIDED 2026-10-16 (option A)
+Approved: a **stalemate draw**.
+- After 3 consecutive full cycles (night + day) with no gameplay death, the match ends as a draw.
+- A warning goes out at the end of the 2nd such day.
+- Removal doesn't reset the count.
+
+Now fixed in the engine (`PROPOSAL.md`, approved rules). Evidence that motivated it: with everyone idle, or Wolves picking "nobody" while the village Skips, a 7-player match was still running at day 100.
+
+*Rejected alternatives: a hard day cap; Wolves forced to attack.*

@@ -20,10 +20,100 @@ export async function uiPresent(p: Player): Promise<boolean> {
 const tid = (p: Player, id: string) => p.page.getByTestId(id);
 const pick = <T>(r: () => number, xs: readonly T[]): T => xs[Math.floor(r() * xs.length)]!;
 
-async function chooseSeat(p: Player, seat: number) {
-  await tid(p, `seat-${seat}`).click();
+// UI action accounting: a step can close while a bot is still clicking (a missed action = pass, per rules).
+// Reported by the spec so a run where UI actions mostly fail can't pass unnoticed.
+// Acceptance runs (E2E_UI_STRICT=1) fail on any miss; every miss carries seat, action, step and reason.
+export const uiStats = {
+  attempted: 0,
+  done: 0,
+  misses: [] as { seat: string; action: string; step: string; reason: string }[],
+  // Landed actions per type (e.g. wolf.pick) for failure reports.
+  byType: {} as Record<string, number>,
+  // Engine-accepted wolf picks, checked against the end-of-match night records.
+  wolfPicks: [] as { night: number; seat: number; target: number }[],
+};
+const CLICK_MS = 1_500;
+let lastReason = '';
+async function tryClick(l: ReturnType<typeof tid>): Promise<boolean> {
+  try {
+    if ((await l.count()) === 0) {
+      lastReason = 'control missing';
+      return false;
+    }
+    await l.click({ timeout: CLICK_MS });
+    return true;
+  } catch (e) {
+    lastReason = String((e as Error).message).split('\n').slice(0, 3).join(' | ').slice(0, 300);
+    return false;
+  }
+}
+const stepOf = (p: Player) => {
+  const g = game(p) as GameView | null;
+  return g ? `${g.night}/${g.day}/${g.step.kind}` : '';
+};
+// "Landed" = the engine accepted it: the seat's own wire view must show the effect (not just a DOM click).
+function reflected(p: Player, action: string): boolean {
+  const g = game(p) as GameView | null;
+  const me = g?.me;
+  if (!g || !me) return false;
+  const [type, raw] = action.split(':') as [string, string];
+  const val: unknown = /^\d+$/.test(raw) ? Number(raw) : raw === 'heal-yes' ? true : raw === 'heal-no' ? false : raw === 'vote-yes' ? 'yes' : raw === 'vote-no' ? 'no' : raw;
+  const cur = (me.actions.find((a) => a.type === type) as { current?: unknown } | undefined)?.current;
+  switch (type) {
+    case 'wolf.pick':
+      return (g.pack?.picks?.[me.seat] ?? cur) === val;
+    case 'guard.protect':
+    case 'witch.poison':
+    case 'witch.heal':
+      return cur === val;
+    case 'hunter.shoot':
+      return cur === val || g.publicLog.some((e) => e.t === 'shot' && (e as { by?: number }).by === me.seat);
+    case 'seer.inspect':
+      return me.facts.some((f) => f.k === 'inspect' && (f as { target?: number }).target === val);
+    case 'vote.nominate':
+    case 'vote.confirm':
+      return (me as { ballot?: unknown }).ballot === val;
+    default:
+      return true;
+  }
+}
+async function engineAccepted(p: Player, action: string, framesBefore: number): Promise<boolean> {
+  for (let i = 0; i < 20; i++) {
+    if (reflected(p, action)) return true;
+    await p.page.waitForTimeout(100);
+  }
+  const err = p.frames.slice(framesBefore).filter((f) => f.msg.t === 'error').at(-1);
+  lastReason = err ? `server rejected: ${(err.msg as { message?: string }).message}` : 'click landed but the engine state does not show it';
+  return false;
+}
+
+async function act(p: Player, action: string, fn: () => Promise<boolean>) {
+  uiStats.attempted++;
+  lastReason = '';
+  const decidedAt = stepOf(p);
+  const framesBefore = p.frames.length;
+  const ok = (await fn()) && (await engineAccepted(p, action, framesBefore));
+  // A step that closed between the decision and the click is pacing, not a UI fault; still a miss in strict mode.
+  if (!ok && stepOf(p) !== decidedAt) lastReason = `step closed before the action (pacing): ${lastReason}`;
+  if (ok) {
+    uiStats.done++;
+    const type = action.split(':')[0]!;
+    uiStats.byType[type] = (uiStats.byType[type] ?? 0) + 1;
+    const g = game(p) as GameView | null;
+    if (type === 'wolf.pick' && g?.me) uiStats.wolfPicks.push({ night: g.night, seat: g.me.seat, target: Number(action.split(':')[1]) });
+  }
+  else uiStats.misses.push({ seat: `${p.name}/${(game(p) as GameView | null)?.me?.seat}`, action, step: (game(p) as GameView | null)?.step.kind ?? '?', reason: lastReason || 'unknown' });
+}
+
+async function chooseSeat(p: Player, seat: number): Promise<boolean> {
+  if (!(await tryClick(tid(p, `seat-${seat}`)))) return false;
   const confirm = tid(p, 'confirm');
-  if (await confirm.isEnabled()) await confirm.click();
+  if ((await confirm.count()) === 0) return true; // some panels submit on selection
+  if (!(await confirm.isEnabled({ timeout: CLICK_MS }).catch(() => false))) {
+    lastReason = 'confirm disabled after selecting the seat';
+    return false;
+  }
+  return tryClick(confirm);
 }
 
 // One random legal choice per available action, performed through the UI.
@@ -39,23 +129,30 @@ export async function uiBotAct(p: Player, r: () => number): Promise<number> {
       case 'hunter.shoot':
       case 'witch.poison':
         if (a.targets.length && r() < (a.type === 'witch.poison' ? 0.3 : 0.85)) {
-          await chooseSeat(p, pick(r, a.targets));
+          const t = pick(r, a.targets);
+          await act(p, `${a.type}:${t}`, () => chooseSeat(p, t));
           n++;
         }
         break;
       case 'witch.heal':
         if (a.canUse) {
-          await tid(p, r() < 0.5 ? 'heal-yes' : 'heal-no').click();
+          const id = r() < 0.5 ? 'heal-yes' : 'heal-no';
+          await act(p, `${a.type}:${id}`, () => tryClick(tid(p, id)));
           n++;
         }
         break;
       case 'vote.nominate':
-        if (a.targets.length && r() < 0.8) await chooseSeat(p, pick(r, a.targets));
-        else await tid(p, 'vote-skip').click();
+        if (a.targets.length && r() < 0.8) {
+          const t = pick(r, a.targets);
+          await act(p, `${a.type}:${t}`, () => chooseSeat(p, t));
+        } else await act(p, 'vote.nominate:skip', () => tryClick(tid(p, 'vote-skip')));
         n++;
         break;
       case 'vote.confirm':
-        await tid(p, r() < 0.6 ? 'vote-yes' : 'vote-no').click();
+        {
+          const id = r() < 0.6 ? 'vote-yes' : 'vote-no';
+          await act(p, `${a.type}:${id}`, () => tryClick(tid(p, id)));
+        }
         n++;
         break;
     }
@@ -67,6 +164,8 @@ export async function uiBotAct(p: Player, r: () => number): Promise<number> {
 export async function uiCloseStep(mod: Player) {
   await tid(mod, 'close-step').click();
   await mod.page.locator('[role=alertdialog] .btn').nth(1).click();
+  uiStats.attempted++;
+  uiStats.done++;
 }
 
 export async function seatRealMatchUi(table: Table, opts: { mode: Mode; seats: number; baseURL: string }): Promise<BrowserMatch> {

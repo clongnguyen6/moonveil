@@ -21,6 +21,7 @@ export const SCENARIOS = [
   'ended',
   'moderator',
   'moderator-day',
+  'stalemate',
 ] as const;
 export type ScenarioName = (typeof SCENARIOS)[number];
 
@@ -107,6 +108,12 @@ export function scenario(name: ScenarioName, opts: { speed?: number; autoBots?: 
   night1(villagers()[0]!);
   witchPass();
   const dead = g().match.seats.find((s) => !s.alive)!.seat;
+  if (name === 'stalemate') {
+    // DEV ONLY: inject the rules-12 warning event to render the banner; the real engine publishes it after 2 idle cycles.
+    (g().match.publicLog as unknown as { t: string; day: number }[]).push({ t: 'stalemateWarning', day: g().match.day });
+    room.setViewer(idOf(alive()[0]!));
+    return room;
+  }
   if (name === 'day' || name === 'moderator-day') {
     room.chat.push({ channel: 'public', msg: { id: 'c1', from: idOf(alive()[1]!), name: 'Bình', text: 'Đêm qua yên tĩnh quá… ai có thông tin không?', at: Date.now() - 20_000 } });
     room.setViewer(name === 'moderator-day' ? room.moderator!.id : idOf(alive()[0]!));

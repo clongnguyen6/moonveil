@@ -4,6 +4,8 @@
 // MOONVEIL_ENGINE (default real rules engine; `fixture` = test stub, used by browser e2e until the real-game UI exists),
 // MOONVEIL_DATA_DIR (restart recovery, default <repo>/.data/rooms, gitignored; MOONVEIL_PERSIST=0 disables),
 // MOONVEIL_TEST_TIME_SCALE (TESTS ONLY: server clock + timers run k× faster; rules and approved timings unchanged),
+// MOONVEIL_TEST_SEED (TESTS ONLY: deterministic match seeds `<base>:<n>` per room, logged to stdout server-side only;
+//   a trailing `!` = that exact seed for every room, for reproducing one match),
 // LIVEKIT_URL + LIVEKIT_PUBLIC_WS + LIVEKIT_API_KEY + LIVEKIT_API_SECRET (all four = voice via LiveKit; none = no voice).
 import { networkInterfaces } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -71,8 +73,21 @@ const lanUrls = (): string[] => {
   return (host === '0.0.0.0' ? addrs : addrs.filter((a) => a === host)).map((a) => `http://${a}:${port}`);
 };
 
+// Test-only deterministic seeds. Seeds decide roles: never sent to clients, only logged here.
+const testSeed = process.env.MOONVEIL_TEST_SEED;
+let seedCount = 0;
+const seed = testSeed
+  ? () => {
+      const s = testSeed.endsWith('!') ? testSeed.slice(0, -1) : `${testSeed}:${++seedCount}`;
+      console.log(`TEST SEED ${s}`);
+      return s;
+    }
+  : undefined;
+if (testSeed) console.warn('TEST SEEDS: not for play');
+
 const { http, stop, registry } = createMoonveilServer({
   engine,
+  ...(seed ? { seed } : {}),
   ...(voice ? { voice } : {}),
   ...clock,
   lanUrls,

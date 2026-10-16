@@ -1,6 +1,6 @@
 # Moonveil rules proposal
 
-Status: **proposal, v0.9, 2026-10-16**. v0.2 was revised after an independent review of 9af74b8; v0.3 to v0.9 record your decisions. Owner: rules scope (`packages/rules`, `docs/rules`).
+Status: **proposal, v0.10, 2026-10-16**. v0.2 was revised after an independent review of 9af74b8; v0.3 to v0.10 record your decisions. Owner: rules scope (`packages/rules`, `docs/rules`).
 Only what is listed under "Approved rules" is accepted. Everything else is **provisional** until you approve it.
 The engine implements each provisional recommendation as a named setting (`config.*`) or one isolated function.
 Approved rules are fixed engine behaviour, no longer settings.
@@ -63,6 +63,12 @@ Low-stakes defaults you could accept as a group: Q01, Q02, Q04, Q05, Q12, Q13, Q
   - While the shot is pending, the Hunter has no ghost voice or text (including history) and gains no ghost-only knowledge.
   - Removal by the moderator or host isn't a gameplay death and gives no shot.
 - **Zero survivors (Q14).** If nobody survives after all shots and chains resolve, the match is a draw.
+- **Stalemate draw (F1, option A).**
+  - A full cycle is a night followed by its day. The boundary is the end of that day, after the day's execution, any Hunter shot and the death chain have resolved.
+  - When 3 consecutive cycles pass with no gameplay death (bite, poison, execution, Hunter shot), the match ends as a draw, reason "stalemate". Any gameplay death resets the count; an administrative removal does not.
+  - A warning goes out at the boundary that completes the 2nd no-death cycle: "If nobody dies before the end of the next day, the match ends in a draw."
+  - Order at each boundary: Hunter shots and chains, then the win check, then the stalemate check. End-of-match disclosure and channels work as at any other end.
+- **Moderator ends the match (Q16).** In moderator mode, the separate moderator may end the match at any time. It ends with no winner (moderator-ended), with normal end-of-match disclosure (all roles revealed; ended channels). A participating host or any player can't do this, and no winner can be assigned. The UI asks for deliberate confirmation; the engine requires an explicit confirmation in the command itself.
 - **Role reveal (Q20).**
   - No role is revealed on death; all roles are revealed at match end.
   - Exception: the Hunter is revealed when their 20 s shot turn opens, even if it times out. (Rejected alternative: a uniform post-death window after every death, about 20 s per death, roughly 2–3 min per match.)
@@ -211,7 +217,7 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 - **Engine**: no presence in the engine (passes at close); the pause is `PhaseClock` with host `sync`, `tick`, `pause`, `resume` and `timer` (see API.md); `player.remove` is provisional. Tests in `test/disconnect.test.ts`.
 
 ## Q16 Moderator powers — partly decided
-- **DECIDED part (2026-10-16)**: for a show of hands, the moderator enters the Yes count (`day.confirmCount`) and the engine applies the approved threshold. The direct "set the day result" power has been removed.
+- **DECIDED parts (2026-10-16)**: for a show of hands, the moderator enters the Yes count (`day.confirmCount`) and the engine applies the approved threshold; the direct "set the day result" power has been removed. The moderator may also end the match with no winner (`match.end`, with an explicit confirm).
 - **Still open — how the trial itself is chosen in person**: today the moderator can only enter each player's nomination vote on their behalf (act for a seat). Options: (a) keep that; (b) add a moderator "nominee by show of hands" entry. I recommend (a) for now; (b) would be a new power and needs your decision.
 - **sky2 code**: in moderator mode the moderator enters every night action (MSC:136-140) and can eliminate anyone by day with no checks (MSC:142-146, MSS:707-734). In automatic mode the admin shows or hides boards and forces submission (AV1:186-237, 383-403).
 - **Recommend**: the moderator is a separate seat with no role and sees everything. They may: close any step at any time; submit or change any seat's action (for in-room play by gesture); set the wolves' target; remove a player; abort the match. (Entering the Yes count is approved, see above.) Every moderator action is validated by the same rules and logged in the moderator view. No reviving, no undo, no changing roles in this version.

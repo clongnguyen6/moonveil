@@ -46,7 +46,7 @@ describe('host contract (server adapter)', () => {
       s = r.state;
     }
     assert.equal(eng.phase(s).earlyClose, false);
-    const m = eng.moderate(s, { type: 'match.abort' });
+    const m = eng.moderate(s, { type: 'match.end', confirm: 'end-match' });
     assert.ok(m.ok && eng.phase(m.state).ended);
   });
 

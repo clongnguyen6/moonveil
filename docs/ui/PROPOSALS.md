@@ -44,3 +44,11 @@ Night actions produce frames only from acting seats. Option: clients send a `noo
 
 ## P12. Deck preview + host customization in the lobby (foundation + rules)
 Batch A: decks are engine config and host customization is engine-validated. The lobby has no deck data before start (`SeatView` carries only `limits`). Request: `SeatView.deck: { default: Record<Role, number>; custom: Record<Role, number> | null }` for the current player count, and a host message `{ t: 'deck', counts }` validated by `validateDeck()` (error → `invalid-action`). UI then shows the deck in the lobby and a host editor; until then only the dealt deck (`roleCounts`) is shown after start.
+
+## P13. Stalemate + moderator end (rules-12) — names the UI reads (`src/game/approved.ts`, one place)
+- Public event `{ t: 'stalemateWarning', day }` published at the end of a day after 2 consecutive no-death cycles; the UI shows the banner until a death/execution/shot or the end.
+- `Outcome.reason = 'stalemate'` (winner `'draw'`) for the three-cycle draw.
+- Moderator end: the UI sends `match.end { confirm: 'end-match' }` (rules-12 5def39a) and renders reason `'aborted'` as "The moderator ended the match. No winner."
+
+## P14. Scene keyboard handler vs text fields (visual, `packages/scene/src/input.ts:16`)
+`window.addEventListener('keydown')` calls `preventDefault()` on Space for every target, and WASD/arrows walk the avatar while a player types in chat or the end-match box. Request: ignore events whose target is editable (`input`, `textarea`, `isContentEditable`) or inside `[data-ui]`, like the pointer handler already does (line 27). DONE in visual-5 (3400f92): the scene ignores editable targets and `[data-ui]` and never claims Escape. The shell's interim key guard was removed.

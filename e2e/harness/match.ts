@@ -4,6 +4,7 @@
 // When the UI lands, acceptance specs drive the same matches through UI selectors agreed with the UI owner.
 import type { GameView, Mode, Profile, SeatView } from '@moonveil/protocol';
 import { expect, type Player, type Table } from './index.ts';
+import { quietUi } from './ui.ts';
 
 export function rng(seed: string) {
   let h = 2166136261;
@@ -84,6 +85,8 @@ export interface BrowserMatch {
 export async function seatRealMatch(table: Table, opts: { mode: Mode; seats: number; baseURL: string }): Promise<BrowserMatch> {
   const ctx = { baseURL: opts.baseURL };
   const host = await table.player(opts.mode === 'moderator' ? 'Mod' : 'P0', ctx);
+  // Game UI is mounted on every page: use its documented quiet settings for many-context runs (SELECTORS.md).
+  await quietUi(host);
   await host.page.goto('/');
   await clientCall(host, 'create', [opts.mode, profile(host.name)]);
   // The room code is read from the first state frame (welcome may arrive alone first).
@@ -92,6 +95,7 @@ export async function seatRealMatch(table: Table, opts: { mode: Mode; seats: num
   const players: Player[] = opts.mode === 'automatic' ? [host] : [];
   while (players.length < opts.seats) {
     const p = await table.player(`P${players.length}`, ctx);
+    await quietUi(p);
     await p.page.goto('/');
     await clientCall(p, 'join', [code, profile(p.name)]);
     players.push(p);
@@ -115,20 +119,39 @@ export const protocolActor: Actor = {
   close: (mod) => send(mod, { t: 'act', action: { type: 'step.close' } }),
 };
 
+// Public-log summary for failure reports (what happened each night/day).
+export function matchDiag(m: BrowserMatch): string {
+  const g = game(m.driver);
+  const log = (g?.publicLog ?? []).flatMap((e) => {
+    const x = e as { t: string; night?: number; day?: number; dead?: number[]; accused?: number | null; executed?: boolean; seat?: number };
+    if (x.t === 'dawn') return [`N${x.night}: dead=[${x.dead?.join(',') ?? ''}]`];
+    if (x.t === 'nomination') return [`D${x.day}: accused=${x.accused ?? 'none'}`];
+    if (x.t === 'confirm') return [`D${x.day}: executed=${x.executed}`];
+    if (x.t === 'shot') return [`shot`];
+    return [];
+  });
+  return JSON.stringify({ room: m.driver.view().code, day: g?.day, night: g?.night, step: g?.step.kind, log });
+}
+
 export async function runRealMatch(
   m: BrowserMatch,
   seed: string,
   onStep?: (m: BrowserMatch) => Promise<void>,
   maxSteps = 200,
   actor: Actor = protocolActor,
+  maxDays = Infinity,
 ) {
   const r = rng(seed);
   for (; m.steps < maxSteps && m.driver.view().status === 'playing'; m.steps++) {
+    const day = game(m.driver)?.day ?? 0;
+    // Acceptance: a match must reach a win condition within a bounded number of days.
+    if (day > maxDays) throw new Error(`no win condition by day ${maxDays}: ${matchDiag(m)}`);
     const key = stepKey(m.driver.view());
     for (const p of m.players) await actor.act(p, r);
     await onStep?.(m);
     if (m.moderator) await actor.close(m.moderator);
-    await expect.poll(() => m.driver.view().status !== 'playing' || stepKey(m.driver.view()) !== key, { timeout: 30_000 }).toBe(true);
+    // A step can last minutes of wall time at low time scales (e.g. discussion 60 s + 15 s per living seat).
+    await expect.poll(() => m.driver.view().status !== 'playing' || stepKey(m.driver.view()) !== key, { timeout: 240_000 }).toBe(true);
     // Every seat agrees on the current step before anyone acts (steps may pass quickly at x20).
     await expect.poll(() => new Set([m.driver, ...m.players].map((p) => stepKey(p.view()))).size, { timeout: 10_000 }).toBe(1);
   }

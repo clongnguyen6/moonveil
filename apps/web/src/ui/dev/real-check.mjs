@@ -150,6 +150,7 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
       ok(`${p.name} (living): 'boo' never reaches the DOM`, !/boo/.test(await p.page.content()));
     }
     ok('ghost: no night action offered (no actions in projection)', ghost.game().me.actions.length === 0);
+    ok('ghost: no action panel/hooks in the DOM (automatic mode)', (await ghost.page.locator('[data-testid=ghost-panel]').count()) === 1 && (await ghost.page.locator('[data-testid=confirm], [data-testid=vote-skip], [data-testid=vote-yes], [data-testid=vote-no]').count()) === 0);
   }
   // reconnect: reload keeps the seat and the step
   const r = ps[3];
@@ -182,16 +183,51 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   ok('moderator: chat is listen-only', (await mod.page.locator('[data-testid=chat-listen-only]').count()) === 1 && (await mod.page.locator('[data-testid=chat-input]').count()) === 0);
   await mod.page.keyboard.press('Escape');
   const closeStep = async () => { await mod.page.getByTestId('close-step').click(); await mod.page.locator('[role=alertdialog] .btn').nth(1).click(); await mod.page.waitForTimeout(250); };
+  // Approved: end-match control exists only for the separate moderator; misclicks never end the match.
+  ok('moderator: end-match control present, closed', (await mod.page.locator('[data-testid=end-match][data-open=false]').count()) === 1);
+  ok('players: no end-match control', (await ps[0].page.locator('[data-testid=end-match], [data-testid=end-match-open]').count()) === 0);
+  await mod.page.getByTestId('end-match-open').click();
+  await mod.page.getByTestId('end-match-input').fill('nope');
+  ok('misclick: open + wrong word keeps confirm disabled and the match running', (await mod.page.locator('[data-testid=end-match-confirm]').isDisabled()) && (await mod.step()) !== 'ended');
+  await mod.page.getByTestId('end-match-cancel').click();
+  ok('cancel: match still running', (await mod.step()) !== 'ended' && (await mod.page.locator('[data-testid=end-match][data-open=false]').count()) === 1);
+  // Idle cycles: nobody acts. rules-12 publishes a stalemate warning after 2 idle cycles and a draw after 3.
+  let idleClosed = 0, warned = false, stalemate = false;
+  for (let i = 0; i < 40 && (await mod.step()) !== 'ended'; i++) { await closeStep(); idleClosed++; if ((await ps[0].page.locator('[data-testid=stalemate-warning]').count()) > 0) warned = true; }
+  stalemate = (await mod.step()) === 'ended';
+  ok(`stalemate: three idle cycles end the match (closes: ${idleClosed})`, stalemate);
+  ok('stalemate: warning banner appeared on a player before the draw', warned);
+  ok('stalemate: end screen shows the distinct draw reason (draw / stalemate) with full reveal', stalemate && (await ps[0].page.locator('[data-testid=ended][data-winner=draw][data-reason=stalemate]').count()) === 1 && (await ps[0].page.locator('[data-testid=ended] .seat-chip .tag').count()) === 7);
+  if (stalemate) {
+    // Second moderator room for the approved end-match control (needs a running match).
+    for (const p of [mod, ...ps]) await p.ctx.close();
+    const mod2 = await mk('Mod2', { viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false });
+    const code2 = await mod2.create('moderator');
+    const ps2 = [];
+    for (const n of NAMES.slice(0, 7)) { const p = await mk(n + '2'); await p.join(code2); await p.ready(); ps2.push(p); }
+    await mod2.page.getByTestId('start').click();
+    await mod2.page.waitForSelector('[data-testid=mod-console]', { timeout: 15_000 });
+    await mod2.page.getByTestId('end-match-open').click(); await mod2.page.getByTestId('end-match-input').fill('END'); await mod2.page.getByTestId('end-match-confirm').click(); await mod2.page.waitForTimeout(400);
+    ok('moderator end-match (match.end): ended by the moderator, no winner, full reveal on a player', (await ps2[0].page.locator('[data-testid=ended][data-reason=aborted]').count()) === 1 && (await ps2[0].page.locator('[data-testid=ended] .seat-chip .tag').count()) === 7 && !/village|wolves/.test(await ps2[0].page.locator('[data-testid=ended]').getAttribute('data-winner')));
+    for (const p of [mod2, ...ps2]) await p.ctx.close();
+    await browser.close(); server.kill('SIGTERM');
+    console.log(fails ? `${fails} FAILED` : 'ALL PASS'); process.exit(fails ? 1 : 0);
+  }
   let guard = 0;
   while (guard++ < 60) {
     const step = await mod.step();
     if (step === 'ended') break;
     if (step === 'night.main' || step === 'night.witch' || step === 'hunter') { for (const p of ps) await p.pickFirst().catch(() => {}); if (step === 'night.witch') { const w = ps.find((p) => p.game().me.role === 'witch' && p.game().me.alive); if (w) await w.page.getByTestId('heal-no').click().catch(() => {}); } }
     if (step === 'day.vote') { const alive = ps.filter((p) => p.game().me.alive); const target = alive[0]; for (const p of alive) { if (p === target) continue; const b = p.page.locator(`[data-testid=seat-${target.game().me.seat}]`); if (await b.count()) { await b.click(); await p.page.getByTestId('confirm').click(); } } await mod.page.waitForTimeout(300);
-      ok('open ballots: a voter sees the live ballot list on day.vote', (await alive[1].page.locator('[data-testid=ballots]').count()) === 1); }
+      ok('open ballots: a voter sees the live ballot list on day.vote', (await alive[1].page.locator('[data-testid=ballots]').count()) === 1);
+      for (const d of ps.filter((p) => !p.game().me.alive)) ok(`${d.name} (dead, moderator mode): ghost panel, no action hooks at day.vote`, (await d.page.locator('[data-testid=ghost-panel]').count()) === 1 && (await d.page.locator('[data-testid=confirm], [data-testid=vote-skip], [data-testid=vote-yes], [data-testid=vote-no]').count()) === 0); }
     if (step === 'day.confirm') { for (const p of ps.filter((p) => p.game().me.alive)) await p.page.getByTestId('vote-yes').click().catch(() => {}); await mod.page.waitForTimeout(300); }
     await closeStep();
     await mod.page.waitForTimeout(150);
+  }
+  if ((await mod.step()) !== 'ended') { // end via the approved control
+    await mod.page.getByTestId('end-match-open').click(); await mod.page.getByTestId('end-match-input').fill('END'); await mod.page.getByTestId('end-match-confirm').click(); await mod.page.waitForTimeout(300);
+    ok('moderator end-match: ended by the moderator, no winner, full reveal on a player', (await ps[0].page.locator('[data-testid=ended][data-reason=aborted]').count()) === 1 && (await ps[0].page.locator('[data-testid=ended] .seat-chip .tag').count()) === 7);
   }
   ok('moderator mode: match reached ended via UI-driven steps', (await mod.step()) === 'ended');
   if ((await mod.step()) === 'ended') {

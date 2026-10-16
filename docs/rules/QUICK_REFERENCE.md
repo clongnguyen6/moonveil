@@ -7,6 +7,7 @@ Short sentences, for the in-game help screen. The source of truth is `PROPOSAL.m
 - **Village** wins when no Wolves are left. ✅
 - **Wolves** win as soon as living Wolves are at least as many as everyone else alive. ✅
 - If nobody is left alive, it's a **draw**. ✅
+- If three full days and nights pass without anyone dying, it's also a **draw**. You'll be warned at the end of the second such day. ✅
 
 ## Roles
 | Role | Team | What you do |
@@ -51,4 +52,5 @@ How many of each role: 7–15 players. 2 Wolves at 7–12 players and 3 at 13–
 ## Moderated games
 - A human moderator runs the pace and hears every channel. ✅
 - For a show of hands, the moderator enters the Yes count, and the game applies the same "more than half" rule. ✅
+- The moderator may end the match at any time; nobody wins, and all roles are revealed. ✅
 - The moderator's other powers (acting for a player, removing a player, speaking aloud: currently off) are 🟡.

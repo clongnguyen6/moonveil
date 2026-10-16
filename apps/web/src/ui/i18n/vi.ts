@@ -6,7 +6,7 @@ export const vi: Strings = {
   send: 'Gửi', copy: 'Sao chép', copied: 'Đã chép', you: 'bạn', host: 'chủ phòng', moderator: 'Quản trò', online: 'trực tuyến', offline: 'mất kết nối',
   ready: 'Sẵn sàng', notReady: 'Chưa sẵn sàng', leave: 'Rời phòng', help: 'Trợ giúp', settings: 'Cài đặt', chat: 'Chat', roleCard: 'Vai của tôi',
   language: 'Ngôn ngữ', sound: 'Âm báo', on: 'Bật', off: 'Tắt', motion: 'Hiệu ứng', motionSystem: 'Theo thiết bị', motionReduce: 'Giảm', motionFull: 'Đầy đủ',
-  change: 'Đổi', waiting: 'Đang chờ…', seconds: '{s} giây',
+  change: 'Đổi', waiting: 'Đang chờ…', seconds: '{s} giây', chosen: 'Đã chọn', nightDoneChange: 'Đã chọn. Vẫn có thể đổi đến khi trời sáng.',
 
   connConnected: 'Đã kết nối', connReconnecting: 'Đang kết nối lại…', connReconnectHint: 'Ghế của bạn vẫn giữ. Ván chơi vẫn tiếp tục.',
   connReplaced: 'Đã mở ở tab khác.', connUseHere: 'Dùng ở đây', connEnded: 'Bạn đã rời phòng.', connOffline: 'Ngoại tuyến',
@@ -41,7 +41,7 @@ export const vi: Strings = {
   phaseNight: 'Đêm {n}', phaseNightWitch: 'Đêm {n}', phaseHunter: 'Lượt Thợ săn', phaseDiscuss: 'Ngày {d} · Thảo luận', phaseVote: 'Ngày {d} · Đề cử',
   phaseDefense: 'Ngày {d} · Biện hộ', phaseConfirm: 'Ngày {d} · Phán quyết', phaseEnded: 'Kết thúc', phaseLobby: 'Phòng chờ',
 
-  nightTitle: 'Đêm xuống', nightWait: 'Ở trong lều đến sáng.', nightDone: 'Xong. Chờ trời sáng.', nightChangeHint: 'Bạn có thể đổi lựa chọn đến khi hết đêm.',
+  nightTitle: 'Đêm xuống', nightWait: 'Ở trong lều đến sáng.', nightDone: 'Đêm nay xong rồi. Chờ trời sáng.', nightChangeHint: 'Bạn có thể đổi lựa chọn đến khi hết đêm.',
   nightWolfTask: 'Cùng bầy chọn nạn nhân đêm nay', nightPackPicks: 'Bầy chọn', nightPackNone: 'Chưa chọn', nightPackPass: 'bỏ qua',
   nightSeerTask: 'Bạn muốn soi ai?', nightSeerResult: '{name} là', resultWolf: 'Sói', resultNotWolf: 'không phải Sói', nightSeerDone: 'Đã soi. Mỗi đêm một lần.',
   nightGuardTask: 'Đêm nay bảo vệ ai?', nightGuardLast: 'Đêm qua bạn bảo vệ {name}.',
@@ -58,18 +58,21 @@ export const vi: Strings = {
   dawnTitle: 'Bình minh', dawnNobody: 'Mọi người thức dậy. Không ai chết.', dawnDied: 'Không tỉnh dậy: {names}', dawnMourn: 'Cả trại lặng im.',
 
   discussTitle: 'Thảo luận', discussHint: 'Bàn bạc đi. Ai đáng ngờ?', discussCountdown: 'Hết giờ sẽ mở đề cử.',
-  voteTitle: 'Ai bị đưa ra xét xử?', voteHint: 'Chọn một người, hoặc Không ai. Phiếu công khai: mọi người thấy ai bầu ai.', voteYours: 'Phiếu của bạn: {name}', voteYoursSkip: 'Phiếu của bạn: Không ai', voteNone: 'Chưa bỏ phiếu',
+  voteTitle: 'Ai bị đưa ra xét xử?', voteHint: 'Chọn một người, hoặc Không ai. Phiếu công khai: mọi người thấy ai bầu ai.', voteYours: 'Phiếu của bạn: {name}', voteYoursSkip: 'Phiếu của bạn: Không ai', voteNone: 'Bạn chưa bỏ phiếu',
   voteCloses: 'Có thể đổi phiếu đến khi hết giờ.', voteNoTrial: 'Hôm nay không xét xử.', voteNoTrialTie: 'Hôm nay không xét xử (hòa hoặc Không ai thắng).', voteTrial: '{name} bị đưa ra xét xử.', voteTally: 'Kết quả đề cử',
   defenseTitle: '{name} biện hộ', defenseAccused: 'Lời biện hộ của bạn. Chỉ bạn được nói.', defenseOthers: 'Lắng nghe. Lúc này chỉ {name} được nói.', defenseNext: 'Sau đó mọi người bỏ phiếu Có hoặc Không.',
-  confirmTitle: 'Treo cổ {name}?', confirmHint: 'Cần số phiếu Có nhiều hơn một nửa số người còn sống.', confirmYes: 'Có', confirmNo: 'Không', confirmYours: 'Phiếu của bạn: {choice}', confirmNone: 'Chưa bỏ phiếu',
+  confirmTitle: 'Treo cổ {name}?', confirmHint: 'Cần số phiếu Có nhiều hơn một nửa số người còn sống.', confirmYes: 'Có', confirmNo: 'Không', confirmYours: 'Phiếu của bạn: {choice}', confirmNone: 'Bạn chưa bỏ phiếu',
   confirmExecuted: '{name} đã bị treo cổ.', confirmSpared: '{name} được tha.', confirmResult: 'Có {yes} · Không {no}', confirmDead: 'Bạn đã chết, không bỏ phiếu được.',
   livingCount: '{n} còn sống', votesCloseAt: 'Đóng sau',
 
   ghostTitle: 'Bạn là ma', ghostHint: 'Bay quanh trại. Nghe mọi chuyện công khai, trò chuyện với các ma khác. Người sống không thấy bạn.',
+  ghostWatch: 'Xem và lắng nghe. Ma không hành động hay bỏ phiếu được.',
   ghostDiedNight: 'Bạn chết trong đêm.', ghostExecuted: 'Dân làng đã treo cổ bạn.', ghostShot: 'Thợ săn đã bắn bạn.', ghostRemoved: 'Bạn đã bị đưa khỏi ván.',
 
-  endTitle: 'Kết thúc', endVillage: 'Dân làng thắng', endWolves: 'Sói thắng', endDraw: 'Không ai sống sót. Hòa.', endAborted: 'Ván bị hủy',
-  endReasonNoWolves: 'Sói đã bị tiêu diệt hết.', endReasonParity: 'Số sói đã ít nhất bằng tất cả những người còn sống khác.', endReasonZero: 'Mọi người đều chết.', endReasonAborted: 'Quản trò đã kết thúc ván.',
+  endTitle: 'Kết thúc', endVillage: 'Dân làng thắng', endWolves: 'Sói thắng', endDraw: 'Không ai sống sót. Hòa.', endAborted: 'Ván bị hủy', endByModerator: 'Quản trò đã kết thúc ván', endStalemate: 'Ba ngày đêm liền không ai chết. Hòa.',
+  endReasonNoWolves: 'Sói đã bị tiêu diệt hết.', endReasonParity: 'Số sói đã ít nhất bằng tất cả những người còn sống khác.', endReasonZero: 'Mọi người đều chết.', endReasonAborted: 'Quản trò đã kết thúc ván.', endReasonByModerator: 'Quản trò đã kết thúc ván. Không có người thắng.', endReasonStalemate: 'Hòa: ba chu kỳ không ai chết.',
+  stalemateWarning: 'Nếu không ai chết trước khi hết ngày mai, ván đấu sẽ hòa.',
+  endMatchTitle: 'Kết thúc ván', endMatchHint: 'Không có bên thắng; lộ hết vai. Không hoàn tác được.', endMatchOpen: 'Kết thúc ván…', endMatchType: 'Gõ {word} để xác nhận', endMatchWord: 'END', endMatchConfirm: 'Kết thúc ván ngay',
   endReveal: 'Vai của mọi người', endHistory: 'Diễn biến các đêm', endSurvived: 'sống sót', endDied: 'đã chết',
 
   modConsole: 'Quản trò', modStep: 'Bước', modCloseStep: 'Kết thúc bước', modCloseConfirm: 'Kết thúc "{step}" ngay?', modSeats: 'Ghế', modNight: 'Đêm', modLog: 'Nhật ký', modDanger: 'Điều khiển',
@@ -102,6 +105,7 @@ export const vi: Strings = {
   annDied: '{name} đã chết', annExecuted: '{name} bị treo cổ', annShot: '{by} bắn {target}', annHunter: '{name} là Thợ săn',
 
   provisional: 'tạm thời', ambience: 'Âm thanh trại', sceneSetting: 'Cảnh trại', wakeHint: 'Giữ màn hình sáng trong ván.', copyManual: 'Không chép tự động được. Nhấn giữ link để chép.', youLabel: 'Bạn', modNarrationSetting: 'Gợi ý lời dẫn (tạm thời)', 
+  a11yGrid: 'Người chơi: dùng phím mũi tên để di chuyển, Enter để chọn',
   a11yTimer: 'còn {s} giây', a11ySeat: '{name}, {state}', a11yDead: 'đã chết', a11yAlive: 'còn sống', a11ySpeaking: 'đang nói', a11yYou: 'bạn', a11yTarget: 'chọn {name}',
   stepDisplay: { 'night.main': 'Đêm', 'night.witch': 'Phù thủy', hunter: 'Thợ săn', 'day.discussion': 'Thảo luận', 'day.vote': 'Đề cử', 'day.defense': 'Biện hộ', 'day.confirm': 'Phán quyết', ended: 'Kết thúc' },
 };

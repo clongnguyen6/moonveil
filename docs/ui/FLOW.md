@@ -32,6 +32,7 @@ Match (frame = scene host + top bar + dock)
     day.confirm    → ConfirmPanel (live Yes/No tally + per-voter tags, Yes/No, own ballot line, living count)
     ended          → EndPanel (winner, reason, all roles, history if provided, leave)
   ghost bar (dead seat): cause, ghost hint or Hunter-pending isolation note; skin → ghost
+  dead seat (both modes, every step except a pending Hunter shot): GhostPanel = read-only seats + live ballots + timer; no action hooks
   moderator (kind=moderator): ModeratorConsole replaces the dock: Step (close step, Yes-count entry on day.confirm) · Seats (roles) · Night record · Log
     approved: close step, Yes count, listening to all channels. PROVISIONAL (hidden unless the engine config enables them; no flag exists today):
     remove player (`moderator.canRemove`), abort (`moderator.canAbort`). Narration cue line: behind Settings → "Narration cues", default off.
@@ -53,6 +54,12 @@ Match (frame = scene host + top bar + dock)
 | day.confirm | Yes / No, live tally | own ballot changeable until close | live Yes/No per voter; overlay: executed |
 | ended | winner, reveal | leave | cue: victory/defeat |
 
+## Accessibility (keyboard + screen reader)
+- Names: every icon-only control carries `aria-label`; avatars are decorative; the seat grid is a labelled group ("use arrow keys, Enter to choose"); the match frame is a `main` named after the phase; the top bar is a toolbar; the phase title is the page `h1`.
+- Keyboard: Tab order follows the DOM (title → tools → panel → grid → buttons); arrow keys / Home / End move within the seat grid; Enter/Space choose; chat sends on Enter; end-match confirms on Enter once the word matches; sheets trap Tab, open on their first body control, close on Escape and return focus to the opener.
+- Focus rings: `--focus` ring on buttons, inputs, selects, seat chips, tabs, swatches, the role card.
+- Live region: one polite `role=status` (`data-testid=live`) announces phase titles and the same public announcements as the toasts/overlays; it never carries role, facts or pack data.
+
 ## Accessibility and layout
 - Touch targets ≥ 44 px (`--tap`), focus rings, `aria-pressed` on choices, `role=timer`, `aria-live` status lines, dialog semantics on sheets, Escape closes.
 - Reduced motion: system preference or setting zeroes all durations.
@@ -66,6 +73,13 @@ Match (frame = scene host + top bar + dock)
 - Residual: a wolf's mic tap toggles the glyph; the Witch panel has heal buttons in the info slot (same slot height). In in-person rooms voice is off, which removes the mic tell where glancing is possible.
 - Not covered here: wire traffic (PROPOSALS.md P10) and voice-provider metadata (voice scope).
 
+## Layout and accessibility checks
+`node scripts/env.mjs node apps/web/src/ui/dev/layout-check.mjs --webkit` (vite on 4401): every scenario and sheet at phone portrait 390×844, phone landscape 844×390 and laptop 1440×900 in Chromium headless shell, plus iPhone 13 portrait/landscape in WebKit (all emulation). Asserts no horizontal overflow (document, dock, lobby, sheets), visible text ≥ 13 px, interactive targets ≥ 44 px (icons/swatches ≥ 40; label-wrapped checkboxes measured by their label), text contrast ≥ 4.5:1 against its composited surface (3:1 for large text; text over the scene/top bar excluded, it has shadows), bottom padding floor for safe areas, and the primary button fully inside the viewport after scrolling the dock. 170/170.
+Fixes it drove: `--fs-0` 0.85rem, 24 px checkboxes with 44 px label rows, 44 px selects, lighter muted/team/ghost tokens (ink-3, wolves, village, ghost) for contrast.
+
+## Polish (theme layer only)
+Dock panel re-enters on every step instance (keyed by step/night/day); announcements fade in and out; timer pulses under 10 s; picked chip pops; confirm turns into a green "Chosen" state with a ✓ status line; haptic tick on confirms (`navigator.vibrate` where available); all motion off under reduced motion. Microcopy: "Chosen. You can still change it until dawn.", "You have not voted yet", consistent night copy in vi/en.
+
 ## Checks (this branch)
 - `node scripts/env.mjs node apps/web/src/ui/dev/check.mjs` (vite on 4401): 30 interaction checks on the stub in Chromium headless shell: night submit/change, panel uniformity, seer result, witch heal, own-ballot-only votes, confirm→close, Hunter lock, ghost/living chat isolation in the DOM, chat send, reconnect overlay, role card hidden-until-tap, moderator close step + Yes count, full automatic match with bots to `ended`, no page errors.
 - `apps/web/src/ui/dev/capture.mjs`: screenshots (phone 390×844 @2x, landscape 844×390, laptop 1440×900; WebKit iPhone 13 emulation for three). All browser emulation.
@@ -76,6 +90,10 @@ Match (frame = scene host + top bar + dock)
 - In-person rooms: in-game voice off, wolves use private text at night. UI follows the server `voiceMode` flag (PROPOSALS.md P3; until it ships the stub default is `remote`).
 - Night roles without an action: plain waiting panel, same shape for every role. No suspect-notes feature.
 - Batch A: players 7–15 (lobby range and help read `view.limits` from the engine); decks come from the engine config (2 Wolves at 7–12, 3 at 13–15, one Seer/Witch/Guard/Hunter); the UI shows the dealt deck from `roleCounts` after start and never hard-codes counts.
+
+## Approved: stalemate draw and moderator end (rules-12 5def39a, read via `game/approved.ts`)
+- Stalemate: banner in the dock + toast when the engine publishes its warning (after 2 idle cycles); end screen "Draw: no one died for three cycles" with the full reveal.
+- Moderator end: separate card in the console (moderator mode only), two steps: "End match…" → type END → "End the match now"; cancel anywhere. Never shown to players or a playing host. End screen "Ended by the moderator", no winner, full reveal. The old provisional abort button is gone.
 
 ## Provisional, behind settings / config (pending Human decisions)
 - Moderator narration cues: Settings → "Narration cues", default off.
