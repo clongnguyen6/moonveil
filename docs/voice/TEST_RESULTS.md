@@ -26,6 +26,8 @@ The 4 skipped windows are all whole-table step boundaries: in each, every page m
 - Run 3: 0 hear-matrix failures (1,050 + 1,215 checks); one false assertion of mine (moderator expected hidden at `ended`) fixed. Run 4: moderator complete match 1,960 checks, 0 failures, 0 skipped.
 - Runs 5–9 under load averages 10–28 from other projects: should-hear failures only in windows mixing two steps across pages (frames lagging per page), ICE "could not establish pc connection" for the moderator's rooms, one 12-minute test timeout. Changes: tolerant driver, 45 s expect timeout, time scale 2, `VoiceClient` connect timeout + retry, multiplexed UDP ports, cross-page step-consistency guard with skew evidence. Run 8 (moderator alone, 0099957): 896 checks, 0 failures, 0 skipped.
 
+**Known limitation (Human, 2026-10-16):** the 10-seat automatic match measured only 4 windows, with 4 skipped at step transitions. Follow-up when the heavy-run lock is free again: a run with a longer measurement budget, or a seeded run that holds each step long enough (lower time scale or `VOICE_E2E_AUTO_BUDGET_MS`), to strengthen the automatic-mode audio evidence. Does not block the merge of a9b411d.
+
 Not covered here: real devices, NAT/TURN, >10 seats, TLS in this suite (the spike covers TLS), timing/traffic side channels.
 
 ## Spike suites (`spikes/voice/tests/`)
