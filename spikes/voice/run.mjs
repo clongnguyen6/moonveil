@@ -32,4 +32,13 @@ if (!(await up('http://127.0.0.1:4302/api/state'))) {
 }
 
 const pw = spawn(process.execPath, [path.join(dir, 'node_modules/@playwright/test/cli.js'), 'test', ...process.argv.slice(2)], { stdio: 'inherit', cwd: dir, env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: path.join(dir, '.browsers') } });
-pw.on('exit', (code) => { for (const p of started) p.kill('SIGTERM'); process.exit(code ?? 1); });
+pw.on('exit', async (code) => {
+  // Stop only what this script started; escalate to SIGKILL if a child ignores SIGTERM.
+  await Promise.all(started.map((p) => new Promise((resolve) => {
+    if (p.exitCode !== null) return resolve();
+    const hard = setTimeout(() => p.kill('SIGKILL'), 3000);
+    p.once('exit', () => { clearTimeout(hard); resolve(); });
+    p.kill('SIGTERM');
+  })));
+  process.exit(code ?? 1);
+});
