@@ -90,8 +90,9 @@ export class LocalRoom implements Session {
     for (const fn of this.listeners) fn();
   }
 
-  create(mode: Mode, profile: Profile) {
+  create(mode: Mode, profile: Profile, voiceMode: 'remote' | 'inPerson' = 'remote') {
     void mode;
+    this.voiceMode = voiceMode;
     const me: StubSeat = { id: sid(), kind: this.mode === 'moderator' ? 'moderator' : 'player', ...profile, ready: false, connected: true };
     if (me.kind === 'moderator') this.moderator = me;
     else this.players.unshift(me);
@@ -155,7 +156,7 @@ export class LocalRoom implements Session {
         case 'say': {
           const grants = this.grantsFor(me);
           if (!grants.some((g) => g.channel === msg.channel && g.speak)) throw new Error('cannot speak here');
-          this.chat.push({ channel: msg.channel as ChannelId, msg: { id: Math.random().toString(36).slice(2), from: me.id, text: String(msg.text).slice(0, 280), at: Date.now() } });
+          this.chat.push({ channel: msg.channel as ChannelId, msg: { id: Math.random().toString(36).slice(2), from: me.id, name: me.name, text: String(msg.text).slice(0, 500), at: Date.now() } });
           break;
         }
         case 'leave':
@@ -303,6 +304,8 @@ export class LocalRoom implements Session {
       limits: { minPlayers: this.engine.minPlayers, maxPlayers: this.engine.maxPlayers },
       canStart: me.id === this.hostId && this.canStart(),
       phaseEndsAt: this.phaseEndsAt,
+      phaseDurationMs: this.game && this.phaseEndsAt !== null ? this.engine.phase(this.game).durationMs : null,
+      voiceMode: this.voiceMode,
       game: this.game ? this.engine.view(this.game, isMod ? { kind: 'moderator' } : { kind: 'seat', seat: me.id }) : null,
       voice: grants,
     };

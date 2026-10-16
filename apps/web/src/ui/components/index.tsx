@@ -3,6 +3,7 @@ import type { Appearance, PublicSeat } from '@moonveil/protocol';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useT } from '../i18n/index.ts';
 import { playCue } from '../audio/cues.ts';
+import { serverNow } from '../../game/clock.ts';
 
 const HAT_GLYPH: Record<Appearance['hat'], string> = { none: '', beanie: '🧢', cap: '🧢', bucket: '👒', flower: '🌼', hood: '🧥' };
 
@@ -38,12 +39,12 @@ export function Button(props: { children: ReactNode; onClick?: () => void; kind?
 }
 
 /** Countdown from a server deadline. Same for every seat; shows nothing when the server gives no deadline. */
-export function Timer({ endsAt, totalMs }: { endsAt: number | null; totalMs?: number }) {
+export function Timer({ endsAt, totalMs }: { endsAt: number | null; totalMs?: number | null }) {
   const t = useT();
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(serverNow());
   useEffect(() => {
     if (endsAt === null) return;
-    const id = setInterval(() => setNow(Date.now()), 250);
+    const id = setInterval(() => setNow(serverNow()), 250);
     return () => clearInterval(id);
   }, [endsAt]);
   if (endsAt === null) return null;

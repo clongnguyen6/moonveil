@@ -15,6 +15,7 @@ export const vi: Strings = {
   entryName: 'Tên của bạn', entryNamePh: 'vd: Linh', entryLook: 'Diện mạo', entryColour: 'Màu', entryHat: 'Mũ',
   entryCode: 'Mã phòng', entryJoin: 'Vào phòng', entryOr: 'hoặc tạo phòng mới', entryCreateAuto: 'Tạo & chơi', entryCreateAutoHint: 'Ứng dụng tự điều khiển đêm và ngày.',
   entryCreateMod: 'Tạo & làm quản trò', entryCreateModHint: 'Bạn dẫn dắt ván chơi, không tham gia.',
+  entryInPerson: 'Chơi cùng một phòng (tắt thoại, sói nhắn chữ ban đêm)',
   entryNameHint: 'Mọi người đều thấy tên. Không phải vai.',
 
   lobbyTitle: 'Trại', lobbyPlayers: '{n} người · cần {min}–{max}', lobbyInvite: 'Link mời', lobbyCopyLink: 'Chép link', lobbyCopyCode: 'Chép mã',
@@ -27,12 +28,12 @@ export const vi: Strings = {
 
   roleWolf: 'Sói', roleVillager: 'Dân làng', roleSeer: 'Tiên tri', roleGuard: 'Bảo vệ', roleWitch: 'Phù thủy', roleHunter: 'Thợ săn',
   teamWolves: 'Phe Sói', teamVillage: 'Phe Dân',
-  roleDescWolf: 'Mỗi đêm bầy sói chọn một nạn nhân. Ban ngày hãy hòa vào dân làng. Thắng khi số sói bằng số dân.',
+  roleDescWolf: 'Mỗi đêm bầy sói chọn một nạn nhân. Ban ngày hãy hòa vào dân làng. Thắng khi số sói ít nhất bằng tất cả những người còn sống khác.',
   roleDescVillager: 'Không có phép, chỉ có tiếng nói và lá phiếu. Tìm ra sói.',
   roleDescSeer: 'Mỗi đêm soi một người để biết có phải sói không.',
   roleDescGuard: 'Mỗi đêm bảo vệ một người khỏi sói.',
   roleDescWitch: 'Một bình cứu, một bình độc cho cả ván.',
-  roleDescHunter: 'Khi chết, bạn được bắn một người.',
+  roleDescHunter: 'Khi chết trong ván, bạn được bắn một người. Bị đưa khỏi ván thì không được bắn.',
   roleYouAre: 'Bạn là', roleTeam: 'Phe', rolePack: 'Bầy của bạn', roleKeepSecret: 'Giữ kín. Chạm để ẩn.', roleTapReveal: 'Chạm để xem', roleInPlay: 'Các vai trong ván này',
   roleFacts: 'Điều bạn biết', roleNoFacts: 'Chưa có gì.',
 
@@ -67,13 +68,13 @@ export const vi: Strings = {
   ghostDiedNight: 'Bạn chết trong đêm.', ghostExecuted: 'Dân làng đã treo cổ bạn.', ghostShot: 'Thợ săn đã bắn bạn.', ghostRemoved: 'Bạn đã bị đưa khỏi ván.',
 
   endTitle: 'Kết thúc', endVillage: 'Dân làng thắng', endWolves: 'Sói thắng', endDraw: 'Không ai sống sót. Hòa.', endAborted: 'Ván bị hủy',
-  endReasonNoWolves: 'Sói đã bị tiêu diệt hết.', endReasonParity: 'Số sói đã bằng số dân.', endReasonZero: 'Mọi người đều chết.', endReasonAborted: 'Quản trò đã kết thúc ván.',
+  endReasonNoWolves: 'Sói đã bị tiêu diệt hết.', endReasonParity: 'Số sói đã ít nhất bằng tất cả những người còn sống khác.', endReasonZero: 'Mọi người đều chết.', endReasonAborted: 'Quản trò đã kết thúc ván.',
   endReveal: 'Vai của mọi người', endHistory: 'Diễn biến các đêm', endSurvived: 'sống sót', endDied: 'đã chết',
 
   modConsole: 'Quản trò', modStep: 'Bước', modCloseStep: 'Kết thúc bước', modCloseConfirm: 'Kết thúc "{step}" ngay?', modSeats: 'Ghế', modNight: 'Đêm', modLog: 'Nhật ký', modDanger: 'Điều khiển',
   modRemove: 'Đưa khỏi ván', modRemoveConfirm: 'Đưa {name} khỏi ván? Không có phát súng Thợ săn, không hoàn tác.', modAbort: 'Hủy ván', modAbortConfirm: 'Kết thúc ván ngay, không có bên thắng?',
   modYesCount: 'Số phiếu Có đếm tại bàn', modYesHint: 'Nhập số phiếu Có từ giơ tay. Ứng dụng áp dụng Có×2 > còn sống.', modApply: 'Áp dụng',
-  modPendingApi: 'Chờ cập nhật luật; chưa gửi.', modSecretWarn: 'Mật · chỉ bạn xem', modNoBallots: 'Không hiển thị lá phiếu.',
+  modSecretWarn: 'Mật · chỉ bạn xem',
   modNoTimer: 'Không có đồng hồ. Bạn giữ nhịp.', modVictim: 'Nạn nhân của bầy', modPicks: 'Sói chọn', modInspect: 'Tiên tri soi', modGuard: 'Bảo vệ che', modHeal: 'Cứu', modPoison: 'Độc',
   modSubmitted: 'Đã nhận hành động đêm: {n}/{total}', modSay: 'Nói',
   sayNightMain: 'Mọi người nhắm mắt. Sói mở mắt và chọn. Tiên tri soi. Bảo vệ che.',
@@ -87,13 +88,13 @@ export const vi: Strings = {
   voiceMic: 'Mic', voiceMute: 'Tắt mic', voiceUnmute: 'Bật mic', voiceMuted: 'Đã tắt mic', voiceListen: 'Chỉ nghe', voiceOff: 'Tắt thoại', voiceTalking: 'Đang nói', voiceChannel: 'Kênh',
 
   helpTitle: 'Cách chơi', helpFlow: 'Mỗi đêm sói chọn nạn nhân và các vai đặc biệt hành động. Sáng ra công bố người chết. Ban ngày mọi người thảo luận, đề cử một người, nghe biện hộ rồi bỏ phiếu Có hoặc Không.',
-  helpWin: 'Dân thắng khi hết sói. Sói thắng khi số sói bằng số dân.',
+  helpWin: 'Dân thắng khi hết sói. Sói thắng khi số sói ít nhất bằng tất cả những người còn sống khác, kể cả các vai đặc biệt.',
   helpRoles: 'Các vai trong ván này', helpRulesApproved: 'Luật', helpRuleVote: 'Đề cử: người nhiều phiếu nhất bị xét xử. "Không ai" cũng tính. Hòa hoặc "Không ai" thắng thì không xét xử.',
   helpRuleExec: 'Phán quyết: chỉ treo cổ khi Có × 2 > số người sống. Không bỏ phiếu tính như phản đối.', helpRuleNight: 'Đêm dài như nhau với mọi người và không kết thúc sớm.',
-  helpRuleHunter: 'Thợ săn chết có 20 giây để bắn. Lượt này công khai.', helpRuleReveal: 'Không lộ vai khi chết. Cuối ván lộ hết.',
-  helpRuleGhost: 'Ma giữ điều đã biết, không biết thêm bí mật, chỉ nói chuyện với ma.', helpRuleTimer: 'Thời gian lấy từ cài đặt ván.',
+  helpRuleHunter: 'Thợ săn chết có 20 giây để bắn. Lượt này công khai.', helpRuleReveal: 'Chết bình thường không lộ vai. Thợ săn lộ vai khi lượt bắn mở. Cuối ván lộ hết.',
+  helpRuleGhost: 'Ma giữ điều đã biết, không biết thêm bí mật, chỉ nói chuyện với ma.', helpRuleTimer: 'Đêm cố định 60 giây, biện hộ cố định 30 giây. Các khoảng thời gian khác theo cài đặt ván.',
   helpWitch: 'Phù thủy: một bình cứu, một bình độc, dùng chung một đêm được. Tự cứu được, tự đầu độc không. Chỉ biết nạn nhân khi chưa dùng bình cứu.',
-  helpProvisional: 'Các chi tiết khác theo cài đặt hiện tại của ván.',
+  helpProvisional: 'Tạm thời (chưa quyết; theo cài đặt hiện tại của ván):', helpProvSeer: 'Tiên tri biết: là sói hay không phải sói.', helpProvGuard: 'Bảo vệ: được tự bảo vệ, không che cùng một người hai đêm liền; không chặn độc.', helpProvWolfPass: 'Sói có thể chọn không ai.', helpProvPlayers: '{min}–{max} người chơi.',
 
   annNight: 'Đêm xuống', annDawn: 'Bình minh', annVote: 'Mở đề cử', annDefense: 'Biện hộ', annConfirm: 'Phán quyết', annYourTurn: 'Đến lượt bạn', annOver: 'Kết thúc',
   annDied: '{name} đã chết', annExecuted: '{name} bị treo cổ', annShot: '{by} bắn {target}', annHunter: '{name} là Thợ săn',

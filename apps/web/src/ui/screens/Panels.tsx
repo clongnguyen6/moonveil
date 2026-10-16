@@ -135,7 +135,7 @@ export function RolesInPlay({ g }: { g: GameView }) {
   );
 }
 
-export function HelpSheet({ g, onClose }: { g: GameView | null; onClose: () => void }) {
+export function HelpSheet({ g, onClose, limits }: { g: GameView | null; onClose: () => void; limits?: { min: number; max: number } }) {
   const t = useT();
   return (
     <Sheet title={t('helpTitle')} onClose={onClose} testId="help-sheet">
@@ -145,7 +145,7 @@ export function HelpSheet({ g, onClose }: { g: GameView | null; onClose: () => v
         <h3 className="hint" style={{ fontWeight: 700 }}>{t('helpRoles')}</h3>
         <ul className="facts">
           {(g ? rolesInPlay(g) : (['wolf', 'villager', 'seer', 'guard', 'witch', 'hunter'] as Role[])).map((r) => (
-            <li key={r}><strong className={`team-${teamOf(r)}`}>{t.role(r)}</strong> — {roleDesc(t, r)}</li>
+            <li key={r}><strong className={`team-${teamOf(r)}`}>{t.role(r)}</strong> — {roleDesc(t, r)}{r === 'seer' || r === 'guard' ? <> <span className="pill warn">{t('provisional')}</span></> : null}</li>
           ))}
         </ul>
         <h3 className="hint" style={{ fontWeight: 700 }}>{t('helpRulesApproved')}</h3>
@@ -157,7 +157,13 @@ export function HelpSheet({ g, onClose }: { g: GameView | null; onClose: () => v
           <li>{t('helpRuleHunter')}</li>
           <li>{t('helpRuleReveal')}</li>
           <li>{t('helpRuleGhost')}</li>
-          <li className="muted">{t('helpProvisional')}</li>
+        </ul>
+        <h3 className="hint" style={{ fontWeight: 700 }}>{t('helpProvisional')} <span className="pill warn">{t('provisional')}</span></h3>
+        <ul className="facts" data-testid="help-provisional">
+          <li>{t('helpProvSeer')}</li>
+          <li>{t('helpProvGuard')}</li>
+          <li>{t('helpProvWolfPass')}</li>
+          {limits && <li>{t('helpProvPlayers', limits)}</li>}
         </ul>
       </div>
     </Sheet>
@@ -202,7 +208,7 @@ export function ChatSheet({ s, view, onClose }: { s: SessionState; view: SeatVie
           {msgs.length === 0 && <p className="muted">{t('chatNone')}</p>}
           {msgs.map(({ msg: m }) => (
             <div key={m.id} className={`chat-msg ${m.from === view.me.seat ? 'mine' : ''}`}>
-              <span className="from">{nameOf(view, m.from)}</span> {m.text}
+              <span className="from">{m.name ?? nameOf(view, m.from)}</span> {m.text}
             </div>
           ))}
         </div>

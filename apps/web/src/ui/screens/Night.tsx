@@ -21,7 +21,7 @@ function Frame({ title, task, info, children, buttons, status, view, testId }: {
     <section className="card panel rise-in" data-testid={testId}>
       <div className="panel-head">
         <h2 className="panel-title">{title}</h2>
-        <Timer endsAt={view.phaseEndsAt} />
+        <Timer endsAt={view.phaseEndsAt} totalMs={view.phaseDurationMs} />
       </div>
       <p className="hint">{task}</p>
       <div className="info-slot" style={{ minHeight: 44 }}>{info}</div>
@@ -86,7 +86,7 @@ function WolfPanel({ view, g, title }: PanelProps & { title: string }) {
     <Frame view={view} testId="night-wolf" title={title} task={t('nightWolfTask')} info={info} status={submitted === null ? t('nightChangeHint') : t('nightDone')}
       buttons={
         <>
-          <Button kind="quiet" disabled={!a.canPass || submitted === 'pass'} onClick={() => session.send({ t: 'act', action: act.wolfPick('pass') })}>{t('pass')}</Button>
+          <Button kind="quiet" disabled={!a.canPass || submitted === 'pass'} onClick={() => session.send({ t: 'act', action: act.wolfPick('pass') })}>{t('nightNoTarget')}</Button>
           <Button testId="confirm" disabled={sel === null || sel === submitted} onClick={() => sel !== null && session.send({ t: 'act', action: act.wolfPick(sel) })}>{t('confirm')}</Button>
         </>
       }
@@ -228,7 +228,7 @@ export function HunterPanel({ view, g }: PanelProps) {
     <section className="card panel rise-in" data-testid="hunter-wait">
       <div className="panel-head">
         <h2 className="panel-title">{t('hunterTitle')}</h2>
-        <Timer endsAt={view.phaseEndsAt} />
+        <Timer endsAt={view.phaseEndsAt} totalMs={view.phaseDurationMs} />
       </div>
       <p className="hint">{t('hunterOthers', { name: names })}</p>
       <p className="pulse">{t('hunterWaiting')}</p>

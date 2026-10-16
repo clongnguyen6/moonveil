@@ -1,7 +1,7 @@
 // What the UI talks to. The real implementation wraps apps/web/src/client.ts (foundation); the dev stub
 // (./stub) implements the same surface in-browser. Keeping the UI on this interface means screens never
 // know whether a socket or a stub is behind them.
-import type { ClientMessageInput, ErrorCode, Mode, Pose, Profile, SeatId, SeatView } from '@moonveil/protocol';
+import type { ClientMessageInput, ErrorCode, Mode, Pose, Profile, SeatId, SeatView, VoiceMode } from '@moonveil/protocol';
 import type { ChatEntry } from './types.ts';
 
 export type ConnStatus = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'replaced' | 'ended';
@@ -20,19 +20,23 @@ export interface SessionState {
   speaking: SeatId[];
   /** Latest `poses` frame (lobby: everyone; play: only what the server lets this seat see). */
   poses: Pose[];
-  /** Room voice setting (proposal P3): 'remote' = in-game voice, 'inPerson' = voice off, text only. */
-  voiceMode: 'remote' | 'inPerson';
+  /** Room voice setting (APPROVED): 'remote' = in-game voice, 'inPerson' = voice off, text only. */
+  voiceMode: VoiceMode;
 }
 
 export interface Session {
   subscribe(fn: () => void): () => void;
   getState(): SessionState;
-  create(mode: Mode, profile: Profile): void;
+  create(mode: Mode, profile: Profile, voiceMode?: VoiceMode): void;
   join(code: string, profile: Profile): void;
   resume(code: string): boolean;
   reclaim(): void;
   leave(): void;
   send(msg: OutMessage): boolean;
+  /** Invite link origin (LAN URL when the host browses on localhost); absent on the stub. */
+  inviteBase?(): Promise<string>;
+  /** Pose frames (≤ 10 Hz) for the scene; absent on the stub. */
+  onPoses?(fn: (poses: Pose[]) => void): () => void;
 }
 
 export function emptySession(): SessionState {

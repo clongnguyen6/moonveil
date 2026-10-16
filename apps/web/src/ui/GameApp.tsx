@@ -90,7 +90,7 @@ function Root() {
       )}
       <Toasts items={toasts} />
       {sheet === 'role' && g && view && <RoleCardSheet view={view} g={g} onClose={closeSheet} />}
-      {sheet === 'help' && <HelpSheet g={g} onClose={closeSheet} />}
+      {sheet === 'help' && <HelpSheet g={g} onClose={closeSheet} limits={view ? { min: view.limits.minPlayers, max: view.limits.maxPlayers } : undefined} />}
       {sheet === 'chat' && view && <ChatSheet s={s} view={view} onClose={closeSheet} />}
       {sheet === 'settings' && (
         <div className="scrim" onClick={closeSheet}>
@@ -171,7 +171,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
         ) : (
           <ConfirmPanel view={view} g={g} speaking={s.speaking} />
         )}
-        {isMod && view.phaseEndsAt !== null && <p className="center"><Timer endsAt={view.phaseEndsAt} /></p>}
+        {isMod && view.phaseEndsAt !== null && <p className="center"><Timer endsAt={view.phaseEndsAt} totalMs={view.phaseDurationMs} /></p>}
         {s.error && <p className="danger center" role="alert" data-testid="error">{s.error.message}</p>}
       </div>
     </div>

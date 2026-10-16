@@ -54,7 +54,12 @@ ok('vote changed to skip', /Skip/.test(await page.getByTestId('my-vote').textCon
 {
   const me = (await page.locator('.topbar .sub').textContent()).split('·').pop().trim();
   const row = page.locator('[data-testid=ballots] li', { hasText: me });
-  ok('open ballots: my row shows my ballot (choice or voted mark) from the projection', (await row.count()) === 1 && /Skip|✓/.test(await row.innerText()));
+  ok('open ballots: live voter→choice list shows my Skip', (await row.count()) === 1 && /Skip/.test(await row.innerText()));
+  await page.locator('.seat-grid button:not([disabled])').first().click();
+  await page.getByTestId('confirm').click();
+  const target = (await page.locator('.seat-grid button[aria-pressed=true] .nm').first().innerText()).replace(/\s*\(.*\)$/, '');
+  ok('open ballots: list updates to my new target', new RegExp(target).test(await row.innerText()));
+  ok('open ballots: other voters\' choices listed (scenario pre-cast votes)', (await page.locator('[data-testid=ballots] li:not(.muted)').count()) >= 4);
   ok('voted count pill shows', /\d+ of \d+ voted/.test(await page.getByTestId('voted-count').innerText()));
 }
 

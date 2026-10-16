@@ -1,6 +1,6 @@
 // Mounts packages/scene into the .scene-slot per docs/visual/MOUNT.md. The scene gets only public fields
 // (toSceneInput copies them); poses/speaking come from the session as the server filtered them.
-import { type SceneHandle, fromWirePoses, mountScene, toSceneInput, toWireMove } from '@moonveil/scene';
+import { type SceneHandle, fromWirePoses, mountScene, toSceneInput } from '@moonveil/scene';
 import { useEffect, useRef } from 'react';
 import { useSettings } from '../game/local-store.ts';
 import { projection } from '../game/select.ts';
@@ -19,9 +19,11 @@ export function SceneMount({ s, topbarRef, micOn }: { s: SessionState; topbarRef
     if (!slot.current || !view) return;
     const h = mountScene(slot.current, { input: toSceneInput(view, g) });
     scene.current = h;
-    const off = h.on('move', (pose) => session.send({ t: 'move', ...toWireMove(pose, 'normalized') }));
+    const off = h.on('move', (pose) => session.send({ t: 'move', x: Math.round(pose.x), y: Math.round(pose.y), facing: pose.facing, moving: pose.moving }));
+    const offPoses = session.onPoses?.((poses) => h.setPoses(fromWirePoses(poses, 'world')));
     return () => {
       off();
+      offPoses?.();
       h.destroy();
       scene.current = null;
     };
@@ -35,9 +37,6 @@ export function SceneMount({ s, topbarRef, micOn }: { s: SessionState; topbarRef
   useEffect(() => {
     scene.current?.setSpeaking(s.speaking);
   }, [s.speaking]);
-  useEffect(() => {
-    scene.current?.setPoses(fromWirePoses(s.poses, 'normalized'));
-  }, [s.poses]);
   useEffect(() => {
     scene.current?.setSpeakingLocal(micOn);
   }, [micOn]);

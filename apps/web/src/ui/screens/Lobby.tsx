@@ -1,6 +1,6 @@
 // Lobby: who is here, ready state, invite, mic check (incl. denied/failed), settings, help.
 import { type Profile, normalizeName } from '@moonveil/protocol';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { SessionState } from '../../game/session.ts';
 import type { SeatView } from '../../game/types.ts';
 import { Avatar, Button, Meter } from '../components/index.tsx';
@@ -15,7 +15,9 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
   const t = useT();
   const session = useSession();
   const me = view.players.find((p) => p.seat === view.me.seat);
-  const link = `${location.origin}/r/${view.code}`;
+  const [origin, setOrigin] = useState(location.origin);
+  useEffect(() => { void session.inviteBase?.().then(setOrigin).catch(() => {}); }, [session]);
+  const link = `${origin}/r/${view.code}`;
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState<'link' | 'code' | null>(null);
   const [manual, setManual] = useState(false);
@@ -33,7 +35,7 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
       <header className="row between">
         <div>
           <h1 className="panel-title">{t('lobbyTitle')}</h1>
-          <p className="hint">{view.mode === 'moderator' ? t('lobbyModeMod') : t('lobbyModeAuto')} · {t('lobbyPlayers', { n: view.players.length, min: view.limits.minPlayers, max: view.limits.maxPlayers })}</p>
+          <p className="hint">{view.mode === 'moderator' ? t('lobbyModeMod') : t('lobbyModeAuto')} · {t('lobbyPlayers', { n: view.players.length, min: view.limits.minPlayers, max: view.limits.maxPlayers })} <span className="pill warn">{t('provisional')}</span></p>
           <p className="hint" data-testid="you">{t('youLabel')}: {view.me.kind === 'moderator' ? `${view.moderator?.name ?? ''} (${t('moderator')})` : me?.name}{view.me.host ? ` · ${t('host')}` : ''}</p>
         </div>
         <div className="row">

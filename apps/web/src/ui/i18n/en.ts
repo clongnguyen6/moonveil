@@ -14,6 +14,7 @@ export const en = {
   entryName: 'Your name', entryNamePh: 'e.g. Linh', entryLook: 'Your look', entryColour: 'Colour', entryHat: 'Hat',
   entryCode: 'Room code', entryJoin: 'Join room', entryOr: 'or start a new room', entryCreateAuto: 'Create & play', entryCreateAutoHint: 'The app runs the night and day.',
   entryCreateMod: 'Create & moderate', entryCreateModHint: "You narrate and run the match. You don't play.",
+  entryInPerson: 'We are in one room (voice off, wolves text at night)',
   entryNameHint: 'Shown to everyone. Not your role.',
 
   lobbyTitle: 'Camp', lobbyPlayers: '{n} players · {min}–{max} to play', lobbyInvite: 'Invite link', lobbyCopyLink: 'Copy link', lobbyCopyCode: 'Copy code',
@@ -26,12 +27,12 @@ export const en = {
 
   roleWolf: 'Wolf', roleVillager: 'Villager', roleSeer: 'Seer', roleGuard: 'Guard', roleWitch: 'Witch', roleHunter: 'Hunter',
   teamWolves: 'Wolves', teamVillage: 'Village',
-  roleDescWolf: 'Each night the pack chooses one victim. By day, blend in. Win when wolves equal the villagers.',
+  roleDescWolf: 'Each night the pack chooses one victim. By day, blend in. Win when the wolves are at least as many as everyone else alive.',
   roleDescVillager: 'No power but your voice and your vote. Find the wolves.',
   roleDescSeer: 'Each night, learn whether one player is a wolf.',
   roleDescGuard: 'Each night, protect one player from the wolves.',
   roleDescWitch: 'One healing potion, one poison, for the whole match.',
-  roleDescHunter: 'When you die, you may shoot one player.',
+  roleDescHunter: 'When you die in play, you may shoot one player. Being removed from the match gives no shot.',
   roleYouAre: 'You are', roleTeam: 'Team', rolePack: 'Your pack', roleKeepSecret: 'Keep this to yourself. Tap to hide.', roleTapReveal: 'Tap to reveal', roleInPlay: 'Roles in this match',
   roleFacts: 'What you know', roleNoFacts: 'Nothing yet.',
 
@@ -66,13 +67,13 @@ export const en = {
   ghostDiedNight: 'You died in the night.', ghostExecuted: 'The village executed you.', ghostShot: 'The Hunter shot you.', ghostRemoved: 'You were removed from the match.',
 
   endTitle: 'Match over', endVillage: 'The village wins', endWolves: 'The wolves win', endDraw: 'Nobody survives. A draw.', endAborted: 'Match aborted',
-  endReasonNoWolves: 'All wolves are gone.', endReasonParity: 'The wolves are as many as the villagers.', endReasonZero: 'Everyone is dead.', endReasonAborted: 'The moderator ended the match.',
+  endReasonNoWolves: 'All wolves are gone.', endReasonParity: 'The wolves are at least as many as everyone else alive.', endReasonZero: 'Everyone is dead.', endReasonAborted: 'The moderator ended the match.',
   endReveal: 'Everyone\'s roles', endHistory: 'Night history', endSurvived: 'survived', endDied: 'died',
 
   modConsole: 'Moderator', modStep: 'Step', modCloseStep: 'Close step', modCloseConfirm: 'Close "{step}" now?', modSeats: 'Seats', modNight: 'Night', modLog: 'Log', modDanger: 'Controls',
   modRemove: 'Remove player', modRemoveConfirm: 'Remove {name} from the match? No Hunter shot, no undo.', modAbort: 'Abort match', modAbortConfirm: 'End the match now with no winner?',
   modYesCount: 'Yes votes counted at the table', modYesHint: 'Enter the Yes count from the show of hands. The app applies Yes×2 > living.', modApply: 'Apply',
-  modPendingApi: 'Waiting for the rules update; not sent yet.', modSecretWarn: 'Secret · your eyes only', modNoBallots: 'Ballots are not shown.',
+  modSecretWarn: 'Secret · your eyes only',
   modNoTimer: 'No timer. You set the pace.', modVictim: 'Pack victim', modPicks: 'Wolf picks', modInspect: 'Seer looks at', modGuard: 'Guard protects', modHeal: 'Heal', modPoison: 'Poison',
   modSubmitted: 'Night inputs in: {n} of {total}', modSay: 'Say',
   sayNightMain: 'Everyone, eyes closed. Wolves, open your eyes and choose. Seer, look. Guard, protect.',
@@ -86,13 +87,13 @@ export const en = {
   voiceMic: 'Mic', voiceMute: 'Mute', voiceUnmute: 'Unmute', voiceMuted: 'Muted', voiceListen: 'Listen only', voiceOff: 'Voice off', voiceTalking: 'Talking', voiceChannel: 'Channel',
 
   helpTitle: 'How to play', helpFlow: 'Each night the wolves pick a victim and special roles act. At dawn the dead are announced. By day everyone talks, nominates one player, hears their defense and votes Yes or No.',
-  helpWin: 'The village wins when no wolves remain. The wolves win when they are as many as the villagers.',
+  helpWin: 'The village wins when no wolves remain. The wolves win when they are at least as many as everyone else alive, special roles included.',
   helpRoles: 'Roles in this match', helpRulesApproved: 'Rules', helpRuleVote: 'Nomination: the single top vote-getter goes on trial. Skip counts. A tie or a Skip win means no trial.',
   helpRuleExec: 'Verdict: executed only if Yes × 2 > living players. Not voting counts against execution.', helpRuleNight: 'Nights last the same time for everyone and never end early.',
-  helpRuleHunter: 'A Hunter who dies gets 20 s to shoot. The turn is public.', helpRuleReveal: 'No role is revealed on death. All roles are revealed at the end.',
-  helpRuleGhost: 'Ghosts keep what they knew, learn no secrets, and talk only with ghosts.', helpRuleTimer: 'Timers come from the match settings.',
+  helpRuleHunter: 'A Hunter who dies gets 20 s to shoot. The turn is public.', helpRuleReveal: 'No role is revealed on an ordinary death. The Hunter is revealed when their shot turn opens. All roles are revealed at the end.',
+  helpRuleGhost: 'Ghosts keep what they knew, learn no secrets, and talk only with ghosts.', helpRuleTimer: 'Nights are a fixed 60 s and the defense a fixed 30 s. Other durations come from the match settings.',
   helpWitch: 'Witch: one heal, one poison, both usable in one night. Self-heal yes, self-poison no. She sees the victim only while her heal is unused.',
-  helpProvisional: 'Other details follow the current match settings.',
+  helpProvisional: 'Provisional (not yet decided; follows the current match settings):', helpProvSeer: 'What the Seer learns: wolf or not a wolf.', helpProvGuard: 'Guard: may protect themselves, not the same player two nights in a row; does not block poison.', helpProvWolfPass: 'Wolves may choose nobody.', helpProvPlayers: '{min}–{max} players.',
 
   annNight: 'Night falls', annDawn: 'Dawn', annVote: 'Nomination open', annDefense: 'Defense', annConfirm: 'Verdict', annYourTurn: 'Your turn', annOver: 'Match over',
   annDied: '{name} died', annExecuted: '{name} executed', annShot: '{by} shot {target}', annHunter: '{name} is the Hunter',
