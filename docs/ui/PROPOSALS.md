@@ -2,24 +2,19 @@
 
 Concrete, smallest-useful. Each item says what the UI does meanwhile.
 
-## P1. Moderator route (foundation, protocol + server) — needed for the console
-`ClientMessage` += `{ t: 'moderate', ref?, action: unknown }` → `engine.moderate(state, action)`; moderator seat only; `invalid-action` on engine error.
-Also route the moderator's existing `advance` through `moderate({type:'step.close'})` or keep both. UI sends `moderate` for: `step.close`, `player.remove`, `match.abort`, and the approved Yes-count entry (P6).
-Meanwhile: stub implements it; real client would get `bad-message`.
+## P1. Moderator route — DONE in foundation-3 (moderator sends `act` with a rules Command → `engine.moderate`). UI uses it.
 
-## P2. Text chat (foundation, protocol + server) — approved channel policy applies to text
-- C→S `{ t: 'chat', ref?, channel: 'public'|'wolves'|'ghosts', text: string(≤500) }`. Accept only if `engine.channels(state, seat)` has `speak` for that channel (lobby/ended: public). Reject silently (ack only) otherwise.
-- S→C `{ t: 'chat', msg: { id, channel, from: { seat: SeatId|null, name }, text, at } }` live, delivered only to seats whose *current* grant has `listen`.
-- History: `{ t: 'chatHistory', msgs: [...] }` on attach/resume, filtered by the grant **at read time** (rules API: a pending Hunter who reconnects gets no ghost history).
-- Not a snapshot field: chat is append-only and would bloat `state` diffs.
-Meanwhile: `SessionState.chat` is filled by the stub; UI shows tabs only for channels with `listen`.
+## P2. Text chat — DONE in foundation-3 (`say`, `chat`, `chatlog` by listen grant). UI uses the protocol `ChatMessage`.
+Still missing on the client side (foundation owns `client.ts`): the `Client` drops `chat`/`chatlog`/`speaking`/`poses` frames. Request: either
+(a) `ClientState` gains `chat: Record<channel, ChatMessage[]>` and `speaking: SeatId[]` maintained from those frames (chatlog replaces, chat appends, channel removed when its listen grant goes), or
+(b) a `client.onFrame(fn)` listener so the UI adapter keeps that state itself.
+Meanwhile the UI adapter (`src/game/client-session.ts`) taps the socket's message events; labelled interim.
 
 ## P3. Voice mode flag (foundation, protocol) — in-person play
 `SeatView.voiceMode: 'remote' | 'inPerson'` (room setting at creation, creator's choice). UI: hides the mic, shows "voice off, talk at the table", keeps chat. Voice scope: issue no tokens when `inPerson` (RECOMMENDATION.md §6).
 Meanwhile: `SessionState.voiceMode` defaults to `remote`.
 
-## P4. Speaking indicators (foundation + voice; already in INTEGRATION.md)
-`{ t: 'speaking', seats: SeatId[] }` ≤ 5 Hz, filtered per viewer to channels it may listen to. UI draws rings on seat chips from `SessionState.speaking`.
+## P4. Speaking indicators — DONE on the wire in foundation-3 (`speaking` frame). Client-side state: see P2.
 
 ## P5. Phase start time (foundation, protocol) — nice to have
 `SeatView.phaseStartedAt: number | null` next to `phaseEndsAt`, so the timer ring is exact after reconnect. Meanwhile the ring starts from the moment the deadline was first seen; the number is always exact.

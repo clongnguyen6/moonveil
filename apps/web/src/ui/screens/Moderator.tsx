@@ -2,6 +2,7 @@
 // players (pending). Controls: close step, Yes-count entry (in-person verdict), remove player, abort.
 // Secret state shown = whatever the moderator projection carries (roles, night record), minus ballots.
 import { useState } from 'react';
+import { useSettings } from '../../game/local-store.ts';
 import { mod } from '../../game/commands.ts';
 import { nameAt } from '../../game/select.ts';
 import type { GameView, SeatView } from '../../game/types.ts';
@@ -21,7 +22,12 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
   const stepName = t.step(g.step.kind);
   const living = g.seats.filter((s) => s.alive).length;
   const [yes, setYes] = useState(0);
-  const sendMod = (action: Record<string, unknown>) => session.send({ t: 'moderate', action });
+  const sendMod = (action: Record<string, unknown>) => session.send({ t: 'act', action });
+  // PROVISIONAL powers (not approved): only if the engine config carries an enabling flag. No flag today → hidden.
+  const cfg = (m?.config as { moderator?: Record<string, unknown> } | undefined)?.moderator ?? {};
+  const canRemove = cfg['canRemove'] === true;
+  const canAbort = cfg['canAbort'] === true;
+  const narration = useSettings().modNarration;
   const ended = g.step.kind === 'ended';
   return (
     <section className="card panel rise-in mod-secret" data-testid="mod-console">
@@ -35,7 +41,7 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
         <div className="stack">
           <p><strong data-testid="mod-step">{stepName}</strong> · {g.step.kind.startsWith('night') ? t('phaseNight', { n: g.night }) : t('phaseDiscuss', { d: g.day }).split(' ·')[0]} · {t('livingCount', { n: living })}</p>
           <p className="hint">{view.phaseEndsAt === null ? t('modNoTimer') : ''}</p>
-          <p className="card" style={{ padding: 10 }} data-testid="mod-say">🗣 {narration(t, g, view)}</p>
+          {narration && <p className="card" style={{ padding: 10 }} data-testid="mod-say">🗣 {narrate(t, g, view)} <span className="pill warn">{t('provisional')}</span></p>}
           {m?.nightRec && g.step.kind.startsWith('night') && <p className="hint">{t('modSubmitted', { n: submittedCount(g), total: expectedCount(g) })}</p>}
           {g.step.kind === 'hunter' && <p className="hint">{t('hunterOthers', { name: g.step.pending.map((p) => nameAt(view, g, p)).join(', ') })}</p>}
           {g.step.kind === 'day.confirm' && (
@@ -51,20 +57,20 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
           )}
           {(g.step.kind === 'day.vote') && <p className="muted">{t('modNoBallots')}</p>}
           <Button wide testId="close-step" disabled={ended} onClick={() => setAsk({ text: t('modCloseConfirm', { step: stepName }), yes: t('modCloseStep'), run: () => sendMod(mod.closeStep()) })}>{t('modCloseStep')} →</Button>
-          <Button kind="danger" testId="abort" disabled={ended} onClick={() => setAsk({ text: t('modAbortConfirm'), yes: t('modAbort'), danger: true, run: () => sendMod(mod.abort()) })}>{t('modAbort')}</Button>
+          {canAbort && <Button kind="danger" testId="abort" disabled={ended} onClick={() => setAsk({ text: t('modAbortConfirm'), yes: t('modAbort'), danger: true, run: () => sendMod(mod.abort()) })}>{t('modAbort')}</Button>}
         </div>
       )}
 
       {tab === 'seats' && (
         <div className="stack">
           <SeatGrid view={view} g={g} testPrefix="mod-seat" roles="all" />
-          <div className="row wrap">
+          {canRemove && <div className="row wrap">
             {g.seats.filter((s) => s.alive).map((s) => (
               <Button key={s.seat} kind="quiet" disabled={ended} onClick={() => setAsk({ text: t('modRemoveConfirm', { name: nameAt(view, g, s.seat) }), yes: t('modRemove'), danger: true, run: () => sendMod(mod.remove(s.seat)) })}>
                 {t('modRemove')}: {nameAt(view, g, s.seat)}
               </Button>
             ))}
-          </div>
+          </div>}
         </div>
       )}
 
@@ -92,7 +98,7 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
   );
 }
 
-function narration(t: ReturnType<typeof useT>, g: GameView, view: SeatView): string {
+function narrate(t: ReturnType<typeof useT>, g: GameView, view: SeatView): string {
   const s = g.step;
   switch (s.kind) {
     case 'night.main': return t('sayNightMain');

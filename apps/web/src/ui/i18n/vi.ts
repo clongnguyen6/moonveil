@@ -99,6 +99,7 @@ export const vi: Strings = {
   annNight: 'Đêm xuống', annDawn: 'Bình minh', annVote: 'Mở đề cử', annDefense: 'Biện hộ', annConfirm: 'Phán quyết', annYourTurn: 'Đến lượt bạn', annOver: 'Kết thúc',
   annDied: '{name} đã chết', annExecuted: '{name} bị treo cổ', annShot: '{by} bắn {target}', annHunter: '{name} là Thợ săn',
 
+  provisional: 'tạm thời', modNarrationSetting: 'Gợi ý lời dẫn (tạm thời)', nightNotesSetting: 'Ghi chú nghi ngờ ban đêm (tạm thời)',
   a11yTimer: 'còn {s} giây', a11ySeat: '{name}, {state}', a11yDead: 'đã chết', a11yAlive: 'còn sống', a11ySpeaking: 'đang nói', a11yYou: 'bạn', a11yTarget: 'chọn {name}',
   stepDisplay: { 'night.main': 'Đêm', 'night.witch': 'Phù thủy', hunter: 'Thợ săn', 'day.discussion': 'Thảo luận', 'day.vote': 'Đề cử', 'day.defense': 'Biện hộ', 'day.confirm': 'Phán quyết', ended: 'Kết thúc' },
 };

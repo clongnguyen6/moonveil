@@ -100,6 +100,7 @@ await page.getByTestId('close-step').click();
 await page.locator('[role=alertdialog] .btn').nth(1).click();
 await page.waitForTimeout(150);
 ok('moderator closed night.main -> night.witch', (await page.getByTestId('mod-step').textContent()) === 'Witch');
+ok('moderator console hides unapproved powers (remove/abort/narration)', (await page.locator('[data-testid=abort], [data-testid=mod-say]').count()) === 0 && !/Remove player/.test(await page.getByTestId('mod-console').innerText()));
 ok('moderator console shows no ballots text', !/Yes \d+ · No|ballot:/i.test(await page.getByTestId('mod-console').innerText()));
 // drive to day.confirm via stub and apply yes count
 await stub((r) => { r.closeStep(); r.closeStep(); const g = r.game.match; const alive = g.seats.filter((s) => s.alive).map((s) => s.seat); const acc = alive[1]; alive.filter((s) => s !== acc).forEach((s) => r.drive({ type: 'vote.nominate', seat: s, target: acc })); r.closeStep(); r.closeStep(); });

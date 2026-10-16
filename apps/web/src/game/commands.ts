@@ -13,11 +13,12 @@ export const act = {
   hunterShoot: (target: Seat | 'pass') => ({ type: 'hunter.shoot', target }),
 };
 
-/** Moderator commands (engine `moderate`). Sent as `{ t: 'moderate', action }` (proposal P1). */
+/** Moderator commands (engine `moderate`). Sent as `{ t: 'act', action }` from the moderator seat (foundation-3). */
 export const mod = {
   forSeat: (seat: Seat, a: Record<string, unknown>) => ({ ...a, seat }),
   wolfDecide: (target: Seat | 'pass') => ({ type: 'wolf.decide', target }),
   closeStep: () => ({ type: 'step.close' }),
+  /** PROVISIONAL (not approved): shown only when the engine config enables them (see Moderator.tsx). */
   remove: (seat: Seat) => ({ type: 'player.remove', seat }),
   abort: () => ({ type: 'match.abort' }),
   /** APPROVED Q16 (2026-10-16): the moderator enters the Yes count of a show of hands; the engine applies Yes*2 > living. */

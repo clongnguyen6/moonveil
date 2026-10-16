@@ -7,6 +7,9 @@ export interface Settings {
   lang: Lang;
   sound: boolean;
   reducedMotion: 'system' | 'on' | 'off';
+  /** PROVISIONAL aids pending Human decisions (kept behind settings, default off). */
+  modNarration: boolean;
+  nightNotes: boolean;
 }
 
 const SETTINGS_KEY = 'moonveil.ui.settings';
@@ -26,7 +29,7 @@ function read<T>(key: string, fallback: T): T {
   }
 }
 
-let settings: Settings = read<Settings>(SETTINGS_KEY, { lang: detectLang(), sound: true, reducedMotion: 'system' });
+let settings: Settings = read<Settings>(SETTINGS_KEY, { lang: detectLang(), sound: true, reducedMotion: 'system', modNarration: false, nightNotes: true });
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((fn) => fn());
 

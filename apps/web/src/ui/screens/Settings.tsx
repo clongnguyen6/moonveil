@@ -28,6 +28,14 @@ export function SettingsRow() {
           <option value="off">{t('motionFull')}</option>
         </select>
       </label>
+      <label className="field row">
+        {t('nightNotesSetting')}
+        <input type="checkbox" checked={s.nightNotes} onChange={(e) => settingsStore.set({ nightNotes: e.target.checked })} />
+      </label>
+      <label className="field row">
+        {t('modNarrationSetting')}
+        <input type="checkbox" checked={s.modNarration} onChange={(e) => settingsStore.set({ modNarration: e.target.checked })} />
+      </label>
     </div>
   );
 }

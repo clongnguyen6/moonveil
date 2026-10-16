@@ -4,7 +4,7 @@
 import type { Mode, Profile, PublicSeat, SeatId, SeatView, VoiceGrant } from '@moonveil/protocol';
 import { type Command, type HostState, type RulesEngine, createRulesEngine } from '@moonveil/rules';
 import { type ConnStatus, type OutMessage, type Session, type SessionState, emptySession } from '../session.ts';
-import type { ChannelId, ChatMessage } from '../types.ts';
+import type { ChannelId, ChatEntry } from '../types.ts';
 import { pickBotAction } from './bots.ts';
 
 export interface StubSeat {
@@ -46,7 +46,7 @@ export class LocalRoom implements Session {
   speed: number;
   autoBots: boolean;
   voiceMode: 'remote' | 'inPerson';
-  chat: ChatMessage[] = [];
+  chat: ChatEntry[] = [];
   speaking: SeatId[] = [];
   error: SessionState['error'] = null;
   private seed: string;
@@ -137,41 +137,25 @@ export class LocalRoom implements Session {
           this.start();
           break;
         case 'act': {
-          if (!this.game || me.kind !== 'player') throw new Error('no game');
-          const r = this.engine.submit(this.game, me.id, msg.action);
+          if (!this.game) throw new Error('no game');
+          const r = me.kind === 'moderator' ? this.engine.moderate(this.game, msg.action) : this.engine.submit(this.game, me.id, msg.action);
           if (!r.ok) {
             this.error = { code: 'invalid-action', message: r.error };
             break;
           }
           this.game = r.state;
-          this.afterChange();
+          if (me.kind === 'moderator') this.enterPhase();
+          else this.afterChange();
           break;
         }
         case 'advance':
           if (me.kind !== 'moderator') throw new Error('moderator only');
           this.advance();
           break;
-        case 'moderate': {
-          if (!this.game || me.kind !== 'moderator') throw new Error('moderator only');
-          const r = this.engine.moderate(this.game, msg.action);
-          if (!r.ok) {
-            this.error = { code: 'invalid-action', message: r.error };
-            break;
-          }
-          this.game = r.state;
-          this.enterPhase();
-          break;
-        }
-        case 'chat': {
+        case 'say': {
           const grants = this.grantsFor(me);
           if (!grants.some((g) => g.channel === msg.channel && g.speak)) throw new Error('cannot speak here');
-          this.chat.push({
-            id: `c${this.chat.length + 1}`,
-            channel: msg.channel,
-            from: { seat: me.kind === 'player' ? me.id : null, name: me.name },
-            text: msg.text.slice(0, 500),
-            at: Date.now(),
-          });
+          this.chat.push({ channel: msg.channel as ChannelId, msg: { id: Math.random().toString(36).slice(2), from: me.id, text: String(msg.text).slice(0, 280), at: Date.now() } });
           break;
         }
         case 'leave':
@@ -310,6 +294,7 @@ export class LocalRoom implements Session {
     const grants = this.grantsFor(me);
     const view: SeatView = {
       code: this.code,
+      engine: this.engine.id,
       mode: this.mode,
       status: this.status,
       me: { seat: me.id, kind: me.kind, host: me.id === this.hostId },

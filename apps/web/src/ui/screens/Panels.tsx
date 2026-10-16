@@ -2,7 +2,7 @@
 import type { Role } from '@moonveil/rules';
 import { useEffect, useRef, useState } from 'react';
 import type { ConnStatus, SessionState } from '../../game/session.ts';
-import { canListen, canSpeak, nameAt, playerAt, rolesInPlay } from '../../game/select.ts';
+import { canListen, canSpeak, nameAt, nameOf, playerAt, rolesInPlay } from '../../game/select.ts';
 import type { ChannelId, GameView, SeatView } from '../../game/types.ts';
 import { Avatar, Button, Sheet, Tabs } from '../components/index.tsx';
 import { SeatGrid } from '../components/SeatGrid.tsx';
@@ -191,7 +191,7 @@ export function ChatSheet({ s, view, onClose }: { s: SessionState; view: SeatVie
   const submit = () => {
     const v = text.trim();
     if (!v || !speak) return;
-    session.send({ t: 'chat', channel: active, text: v });
+    session.send({ t: 'say', channel: active, text: v });
     setText('');
   };
   return (
@@ -200,9 +200,9 @@ export function ChatSheet({ s, view, onClose }: { s: SessionState; view: SeatVie
         {channels.length > 1 && <Tabs tabs={channels.map((c) => ({ key: c, label: t(CHANNEL_LABEL[c]) }))} value={active} onChange={setTab} />}
         <div className="chat-log" ref={log} data-testid="chat-log" data-channel={active}>
           {msgs.length === 0 && <p className="muted">{t('chatNone')}</p>}
-          {msgs.map((m) => (
-            <div key={m.id} className={`chat-msg ${m.from.seat === view.me.seat ? 'mine' : ''}`}>
-              <span className="from">{m.from.name}</span> {m.text}
+          {msgs.map(({ msg: m }) => (
+            <div key={m.id} className={`chat-msg ${m.from === view.me.seat ? 'mine' : ''}`}>
+              <span className="from">{nameOf(view, m.from)}</span> {m.text}
             </div>
           ))}
         </div>

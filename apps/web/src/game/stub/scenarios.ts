@@ -46,8 +46,8 @@ export function scenario(name: ScenarioName, opts: { speed?: number; autoBots?: 
   if (name === 'lobby') {
     room.players.forEach((p, i) => (p.ready = i % 3 !== 2));
     room.players[1]!.connected = false;
-    room.chat.push({ id: 'c1', channel: 'public', from: { seat: room.players[2]!.id, name: 'Chi' }, text: 'Mọi người bật mic chưa?', at: Date.now() - 60_000 });
-    room.chat.push({ id: 'c2', channel: 'public', from: { seat: room.players[0]!.id, name: 'An' }, text: 'Ready when you are ✌️', at: Date.now() - 30_000 });
+    room.chat.push({ channel: 'public', msg: { id: 'c1', from: room.players[2]!.id, text: 'Mọi người bật mic chưa?', at: Date.now() - 60_000 } });
+    room.chat.push({ channel: 'public', msg: { id: 'c2', from: room.players[0]!.id, text: 'Ready when you are ✌️', at: Date.now() - 30_000 } });
     return room;
   }
   room.start();
@@ -108,13 +108,13 @@ export function scenario(name: ScenarioName, opts: { speed?: number; autoBots?: 
   witchPass();
   const dead = g().match.seats.find((s) => !s.alive)!.seat;
   if (name === 'day' || name === 'moderator-day') {
-    room.chat.push({ id: 'c1', channel: 'public', from: { seat: idOf(alive()[1]!), name: 'Bình' }, text: 'Đêm qua yên tĩnh quá… ai có thông tin không?', at: Date.now() - 20_000 });
+    room.chat.push({ channel: 'public', msg: { id: 'c1', from: idOf(alive()[1]!), text: 'Đêm qua yên tĩnh quá… ai có thông tin không?', at: Date.now() - 20_000 } });
     room.setViewer(name === 'moderator-day' ? room.moderator!.id : idOf(alive()[0]!));
     room.setSpeaking([idOf(alive()[2]!)]);
     return room;
   }
   if (name === 'ghost') {
-    room.chat.push({ id: 'c1', channel: 'ghosts', from: { seat: idOf(dead), name: 'Ghost' }, text: '…', at: Date.now() - 5000 });
+    room.chat.push({ channel: 'ghosts', msg: { id: 'c1', from: idOf(dead), text: '…', at: Date.now() - 5000 } });
     view(dead);
     return room;
   }

@@ -1,11 +1,15 @@
 // Pure selectors over SeatView + rules projection. No caching, no inference beyond what the view states.
-import type { PublicSeat, SeatView, VoiceGrant } from '@moonveil/protocol';
+import { type PublicSeat, type SeatId, type SeatView, type VoiceGrant, gameView } from '@moonveil/protocol';
 import type { AvailableAction, Role, Seat } from '@moonveil/rules';
 import type { GameView } from './types.ts';
 
 export function projection(view: SeatView | null): GameView | null {
-  const g = view?.game as GameView | null | undefined;
-  return g && typeof g === 'object' && 'step' in g && 'seatIds' in g ? g : null;
+  return view ? gameView(view) : null;
+}
+
+/** Display name for a seat id: player, or the moderator. */
+export function nameOf(view: SeatView, id: SeatId): string {
+  return view.players.find((p) => p.seat === id)?.name ?? view.moderator?.name ?? id;
 }
 
 /** Player record for engine seat index i. */

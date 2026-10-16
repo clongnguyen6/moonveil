@@ -2,24 +2,21 @@
 // (./stub) implements the same surface in-browser. Keeping the UI on this interface means screens never
 // know whether a socket or a stub is behind them.
 import type { ClientMessageInput, ErrorCode, Mode, Profile, SeatId, SeatView } from '@moonveil/protocol';
-import type { ChannelId, ChatMessage } from './types.ts';
+import type { ChatEntry } from './types.ts';
 
 export type ConnStatus = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'replaced' | 'ended';
 
-/** PROPOSED additions to ClientMessage (docs/ui/PROPOSALS.md P1, P2). */
-export type ProposedMessage =
-  | { t: 'moderate'; ref?: string; action: unknown }
-  | { t: 'chat'; ref?: string; channel: ChannelId; text: string };
-export type OutMessage = ClientMessageInput | ProposedMessage;
+/** Wire messages (foundation-3 protocol): moderator commands travel as `act`; chat is `say`. */
+export type OutMessage = ClientMessageInput;
 
 export interface SessionState {
   status: ConnStatus;
   code: string | null;
   view: SeatView | null;
   error: { code: ErrorCode | 'network' | string; message: string } | null;
-  /** Grant-filtered chat history + live messages (proposal P2). Empty until the server supports it. */
-  chat: ChatMessage[];
-  /** Seats currently speaking on channels this seat may listen to (proposal P4). */
+  /** Chat per channel, as delivered by `chatlog` (replaces) + `chat` (appends). Only channels with a listen grant. */
+  chat: ChatEntry[];
+  /** Seats currently speaking on channels this seat may listen to (`speaking` frame). */
   speaking: SeatId[];
   /** Room voice setting (proposal P3): 'remote' = in-game voice, 'inPerson' = voice off, text only. */
   voiceMode: 'remote' | 'inPerson';

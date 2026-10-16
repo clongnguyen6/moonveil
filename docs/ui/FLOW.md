@@ -32,7 +32,9 @@ Match (frame = scene host + top bar + dock)
     day.confirm    → ConfirmPanel (Yes/No, own ballot line, living count)
     ended          → EndPanel (winner, reason, all roles, history if provided, leave)
   ghost bar (dead seat): cause, ghost hint or Hunter-pending isolation note; skin → ghost
-  moderator (kind=moderator): ModeratorConsole replaces the dock: Step (close step, Yes-count entry on day.confirm, abort) · Seats (roles, remove) · Night record · Log
+  moderator (kind=moderator): ModeratorConsole replaces the dock: Step (close step, Yes-count entry on day.confirm) · Seats (roles) · Night record · Log
+    approved: close step, Yes count, listening to all channels. PROVISIONAL (hidden unless the engine config enables them; no flag exists today):
+    remove player (`moderator.canRemove`), abort (`moderator.canAbort`). Narration cue line: behind Settings → "Narration cues", default off.
   sheets: Role card (tap to reveal; team, pack, facts, potions, roles in play) · Help · Chat (tabs = listen grants; input only with speak grant) · Settings (language, sound, motion)
   overlays: Night falls · Dawn (+dead) · Executed · Shot; toasts: nomination result, verdict counts, Hunter turn, vote open
   connection overlay: reconnecting / replaced (use here) / ended
@@ -65,9 +67,15 @@ Match (frame = scene host + top bar + dock)
 - Not covered here: wire traffic (PROPOSALS.md P10) and voice-provider metadata (voice scope).
 
 ## Checks (this branch)
-- `node scripts/env.mjs node apps/web/src/ui/dev/check.mjs` (vite on 4401): 29 interaction checks on the stub in Chromium headless shell: night submit/change, panel uniformity, seer result, witch heal, own-ballot-only votes, confirm→close, Hunter lock, ghost/living chat isolation in the DOM, chat send, reconnect overlay, role card hidden-until-tap, moderator close step + Yes count, full automatic match with bots to `ended`, no page errors.
+- `node scripts/env.mjs node apps/web/src/ui/dev/check.mjs` (vite on 4401): 30 interaction checks on the stub in Chromium headless shell: night submit/change, panel uniformity, seer result, witch heal, own-ballot-only votes, confirm→close, Hunter lock, ghost/living chat isolation in the DOM, chat send, reconnect overlay, role card hidden-until-tap, moderator close step + Yes count, full automatic match with bots to `ended`, no page errors.
 - `apps/web/src/ui/dev/capture.mjs`: screenshots (phone 390×844 @2x, landscape 844×390, laptop 1440×900; WebKit iPhone 13 emulation for three). All browser emulation.
 - Root `npm run typecheck`, `npm test` pass on the branch (rules 183/183, server 20/20).
+
+## Provisional, behind settings (pending Human decisions)
+- Private suspect notes on action-less night panels: Settings → "Private suspect notes", default on; off = plain waiting panel, identical frame.
+- Moderator narration cues: Settings → "Narration cues", default off.
+- Remove / abort: hidden; appear only when the rules config carries `moderator.canRemove` / `moderator.canAbort`.
+- In-person voice-off: follows the server `voiceMode` flag (P3); stub default `remote`.
 
 ## Language
 Default proposal: UI follows the browser language (`vi` → Tiếng Việt, else English), switchable in Entry/Lobby/Settings and remembered on the device. Both tables are complete (`ui/i18n/en.ts`, `vi.ts`).
