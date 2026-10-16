@@ -22,27 +22,38 @@ const pick = <T>(r: () => number, xs: readonly T[]): T => xs[Math.floor(r() * xs
 
 // UI action accounting: a step can close while a bot is still clicking (a missed action = pass, per rules).
 // Reported by the spec so a run where UI actions mostly fail can't pass unnoticed.
-export const uiStats = { attempted: 0, done: 0 };
+// Acceptance runs (E2E_UI_STRICT=1) fail on any miss; every miss carries seat, action, step and reason.
+export const uiStats = { attempted: 0, done: 0, misses: [] as { seat: string; action: string; step: string; reason: string }[] };
 const CLICK_MS = 1_500;
+let lastReason = '';
 async function tryClick(l: ReturnType<typeof tid>): Promise<boolean> {
   try {
-    if ((await l.count()) === 0) return false;
+    if ((await l.count()) === 0) {
+      lastReason = 'control missing';
+      return false;
+    }
     await l.click({ timeout: CLICK_MS });
     return true;
-  } catch {
+  } catch (e) {
+    lastReason = String((e as Error).message).split('\n').slice(0, 3).join(' | ').slice(0, 300);
     return false;
   }
 }
-async function act(fn: () => Promise<boolean>) {
+async function act(p: Player, action: string, fn: () => Promise<boolean>) {
   uiStats.attempted++;
+  lastReason = '';
   if (await fn()) uiStats.done++;
+  else uiStats.misses.push({ seat: `${p.name}/${(game(p) as GameView | null)?.me?.seat}`, action, step: (game(p) as GameView | null)?.step.kind ?? '?', reason: lastReason || 'unknown' });
 }
 
 async function chooseSeat(p: Player, seat: number): Promise<boolean> {
   if (!(await tryClick(tid(p, `seat-${seat}`)))) return false;
   const confirm = tid(p, 'confirm');
   if ((await confirm.count()) === 0) return true; // some panels submit on selection
-  if (!(await confirm.isEnabled({ timeout: CLICK_MS }).catch(() => false))) return true; // same as current choice
+  if (!(await confirm.isEnabled({ timeout: CLICK_MS }).catch(() => false))) {
+    lastReason = 'confirm disabled after selecting the seat';
+    return false;
+  }
   return tryClick(confirm);
 }
 
@@ -60,28 +71,28 @@ export async function uiBotAct(p: Player, r: () => number): Promise<number> {
       case 'witch.poison':
         if (a.targets.length && r() < (a.type === 'witch.poison' ? 0.3 : 0.85)) {
           const t = pick(r, a.targets);
-          await act(() => chooseSeat(p, t));
+          await act(p, `${a.type}:${t}`, () => chooseSeat(p, t));
           n++;
         }
         break;
       case 'witch.heal':
         if (a.canUse) {
           const id = r() < 0.5 ? 'heal-yes' : 'heal-no';
-          await act(() => tryClick(tid(p, id)));
+          await act(p, `${a.type}:${id}`, () => tryClick(tid(p, id)));
           n++;
         }
         break;
       case 'vote.nominate':
         if (a.targets.length && r() < 0.8) {
           const t = pick(r, a.targets);
-          await act(() => chooseSeat(p, t));
-        } else await act(() => tryClick(tid(p, 'vote-skip')));
+          await act(p, `${a.type}:${t}`, () => chooseSeat(p, t));
+        } else await act(p, 'vote.nominate:skip', () => tryClick(tid(p, 'vote-skip')));
         n++;
         break;
       case 'vote.confirm':
         {
           const id = r() < 0.6 ? 'vote-yes' : 'vote-no';
-          await act(() => tryClick(tid(p, id)));
+          await act(p, `${a.type}:${id}`, () => tryClick(tid(p, id)));
         }
         n++;
         break;

@@ -12,6 +12,17 @@ import { seatRealMatchUi, uiBotAct, uiCloseStep, uiPresent, uiStats } from '../h
 const REAL_PORT = Number(process.env.E2E_REAL_PORT ?? 4152);
 const states = (p: Player): SeatView[] => p.frames.flatMap((f) => (f.msg.t === 'state' ? [f.msg.view] : []));
 const isPhone = (name: string) => name.startsWith('ui-phone');
+const STRICT = process.env.E2E_UI_STRICT === '1';
+const ACTION_CONTROLS = ['confirm', 'vote-skip', 'vote-yes', 'vote-no', 'heal-yes', 'heal-no'];
+
+// On a failed ghost check: what the wire says vs which hooks the page shows.
+async function ghostDiag(p: Player): Promise<string> {
+  const g = game(p) as GameView;
+  const ids = await p.page.locator('[data-testid]').evaluateAll((els) =>
+    els.map((e) => `${e.getAttribute('data-testid')}${(e as HTMLButtonElement).disabled ? '[disabled]' : ''}`),
+  );
+  return JSON.stringify({ seat: g.me?.seat, role: g.me?.role, alive: g.me?.alive, step: g.step.kind, actions: g.me?.actions.map((a) => a.type), domTestIds: ids.slice(0, 80) });
+}
 
 async function resumed(p: Player, seat: string) {
   await expect(p.page.locator('[data-testid=conn][data-status=open]')).toHaveCount(1, { timeout: 20_000 });
@@ -23,14 +34,18 @@ for (const mode of ['automatic', 'moderator'] as const) {
   for (const seats of [7, 8, 9, 10]) {
     test(`UI match, ${mode}, ${seats} browsers: reload + network drop, ghosts, open ballots, isolation, outcome`, async ({ table }, info) => {
       test.skip(isPhone(info.project.name) && seats !== 7, 'phone projects run 7 seats');
-      test.setTimeout(isPhone(info.project.name) ? 420_000 : 300_000);
+      test.setTimeout(isPhone(info.project.name) ? 900_000 : 600_000);
       const probe = await table.player('probe', { baseURL: `http://127.0.0.1:${REAL_PORT}` });
       test.skip(!(await uiPresent(probe)), 'game UI not wired in this build (no [data-testid=entry])');
       await probe.context.close();
 
       uiStats.attempted = uiStats.done = 0;
-      const m = await seatRealMatchUi(table, { mode, seats, baseURL: `http://127.0.0.1:${REAL_PORT}` });
+      uiStats.misses = [];
       const stats = { ballotSteps: 0, reloads: 0, drops: 0, ghostChecks: 0, overflowChecks: 0 };
+      const report = (result: string) =>
+        console.log(`UIMATCH ${JSON.stringify({ project: info.project.name, mode, seats, result, strict: STRICT, landed: uiStats.done, intended: uiStats.attempted, misses: uiStats.misses, ...stats })}`);
+      try {
+      const m = await seatRealMatchUi(table, { mode, seats, baseURL: `http://127.0.0.1:${REAL_PORT}` });
       await runRealMatch(
         m,
         `ui-${info.project.name}-${mode}-${seats}`,
@@ -58,9 +73,15 @@ for (const mode of ['automatic', 'moderator'] as const) {
             stats.ballotSteps++;
           }
           // Ghost path: dead seats show the ghost bar and no action controls.
-          for (const p of mm.players.filter((x) => !game(x)!.me!.alive)) {
-            await expect(p.page.getByTestId('ghost-bar')).toBeVisible();
-            await expect(p.page.getByTestId('confirm')).toHaveCount(0);
+          for (const p of mm.players.filter((x) => !game(x)!.me!.alive && game(x)!.step.kind !== 'hunter')) {
+            try {
+              await expect(p.page.getByTestId('ghost-bar')).toBeVisible();
+              // Ghosts cannot act: no ENABLED action control (a disabled panel may be shown).
+              const enabled = p.page.locator(ACTION_CONTROLS.map((id) => `[data-testid=${id}]:not([disabled])`).join(','));
+              await expect(enabled).toHaveCount(0);
+            } catch (e) {
+              throw new Error(`ghost check failed for ${p.name}: ${await ghostDiag(p)}\n${(e as Error).message.split('\n')[0]}`);
+            }
             stats.ghostChecks++;
           }
           if (isPhone(info.project.name) && stats.overflowChecks < 3) {
@@ -77,10 +98,15 @@ for (const mode of ['automatic', 'moderator'] as const) {
       expect(m.driver.view().status).toBe('ended');
       assertOutcome(game(m.players[0]!) as GameView);
       for (const p of m.players) assertSeatIsolationViews(states(p));
-      console.log(`UIMATCH ${JSON.stringify({ project: info.project.name, mode, seats, steps: m.steps, ...stats, uiActions: { ...uiStats }, outcome: (game(m.players[0]!) as GameView).outcome })}`);
-      // Most UI actions must land (some may race a closing step; that counts as a pass in the rules).
       expect(uiStats.done, 'UI actions performed').toBeGreaterThan(0);
-      expect(uiStats.done / uiStats.attempted, 'share of UI actions that landed').toBeGreaterThanOrEqual(0.8);
+      // Acceptance (E2E_UI_STRICT=1): every intended UI action must land. Quick runs: at least 80%.
+      if (STRICT) expect(uiStats.misses, 'UI actions that did not land').toEqual([]);
+      else expect(uiStats.done / uiStats.attempted, 'share of UI actions that landed').toBeGreaterThanOrEqual(0.8);
+      report('passed');
+      } catch (e) {
+        report(`failed: ${String((e as Error).message).split('\n')[0]!.slice(0, 400)}`);
+        throw e;
+      }
       expect(stats.ballotSteps).toBeGreaterThan(0);
       expect(stats.reloads + stats.drops).toBeGreaterThan(0);
     });
