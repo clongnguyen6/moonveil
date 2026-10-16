@@ -1,6 +1,6 @@
 # Moonveil rules proposal
 
-Status: **proposal, v0.7, 2026-10-16**. v0.2 was revised after an independent review of 9af74b8; v0.3 to v0.7 record your decisions. Owner: rules scope (`packages/rules`, `docs/rules`).
+Status: **proposal, v0.8, 2026-10-16**. v0.2 was revised after an independent review of 9af74b8; v0.3 to v0.8 record your decisions. Owner: rules scope (`packages/rules`, `docs/rules`).
 Only what is listed under "Approved rules" is accepted. Everything else is **provisional** until you approve it.
 The engine implements each provisional recommendation as a named setting (`config.*`) or one isolated function.
 Approved rules are fixed engine behaviour, no longer settings.
@@ -12,10 +12,9 @@ Plain language. "Recommend" is only my suggestion.
 | ID | Question | Recommendation (alternatives are in the item) |
 |---|---|---|
 | Q15/Q26 (removal) | Removing a disconnected player | Only the moderator (any time) or the host after a 2-minute disconnect (not during the night) may remove; removal is a death with no Hunter shot |
-| Q16 (rest) | Moderator powers beyond listening and the Yes count | Runs the pace, can act for a player, can set the wolves' target, can remove a player or stop the match, sees ballots live. Speaking in public: recommend allowing it; currently **off** until you decide. Cannot break the rules, bring anyone back or undo |
+| Q16 (rest) | Moderator powers beyond listening and the Yes count | Runs the pace, can act for a player, can set the wolves' target, can remove a player or stop the match. Speaking in public: recommend allowing it; currently **off** until you decide. Cannot break the rules, bring anyone back or undo |
 | Q17 | Roles per player count | About one Wolf per three players (table in Q17). At 6 players a Hunter instead of a Witch, and the app refuses custom setups that the Wolves could win on the very first night |
 | Q18 | Number of players | 6 to 16 (16 still to be checked with the real screens and voice) |
-| Q22 (rest) | What a vote shows when it closes | Who voted for whom, plus the totals |
 | Q11 (rest) | Durations other than night (60 s) and defense (30 s) | Main night 40 s / Witch 20 s; nomination 30 s; Yes/No 15 s; Hunter 20 s; discussion 60 s + 15 s per living player (90–240 s) |
 | Q08 | Wolves choosing "nobody" | Allowed. "Nobody" wins only if it alone has the most wolf choices |
 | Q10 (rest) | May the accused vote in their own Yes/No round? | Yes |
@@ -49,9 +48,11 @@ Low-stakes defaults you could accept as a group: Q01, Q02, Q04, Q05, Q12, Q13, Q
 - **Night timing (Q11).** Every night lasts a fixed 60 s, whatever roles survive and however early actions finish, so timing reveals no roles. The split between the two night steps isn't decided (currently 40 s + 20 s); both steps always run their full length, even if the Witch is dead, her heal is spent, or the setup has no Witch.
 - **Day votes (Q11/Q22).**
   - Nomination and the Yes/No round both run to their deadline; nothing ends early.
-  - Until a vote closes, players see no running totals and no one else's ballot (nor does the public view or a reconnecting device). Each voter sees their own choice.
-  - **Voted status is shown (approved 2026-10-16, supersedes the hidden default):** during both votes everyone sees *which* players have already voted, but not what they chose.
-  - Results appear when the vote closes.
+  - **Open ballots, shown live (approved 2026-10-16; this correction supersedes the earlier ballot-secrecy approval and the "voted status only" approval of the same day).**
+    - Nomination: every view shows each voter and their chosen target, or Skip, as soon as they vote.
+    - Yes/No: every view shows each voter and their Yes or No.
+    - Changed votes and reconnects show the current choices. Counts follow from the public choices; nothing about the tally is secret.
+  - Unchanged: fixed deadlines (no early close), the execution threshold, the nomination rule and the defense. Night actions stay private, and wolf picks stay wolf-only.
   - *Not covered:* what the moderator sees mid-vote (provisional, currently everything).
 - **Hunter (Q06).**
   - Any gameplay death (night attack, poison, execution, another Hunter's shot) gives a 20 s turn to shoot one living player. On timeout, there is no shot.
@@ -180,8 +181,8 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 - **DECIDED**: every night is a fixed 60 s, never ending early, whoever survives. Both night steps always run their full length (even with no Witch in the setup). **Still open**: the split (recommend 40 s main + 20 s Witch). Anything not submitted is a pass. The discussion runs its full time unless the moderator ends it. Votes: see the ★ part below. In moderator mode the moderator sets the pace and accepts that their own timing is a cue (ADR 0001).
 - **Trade-off**: fixed nights cost about 20–40 s per night when everyone is quick, which over 4–6 nights is 2–4 min per match. Ending early in any form leaks information. "Night ended fast" means that every night actor is done or dead, which over a few nights reveals that the Witch or Seer is dead. Even sky2's random delay leaks statistically, because the extra time depends on hidden state.
 - **Alternatives**: (a) adaptive: end once all *living* actors are done, plus a random 5–15 s (sky2), which is faster but leaks; (b) fixed but shorter (30 s + 15 s), which is faster with more players timing out; (c) players may tap "ready", with the night still fixed.
-- **★ Ending votes early (review finding F6).** Votes are open and changeable (Q22). If a vote closes the moment everyone has voted, the last person to vote sees everyone else's choice and settles the outcome with no chance to react. Options:
-  - **A (DECIDED 2026-10-16)**: votes stay open and changeable until their fixed deadline, with interim results hidden (Q22). The Hunter's shot may still end early once taken (provisional). Cost: up to about 45 s per day.
+- **★ Ending votes early (review finding F6).** Votes are open and changeable (Q22). If a vote closes the moment everyone has voted, the last person to vote sees everyone else's choice and settles the outcome with no chance to react (with open ballots this matters even more). Options:
+  - **A (DECIDED 2026-10-16)**: votes stay open and changeable until their fixed deadline. Ballots are public and live (Q22). The Hunter's shot may still end early once taken (provisional). Cost: up to about 45 s per day.
   - **B**: end early once everyone has voted, and tell players plainly that the last vote decides. Optionally, a 5 s grace period restarts whenever anyone changes their vote.
 - **Engine**: `NIGHT_TOTAL_SECONDS = 60` (fixed), `timing.nightMain` (provisional split), other `timing.*` provisional; `stepTiming()` never reports early close for night or vote steps. The host contract reports `secret=true` and `earlyClose=false` for night steps. This covers only the engine's own signals; server timers, moderator pacing and network traffic are tested separately (by foundation).
 
@@ -266,13 +267,10 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 - **Recommend**: dawn lists only the names of the dead, sorted by seat, with no cause. "Nobody died" when no one died. Execution and the Hunter's shot are public by nature.
 - **Engine**: `reveal.causeAtDawn=false`.
 
-## Q22 Vote visibility — partly decided 2026-10-16
+## Q22 Vote visibility — DECIDED 2026-10-16 (open ballots)
 - **sky2 code**: votes are live and open, showing who voted for whom (AV1:527, 665-696).
-- **DECIDED**: until a vote closes, nobody but the moderator sees running totals or other players' ballots: not in a player's view, the public view, events, or a reconnect. Each voter sees their own choice. Results appear when the vote closes. Everyone does see *who has* voted (approved 2026-10-16), never what they chose.
-- **Still open**:
-  - what is shown at close (recommend who voted for what plus totals; alternative: totals only), `day.revealBallotsAtClose`;
-  - whether the moderator sees live ballots (currently yes), `moderator.seesLiveBallots`.
-- **Engine**: `stepView()` hides ballots; `me.ballot` carries the voter's own choice; tests in `test/decisions.test.ts`.
+- **DECIDED (2026-10-16, correction)**: day votes are **open ballots, shown live**. Every view (players, ghosts, public, moderator, reconnects) shows each voter's current choice, and the result event at close repeats the full ballot list with the totals. This supersedes two earlier approvals of the same day: hidden interim ballots, and "who has voted" without choices.
+- **Engine**: fixed; `stepView()` returns `votes` (choices) and `voted` (derived flags) to every viewer; the `day.revealBallotsAtClose` and `moderator.seesLiveBallots` settings were removed. Tests in `test/ballots.test.ts`.
 
 ## Q23 First phase — low-stakes default
 - **sky2**: starts at night (the admin opens the night board first).

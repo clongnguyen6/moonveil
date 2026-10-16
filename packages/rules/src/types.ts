@@ -72,8 +72,8 @@ export type PublicEvent =
   | { t: 'dawn'; night: number; dead: Seat[]; causes: DeathCause[] | null }
   | { t: 'roleRevealed'; seat: Seat; role: Role }
   | { t: 'dayStart'; day: number }
-  | { t: 'nomination'; day: number; accused: Seat | null; tally: { target: Seat | 'skip'; count: number }[]; votes: (Seat | 'skip' | null)[] | null }
-  /** counted: 'votes' = in-app Yes/No votes; 'moderator' = Yes count entered by the moderator (show of hands; no/votes null). */
+  | { t: 'nomination'; day: number; accused: Seat | null; tally: { target: Seat | 'skip'; count: number }[]; votes: (Seat | 'skip' | null)[] }
+  /** counted: 'votes' = in-app Yes/No ballots (open); 'moderator' = Yes count entered by the moderator (show of hands; no/votes null). */
   | { t: 'confirm'; day: number; accused: Seat; counted: 'votes' | 'moderator'; yes: number; no: number | null; votes: ('yes' | 'no' | null)[] | null; executed: boolean }
   | { t: 'executed'; day: number; seat: Seat }
   | { t: 'hunterTurn'; seats: Seat[] }

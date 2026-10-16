@@ -11,6 +11,7 @@ import {
   type ErrorCode,
   type Mode,
   type Pose,
+  type VoiceMode,
   type Profile,
   type PublicSeat,
   type SeatId,
@@ -19,7 +20,9 @@ import {
   type ServerMessage,
   type VoiceGrant,
 } from '@moonveil/protocol';
+import { createMap, inWorld, isWalkable, type MapLayout } from '@moonveil/scene/map';
 import type { PhaseInfo, RulesEngine, Viewer } from './rules/engine.ts';
+import type { RoomSnapshot, RoomStore } from './store.ts';
 import type { VoiceGateway } from './voice.ts';
 
 export interface Conn {
@@ -84,11 +87,27 @@ export interface RoomDeps<S> {
   scheduler: Scheduler;
   now: () => number;
   seed: () => string;
+  store?: RoomStore;
+}
+
+type StoredSeat = Omit<Seat, 'conn'>;
+interface StoredRoom {
+  mode: Mode;
+  voiceMode: VoiceMode;
+  status: 'lobby' | 'playing' | 'ended';
+  hostId: SeatId;
+  players: StoredSeat[];
+  moderator: StoredSeat | null;
+  game: unknown;
+  published: [SeatId, boolean][];
+  chat: [string, ChatMessage[]][];
+  lastActive: number;
 }
 
 export class Room<S = unknown> {
   readonly code: string;
   readonly mode: Mode;
+  readonly voiceMode: VoiceMode;
   status: 'lobby' | 'playing' | 'ended' = 'lobby';
   closed = false;
   lastActive: number;
@@ -98,6 +117,7 @@ export class Room<S = unknown> {
   private hostId: SeatId;
   private game: S | null = null;
   private phaseEndsAt: number | null = null;
+  private phaseDurationMs: number | null = null;
   private timer: unknown = null;
   private earlyTimer: unknown = null;
   private phaseName: string | null = null;
@@ -111,11 +131,13 @@ export class Room<S = unknown> {
   private poseTimer: unknown = null;
   private speakingOn = new Map<string, Set<SeatId>>();
   private speakingTimer: unknown = null;
+  private savedJson = '';
   private deps: RoomDeps<S>;
 
-  constructor(code: string, mode: Mode, creator: Profile, deps: RoomDeps<S>) {
+  constructor(code: string, mode: Mode, creator: Profile, deps: RoomDeps<S>, voiceMode: VoiceMode = 'remote') {
     this.code = code;
     this.mode = mode;
+    this.voiceMode = voiceMode;
     this.deps = deps;
     this.lastActive = deps.now();
     const seat = this.makeSeat(mode === 'moderator' ? 'moderator' : 'player', creator);
@@ -311,9 +333,12 @@ export class Room<S = unknown> {
     if (this.timer !== null) this.deps.scheduler.clear(this.timer);
     this.timer = null;
     this.phaseEndsAt = null;
+    this.phaseDurationMs = null;
     if (this.mode !== 'automatic' || this.game === null || this.status !== 'playing') return;
     const t = this.deps.engine.timer(this.game, this.deps.now());
-    if (!t || t.deadline === null) return;
+    if (!t) return;
+    this.phaseDurationMs = t.durationMs;
+    if (t.deadline === null) return;
     this.phaseEndsAt = t.deadline;
     this.timer = this.deps.scheduler.set(Math.max(0, t.deadline - this.deps.now()), () => {
       this.timer = null;
@@ -365,7 +390,7 @@ export class Room<S = unknown> {
       throw new RoomError('not-allowed', 'cannot speak on this channel');
     }
     if (!this.rateOk(this.sayTimes, seat.id, CHAT_RATE)) throw new RoomError('rate-limited', 'too many messages');
-    const msg: ChatMessage = { id: randomBytes(9).toString('base64url'), from: seat.id, text, at: this.deps.now() };
+    const msg: ChatMessage = { id: randomBytes(9).toString('base64url'), from: seat.id, name: seat.name, text, at: this.deps.now() };
     const log = this.chat.get(channel) ?? [];
     log.push(msg);
     if (log.length > CHAT_HISTORY_MAX) log.splice(0, log.length - CHAT_HISTORY_MAX);
@@ -374,6 +399,7 @@ export class Room<S = unknown> {
       const box = s.conn ? this.outbox.get(s.conn) : undefined;
       if (s.conn && box?.listening.has(channel)) s.conn.send({ t: 'chat', channel, msg });
     }
+    this.persist();
   }
 
   // --- movement / speaking ---
@@ -390,8 +416,19 @@ export class Room<S = unknown> {
     return this.grantsFor(seat).some((g) => g.channel === GHOST_CHANNEL && g.listen);
   }
 
-  private move(seat: Seat, m: { x: number; y: number; facing: number; moving: boolean }) {
+  private mapCache: MapLayout | null = null;
+  private map(): MapLayout {
+    // Same layout the renderer builds (createMap(playerCount), default seed).
+    const n = this.players.length;
+    if (!this.mapCache || this.mapCache.playerCount !== Math.max(4, Math.min(16, n))) this.mapCache = createMap(n);
+    return this.mapCache;
+  }
+
+  private move(seat: Seat, m: { x: number; y: number; facing: 1 | -1; moving: boolean }) {
     if (!this.mayMove(seat) || !this.rateOk(this.moveTimes, seat.id, MOVE_RATE)) return;
+    // Living (lobby) walk the camp; ghosts (play) drift anywhere in the world. Invalid moves are dropped.
+    const ok = this.status === 'lobby' ? isWalkable(this.map(), m.x, m.y) : inWorld(m.x, m.y);
+    if (!ok) return;
     this.poses.set(seat.id, { seat: seat.id, x: m.x, y: m.y, facing: m.facing, moving: m.moving });
     if (this.poseTimer === null) {
       this.poseTimer = this.deps.scheduler.set(POSE_TICK_MS, () => {
@@ -485,6 +522,59 @@ export class Room<S = unknown> {
     }
     this.outbox.clear();
     this.deps.voice.closeRoom(this.code);
+    this.deps.store?.remove(this.code);
+  }
+
+  // --- persistence (restart recovery) ---
+
+  private stored(): StoredRoom {
+    const strip = ({ conn: _, ...rest }: Seat): StoredSeat => rest;
+    return {
+      mode: this.mode,
+      voiceMode: this.voiceMode,
+      status: this.status,
+      hostId: this.hostId,
+      players: this.players.map(strip),
+      moderator: this.moderator ? strip(this.moderator) : null,
+      game: this.game,
+      published: [...this.published],
+      chat: [...this.chat],
+      lastActive: this.lastActive,
+    };
+  }
+
+  // Save when persistent state changed. Volatile state (sockets, poses, speaking, timers) is not saved.
+  private persist() {
+    const store = this.deps.store;
+    if (!store || this.closed) return;
+    const json = JSON.stringify(this.stored());
+    if (json === this.savedJson) return;
+    this.savedJson = json;
+    const snap: RoomSnapshot = { v: 1, engine: this.deps.engine.id, code: this.code, savedAt: this.deps.now(), room: JSON.parse(json) };
+    store.save(snap);
+  }
+
+  // Rebuild after a restart. Nobody is connected, so an automatic match is paused at the last save:
+  // server downtime counts as paused wall time (approved pause rule); the first player back resumes it.
+  static restore<S>(snap: RoomSnapshot, deps: RoomDeps<S>): Room<S> {
+    if (snap.engine !== deps.engine.id) throw new Error(`room ${snap.code}: saved with engine ${snap.engine}, running ${deps.engine.id}`);
+    const r = snap.room as StoredRoom;
+    const room = new Room<S>(snap.code, r.mode, { name: 'restore', appearance: { color: 'moss', hat: 'none' } }, deps, r.voiceMode);
+    const seat = (s: StoredSeat): Seat => ({ ...s, conn: null });
+    room.players = r.players.map(seat);
+    room.moderator = r.moderator ? seat(r.moderator) : null;
+    room.hostId = r.hostId;
+    room.status = r.status;
+    room.game = r.game as S | null;
+    room.published = new Map(r.published);
+    room.chat = new Map(r.chat);
+    room.lastActive = r.lastActive;
+    room.savedJson = JSON.stringify(r);
+    if (room.game !== null && room.mode === 'automatic' && room.status === 'playing') {
+      room.game = deps.engine.pause(room.game, snap.savedAt);
+    }
+    if (room.status === 'playing') room.afterChange();
+    return room;
   }
 
   // --- projection ---
@@ -508,6 +598,7 @@ export class Room<S = unknown> {
       code: this.code,
       engine: engine.id,
       mode: this.mode,
+      voiceMode: this.voiceMode,
       status: this.status,
       me: { seat: seat.id, kind: seat.kind, host: isHost },
       players,
@@ -515,6 +606,7 @@ export class Room<S = unknown> {
       limits: { minPlayers: engine.minPlayers, maxPlayers: engine.maxPlayers },
       canStart: isHost && this.canStart(),
       phaseEndsAt: this.phaseEndsAt,
+      phaseDurationMs: this.phaseDurationMs,
       game: this.game === null ? null : engine.view(this.game, this.viewerOf(seat)),
       voice: this.grantsFor(seat),
     };
@@ -534,10 +626,12 @@ export class Room<S = unknown> {
 
     for (const s of this.allSeats()) {
       const g = this.grantsFor(s);
-      const gj = JSON.stringify(g);
-      if (this.grants.get(s.id) !== gj) {
-        this.grants.set(s.id, gj);
-        this.deps.voice.setGrants(this.code, s.id, g);
+      // Voice follows the same grants, except in-person rooms: no voice at all.
+      const vg = this.voiceMode === 'inPerson' ? [] : g;
+      const vj = JSON.stringify(vg);
+      if (this.grants.get(s.id) !== vj) {
+        this.grants.set(s.id, vj);
+        this.deps.voice.setGrants(this.code, s.id, vg);
       }
       if (!s.conn) continue;
       const box = this.outbox.get(s.conn);
@@ -547,7 +641,7 @@ export class Room<S = unknown> {
       if (json !== box.json) {
         box.json = json;
         box.seq += 1;
-        s.conn.send({ t: 'state', seq: box.seq, view });
+        s.conn.send({ t: 'state', seq: box.seq, now: this.deps.now(), view });
       }
       // Chat history is filtered at read time: a channel's log is sent when listen is gained.
       const listening = new Set(g.filter((x) => x.listen).map((x) => x.channel));
@@ -561,5 +655,6 @@ export class Room<S = unknown> {
         s.conn.send({ t: 'speaking', seats: JSON.parse(speaking) as SeatId[] });
       }
     }
+    this.persist();
   }
 }

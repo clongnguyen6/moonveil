@@ -7,9 +7,10 @@ import { WebSocket as WsClient } from 'ws';
 import type { RulesEngine } from '../src/rules/engine.ts';
 import { createFixtureEngine } from '../src/rules/fixture-engine.ts';
 import { createMoonveilServer } from '../src/server.ts';
+import { listenFree } from './ports.ts';
 
-const PORT = 4120;
-const base = `http://127.0.0.1:${PORT}`;
+let PORT = 0;
+let base = '';
 let srv: ReturnType<typeof createMoonveilServer>;
 
 before(async () => {
@@ -19,7 +20,8 @@ before(async () => {
   writeFileSync(join(dir, 'index.html'), '<!doctype html>INDEX');
   writeFileSync(join(dir, 'assets', 'a.js'), 'x');
   srv = createMoonveilServer({ engine: () => createFixtureEngine() as RulesEngine<unknown>, staticDir: dir, heartbeatMs: 200 });
-  await new Promise<void>((r) => srv.http.listen(PORT, '127.0.0.1', r));
+  PORT = await listenFree(srv.http);
+  base = `http://127.0.0.1:${PORT}`;
 });
 after(() => srv.stop());
 
@@ -68,9 +70,9 @@ test('ws: malformed frames get bad-message; create works; app heartbeat arrives'
 
 test('ws: idle room swept by heartbeat loop; resume then fails with room-not-found', async () => {
   const idle = createMoonveilServer({ engine: () => createFixtureEngine() as RulesEngine<unknown>, heartbeatMs: 100, idleMs: 150 });
-  await new Promise<void>((r) => idle.http.listen(PORT + 1, '127.0.0.1', r));
+  const idlePort = await listenFree(idle.http);
   try {
-    const url = `ws://127.0.0.1:${PORT + 1}/ws`;
+    const url = `ws://127.0.0.1:${idlePort}/ws`;
     const a = new WsClient(url);
     const got: { t: string; [k: string]: unknown }[] = [];
     a.on('message', (d) => got.push(JSON.parse(String(d))));
@@ -96,8 +98,8 @@ test('ws: idle room swept by heartbeat loop; resume then fails with room-not-fou
 test('ws + REAL engine: 7 sockets, start, wolf chat only to wolves, illegal move dropped', async () => {
   const { createRulesEngine } = await import('@moonveil/rules');
   const srv2 = createMoonveilServer({ engine: () => createRulesEngine() as RulesEngine<unknown>, heartbeatMs: 60_000 });
-  await new Promise<void>((r) => srv2.http.listen(PORT + 2, '127.0.0.1', r));
-  const url = `ws://127.0.0.1:${PORT + 2}/ws`;
+  const port2 = await listenFree(srv2.http);
+  const url = `ws://127.0.0.1:${port2}/ws`;
   const app = { color: 'moss', hat: 'none' };
   type M = { t: string; [k: string]: unknown };
   const clients: { ws: WsClient; msgs: M[] }[] = [];
@@ -127,7 +129,7 @@ test('ws + REAL engine: 7 sockets, start, wolf chat only to wolves, illegal move
     const wolves = clients.filter((c) => lastView(c).game.me.role === 'wolf');
     const others = clients.filter((c) => !wolves.includes(c));
     const before = others.map((o) => o.msgs.length);
-    others[0]!.ws.send(JSON.stringify({ t: 'move', x: 0.5, y: 0.5, facing: 0, moving: true })); // living during play: dropped
+    others[0]!.ws.send(JSON.stringify({ t: 'move', x: 500, y: 800, facing: 1, moving: true })); // living during play: dropped
     wolves[0]!.ws.send(JSON.stringify({ t: 'say', ref: 'w', channel: 'wolves', text: 'over the wire' }));
     await until(() => wolves.every((w) => w.msgs.some((m) => m.t === 'chat')));
     await new Promise((r) => setTimeout(r, 100));
@@ -136,5 +138,18 @@ test('ws + REAL engine: 7 sockets, start, wolf chat only to wolves, illegal move
   } finally {
     for (const c of clients) c.ws.close();
     await srv2.stop();
+  }
+});
+
+test('GET /api/lan: LAN invite URLs from the host option; [] by default', async () => {
+  assert.deepEqual(await (await fetch(`${base}/api/lan`)).json(), { urls: [] });
+  const lan = createMoonveilServer({ engine: () => createFixtureEngine() as RulesEngine<unknown>, lanUrls: () => ['http://192.168.1.20:4100'] });
+  const lanPort = await listenFree(lan.http);
+  try {
+    const r = await fetch(`http://127.0.0.1:${lanPort}/api/lan`);
+    assert.equal(r.headers.get('cache-control'), 'no-store');
+    assert.deepEqual(await r.json(), { urls: ['http://192.168.1.20:4100'] });
+  } finally {
+    await lan.stop();
   }
 });

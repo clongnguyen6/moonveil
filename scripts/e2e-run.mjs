@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+// Runs Playwright with OS-assigned free ports unless E2E_PORT / E2E_RESTART_PORT are set, so several owners'
+// e2e runs on one machine never collide. Workers inherit the env. Usage: node scripts/e2e-run.mjs [playwright args]
+import { spawn } from 'node:child_process';
+import { createServer } from 'node:net';
+
+const free = () =>
+  new Promise((resolve, reject) => {
+    const s = createServer();
+    s.once('error', reject);
+    s.listen(0, '127.0.0.1', () => {
+      const { port } = s.address();
+      s.close(() => resolve(port));
+    });
+  });
+
+const env = { ...process.env };
+env.E2E_PORT ??= String(await free());
+env.E2E_RESTART_PORT ??= String(await free());
+const child = spawn('playwright', ['test', ...process.argv.slice(2)], { stdio: 'inherit', env });
+child.on('exit', (code, signal) => process.exit(signal ? 1 : (code ?? 1)));
+for (const s of ['SIGINT', 'SIGTERM']) process.on(s, () => child.kill(s));

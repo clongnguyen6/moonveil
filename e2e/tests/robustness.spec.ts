@@ -1,6 +1,9 @@
-// Frozen tab, server restart. (Silent network: network.spec.ts.) Each test logs `ROBUST {json}` with what was observed.
+// Frozen tab, server restart with recovery. (Silent network: network.spec.ts.) Each test logs `ROBUST {json}` with what was observed.
 // Chromium only (CDP lifecycle freeze). Moderator mode = no phase timers, so the clock is ours.
 import { type ChildProcess, spawn } from 'node:child_process';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, type Player, test } from '../harness/index.ts';
 import { fixtureGame as g } from './fixture-helpers.ts';
@@ -16,7 +19,7 @@ async function moderated(table: import('../harness/index.ts').Table, baseURL?: s
   for (const n of ['Ann', 'Bao', 'Chi']) ps.push(await table.player(n, opts));
   await table.seat('moderator', mod, ps);
   await mod.page.getByTestId('start').click();
-  for (const p of ps) await expect(p.page.getByTestId('phase')).toHaveText('hidden');
+  for (const p of [mod, ...ps]) await expect(p.page.getByTestId('phase')).toHaveText('hidden');
   return { mod, ps };
 }
 
@@ -61,11 +64,12 @@ test('frozen tab (JS paused) catches up on resume with same seat', async ({ tabl
 });
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
-const RESTART_PORT = 4151;
-function startServer(): ChildProcess {
+// Own server for restart tests on E2E_RESTART_PORT (free OS port chosen by scripts/e2e-run.mjs).
+const RESTART_PORT = Number(process.env.E2E_RESTART_PORT ?? 4151);
+function startServer(dataDir: string): ChildProcess {
   return spawn(process.execPath, ['apps/server/src/main.ts'], {
     cwd: root,
-    env: { ...process.env, PORT: String(RESTART_PORT), HOST: '127.0.0.1', MOONVEIL_ENGINE: 'fixture' },
+    env: { ...process.env, PORT: String(RESTART_PORT), HOST: '127.0.0.1', MOONVEIL_ENGINE: 'fixture', MOONVEIL_DATA_DIR: dataDir },
     stdio: 'ignore',
   });
 }
@@ -79,29 +83,34 @@ async function healthy() {
   throw new Error('server did not start');
 }
 
+// Restart recovery: rooms are saved to MOONVEIL_DATA_DIR and restored on boot; clients resume by token.
 for (const signal of ['SIGTERM', 'SIGKILL'] as const) {
-  test(`server restart mid-match (${signal}): current behaviour = match lost, players sent to join form`, async ({ table }) => {
+  test(`server restart mid-match (${signal}): match continues, same seats and secrets`, async ({ table }) => {
     test.setTimeout(90_000);
-    let srv = startServer();
+    const dataDir = mkdtempSync(join(tmpdir(), 'mv-restart-'));
+    let srv = startServer(dataDir);
     try {
       await healthy();
       const { mod, ps } = await moderated(table, `http://127.0.0.1:${RESTART_PORT}`);
       const everyone = [mod, ...ps];
-      const code = mod.view().code;
+      const before = everyone.map((p) => ({ seat: p.seat, game: JSON.stringify(p.view().game) }));
       srv.kill(signal);
       await new Promise((r) => srv.once('exit', r));
       for (const p of everyone) await expect(p.page.getByTestId('conn')).toContainText('Reconnecting');
-      const staleGameVisible = await ps[0]!.page.getByTestId('game').isVisible();
 
-      srv = startServer();
+      srv = startServer(dataDir);
       const t0 = Date.now();
       await healthy();
-      for (const p of everyone) await expect(p.page.getByTestId('error')).toContainText('no such room', { timeout: 15_000 });
-      const toErrorMs = Date.now() - t0;
-      const tokenCleared = await ps[0]!.page.evaluate((c) => localStorage.getItem(`moonveil.seat.${c}`) === null, code);
-      const joinFormShown = await ps[0]!.page.getByTestId('join').isVisible();
-      expect(tokenCleared).toBe(true);
-      log({ case: `restart-${signal}`, staleGameVisible, toErrorMs, tokenCleared, joinFormShown, secretStillOnScreen: await ps[0]!.page.getByTestId('my-secret').isVisible() });
+      for (const p of everyone) await p.waitConnected();
+      const reconnectMs = Date.now() - t0;
+      everyone.forEach((p, i) => {
+        expect(p.seat).toBe(before[i]!.seat);
+        expect(JSON.stringify(p.view().game)).toBe(before[i]!.game);
+      });
+      await expect(ps[0]!.page.getByTestId('error')).toHaveCount(0);
+      await mod.page.getByTestId('advance').click();
+      for (const p of ps) await expect(p.page.getByTestId('phase')).toHaveText('open');
+      log({ case: `restart-${signal}`, reconnectMs });
     } finally {
       srv.kill('SIGKILL');
     }
