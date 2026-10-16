@@ -1,0 +1,17 @@
+# Local LiveKit for the Moonveil voice spike. Ports 4300-4399 (shared machine).
+port: 4300
+bind_addresses:
+  - 127.0.0.1
+rtc:
+  tcp_port: 4301
+  port_range_start: 4310
+  port_range_end: 4350
+  use_external_ip: false
+keys:
+  moonveil-dev: moonveil-dev-secret-not-for-production-0000000000
+logging:
+  level: info
+  json: false
+room:
+  auto_create: false
+  empty_timeout: 300

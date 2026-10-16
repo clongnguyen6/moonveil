@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import { createRulesEngine } from '@moonveil/rules';
 import type { RulesEngine } from '../src/rules/engine.ts';
 import { type FakeClient, setup } from './harness.ts';
-import { assertBallotSecrecy, gv, idx, stepKind } from './match-driver.ts';
+import { assertOpenBallots, gv, idx, stepKind } from './match-driver.ts';
 
 function auto(seats: number, seed: string) {
   const h = setup({ engine: () => createRulesEngine() as RulesEngine<unknown>, seed });
@@ -59,16 +59,27 @@ test('votes run to their deadline even when everyone has voted; voter sees own c
   assert.equal(stepKind(m.d), 'day.vote', 'vote closed early');
 });
 
-test('ballots and interim tallies never reach players before close, incl. after reconnect', () => {
+test('open ballots arrive to every seat live and on reconnect; no early close when all voted (approved)', () => {
   const m = auto(8, 'ballots-reconnect');
   m.until(() => stepKind(m.d) === 'day.vote');
   const living = m.players.filter((p) => gv(p).me!.alive);
   for (const p of living.slice(1)) p.send({ t: 'act', action: { type: 'vote.nominate', target: 'skip' } });
+  assert.ok(assertOpenBallots(m.players), 'vote step');
   const p0 = living[0]!;
   p0.drop();
   const back: FakeClient = m.h.client();
   back.send({ t: 'resume', code: m.code, token: p0.token! });
-  for (const p of [...living.slice(1), back]) assert.ok(assertBallotSecrecy(p) > 0, 'vote step observed');
+  const others = m.players.filter((p) => p !== p0);
+  assert.ok(assertOpenBallots([...others, back]), 'reconnect snapshot carries the same open ballots');
+  // A change is visible to everyone at once, with the voter's choice in the right slot.
+  living[1]!.send({ t: 'act', action: { type: 'vote.nominate', target: idx(living[2]!) } });
+  assertOpenBallots([...others, back]);
+  const votes = (gv(back).step as { votes: unknown[] }).votes;
+  assert.equal(votes[idx(living[1]!)], idx(living[2]!));
+  // Everyone has voted: the vote still runs to its deadline.
+  back.send({ t: 'act', action: { type: 'vote.nominate', target: 'skip' } });
+  m.h.clock.tick(m.d.view.phaseEndsAt! - m.h.clock.now() - 1);
+  assert.equal(stepKind(m.d), 'day.vote', 'closed early once everyone voted');
 });
 
 test('moderator enters the Yes count (day.confirmCount); no direct day-result route', () => {

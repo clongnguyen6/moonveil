@@ -1,7 +1,8 @@
-// Run via `npm run e2e` (root) so browsers/tmp live in .cache/. Port E2E_PORT (default 4150).
+// Run via `npm run e2e` (root): browsers/tmp live in .cache/, and scripts/e2e-run.mjs picks free OS ports
+// (E2E_PORT for the web server, E2E_RESTART_PORT for restart tests) unless already set.
 import { defineConfig, devices } from '@playwright/test';
 
-const port = Number(process.env.E2E_PORT ?? 4150);
+const port = Number(process.env.E2E_PORT ?? 4150); // fallback only for direct `playwright test`
 
 export default defineConfig({
   testDir: 'tests',

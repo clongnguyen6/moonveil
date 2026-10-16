@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Moonveil voice spike</title>
+<style>
+  body { font: 14px system-ui, sans-serif; margin: 12px; }
+  .ch { border: 1px solid #ccc; padding: 8px; margin: 8px 0; }
+  .speaking { color: #0a0; font-weight: bold; }
+  #unlock { font-size: 18px; padding: 10px 16px; }
+</style>
+</head>
+<body>
+<h3>Voice spike — <span id="who"></span></h3>
+<div id="status"></div>
+<button id="unlock" hidden>Tap to enable audio</button>
+<div id="channels"></div>
+<pre id="log" style="max-height: 200px; overflow: auto; font-size: 11px"></pre>
+<script type="module" src="/client.js"></script>
+</body>
+</html>

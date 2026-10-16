@@ -1,12 +1,15 @@
 // Entry. Env: PORT (default 4100), HOST (default 127.0.0.1; 0.0.0.0 for LAN phones),
 // STATIC_DIR (default apps/web/dist), MOONVEIL_FIXTURE_MS (fixture phase length, ms),
 // MOONVEIL_ROOM_IDLE_MS (close rooms with no connection for this long; default 30 min),
-// MOONVEIL_ENGINE (default real rules engine; `fixture` = test stub, used by browser e2e until the real-game UI exists).
+// MOONVEIL_ENGINE (default real rules engine; `fixture` = test stub, used by browser e2e until the real-game UI exists),
+// MOONVEIL_DATA_DIR (restart recovery, default <repo>/.data/rooms, gitignored; MOONVEIL_PERSIST=0 disables).
+import { networkInterfaces } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRulesEngine } from '@moonveil/rules';
 import type { RulesEngine } from './rules/engine.ts';
 import { createFixtureEngine } from './rules/fixture-engine.ts';
+import { fileRoomStore } from './store.ts';
 import { createMoonveilServer } from './server.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -22,13 +25,29 @@ const engine = (): RulesEngine<unknown> =>
     ? createFixtureEngine({ hiddenMs: phaseMs, openMs: phaseMs })
     : createRulesEngine()) as RulesEngine<unknown>;
 
-const { http, stop } = createMoonveilServer({
+const store =
+  process.env.MOONVEIL_PERSIST === '0' ? undefined : fileRoomStore(process.env.MOONVEIL_DATA_DIR ?? join(here, '../../../.data/rooms'));
+
+// Reachable LAN URLs, only when bound beyond loopback (HOST=0.0.0.0 or a LAN IP). http until TLS is chosen (ADR 0002).
+const lanUrls = (): string[] => {
+  if (host === '127.0.0.1' || host === 'localhost' || host === '::1') return [];
+  const addrs = Object.values(networkInterfaces())
+    .flat()
+    .filter((a) => a && a.family === 'IPv4' && !a.internal)
+    .map((a) => a!.address);
+  return (host === '0.0.0.0' ? addrs : addrs.filter((a) => a === host)).map((a) => `http://${a}:${port}`);
+};
+
+const { http, stop, registry } = createMoonveilServer({
   engine,
+  lanUrls,
+  ...(store ? { store } : {}),
   staticDir: process.env.STATIC_DIR ?? join(here, '../../web/dist'),
   ...(process.env.MOONVEIL_ROOM_IDLE_MS ? { idleMs: Number(process.env.MOONVEIL_ROOM_IDLE_MS) } : {}),
 });
 
-http.listen(port, host, () => console.log(`moonveil server http://${host}:${port} engine=${engineKind}`));
+const restored = registry.restoreAll();
+http.listen(port, host, () => console.log(`moonveil server http://${host}:${port} engine=${engineKind} restoredRooms=${restored}`));
 for (const s of ['SIGINT', 'SIGTERM'] as const) {
   process.on(s, () => void stop().then(() => process.exit(0)));
 }

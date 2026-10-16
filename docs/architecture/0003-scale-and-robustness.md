@@ -46,15 +46,13 @@ Movement must be a separate per-viewer-filtered position channel: ghost position
   - Players see "Reconnecting…" over the stale game view (own secret still on screen, nothing new).
   - About 0.3–0.4 s after the server is back: "no such room", token cleared, join form. The match is lost.
 
-## Restart recovery: proposal (not built)
-- **Worth doing, after real rules are wired.** A host laptop crash or an accidental Ctrl-C would otherwise end a 30-minute match for 10 people.
-- **Cheap because:**
-  - Rules state is plain JSON (rules API.md: "Persist it as is").
-  - The client already resumes by token.
-- **Shape:**
-  - Write-behind snapshot of each room (seats, tokens, mode, engine state, phase deadline) to a gitignored data dir via atomic rename after each mutation.
-  - Load on boot and re-arm timers from the saved deadline.
-  - Flip the restart spec to "match continues".
-- **Effort:** small (one module + tests).
-- **Risk:** secrets and bearer tokens on the host's disk. The host operator can already read all secrets from memory, so persistence adds little exposure. Delete on room close.
-- **Trust note:** in automatic mode, if the participating creator runs the server on their own laptop, the "creator gets no secrets" guarantee is app-level only. The server operator is the trust root. Needs a product call (separate host, or accept).
+## Restart recovery (built, foundation-4)
+- Each room is saved as JSON after every persistent change (`apps/server/src/store.ts`): seats and tokens, mode, voiceMode, engine state incl. its clock, chat, frozen presence.
+  - Location: `MOONVEIL_DATA_DIR` (default `<repo>/.data/rooms`, gitignored); write `.tmp` then rename; files 0600; deleted on room close. `MOONVEIL_PERSIST=0` disables.
+  - Not saved: sockets, poses, speaking, timers.
+- Boot restores all rooms (`Registry.restoreAll`). A room saved by a different engine id is skipped and its file kept.
+- An automatic clock is paused at the last save time, so downtime counts as paused wall time (approved pause rule). The first player back resumes with the exact remaining time.
+- Evidence:
+  - `apps/server/test/restart.test.ts`: 10 min downtime gives identical views and exact remaining time; chat history and isolation hold; moderator mode; engine mismatch skipped; file store atomic/0600/corrupt-skip/remove.
+  - `e2e/tests/robustness.spec.ts`: SIGTERM and SIGKILL mid-match in browsers, everyone back in about 0.3 s with identical game views, and the match continues.
+- **Trust note:** in automatic mode, if the participating creator runs the server on their own laptop, the "creator gets no secrets" guarantee is app-level only. The server operator, who can read memory and `.data/`, is the trust root. Raised for a product decision.

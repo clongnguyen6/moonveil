@@ -5,11 +5,13 @@ import {
   type Mode,
   type Profile,
   ROOM_CODE_ALPHABET,
+  type VoiceMode,
   ROOM_CODE_LENGTH,
   type SeatId,
 } from '@moonveil/protocol';
 import { type Conn, Room, type RoomDeps, RoomError, realScheduler } from './room.ts';
 import type { RulesEngine } from './rules/engine.ts';
+import type { RoomStore } from './store.ts';
 import { nullVoiceGateway, type VoiceGateway } from './voice.ts';
 
 export interface RegistryOptions {
@@ -21,6 +23,8 @@ export interface RegistryOptions {
   idleMs?: number;
   // Match seed source (tests pass a deterministic one). Default: 128 random bits.
   seed?: () => string;
+  // Restart recovery: rooms are saved here and restored by restoreAll().
+  store?: RoomStore;
 }
 
 export class Registry {
@@ -39,17 +43,38 @@ export class Registry {
     }
   }
 
-  create(mode: Mode, creator: Profile): Room {
-    const code = this.newCode();
-    const room = new Room(code, mode, creator, {
+  private deps(): RoomDeps<unknown> {
+    return {
       engine: this.opts.engine(),
       voice: this.opts.voice ?? nullVoiceGateway,
       scheduler: this.opts.scheduler ?? realScheduler,
       now: this.opts.now ?? Date.now,
       seed: this.opts.seed ?? (() => randomBytes(16).toString('hex')),
-    });
+      ...(this.opts.store ? { store: this.opts.store } : {}),
+    };
+  }
+
+  create(mode: Mode, creator: Profile, voiceMode: VoiceMode = 'remote'): Room {
+    const code = this.newCode();
+    const room = new Room(code, mode, creator, this.deps(), voiceMode);
     this.rooms.set(code, room);
+    room.flush();
     return room;
+  }
+
+  // Load saved rooms after a restart. Unreadable or mismatched rooms are logged and skipped (file kept).
+  restoreAll(): number {
+    let n = 0;
+    for (const snap of this.opts.store?.loadAll() ?? []) {
+      if (this.rooms.has(snap.code)) continue;
+      try {
+        this.rooms.set(snap.code, Room.restore(snap, this.deps()));
+        n++;
+      } catch (e) {
+        console.error(`room ${snap.code} not restored:`, (e as Error).message);
+      }
+    }
+    return n;
   }
 
   get(code: string): Room {
@@ -108,7 +133,7 @@ export class Session {
     }
     switch (msg.t) {
       case 'create': {
-        const room = this.registry.create(msg.mode, msg.profile);
+        const room = this.registry.create(msg.mode, msg.profile, msg.voiceMode);
         const seat = room.seatForToken(room.creatorToken)!;
         this.bound = { room, seat: seat.id };
         room.attach(seat, this.conn, true);
