@@ -15,6 +15,7 @@ interface Proj {
   seatIds: string[];
   me: { seat: number; role: string } | null;
   pack: { seats: number[] } | null;
+  publicLog: unknown[];
   moderator: unknown;
 }
 const proj = (c: FakeClient) => c.view.game as Proj;
@@ -29,8 +30,12 @@ function assertRoleIsolation(players: FakeClient[]) {
       const g = v.game as Proj | null;
       if (!g || g.step.kind === 'ended') continue;
       assert.equal(g.moderator, null, `${p.seat} got moderator data`);
+      // Public reveals (e.g. Hunter at turn open, Q20) are legitimate for everyone.
+      const revealed = new Set(
+        (g.publicLog as { t: string; seat?: number }[]).filter((e) => e.t === 'roleRevealed').map((e) => e.seat),
+      );
       for (const s of g.seats) {
-        if (s.role === null || s.seat === mine.seat) continue;
+        if (s.role === null || s.seat === mine.seat || revealed.has(s.seat)) continue;
         assert.ok(mine.role === 'wolf' && wolves.has(s.seat) && s.role === 'wolf', `${p.seat} learned role of seat ${s.seat}`);
       }
       if (mine.role !== 'wolf') assert.equal(g.pack, null, `${p.seat} got pack view`);
@@ -39,7 +44,7 @@ function assertRoleIsolation(players: FakeClient[]) {
 }
 
 test('real engine, automatic, 8 players: role isolation, silent wolf pick, night never closes early', () => {
-  const h = setup({ engine: () => createRulesEngine() as RulesEngine<unknown> });
+  const h = setup({ engine: () => createRulesEngine() as RulesEngine<unknown>, seed: 'rules-engine-fixed' });
   const { players, creator } = h.room('automatic', 8);
   creator.send({ t: 'start' });
   assert.equal(creator.view.status, 'playing');
@@ -82,7 +87,7 @@ test('real engine, automatic, 8 players: role isolation, silent wolf pick, night
 });
 
 test('real engine, moderator mode: moderator gets moderator projection; players never do', () => {
-  const h = setup({ engine: () => createRulesEngine() as RulesEngine<unknown> });
+  const h = setup({ engine: () => createRulesEngine() as RulesEngine<unknown>, seed: 'rules-engine-fixed' });
   const { players, moderator } = h.room('moderator', 7);
   const mod = moderator!;
   mod.send({ t: 'start' });
