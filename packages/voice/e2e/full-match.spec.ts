@@ -60,7 +60,7 @@ test('moderator mode, full match with voice: hear-matrix equals grants on every 
   for (let i = 0; i < 80 && players[0]!.view().status === 'playing'; i++) {
     const kind = step(players[0]!);
     await voiceSettled(all);
-    const rep = await checkHearMatrix(all, `${kind}#${i}`);
+    const rep = await checkHearMatrix(all, `${step(players[0]!)}#${i}`);
     reports.push(rep);
     console.log(`  window ${kind}#${i}: ${rep.skipped ? `skipped (${rep.skipped.reason})` : `${rep.checked} checks, ${rep.failures.length} failures`}`);
     for (const p of players) await botAct(p, r);
@@ -108,7 +108,7 @@ test('automatic mode, 10 seats with voice: hear-matrix on every step within the 
     const kind = step(players[0]!);
     if (kind !== last) {
       await voiceSettled(players);
-      const rep = await checkHearMatrix(players, kind);
+      const rep = await checkHearMatrix(players, step(players[0]!)); // label = step at measurement time
       reports.push(rep);
       console.log(`  window ${kind}: ${rep.skipped ? `skipped (${rep.skipped.reason})` : `${rep.checked} checks, ${rep.failures.length} failures`} at +${((Date.now() - start) / 1000).toFixed(0)}s`);
       for (const p of players) await botAct(p, r);
