@@ -70,8 +70,19 @@ export interface MicTrackLike {
 }
 export interface RemoteTrackLike {
   kind: string;
+  sid?: string;
   attach(): HTMLMediaElement;
   detach(): HTMLMediaElement[];
+  // livekit-client RemoteAudioTrack: inbound RTP stats; totalAudioEnergy grows while audio arrives.
+  getReceiverStats?(): Promise<{ totalAudioEnergy?: number; bytesReceived?: number } | undefined>;
+}
+// Diagnostics for tests: audio actually received per channel and remote identity.
+export interface AudioStats {
+  channel: string;
+  identity: string;
+  trackSid: string;
+  totalAudioEnergy: number | null;
+  bytesReceived: number | null;
 }
 export interface RoomLike {
   connect(url: string, token: string, opts?: unknown): Promise<unknown>;
@@ -103,6 +114,10 @@ export const EV = {
 } as const;
 
 export interface VoiceClientOptions {
+  // A connect that neither resolves nor rejects within this time counts as failed (default 20 s).
+  connectTimeoutMs?: number;
+  // Failed/stuck connects are retried with backoff while the session is unchanged (default 3 retries).
+  connectRetries?: number;
   createRoom?: () => RoomLike;
   createMicTrack?: () => Promise<MicTrackLike>;
   // Where remote audio elements go; null disables attaching (tests). Default: document.body.
@@ -119,6 +134,7 @@ interface Chan {
   mic: MicTrackLike | null;
   detach: (() => void)[];
   listeners: [string, (...args: any[]) => void][];
+  tracks: Map<string, { track: RemoteTrackLike; identity: string }>;
 }
 
 const noopDoc: VoiceClientOptions['document'] = null;
@@ -197,7 +213,7 @@ export class VoiceClient {
     this.publish();
   }
 
-  private async join(s: VoiceSession): Promise<void> {
+  private async join(s: VoiceSession, attempt = 0): Promise<void> {
     const room = this.opts.createRoom ? this.opts.createRoom() : await defaultCreateRoom();
     const c: Chan = {
       session: s,
@@ -206,12 +222,17 @@ export class VoiceClient {
       mic: null,
       detach: [],
       listeners: [],
+      tracks: new Map(),
     };
     this.chans.set(s.channel, c);
     this.wire(c);
     this.publish();
     try {
-      await room.connect(s.url, s.token, { autoSubscribe: true });
+      const timeoutMs = this.opts.connectTimeoutMs ?? 20_000;
+      await Promise.race([
+        room.connect(s.url, s.token, { autoSubscribe: true }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error(`connect timed out after ${timeoutMs} ms`)), timeoutMs)),
+      ]);
       c.view.state = 'connected';
       this.refreshParticipants(c);
       if (s.speak) await this.publishMic(c);
@@ -219,6 +240,20 @@ export class VoiceClient {
       c.view.state = 'failed';
       c.view.error = String((err as Error)?.message ?? err);
       this.opts.onError?.(s.channel, err);
+      const retries = this.opts.connectRetries ?? 3;
+      if (attempt < retries && !this.disposed) {
+        // Retry while this session is still the current one for the channel (a newer applySessions wins).
+        const delay = Math.min(8000, 1000 * 2 ** attempt);
+        setTimeout(() => {
+          const cur = this.chans.get(s.channel);
+          if (this.disposed || !cur || cur !== c || cur.session.token !== s.token) return;
+          this.chain = this.chain.then(async () => {
+            if (this.chans.get(s.channel) !== c) return;
+            await this.drop(s.channel);
+            await this.join(s, attempt + 1);
+          }).catch((e) => this.opts.onError?.(s.channel, e));
+        }, delay);
+      }
     }
     this.publish();
   }
@@ -254,8 +289,9 @@ export class VoiceClient {
     on(EV.participantConnected, () => this.refreshParticipants(c));
     on(EV.participantDisconnected, () => this.refreshParticipants(c));
     on(EV.activeSpeakersChanged, () => this.refreshParticipants(c));
-    on(EV.trackSubscribed, (track: RemoteTrackLike) => {
+    on(EV.trackSubscribed, (track: RemoteTrackLike, _pub: unknown, participant?: { identity: string }) => {
       if (track.kind !== 'audio') return;
+      c.tracks.set(track.sid ?? `${participant?.identity ?? '?'}:${c.tracks.size}`, { track, identity: participant?.identity ?? '?' });
       const container = this.opts.audioContainer === undefined ? (typeof document !== 'undefined' ? document.body : null) : this.opts.audioContainer;
       if (!container) return;
       const el = track.attach();
@@ -264,7 +300,9 @@ export class VoiceClient {
       c.detach.push(() => track.detach().forEach((e) => e.remove()));
     });
     on(EV.trackUnsubscribed, (track: RemoteTrackLike) => {
-      if (track.kind === 'audio') track.detach().forEach((e) => e.remove());
+      if (track.kind !== 'audio') return;
+      track.detach().forEach((e) => e.remove());
+      for (const [sid, t] of c.tracks) if (t.track === track) c.tracks.delete(sid);
     });
     on(EV.audioPlaybackChanged, () => this.publish());
     on(EV.reconnecting, () => {
@@ -318,6 +356,18 @@ export class VoiceClient {
     c.view.publishing = false;
     await c.room.localParticipant.unpublishTrack(t, true).catch((err) => this.opts.onError?.(c.session.channel, err));
     this.publish();
+  }
+
+  // Diagnostics (tests): received-audio stats for every subscribed remote audio track.
+  async stats(): Promise<AudioStats[]> {
+    const out: AudioStats[] = [];
+    for (const c of this.chans.values()) {
+      for (const [sid, t] of c.tracks) {
+        const st = t.track.getReceiverStats ? await t.track.getReceiverStats().catch(() => undefined) : undefined;
+        out.push({ channel: c.session.channel, identity: t.identity, trackSid: sid, totalAudioEnergy: st?.totalAudioEnergy ?? null, bytesReceived: st?.bytesReceived ?? null });
+      }
+    }
+    return out;
   }
 
   // iOS Safari ends or mutes capture when the page is hidden; re-acquire when it comes back.

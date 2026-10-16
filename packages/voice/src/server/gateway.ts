@@ -7,7 +7,7 @@
 // Owns rotation generations per game room. setGrants/commit remain as helpers for tests and for the
 // older per-seat seam.
 import type { SeatId } from '@moonveil/protocol';
-import { desiredByChannel, planChannel, roomName, samePermission, shuffle } from './mapping.ts';
+import { desiredByChannel, planChannel, roomName, samePermission, shuffle, toPermission } from './mapping.ts';
 import { mintToken, type TokenKeys } from './tokens.ts';
 import type { BackendParticipant, Grants, RoomPermission, VoiceBackend, VoiceGrantLike, VoiceSession } from './types.ts';
 
@@ -138,7 +138,7 @@ export class LiveKitVoiceGateway {
       st.gen.set(ch, gen);
       present.set(ch, await this.opts.backend.listParticipants(roomName(room, ch, gen)));
     }
-    const desired = desiredByChannel(grants, present);
+    const desired = desiredByChannel(grants);
     const ops: (() => Promise<void>)[] = [];
     const rotated: string[] = [];
 
@@ -165,7 +165,7 @@ export class LiveKitVoiceGateway {
       const prev = st.sessions.get(seat) ?? [];
       const next: VoiceSession[] = [];
       for (const g of grants.get(seat) ?? []) {
-        const perm: RoomPermission = desired.get(g.channel)?.get(seat) ?? { canPublish: g.speak, canSubscribe: g.listen, hidden: !g.speak };
+        const perm: RoomPermission = desired.get(g.channel)?.get(seat) ?? toPermission(g);
         const name = roomName(room, g.channel, st.gen.get(g.channel)!);
         const old = prev.find((s) => s.channel === g.channel);
         if (old && old.room === name && samePermission(perm, { canPublish: old.speak, canSubscribe: old.listen, hidden: !old.visible })) {

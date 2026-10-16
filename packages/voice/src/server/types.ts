@@ -2,8 +2,7 @@
 import type { SeatId, VoiceGrant } from '@moonveil/protocol';
 
 // Grant as the gateway consumes it. `visible` is an optional override; when absent the adapter derives
-// it (ADR 0004 §1): a seat is visible in a room iff it may speak there, decided when it enters that
-// room generation and kept while it stays (so a speak->listen flip inside a room does not rotate it).
+// it (ADR 0004 §1): a seat is visible in a room iff it may speak there. Listen-only = hidden, always.
 export interface VoiceGrantLike extends VoiceGrant {
   visible?: boolean;
 }

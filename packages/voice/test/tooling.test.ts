@@ -30,7 +30,7 @@ test('rendered config binds loopback, pins ports and keeps auto_create off', () 
   assert.match(cfg, /^port: 4300$/m);
   assert.match(cfg, /- 127\.0\.0\.1$/m);
   assert.match(cfg, /tcp_port: 4301/);
-  assert.match(cfg, /port_range_start: 4310\n\s+port_range_end: 4350/);
+  assert.match(cfg, /udp_port: 4310-4350/); // multiplexed range, not one port per connection
   assert.match(cfg, /auto_create: false/);
   assert.match(cfg, /^\s+k: s$/m);
 });
