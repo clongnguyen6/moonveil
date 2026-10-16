@@ -50,24 +50,24 @@ test('in-person: all-empty grants mint nothing and create nothing', async () => 
   assert.equal(pushed.length, 0);
 });
 
-test('day -> defense: permission flips are UpdateParticipant calls, no rotation, tokens re-minted only for changed seats', async () => {
+test('publish/subscribe flips without a visibility change are UpdateParticipant calls, no rotation, tokens re-minted only for changed seats', async () => {
   const { gw, backend, pushed } = make();
   for (const s of ['p1', 'p2', 'p3']) gw.setGrants('R', s, [g('public', true, true)]);
   await gw.commit('R');
   await joinAll(gw, backend, 'R', ['p1', 'p2', 'p3']);
   const before = Object.fromEntries(await Promise.all(['p1', 'p2', 'p3'].map(async (s) => [s, (await gw.sessions('R', s))[0]!.token])));
   pushed.length = 0;
-  // defense: p2 accused
-  gw.setGrants('R', 'p1', [g('public', false, true)]);
-  gw.setGrants('R', 'p3', [g('public', false, true)]);
+  // p1 and p3 keep speaking but lose listen (hypothetical flip that keeps visibility): in-room updates
+  gw.setGrants('R', 'p1', [g('public', true, false)]);
+  gw.setGrants('R', 'p3', [g('public', true, false)]);
   await gw.commit('R');
   const updates = backend.calls.filter((c) => c.op === 'update');
   assert.deepEqual(updates.map((u) => u.identity).sort(), ['p1', 'p3']);
-  assert.deepEqual(updates[0]!.permission, { canPublish: false, canSubscribe: true, hidden: false });
+  assert.deepEqual(updates[0]!.permission, { canPublish: true, canSubscribe: false, hidden: false });
   assert.equal(backend.deleted.length, 0);
   assert.equal(gw.roomNameOf('R', 'public'), 'R-public-g1');
   assert.deepEqual(pushed.map((p) => p.seat).sort(), ['p1', 'p3']);
-  assert.equal((await gw.sessions('R', 'p2'))[0]!.token, before.p2); // accused unchanged
+  assert.equal((await gw.sessions('R', 'p2'))[0]!.token, before.p2); // unchanged seat keeps its token
   assert.notEqual((await gw.sessions('R', 'p1'))[0]!.token, before.p1);
 });
 
@@ -145,7 +145,7 @@ test('API call order is shuffled, not seat order', async () => {
   for (const s of seats) gw.setGrants('S', s, [g('public', true, true)]);
   await gw.commit('S');
   await joinAll(gw, backend, 'S', seats);
-  for (const s of seats) gw.setGrants('S', s, [g('public', false, true)]);
+  for (const s of seats) gw.setGrants('S', s, [g('public', true, false)]); // listen flips; visibility unchanged -> in-room updates
   await gw.commit('S');
   const order = backend.calls.filter((c) => c.op === 'update').map((c) => c.identity);
   assert.deepEqual([...order].sort(), seats);
@@ -216,28 +216,19 @@ test('derived visibility: ghost/pending Hunter/moderator listen-only sessions ar
   assert.deepEqual(r.get('p1')!.map((s) => s.visible), [true]);
 });
 
-test('defense (evidence): sticky visibility keeps living listeners visible => UpdateParticipant only; pure visible=speak would rotate public twice', async () => {
-  // sticky (this adapter)
+test('defense (ADR 0004 §1, measured): listeners become hidden, so the public room rotates at defense start and end', async () => {
   const a = make();
   await a.gw.sync('DEF', new Map([['acc', [g('public', true, true)]], ['v1', [g('public', true, true)]], ['v2', [g('public', true, true)]]]));
   for (const s of ['acc', 'v1', 'v2']) a.backend.connect('DEF-public-g1', s, { canPublish: true, canSubscribe: true, hidden: false });
-  await a.gw.sync('DEF', new Map([['acc', [g('public', true, true)]], ['v1', [g('public', false, true)]], ['v2', [g('public', false, true)]]]));
-  assert.deepEqual(a.backend.deleted, []);
-  assert.deepEqual(a.backend.calls.filter((c) => c.op === 'update').map((c) => c.identity).sort(), ['v1', 'v2']);
-  assert.deepEqual(a.backend.participants('DEF-public-g1').map((p) => [p.identity, p.permission.hidden]).sort(), [['acc', false], ['v1', false], ['v2', false]]);
-  // back to day: another update, still no rotation
+  const r = await a.gw.sync('DEF', new Map([['acc', [g('public', true, true)]], ['v1', [g('public', false, true)]], ['v2', [g('public', false, true)]]]));
+  assert.deepEqual(a.backend.deleted, ['DEF-public-g1']); // everyone reconnects as the defense starts
+  assert.equal(r.get('v1')![0]!.visible, false);
+  assert.equal(r.get('acc')![0]!.visible, true);
+  for (const s of ['acc', 'v1', 'v2']) a.backend.connect('DEF-public-g2', s, { canPublish: s === 'acc', canSubscribe: true, hidden: s !== 'acc' });
   await a.gw.sync('DEF', new Map([['acc', [g('public', true, true)]], ['v1', [g('public', true, true)]], ['v2', [g('public', true, true)]]]));
-  assert.deepEqual(a.backend.deleted, []);
-
-  // pure visible = speak (what ADR 0004 §1 proposes literally), expressed with the explicit bit
-  const b = make();
-  await b.gw.sync('LIT', new Map([['acc', [g('public', true, true)]], ['v1', [g('public', true, true)]], ['v2', [g('public', true, true)]]]));
-  for (const s of ['acc', 'v1', 'v2']) b.backend.connect('LIT-public-g1', s, { canPublish: true, canSubscribe: true, hidden: false });
-  await b.gw.sync('LIT', new Map([['acc', [g('public', true, true)]], ['v1', [g('public', false, true, false)]], ['v2', [g('public', false, true, false)]]]));
-  assert.deepEqual(b.backend.deleted, ['LIT-public-g1']); // everyone, including the accused, reconnects as the defense starts
-  for (const s of ['acc', 'v1', 'v2']) b.backend.connect('LIT-public-g2', s, { canPublish: s === 'acc', canSubscribe: true, hidden: s !== 'acc' });
-  await b.gw.sync('LIT', new Map([['acc', [g('public', true, true)]], ['v1', [g('public', true, true)]], ['v2', [g('public', true, true)]]]));
-  assert.deepEqual(b.backend.deleted, ['LIT-public-g1', 'LIT-public-g2']); // and again when the defense ends
+  assert.deepEqual(a.backend.deleted, ['DEF-public-g1', 'DEF-public-g2']); // and again when the defense ends
+  // Why not keep them visible ("sticky"): a seat that dies while connected (execution, Hunter) would stay
+  // visible as a listen-only ghost in the public roster. Measured in the browser suite; policy forbids it.
 });
 
 test('backend errors are reported, not thrown into the server', async () => {
