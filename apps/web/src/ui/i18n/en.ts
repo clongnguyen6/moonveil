@@ -65,6 +65,7 @@ export const en = {
   livingCount: '{n} living', votesCloseAt: 'Closes in',
 
   ghostTitle: 'You are a ghost', ghostHint: 'Drift around camp. Hear everything public, talk with other ghosts. The living cannot see you.',
+  ghostWatch: 'Watch and listen. Ghosts cannot act or vote.',
   ghostDiedNight: 'You died in the night.', ghostExecuted: 'The village executed you.', ghostShot: 'The Hunter shot you.', ghostRemoved: 'You were removed from the match.',
 
   endTitle: 'Match over', endVillage: 'The village wins', endWolves: 'The wolves win', endDraw: 'Nobody survives. A draw.', endAborted: 'Match aborted',

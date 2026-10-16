@@ -11,7 +11,7 @@ import { type GameView, type SeatView, stepFamily as famOf } from '../game/types
 import { type Cue, playCue, unlockAudio } from './audio/cues.ts';
 import { Button, Timer, type ToastItem, Toasts } from './components/index.tsx';
 import { type T, useT } from './i18n/index.ts';
-import { ConfirmPanel, DefensePanel, DiscussionPanel, VotePanel } from './screens/Day.tsx';
+import { ConfirmPanel, DefensePanel, DiscussionPanel, GhostPanel, VotePanel } from './screens/Day.tsx';
 import { EntryScreen } from './screens/Entry.tsx';
 import { LobbyScreen } from './screens/Lobby.tsx';
 import { ModeratorConsole } from './screens/Moderator.tsx';
@@ -158,6 +158,8 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
           <ModeratorConsole view={view} g={g} />
         ) : g.step.kind === 'ended' ? (
           <EndPanel view={view} g={g} />
+        ) : g.me && !g.me.alive && !(g.step.kind === 'hunter' && g.step.pending.includes(g.me.seat)) ? (
+          <GhostPanel view={view} g={g} speaking={s.speaking} title={phaseTitle(t, g)} />
         ) : fam === 'night' ? (
           <NightPanel view={view} g={g} />
         ) : fam === 'hunter' ? (

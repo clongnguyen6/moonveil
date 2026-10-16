@@ -47,6 +47,7 @@ Lobby `[data-testid=mic][data-status=…]`: with a VoiceClient, `ok|checking|idl
 | `[data-testid=vote-skip]`, `[data-testid=my-vote]`, `[data-testid=ballots] li`, `[data-testid=voted-count]` | nomination: live voter→choice list |
 | `[data-testid=vote-yes]`, `[data-testid=vote-no]`, `[data-testid=my-ballot]`, `[data-testid=confirm-tally]` | verdict |
 | `[data-testid=ghost-bar]` | dead seat |
+| `[data-testid=ghost-panel][data-step=<step.kind>]` | dead seat's read-only panel (both modes): seats, live ballots; never `confirm`/`vote-*`. A pending Hunter gets `hunter-shoot` instead |
 | `[data-testid=announce]` | dawn/execution/shot overlay (transient, ~3 s) |
 | `[data-testid=ended] .seat-chip .tag` | revealed roles (one per seat) |
 | `[data-testid=wake-hint]` | wake lock unavailable |

@@ -66,6 +66,7 @@ export const vi: Strings = {
   livingCount: '{n} còn sống', votesCloseAt: 'Đóng sau',
 
   ghostTitle: 'Bạn là ma', ghostHint: 'Bay quanh trại. Nghe mọi chuyện công khai, trò chuyện với các ma khác. Người sống không thấy bạn.',
+  ghostWatch: 'Xem và lắng nghe. Ma không hành động hay bỏ phiếu được.',
   ghostDiedNight: 'Bạn chết trong đêm.', ghostExecuted: 'Dân làng đã treo cổ bạn.', ghostShot: 'Thợ săn đã bắn bạn.', ghostRemoved: 'Bạn đã bị đưa khỏi ván.',
 
   endTitle: 'Kết thúc', endVillage: 'Dân làng thắng', endWolves: 'Sói thắng', endDraw: 'Không ai sống sót. Hòa.', endAborted: 'Ván bị hủy',

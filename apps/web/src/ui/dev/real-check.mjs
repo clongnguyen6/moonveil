@@ -150,6 +150,7 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
       ok(`${p.name} (living): 'boo' never reaches the DOM`, !/boo/.test(await p.page.content()));
     }
     ok('ghost: no night action offered (no actions in projection)', ghost.game().me.actions.length === 0);
+    ok('ghost: no action panel/hooks in the DOM (automatic mode)', (await ghost.page.locator('[data-testid=ghost-panel]').count()) === 1 && (await ghost.page.locator('[data-testid=confirm], [data-testid=vote-skip], [data-testid=vote-yes], [data-testid=vote-no]').count()) === 0);
   }
   // reconnect: reload keeps the seat and the step
   const r = ps[3];
@@ -188,7 +189,8 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
     if (step === 'ended') break;
     if (step === 'night.main' || step === 'night.witch' || step === 'hunter') { for (const p of ps) await p.pickFirst().catch(() => {}); if (step === 'night.witch') { const w = ps.find((p) => p.game().me.role === 'witch' && p.game().me.alive); if (w) await w.page.getByTestId('heal-no').click().catch(() => {}); } }
     if (step === 'day.vote') { const alive = ps.filter((p) => p.game().me.alive); const target = alive[0]; for (const p of alive) { if (p === target) continue; const b = p.page.locator(`[data-testid=seat-${target.game().me.seat}]`); if (await b.count()) { await b.click(); await p.page.getByTestId('confirm').click(); } } await mod.page.waitForTimeout(300);
-      ok('open ballots: a voter sees the live ballot list on day.vote', (await alive[1].page.locator('[data-testid=ballots]').count()) === 1); }
+      ok('open ballots: a voter sees the live ballot list on day.vote', (await alive[1].page.locator('[data-testid=ballots]').count()) === 1);
+      for (const d of ps.filter((p) => !p.game().me.alive)) ok(`${d.name} (dead, moderator mode): ghost panel, no action hooks at day.vote`, (await d.page.locator('[data-testid=ghost-panel]').count()) === 1 && (await d.page.locator('[data-testid=confirm], [data-testid=vote-skip], [data-testid=vote-yes], [data-testid=vote-no]').count()) === 0); }
     if (step === 'day.confirm') { for (const p of ps.filter((p) => p.game().me.alive)) await p.page.getByTestId('vote-yes').click().catch(() => {}); await mod.page.waitForTimeout(300); }
     await closeStep();
     await mod.page.waitForTimeout(150);

@@ -32,6 +32,7 @@ Match (frame = scene host + top bar + dock)
     day.confirm    → ConfirmPanel (live Yes/No tally + per-voter tags, Yes/No, own ballot line, living count)
     ended          → EndPanel (winner, reason, all roles, history if provided, leave)
   ghost bar (dead seat): cause, ghost hint or Hunter-pending isolation note; skin → ghost
+  dead seat (both modes, every step except a pending Hunter shot): GhostPanel = read-only seats + live ballots + timer; no action hooks
   moderator (kind=moderator): ModeratorConsole replaces the dock: Step (close step, Yes-count entry on day.confirm) · Seats (roles) · Night record · Log
     approved: close step, Yes count, listening to all channels. PROVISIONAL (hidden unless the engine config enables them; no flag exists today):
     remove player (`moderator.canRemove`), abort (`moderator.canAbort`). Narration cue line: behind Settings → "Narration cues", default off.

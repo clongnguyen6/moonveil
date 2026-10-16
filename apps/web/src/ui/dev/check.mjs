@@ -106,6 +106,19 @@ await page.getByTestId('deck-reset').click();
 ok('deck: reset to default', (await page.locator('[data-testid=deck][data-custom=false]').count()) === 1);
 await open('day');
 
+// 8c. Dead seats never get an action panel (both modes); pending Hunter still gets the shot panel.
+for (const mode of ['automatic', 'moderator']) {
+  await open(mode === 'automatic' ? 'ghost' : 'moderator-day');
+  if (mode === 'moderator') await stub((r) => { const dead = r.game.match.seats.find((s) => !s.alive); r.setViewer(r.game.seatIds[dead.seat]); });
+  await stub((r) => r.closeStep()); // -> day.vote
+  await page.waitForTimeout(150);
+  ok(`${mode}: dead seat at day.vote sees the ghost panel, no action hooks`, (await page.locator('[data-testid=ghost-panel][data-step="day.vote"]').count()) === 1 && (await page.locator('[data-testid=confirm], [data-testid=vote-skip], [data-testid=vote-yes], [data-testid=vote-no]').count()) === 0);
+  ok(`${mode}: dead seat still sees the live ballots (public)`, (await page.locator('[data-testid=ballots]').count()) === 1);
+}
+await open('hunter');
+ok('pending Hunter (dead) still gets the shot panel', (await page.locator('[data-testid=hunter-shoot] [data-testid=confirm]').count()) === 1);
+await open('day');
+
 // 9. Reconnect overlay shows and clears, view unchanged.
 const before = await page.getByTestId('match').getAttribute('data-step');
 await stub((r) => r.simulateReconnect(600));
