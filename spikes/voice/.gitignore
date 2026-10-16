@@ -1,0 +1,7 @@
+node_modules/
+.npm-cache/
+.bin/
+.browsers/
+test-results/
+playwright-report/
+*.log
