@@ -1,0 +1,36 @@
+:root { --ink: #fff6e6; --panel: rgba(16, 20, 18, 0.72); --accent: #ffcf7a; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: #0f1813; overflow: hidden; overscroll-behavior: none; font-family: ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, -apple-system, sans-serif; color: var(--ink); }
+#app { position: fixed; inset: 0; }
+#app canvas { display: block; touch-action: none; }
+#hud { position: fixed; inset: 0; pointer-events: none; padding: calc(10px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left)); }
+.ui { pointer-events: auto; }
+.chip { position: absolute; top: calc(10px + env(safe-area-inset-top)); left: calc(10px + env(safe-area-inset-left)); display: flex; gap: 8px; align-items: center; background: var(--panel); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding: 8px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; box-shadow: 0 2px 12px rgba(0,0,0,0.35); }
+.chip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.chip.night .dot { background: #9fb4ff; box-shadow: 0 0 8px #9fb4ff; }
+.chip .sub { opacity: 0.75; font-weight: 500; }
+.actions { position: absolute; right: calc(12px + env(safe-area-inset-right)); bottom: calc(14px + env(safe-area-inset-bottom)); display: flex; gap: 10px; }
+.btn { border: 0; cursor: pointer; font: inherit; color: var(--ink); background: var(--panel); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 999px; min-width: 48px; height: 48px; padding: 0 14px; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 12px rgba(0,0,0,0.35); }
+.btn:active { transform: scale(0.96); }
+.btn.on { background: rgba(255, 207, 122, 0.92); color: #2a1d10; }
+.btn.mic.on { background: rgba(120, 220, 140, 0.92); }
+.panel { position: absolute; top: calc(10px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right)); display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.panel .menu { display: none; flex-direction: column; gap: 6px; background: var(--panel); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding: 10px; border-radius: 14px; min-width: 160px; }
+.panel.open .menu { display: flex; }
+.panel .menu .group { display: flex; flex-wrap: wrap; gap: 6px; }
+.panel .menu .title { font-size: 11px; opacity: 0.65; text-transform: uppercase; letter-spacing: 0.08em; margin: 4px 2px 0; }
+.panel .menu .btn { height: 36px; min-width: 0; padding: 0 12px; font-size: 13px; box-shadow: none; background: rgba(255,255,255,0.08); }
+.panel .menu .btn.on { background: rgba(255, 207, 122, 0.92); color: #2a1d10; }
+.toggle { font-size: 12px; opacity: 0.8; }
+.banner { position: absolute; left: 0; right: 0; top: 30%; text-align: center; opacity: 0; transition: opacity 0.6s ease; pointer-events: none; }
+.banner.show { opacity: 1; }
+.banner h1 { margin: 0; font-size: clamp(26px, 6vw, 44px); font-weight: 700; letter-spacing: 0.04em; text-shadow: 0 2px 18px rgba(0,0,0,0.7), 0 0 40px rgba(60, 70, 140, 0.6); }
+.banner p { margin: 6px 0 0; font-size: clamp(13px, 2.6vw, 17px); opacity: 0.85; text-shadow: 0 1px 8px rgba(0,0,0,0.8); }
+.hint { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom)); font-size: 12px; opacity: 0.7; background: rgba(0,0,0,0.35); padding: 6px 10px; border-radius: 999px; white-space: nowrap; text-shadow: 0 1px 4px #000; }
+.joy-base { position: absolute; width: 110px; height: 110px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.08); transform: translate(-50%, -50%); display: none; left: calc(70px + env(safe-area-inset-left)); top: calc(100% - 80px - env(safe-area-inset-bottom)); opacity: 0.55; transition: opacity 0.2s; }
+.joy-base.show { display: block; }
+.joy-base.active { opacity: 0.95; }
+.joy-knob { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(255,246,230,0.85); box-shadow: 0 2px 10px rgba(0,0,0,0.4); }
+.toast { position: absolute; left: 50%; top: calc(64px + env(safe-area-inset-top)); transform: translateX(-50%); background: var(--panel); padding: 8px 14px; border-radius: 999px; font-size: 13px; opacity: 0; transition: opacity 0.4s; }
+.toast.show { opacity: 1; }
+@media (max-width: 480px) { .panel .menu { min-width: 140px; } .hint { display: none; } }

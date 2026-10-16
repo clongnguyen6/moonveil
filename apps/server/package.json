@@ -1,0 +1,20 @@
+{
+  "name": "@moonveil/server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/main.ts",
+    "dev": "node --watch src/main.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test --test-concurrency=1 'test/**/*.test.ts'"
+  },
+  "dependencies": {
+    "@moonveil/protocol": "*",
+    "@moonveil/rules": "*",
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "@types/ws": "8.18.2"
+  }
+}
