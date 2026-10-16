@@ -4,7 +4,7 @@ Camp renderer (PixiJS v8). A pure function of three inputs: the seat's `SceneInp
 
 ## Exports
 
-- `@moonveil/scene`: `mountScene(host, { input })` → `SceneHandle` (`setInput`, `setPoses`, `setSpeaking`, `on('move'|'emote')`, `setSpeakingLocal`, `setAudio`, `setCamera`, `setSafeArea`, `destroy`). Types: `SceneInput`, `Pose`, `SceneAppearance`, catalogs. Helpers: `intentFor`, `canMove`, `appearanceFromProtocol` (provisional `{color, hat}` adapter).
+- `@moonveil/scene`: `mountScene(host, { input })` → `SceneHandle` (`setInput`, `setPoses`, `setSpeaking`, `on('move'|'tap'|'emote')`, `setSpeakingLocal`, `setAudio`, `setCamera`, `setSafeArea`, `resize`, `destroy`). Shell adapters: `toSceneInput(view, hostView)` (public fields only), `toWireMove` / `fromWirePoses` (server's provisional normalized poses ↔ world units). Types: `SceneInput`, `Pose`, `SceneAppearance`, catalogs. Helpers: `intentFor`, `canMove`, `appearanceFromProtocol`. Mount seam: `docs/visual/MOUNT.md`; pose units: `docs/visual/POSES.md`.
 - `@moonveil/scene/map`: DOM-free layout (`createMap(playerCount)`), `isWalkable(map, x, y)`, `inWorld`, constants. For the server to validate `move` messages with the renderer's geometry.
 - `@moonveil/scene/fixtures`: `makeInput(scene, n)`, `FakeServer` (stub server: NPC movement, entitlement-filtered poses, speaking rotation). Used by the dev harness and tests.
 
@@ -33,6 +33,6 @@ Full Chrome for Testing is not used: it writes outside the repo (`~/Library/Pref
 
 ## Layout
 
-`src/map.ts` layout + walkability (pure) · `src/choreo.ts` per-seat intent (pure) · `src/poses.ts` interpolation (pure) · `src/appearance.ts` catalog (pure) · `src/textures.ts` procedural art · `src/avatar.ts` · `src/world.ts` · `src/lighting.ts` quarter-res lightmap · `src/particles.ts` · `src/input.ts` keyboard + joystick · `src/audio.ts` procedural ambience · `src/scene.ts` `mountScene` · `dev/` harness + HUD · `fixtures/` stub server · `test/` node tests.
+`src/map.ts` layout + walkability (pure) · `src/choreo.ts` per-seat intent (pure) · `src/poses.ts` interpolation (pure) · `src/adapter.ts` SeatView+projection → SceneInput (pure) · `src/wire.ts` wire pose converters (pure) · `src/appearance.ts` catalog (pure) · `src/textures.ts` procedural art · `src/avatar.ts` · `src/world.ts` · `src/lighting.ts` quarter-res lightmap · `src/particles.ts` · `src/input.ts` keyboard + joystick · `src/audio.ts` procedural ambience · `src/scene.ts` `mountScene` · `dev/` harness + HUD · `fixtures/` stub server · `test/` node tests.
 
 Role independence: appearance is chosen by the player in the lobby and lives in public seat data; the scene has no role field until the end-of-match reveal, which it only appends to the name label.

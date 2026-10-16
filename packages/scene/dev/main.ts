@@ -66,6 +66,7 @@ window.__moonveil = {
   walk: (x: number, y: number) => scene.walkLocal(x, y),
   emote: (s: string) => scene.emote(s),
   night: () => scene.night(),
+  localPose: () => scene.localPose(),
   time: () => scene.time(),
   perf: () => scene.perf(),
   perfReset: () => scene.perfReset(),

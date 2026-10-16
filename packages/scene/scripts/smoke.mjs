@@ -18,6 +18,12 @@ const r = await page.evaluate(() => ({ perf: window.__moonveil.perf(), sim: wind
 const gl = await page.evaluate(() => { const c = document.createElement('canvas'); const g = c.getContext('webgl'); const d = g?.getExtension('WEBGL_debug_renderer_info'); return d ? g.getParameter(d.UNMASKED_RENDERER_WEBGL) : String(g?.getParameter(g.RENDERER)); });
 console.log(which, 'renderer:', gl);
 console.log('frames in', Date.now() - t0, 'ms:', r.perf?.n, 'frame avg', r.perf?.frame.avg, 'p95', r.perf?.frame.p95, 'sim time', r.sim.toFixed(1));
+// tap-to-walk: click empty ground to the right of the local avatar; expect it to move (lobby / ghost only)
+const before = await page.evaluate(() => window.__moonveil.localPose());
+await page.mouse.click(640, 600);
+await page.waitForTimeout(1500);
+const after = await page.evaluate(() => window.__moonveil.localPose());
+console.log('tap-to-walk moved:', before && after ? Math.hypot(after.x - before.x, after.y - before.y) > 20 : 'n/a');
 await page.screenshot({ path: `.cache/smoke-${which}-${scene}.png` });
 console.log(logs.join('\n') || 'no console errors');
 await browser.close();
