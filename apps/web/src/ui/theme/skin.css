@@ -5,7 +5,7 @@
 .btn:disabled { opacity: .45; cursor: default; }
 .btn.secondary { background: var(--surface-3); color: var(--ink); border: 1px solid var(--line-strong); }
 .btn.quiet { background: transparent; color: var(--ink-2); border: 1px solid var(--line); }
-.btn.danger { background: var(--danger-soft); color: var(--danger); border: 1px solid var(--danger); }
+.btn.danger { background: var(--danger); color: #2a0d08; border: 0; }
 .btn.icon { padding: 0; width: var(--tap); border-radius: var(--r-pill); background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); font-size: 1.1rem; }
 .btn.icon[aria-pressed="true"] { background: var(--accent); color: var(--ink-on-accent); }
 :is(.btn, input, select, textarea, [tabindex]):focus-visible { outline: none; box-shadow: var(--focus); }
