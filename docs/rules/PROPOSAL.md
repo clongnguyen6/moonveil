@@ -1,6 +1,6 @@
 # Moonveil rules proposal
 
-Status: **proposal, v0.8, 2026-10-16**. v0.2 was revised after an independent review of 9af74b8; v0.3 to v0.8 record your decisions. Owner: rules scope (`packages/rules`, `docs/rules`).
+Status: **proposal, v0.9, 2026-10-16**. v0.2 was revised after an independent review of 9af74b8; v0.3 to v0.9 record your decisions. Owner: rules scope (`packages/rules`, `docs/rules`).
 Only what is listed under "Approved rules" is accepted. Everything else is **provisional** until you approve it.
 The engine implements each provisional recommendation as a named setting (`config.*`) or one isolated function.
 Approved rules are fixed engine behaviour, no longer settings.
@@ -14,8 +14,6 @@ Plain language. "Recommend" is only my suggestion.
 |---|---|---|
 | Q15/Q26 (removal) | Removing a disconnected player | Only the moderator (any time) or the host after a 2-minute disconnect (not during the night) may remove; removal is a death with no Hunter shot |
 | Q16 (rest) | Moderator powers beyond listening and the Yes count | Runs the pace, can act for a player, can set the wolves' target, can remove a player or stop the match. Speaking in public: recommend allowing it; currently **off** until you decide. Cannot break the rules, bring anyone back or undo |
-| Q17 | Roles per player count | About one Wolf per three players (table in Q17). At 6 players a Hunter instead of a Witch, and the app refuses custom setups that the Wolves could win on the very first night |
-| Q18 | Number of players | 6 to 16 (16 still to be checked with the real screens and voice) |
 | Q11 (rest) | Durations other than night (60 s) and defense (30 s) | Main night 40 s / Witch 20 s; nomination 30 s; Yes/No 15 s; Hunter 20 s; discussion 60 s + 15 s per living player (90–240 s) |
 | Q08 | Wolves choosing "nobody" | Allowed. "Nobody" wins only if it alone has the most wolf choices |
 | Q10 (rest) | May the accused vote in their own Yes/No round? | Yes |
@@ -33,6 +31,10 @@ Low-stakes defaults you could accept as a group: Q01, Q02, Q04, Q05, Q12, Q13, Q
 - Both a human moderator and automatic orchestration are supported. A room creator who plays gets no secret access.
 
 **Decided 2026-10-16:**
+- **Table size and roles (Q17/Q18, Batch A).**
+  - 7 to 15 players; 6 and 16+ are rejected when a match is created.
+  - Default roles: 2 Wolves at 7–12 players, 3 at 13–15; exactly one each of Seer, Witch, Guard and Hunter; the rest Villagers.
+  - The host may customize within limits: at most one of each special role, at least one Wolf, fewer Wolves than Village, and no setup the Wolves could win on the first night (one bite plus the Witch's poison).
 - **Witch (Q03).**
   - One heal and one poison per match; both may be used on the same night.
   - She may heal herself, but may not poison herself.
@@ -216,44 +218,22 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 - **Alternatives**: the moderator may break rules (free override); add undo of the last step.
 - **Engine**: actor `moderator`; `moderator.mayBreakRules=false`; `moderator.canSetDayOutcome=true`.
 
-## Q17 Role distribution — product decision needed
-- **sky2 code**: no table. The host types counts per role. If there are more roles than players, roles are removed at random, and if a Wolf is removed, every Wolf gains the curse (MSS:187-204).
-- **Recommend** (W = Wolf, V = Villager):
+## Q17 Role distribution — DECIDED 2026-10-16 (Batch A)
+- **Decision**: see Approved rules. Default table:
 
-| Players | W | Seer | Witch | Guard | Hunter | V |
-|---|---|---|---|---|---|---|
-| 6 ★ | 2 | 1 | 0 | 1 | 1 | 1 |
-| 7 | 2 | 1 | 1 | 1 | 1 | 1 |
-| 8 | 2 | 1 | 1 | 1 | 1 | 2 |
-| 9 | 2 | 1 | 1 | 1 | 1 | 3 |
-| 10 | 3 | 1 | 1 | 1 | 1 | 3 |
-| 11 | 3 | 1 | 1 | 1 | 1 | 4 |
-| 12 | 3 | 1 | 1 | 1 | 1 | 5 |
-| 13 | 4 | 1 | 1 | 1 | 1 | 5 |
-| 14 | 4 | 1 | 1 | 1 | 1 | 6 |
-| 15 | 4 | 1 | 1 | 1 | 1 | 7 |
-| 16 | 5 | 1 | 1 | 1 | 1 | 7 |
+| Players | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
+|---|---|---|---|---|---|---|---|---|---|
+| Wolves | 2 | 2 | 2 | 2 | 2 | 2 | 3 | 3 | 3 |
+| Seer / Witch / Guard / Hunter | 1 each | 1 each | 1 each | 1 each | 1 each | 1 each | 1 each | 1 each | 1 each |
+| Villagers | 1 | 2 | 3 | 4 | 5 | 6 | 6 | 7 | 8 |
 
-  The host may customize, with limits: at least 1 Wolf; Wolves fewer than the Village; at most 1 of each special role; total = player count. The full role list (counts only) is public at the start.
-- **Why**: about one Wolf per three players. The parity rule already favors the Wolves, so the table stays at the lower end. Balance needs playtesting.
-- **★ Setups the Wolves win on night 1 (review finding F3).** Some legal setups end the match at the first dawn. 7 players = 3 Wolves + 4 Villagers reaches 3 v 3 after one bite. The v0.1 6-player preset (2 Wolves, Seer, Witch, Guard, Villager) reaches 2 v 2 if the Witch poisons a villager on night 1. The approved win rule stays; the question is which setups to allow.
-  - **Check on custom setups**:
-    - **A (recommend)**: refuse a setup if one bite plus the Witch's poison(s) on night 1 could make Wolves ≥ everyone else.
-    - **B**: count only the bite.
-    - **C**: no check; it's the host's responsibility.
-  - **6 players**:
-    - **i (recommend)**: 2 Wolves, Seer, Guard, Hunter, Villager (no Witch).
-    - **ii**: raise the minimum to 7.
-    - **iii**: keep the Witch, but no attack on night 1 at 6 players (Q23).
-  - Every preset for 7–16 passes check A. At 7 players the margin is still thin: one wrong execution plus one bite reaches parity at the second dawn, unless the Guard or Witch saves someone. See the balance screen below.
-- **Engine**: `distribution` table, `limits.maxPerSpecialRole`, `limits.firstDawnParityCheck` (`biteAndPoison` = A | `biteOnly` = B | `off` = C); `validateDeck()`.
+- **Evidence**: bot screen (`BALANCE.md`, open ballots): Village wins 42–50% with 2 Wolves at 7–9 players and 55–57% at 10–12; with 3 Wolves, 27–34% at 13–15. Bots overstate the Wolves at large tables, so the table sits at the Village-friendly end; playtests will tune it.
+- **History**: v0.1 proposed about one Wolf per three players (3 Wolves at 10–12, 4 at 13–15) and supported 6 and 16; the bot screen and review finding F3 led to this revision. sky2 had no table: the host typed counts, and extra roles were removed at random (MSS:187-204).
+- **Engine**: fixed `DEFAULT_DECKS`, `MAX_PER_SPECIAL_ROLE = 1`, `validateDeck()` (the first-night check is always on); the `distribution` and `limits.*` settings were removed. Tests: `test/batch-a.test.ts`.
 
-- **Balance screen (bots, provisional; see `BALANCE.md`; open ballots)**: 7–9 players with 2 wolves screen as playable (Village 42–50%). 6 players is lopsided with either 1 or 2 wolves. 10–16 players with the recommended counts screen as strongly wolf-favoured (Village 22–27% at 10–12, 3–10% at 13–16), partly a bot artifact. Candidates for playtesting: 2 wolves at 10–12, 3 at 13–15, 4 at 16 (likely still needs help).
-
-## Q18 Minimum and maximum players — product decision needed
-- **sky2 code**: only checks that the total is above 0 (MSS:126). No maximum.
-- **Recommend**: minimum 6 (with the 6-player setup from Q17 option i; option ii would make it 7), maximum 16. The engine has no hard limit; 16 is bounded by seats around the campfire, voice and match length, and needs verifying.
-- **Engine**: `players.min`, `players.max`.
+## Q18 Minimum and maximum players — DECIDED 2026-10-16 (Batch A)
+- **Decision**: 7 to 15 players. 6 was lopsided either way in the bot screen (Village 21% with 2 Wolves, 65% with 1); 16 was strongly wolf-favoured (3–12%). sky2 only checked that the total was above 0 (MSS:126).
+- **Engine**: fixed `PLAYERS_MIN = 7`, `PLAYERS_MAX = 15`; the host engine reports them as `minPlayers`/`maxPlayers`; the `players.*` settings were removed.
 
 ## Q19 Expected match duration — low-stakes default (numbers are tunable)
 - **sky2 code**: about 4.5 min per cycle with its defaults (AV1:60-77).

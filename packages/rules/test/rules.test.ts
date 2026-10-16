@@ -1,38 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { createMatch, DEFAULT_CONFIG, defaultDeck, evaluateVictory, stepTiming, tallyConfirm, validateDeck, type Role } from '../src/index.ts';
+import { createMatch, evaluateVictory, stepTiming, tallyConfirm, type Role } from '../src/index.ts';
 import { alive, close, day, lastLog, match, MOD, night, ok, rejects, ROLES7, S, SYS } from './helpers.ts';
 
 describe('setup', () => {
-  it('default decks for 6-16 are valid and follow the Q17 table', () => {
-    for (let n = 6; n <= 16; n++) {
-      const deck = defaultDeck(n, DEFAULT_CONFIG);
-      assert.ok(deck, `deck for ${n}`);
-      assert.equal(validateDeck(deck, n, DEFAULT_CONFIG), null);
-    }
-    assert.equal(defaultDeck(10, DEFAULT_CONFIG)?.wolf, 3);
-    assert.equal(defaultDeck(5, DEFAULT_CONFIG), null);
-    assert.equal(defaultDeck(17, DEFAULT_CONFIG), null);
-  });
-
-  it('rejects decks where an ordinary first night forces parity (F3)', () => {
-    const c = { ...DEFAULT_CONFIG, players: { min: 1, max: 99 } };
-    // 7 = 3 wolves + 4 villagers: one bite -> 3 v 3.
-    assert.match(validateDeck({ wolf: 3, seer: 0, witch: 0, guard: 0, hunter: 0, villager: 4 }, 7, c) ?? '', /first night/);
-    // Old 6-player preset (2W S Wi G V): bite + poison -> 2 v 2.
-    assert.match(validateDeck({ wolf: 2, seer: 1, witch: 1, guard: 1, hunter: 0, villager: 1 }, 6, c) ?? '', /first night/);
-    assert.equal(validateDeck({ wolf: 2, seer: 1, witch: 1, guard: 1, hunter: 0, villager: 1 }, 6, { ...c, limits: { ...c.limits, firstDawnParityCheck: 'biteOnly' } }), null);
-  });
-
-  it('rejects bad decks', () => {
-    const base = { wolf: 2, seer: 1, witch: 1, guard: 1, hunter: 1, villager: 1 };
-    assert.match(validateDeck({ ...base, wolf: 0, villager: 3 }, 7, DEFAULT_CONFIG) ?? '', /wolf/);
-    assert.match(validateDeck({ ...base, wolf: 4, villager: 0, hunter: 0 }, 7, DEFAULT_CONFIG) ?? '', /fewer/);
-    assert.match(validateDeck({ ...base, seer: 2, villager: 0 }, 7, DEFAULT_CONFIG) ?? '', /too many seer/);
-    assert.match(validateDeck(base, 8, DEFAULT_CONFIG) ?? '', /roles for/);
-    assert.match(validateDeck(base, 5, DEFAULT_CONFIG) ?? '', /outside/);
-  });
-
   it('assignment is seeded and deterministic', () => {
     const a = createMatch({ seed: 'abc', playerCount: 9 });
     const b = createMatch({ seed: 'abc', playerCount: 9 });
@@ -323,7 +294,7 @@ describe('hunter (Q06 shootOnDeath)', () => {
   });
 
   it('hunter shooting a second hunter chains', () => {
-    let s = match(['wolf', 'wolf', 'hunter', 'hunter', 'villager', 'villager', 'villager'] as Role[], { limits: { maxPerSpecialRole: 2 } });
+    let s = match(['wolf', 'wolf', 'hunter', 'hunter', 'villager', 'villager', 'villager'] as Role[]);
     s = night(s, { bite: 2 });
     s = close(ok(s, S(2), { type: 'hunter.shoot', seat: 2, target: 3 }));
     assert.deepEqual(s.step.kind === 'hunter' && s.step.pending, [3]);

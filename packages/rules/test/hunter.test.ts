@@ -19,7 +19,7 @@ describe('APPROVED Q06 trigger: any gameplay death gives a shot', () => {
   it('poison', () => assert.deepEqual(night(match(), { bite: 'pass', poison: 5 }).step.kind, 'hunter'));
   it('daytime execution', () => assert.equal(executeOnDay1(match(), 5, [0, 1, 2, 3]).step.kind, 'hunter'));
   it("another Hunter's shot (chain)", () => {
-    let s = night(match(['wolf', 'wolf', 'hunter', 'hunter', 'villager', 'villager', 'villager'] as Role[], { limits: { maxPerSpecialRole: 2 } }), { bite: 2 });
+    let s = night(match(['wolf', 'wolf', 'hunter', 'hunter', 'villager', 'villager', 'villager'] as Role[]), { bite: 2 });
     s = shoot(s, 2, 3);
     assert.deepEqual(s.step.kind === 'hunter' && s.step.pending, [3]);
   });
@@ -42,7 +42,7 @@ describe('APPROVED Q06 timeout and resolution order', () => {
   });
 
   it('execution, then Hunter shoots Hunter, then the last wolf: zero survivors resolved after the whole chain', () => {
-    let s = executeOnDay1(match(['wolf', 'hunter', 'hunter'] as Role[], { limits: { maxPerSpecialRole: 2 } }), 1, [0, 1, 2]);
+    let s = executeOnDay1(match(['wolf', 'hunter', 'hunter'] as Role[]), 1, [0, 1, 2]);
     assert.equal(s.step.kind, 'hunter');
     s = shoot(s, 1, 2);
     assert.equal(s.outcome, null, 'no victory check mid-chain');
@@ -67,7 +67,7 @@ describe('APPROVED Q06 removal is not a gameplay death', () => {
     assert.ok(!b.publicLog.some((e) => e.t === 'hunterTurn'));
   });
   it('removal during a running Hunter turn adds no shot', () => {
-    let s = night(match(['wolf', 'wolf', 'hunter', 'hunter', 'villager', 'villager', 'villager'] as Role[], { limits: { maxPerSpecialRole: 2 } }), { bite: 2 });
+    let s = night(match(['wolf', 'wolf', 'hunter', 'hunter', 'villager', 'villager', 'villager'] as Role[]), { bite: 2 });
     s = ok(s, MOD, { type: 'player.remove', seat: 3 });
     assert.deepEqual(s.step.kind === 'hunter' && s.step.pending, [2]);
     s = close(s);
@@ -89,7 +89,7 @@ describe('APPROVED Q06 pending window: no ghost voice/text, no ghost-only knowle
   });
 
   it('other ghosts keep the ghost channel during the window; in a chain, only the still-pending Hunter is denied', () => {
-    let s = night(match(['wolf', 'wolf', 'hunter', 'hunter', 'villager', 'villager', 'villager'] as Role[], { limits: { maxPerSpecialRole: 2 } }), { bite: 2 });
+    let s = night(match(['wolf', 'wolf', 'hunter', 'hunter', 'villager', 'villager', 'villager'] as Role[]), { bite: 2 });
     s = shoot(s, 2, 3);
     assert.ok(channelsFor(s, { kind: 'seat', seat: 2 }).some((g) => g.channel === 'ghosts'));
     assert.ok(!channelsFor(s, { kind: 'seat', seat: 3 }).some((g) => g.channel === 'ghosts'));

@@ -101,7 +101,7 @@ export function playMatch(opts: {
   knobs?: Partial<Knobs>;
 }): MatchResult {
   K = { ...HEURISTIC_DEFAULTS, ...opts.knobs };
-  const r = createMatch({ seed: opts.seed, playerCount: opts.players, deck: opts.deck, config: { players: { min: 3, max: 30 }, ...opts.config } });
+  const r = createMatch({ seed: opts.seed, playerCount: opts.players, deck: opts.deck, config: opts.config });
   if (!r.ok) throw new Error(r.error.message);
   let s = r.state;
   const rng = new Rng(opts.seed ^ 0x5bd1e995);

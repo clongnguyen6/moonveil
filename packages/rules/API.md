@@ -25,7 +25,7 @@ const engine = createRulesEngine({ config?, deck? });   // RulesEngine<HostState
 ```
 | Member | Notes |
 |---|---|
-| `id`, `minPlayers`, `maxPlayers` | from `config.players` (Q18) |
+| `id`, `minPlayers`, `maxPlayers` | approved Batch A: 7 and 15 (fixed; `PLAYERS_MIN`/`PLAYERS_MAX`) |
 | `setup({seats, seed})` | seeded role assignment; `clock` starts `null`. Call `sync(now)` next in automatic mode |
 | `phase(s) -> {name, secret, durationMs, earlyClose, ended}` | `secret` = night steps. `earlyClose` is true only for the Hunter step once all shots are in; never for night or votes (approved) |
 | `submit(s, seatId, action)` | player action = Command without `seat` (the engine injects the actor). Strictly parsed |
@@ -72,6 +72,7 @@ startClock / pauseClock / resumeClock / remainingMs / deadlineOf / isExpired    
 - **Config is strict:** `createMatch`/`createRulesEngine` reject unknown keys (including removed settings such as `comms.*` and `witch.*`), wrong types and invalid enum values (`createMatch` returns `bad_value`; `resolveConfig` throws).
 - Actors: `{kind:'seat', seat}`, `{kind:'moderator'}`, `{kind:'system'}`. A seat issues only its own seat commands. `step.close`, `player.remove` and `match.abort` are moderator or system only; `wolf.decide` and `day.confirmCount` are moderator only. Unknown commands are rejected with `bad_value`.
 - Approved rules can't be bypassed by the provisional `moderator.mayBreakRules`.
+- **Decks (approved Batch A):** `createMatch` rejects player counts outside 7–15 and invalid custom decks (`rule` error). `setup()` throws on them. The default deck is `DEFAULT_DECKS[n]`. There is no way to skip this check through the public API.
 - Errors: `forbidden | wrong_step | bad_seat | bad_target | bad_value | rule | locked | ended`. Return them to the caller only.
 
 ## Steps (`state.step.kind`)
