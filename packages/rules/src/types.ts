@@ -73,12 +73,12 @@ export type PublicEvent =
   | { t: 'roleRevealed'; seat: Seat; role: Role }
   | { t: 'dayStart'; day: number }
   | { t: 'nomination'; day: number; accused: Seat | null; tally: { target: Seat | 'skip'; count: number }[]; votes: (Seat | 'skip' | null)[] | null }
-  | { t: 'confirm'; day: number; accused: Seat; yes: number; no: number; votes: ('yes' | 'no' | null)[] | null; executed: boolean }
+  /** counted: 'votes' = in-app Yes/No votes; 'moderator' = Yes count entered by the moderator (show of hands; no/votes null). */
+  | { t: 'confirm'; day: number; accused: Seat; counted: 'votes' | 'moderator'; yes: number; no: number | null; votes: ('yes' | 'no' | null)[] | null; executed: boolean }
   | { t: 'executed'; day: number; seat: Seat }
   | { t: 'hunterTurn'; seats: Seat[] }
   | { t: 'shot'; by: Seat; target: Seat | null }
   | { t: 'removed'; seat: Seat }
-  | { t: 'dayOutcomeSet'; day: number; execute: Seat | null }
   | { t: 'ended'; outcome: Outcome };
 
 /** Full secret record, for the moderator and end-of-match reveal. */
@@ -95,6 +95,8 @@ export interface MatchState {
   night: number;
   day: number;
   step: Step;
+  /** Increments on every new step instance (not on resume after removal). Hosts key phase clocks on it. */
+  stepSeq: number;
   nightRec: NightRecord | null;
   publicLog: PublicEvent[];
   knowledge: Fact[][];
@@ -115,7 +117,8 @@ export type Command =
   | { type: 'vote.confirm'; seat: Seat; choice: 'yes' | 'no' | null }
   | { type: 'hunter.shoot'; seat: Seat; target: Pick }
   | { type: 'step.close' }
-  | { type: 'day.setOutcome'; execute: Seat | null }
+  /** APPROVED Q16 (2026-10-16): moderator enters the Yes count of a show of hands; engine applies Yes*2 > living. */
+  | { type: 'day.confirmCount'; yes: number }
   | { type: 'player.remove'; seat: Seat }
   | { type: 'match.abort' };
 
@@ -124,6 +127,7 @@ export type ErrorCode =
   | 'wrong_step' // command not valid in current step
   | 'bad_seat' // unknown seat / wrong role / dead actor
   | 'bad_target' // target unknown or dead
+  | 'bad_value' // malformed or out-of-range value (e.g. a Yes count)
   | 'rule' // forbidden by a rule (self-target, repeat, potion used...)
   | 'locked' // already submitted and not changeable
   | 'ended';

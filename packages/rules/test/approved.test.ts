@@ -1,4 +1,4 @@
-// APPROVED 2026-10-16: Q14 (zero survivors = draw), Q20 (no reveal on death; Hunter revealed by shooting;
+// APPROVED 2026-10-16: Q14 (zero survivors = draw), Q20 (no reveal on death; Hunter revealed when the shot turn opens;
 // all roles at end), Q24 (ghosts keep, never gain; public events still arrive). Fixed behaviour, no settings.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -22,7 +22,7 @@ describe('APPROVED Q14: zero survivors after all shots and chains = draw', () =>
   });
 });
 
-describe('APPROVED Q20: no role revealed on death; Hunter revealed by shooting; all roles at end', () => {
+describe('APPROVED Q20: no role revealed on death; Hunter revealed when the shot turn opens; all roles at end', () => {
   it('bite, poison, execution and removal reveal no role to anyone not already entitled', () => {
     let s = night(match(), { bite: 6, poison: 3 }); // villager + guard die at night
     s = day(s, 0); // a wolf executed (1 wolf v 3 left)
@@ -34,6 +34,18 @@ describe('APPROVED Q20: no role revealed on death; Hunter revealed by shooting; 
       }
     }
     assert.ok(!s.publicLog.some((e) => e.t === 'roleRevealed'));
+  });
+
+  it('APPROVED Q20 Hunter exception: revealed to every viewer when the turn opens, and still after a timeout with no shot', () => {
+    const open = night(match(), { bite: 5 });
+    assert.equal(open.step.kind, 'hunter');
+    for (const v of viewers(open)) assert.equal(seen(open, v, 5), 'hunter', `at open, viewer ${JSON.stringify(v)}`);
+    const timedOut = close(open);
+    assert.deepEqual(timedOut.publicLog.filter((e) => e.t === 'shot'), [{ t: 'shot', by: 5, target: null }]);
+    for (const v of viewers(timedOut)) assert.equal(seen(timedOut, v, 5), 'hunter', `after timeout, viewer ${JSON.stringify(v)}`);
+    // Any other deaths in the same batch stay hidden.
+    const both = night(match(), { bite: 5, poison: 6 });
+    for (const v of viewers(both)) if (!entitled(both, v, 6)) assert.equal(seen(both, v, 6), null);
   });
 
   it("the Hunter's shot turn reveals the Hunter (and only the Hunter) to every viewer", () => {

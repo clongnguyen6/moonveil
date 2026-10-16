@@ -50,6 +50,8 @@ interface Outbox {
   seq: number;
 }
 
+export const EARLY_CLOSE_GRACE_MS = 1500;
+
 export class RoomError extends Error {
   readonly code: ErrorCode;
   constructor(code: ErrorCode, message: string) {
@@ -83,6 +85,8 @@ export class Room<S = unknown> {
   private game: S | null = null;
   private phaseEndsAt: number | null = null;
   private timer: unknown = null;
+  private earlyTimer: unknown = null;
+  private phaseName: string | null = null;
   private published = new Map<SeatId, boolean>();
   private outbox = new Map<Conn, Outbox>();
   private grants = new Map<SeatId, string>();
@@ -202,12 +206,17 @@ export class Room<S = unknown> {
         this.start(seat);
         break;
       case 'act': {
-        if (this.status !== 'playing' || this.game === null || seat.kind !== 'player') {
-          throw new RoomError('not-allowed', 'no game');
-        }
-        const r = this.deps.engine.submit(this.game, seat.id, msg.action);
-        if (!r.ok) throw new RoomError('invalid-action', r.error);
+        if (this.status !== 'playing' || this.game === null) throw new RoomError('not-allowed', 'no game');
+        // Moderator mode: the moderator's commands go to engine.moderate; the engine authorizes.
+        const r =
+          seat.kind === 'moderator'
+            ? this.deps.engine.moderate(this.game, msg.action)
+            : this.deps.engine.submit(this.game, seat.id, msg.action);
+        // Error goes to the actor only (Session.receive).
+        if (!r.ok) throw new RoomError('invalid-action', r.code ? `${r.code}: ${r.error}` : r.error);
         this.game = r.state;
+        if (seat.kind === 'moderator') this.enterPhaseIfChanged();
+        else this.checkEarlyClose();
         break;
       }
       case 'advance':
@@ -251,11 +260,38 @@ export class Room<S = unknown> {
     this.enterPhase();
   }
 
+  // A moderator command (e.g. step.close via act) may change the phase.
+  private enterPhaseIfChanged() {
+    if (this.phase()?.name !== this.phaseName) this.enterPhase();
+  }
+
+  // Automatic mode, public phases only: when the engine reports everyone eligible has acted,
+  // close after EARLY_CLOSE_GRACE_MS (lets a last change land). Cancelled if it stops being ready.
+  private checkEarlyClose() {
+    if (this.mode !== 'automatic') return;
+    const ph = this.phase();
+    const ready = ph !== null && ph.earlyClose && !ph.secret && !ph.ended;
+    if (!ready && this.earlyTimer !== null) {
+      this.deps.scheduler.clear(this.earlyTimer);
+      this.earlyTimer = null;
+    } else if (ready && this.earlyTimer === null) {
+      this.earlyTimer = this.deps.scheduler.set(EARLY_CLOSE_GRACE_MS, () => {
+        this.earlyTimer = null;
+        const p = this.phase();
+        if (this.closed || !p || !p.earlyClose || p.secret) return;
+        this.advance();
+        this.flush();
+      });
+    }
+  }
+
   private enterPhase() {
     if (this.timer !== null) this.deps.scheduler.clear(this.timer);
-    this.timer = null;
+    if (this.earlyTimer !== null) this.deps.scheduler.clear(this.earlyTimer);
+    this.timer = this.earlyTimer = null;
     this.phaseEndsAt = null;
     const ph = this.phase();
+    this.phaseName = ph?.name ?? null;
     if (!ph) return;
     if (ph.ended) {
       this.status = 'ended';
@@ -305,6 +341,7 @@ export class Room<S = unknown> {
     if (this.closed) return;
     this.closed = true;
     if (this.timer !== null) this.deps.scheduler.clear(this.timer);
+    if (this.earlyTimer !== null) this.deps.scheduler.clear(this.earlyTimer);
     for (const s of this.allSeats()) {
       if (s.conn) {
         s.conn.send({ t: 'bye', reason: 'closed' });
@@ -349,9 +386,8 @@ export class Room<S = unknown> {
   }
 
   private grantsFor(seat: Seat): VoiceGrant[] {
-    const all: VoiceGrant[] = [{ channel: 'public', listen: true, speak: true }];
-    if (this.game === null || this.status === 'ended' || seat.kind === 'moderator') return all;
-    return this.deps.engine.channels(this.game, seat.id);
+    if (this.game === null || this.status === 'ended') return [{ channel: 'public', listen: true, speak: true }];
+    return this.deps.engine.channels(this.game, seat.kind === 'moderator' ? { kind: 'moderator' } : seat.id);
   }
 
   // Recompute and send. Call after every mutation.

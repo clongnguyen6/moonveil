@@ -28,4 +28,6 @@ export {
   type HostResult,
   type PhaseInfo,
   type SeatId,
+  type TimerInfo,
 } from './host.ts';
+export { startClock, pauseClock, resumeClock, remainingMs, deadlineOf, isExpired, type PhaseClock } from './clock.ts';

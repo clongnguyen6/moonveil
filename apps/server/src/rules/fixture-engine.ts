@@ -1,6 +1,7 @@
 // FIXTURE engine, NOT Moonveil rules. Stands in for packages/rules until its API exists.
 // Models only the information shapes the server must protect: a per-seat secret, a hidden group
 // that knows its members, hidden targeted actions, and an end reveal. No Werewolf rules here.
+// Open phase: each player may send {kind:'done'}; all done = earlyClose (models public-step early close).
 import type { SeatId, VoiceGrant } from '@moonveil/protocol';
 import type { PhaseInfo, Result, RulesEngine, Viewer } from './engine.ts';
 
@@ -12,12 +13,14 @@ export interface FixtureState {
   phase: 'hidden' | 'open' | 'ended';
   round: number;
   marks: { by: SeatId; target: SeatId }[];
+  done: SeatId[];
 }
 
 export interface FixtureOptions {
   rounds?: number;
   hiddenMs?: number;
   openMs?: number;
+  maxPlayers?: number;
 }
 
 function rng(seed: string): () => number {
@@ -45,7 +48,7 @@ export function createFixtureEngine(opts: FixtureOptions = {}): RulesEngine<Fixt
   return {
     id: 'fixture',
     minPlayers: 3,
-    maxPlayers: 20,
+    maxPlayers: opts.maxPlayers ?? 20,
 
     setup({ seats, seed }) {
       const r = rng(seed);
@@ -65,6 +68,7 @@ export function createFixtureEngine(opts: FixtureOptions = {}): RulesEngine<Fixt
         phase: 'hidden',
         round: 1,
         marks: [],
+        done: [],
       };
     },
 
@@ -73,12 +77,16 @@ export function createFixtureEngine(opts: FixtureOptions = {}): RulesEngine<Fixt
         name: s.phase,
         secret: s.phase === 'hidden',
         durationMs: s.phase === 'hidden' ? hiddenMs : openMs,
+        earlyClose: s.phase === 'open' && s.done.length === s.seats.length,
         ended: s.phase === 'ended',
       };
     },
 
     submit(s, seat, action): Result<FixtureState> {
       const a = action as { kind?: unknown; target?: unknown } | null;
+      if (s.phase === 'open' && a?.kind === 'done' && s.seats.includes(seat)) {
+        return { ok: true, state: { ...s, done: s.done.includes(seat) ? s.done : [...s.done, seat] } };
+      }
       if (s.phase !== 'hidden') return { ok: false, error: 'not now' };
       if (!s.group.includes(seat)) return { ok: false, error: 'not allowed' };
       if (!a || a.kind !== 'mark' || typeof a.target !== 'string' || !s.seats.includes(a.target)) {
@@ -88,8 +96,19 @@ export function createFixtureEngine(opts: FixtureOptions = {}): RulesEngine<Fixt
       return { ok: true, state: { ...s, marks: [...s.marks.filter((m) => m.by !== seat), { by: seat, target }] } };
     },
 
+    // Fixture moderator commands: {kind:'close'} only.
+    moderate(s, action) {
+      const a = action as { kind?: unknown } | null;
+      if (a?.kind !== 'close') return { ok: false, code: 'forbidden', error: 'fixture: only close' };
+      return { ok: true, state: this.advance(s) };
+    },
+
+    remove() {
+      return { ok: false, code: 'forbidden', error: 'fixture: remove not supported' };
+    },
+
     advance(s) {
-      if (s.phase === 'hidden') return { ...s, phase: 'open', marks: [] };
+      if (s.phase === 'hidden') return { ...s, phase: 'open', marks: [], done: [] };
       if (s.phase === 'open') {
         return s.round >= rounds ? { ...s, phase: 'ended' } : { ...s, phase: 'hidden', round: s.round + 1 };
       }
@@ -102,6 +121,7 @@ export function createFixtureEngine(opts: FixtureOptions = {}): RulesEngine<Fixt
       if (viewer.kind === 'moderator') {
         return { ...base, reveal: all(), group: { key: s.groupKey, members: s.group, marks: s.marks } };
       }
+      if (viewer.kind === 'public') return base;
       const me = viewer.seat;
       if (!s.seats.includes(me)) return base;
       const inGroup = s.group.includes(me);
@@ -113,7 +133,12 @@ export function createFixtureEngine(opts: FixtureOptions = {}): RulesEngine<Fixt
       };
     },
 
-    channels(s, seat): VoiceGrant[] {
+    channels(s, who): VoiceGrant[] {
+      if (typeof who !== 'string') {
+        // Fixture: moderator/public get the public channel only.
+        return [{ channel: 'public', listen: true, speak: who.kind === 'moderator' }];
+      }
+      const seat = who;
       if (s.phase === 'hidden') {
         return s.group.includes(seat) ? [{ channel: `group:${s.groupKey}`, listen: true, speak: true }] : [];
       }

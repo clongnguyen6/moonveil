@@ -1,110 +1,99 @@
-# @moonveil/rules — API (v0.2)
+# @moonveil/rules — API (v0.3)
 
-Pure, deterministic TypeScript engine. No IO, timers or network, and no runtime dependencies. The server hosts it.
-Rules: `docs/rules/PROPOSAL.md`. **Every `config` key, and so every default behaviour, is provisional** until the Human approves it (`PROVISIONAL` maps each key to its proposal item). Approved (fixed, not settings), 2026-10-16: the six roles; the win conditions; resolve-before-victory; the day execution threshold `Yes × 2 > all living players`; Q06 Hunter; Q14 zero survivors = draw; Q20 no reveal on death; Q24 ghosts keep, never gain.
+Pure, deterministic TypeScript engine with no IO, timers, network or runtime dependencies. The server hosts it.
+Rules live in `docs/rules/PROPOSAL.md`. **Approved rules are fixed behaviour; every `config` key is provisional** until the Human approves it (`PROVISIONAL` maps each key to its proposal item).
+
+**Approved 2026-10-16 (fixed):**
+- the six roles; victory (parity, no wolves, zero survivors = draw); resolve-before-victory;
+- Q03 Witch; Q06 Hunter; Q07 wolf plurality;
+- Q09/Q10 trial, 30 s defense and Yes/No with `Yes × 2 > all living`; Q16 moderator Yes count;
+- Q11 fixed 60 s nights, never early; day votes run to their deadline with hidden interim results;
+- Q20 reveals; Q24 ghosts; Q25 channels (except moderator speaking);
+- disconnected seats and the automatic-mode pause.
 
 ## Run
 ```
-cd packages/rules && npm install && npm run check   # typecheck (all + src without host types) + tests (~8 s)
+npm run check -w @moonveil/rules     # from the repo root via node scripts/env.mjs; typecheck (all + src without host types) + tests
 ```
-- Toolchain matches the foundation root: Node ≥ 24.12 (runs the `.ts` sources directly), TypeScript 7.0.2, and the same compiler options as `tsconfig.base.json`. `src` must typecheck with no host types (`tsconfig.src.json`), because the engine uses no Node or DOM globals.
-- `exports["."] = ./src/index.ts`. If the server needs JS, add a build when the workspace is wired up (foundation owns that).
+- Toolchain: the foundation root (Node ≥ 24.12 running `.ts` directly, TypeScript 7.0.2, `tsconfig.base.json`). `src` typechecks with no host types (`tsconfig.src.json`).
+- `exports["."] = ./src/index.ts`.
 
-## Host contract (final; for the server)
-Adopted from foundation's draft `apps/server/src/rules/engine.ts` (branch `foundation` b3d9ece), with additions. The server should import it instead of keeping its own copy:
+## Host contract (for the server)
 ```ts
 import { createRulesEngine } from '@moonveil/rules';
-const engine = createRulesEngine({ config?, deck? });   // RulesEngine<HostState>
+const engine = createRulesEngine({ config?, deck? });   // RulesEngine<HostState>; HostState = { seatIds, match, clock }
 ```
-| Member | vs draft | Notes |
-|---|---|---|
-| `id`, `minPlayers`, `maxPlayers` | same | from `config.players` (Q18) |
-| `setup({seats, seed})` | same | seeded role assignment; throws only on an invalid player count/deck |
-| `phase(s) -> {name, secret, durationMs, earlyClose, ended}` | **+earlyClose** | `secret` = night steps, always `earlyClose=false` (Q11). By default only the Hunter step reports `earlyClose` (once the shot is in); votes run to their deadline (`timing.publicEarlyClose=false`, Q11/Q22) |
-| `submit(s, seatId, action)` | same, `error` +`code` | `action` = Command without `seat` (the engine injects the actor). Strictly parsed |
-| `moderate(s, action)` | **new** | any Command with seat indices: act for a seat, `wolf.decide`, `day.setOutcome`, `player.remove`, `match.abort`, `step.close` (Q16) |
-| `remove(s, seatId)` | **new** | system/host removal; refused during secret steps (Q26). Pending night effects on a removed seat are void |
-| `advance(s)` | same | `step.close` as system |
-| `view(s, viewer)` | **+`{kind:'public'}`** | the Projection below, plus `seatIds` (index → SeatId) |
-| `channels(s, seatId \| viewer)` | **+moderator viewer** | `[{channel:'public'\|'wolves'\|'ghosts', listen, speak}]`, same shape as `VoiceGrant`; applies to voice and text (Q25). A dead Hunter with a pending shot gets public-listen only. Ghost-chat **history** must be filtered by the grant at read time |
+| Member | Notes |
+|---|---|
+| `id`, `minPlayers`, `maxPlayers` | from `config.players` (Q18) |
+| `setup({seats, seed})` | seeded role assignment; `clock` starts `null`. Call `sync(now)` next in automatic mode |
+| `phase(s) -> {name, secret, durationMs, earlyClose, ended}` | `secret` = night steps. `earlyClose` is true only for the Hunter step once all shots are in; never for night or votes (approved) |
+| `submit(s, seatId, action)` | player action = Command without `seat` (the engine injects the actor). Strictly parsed |
+| `moderate(s, action)` | moderator Command (seat indices). Approved: `day.confirmCount {yes}` (the engine applies `yes*2 > living`; `yes` must be an integer 0..living at apply time, else `bad_value`); no direct day-result command. Provisional: acting for seats (`moderator.canActForSeats`), `wolf.decide` (`moderator.canSetWolfTarget`), `player.remove`, `match.abort`, `step.close` |
+| `remove(s, seatId)` | system/host removal (provisional, Q26); refused during night steps. Pending night effects on a removed seat are void |
+| `advance(s)` | `step.close` as system (moderator pacing, or the server's optional Hunter early close) |
+| `sync(s, now)` | **automatic mode, call after EVERY change** (setup, submit, moderate, remove, advance). Starts a full-length clock when `match.stepSeq` changed; otherwise unchanged |
+| `tick(s, now)` | closes the step **only if its clock is running and expired**, then starts the next clock at `now`. Use this, not `advance`, for timer expiry |
+| `pause(s, now)` / `resume(s, now)` | freeze / continue the remaining time (idempotent). A step that begins while paused starts paused |
+| `timer(s, now) -> {durationMs, remainingMs, deadline, paused} \| null` | `deadline` (absolute ms) is `null` while paused; use it for `phaseEndsAt` and for scheduling the next `tick` |
+| `view(s, viewer)` | Projection (below) plus `seatIds` (index → SeatId). Viewers: `{kind:'seat', seat: SeatId}`, `{kind:'moderator'}`, `{kind:'public'}` |
+| `channels(s, seatId \| viewer)` | `[{channel:'public'\|'wolves'\|'ghosts', listen, speak}]`, same shape as `VoiceGrant`; for voice **and** text (Q25) |
 
-- Seats are **indices** inside the game. `view().seatIds[i]` is the server SeatId. Clients send targets as indices.
-- Server changes this implies (foundation scope):
-  - route moderator actions to `moderate`;
-  - call `channels(s, {kind:'moderator'})` for the moderator instead of hard-coding public;
-  - optionally honour `earlyClose`.
+Seats inside the game are **indices**; `view().seatIds[i]` is the SeatId, and clients send targets as indices.
 
-## What the server must call (wiring is foundation's file; not done here)
-Replace the fixture engine with `createRulesEngine()` and keep the existing room flow:
-1. `setup({seats, seed})` on start. Use `minPlayers` and `maxPlayers` for `canStart`.
-2. `phase()` after every change. Automatic mode: a fixed timer of `durationMs`. Optionally close early when `earlyClose` is true; by default that's only the Hunter step.
-3. Player `act` → `submit(state, seatId, action)`.
-4. Moderator actions → `moderate(state, action)`. **New route.** Today `act` is player-only and `advance` is the only moderator message.
-5. A timer, or the moderator's `advance` → `advance(state)`.
-6. Host removal of a long-disconnected player → `remove(state, seatId)`. It's refused at night, so retry after the night.
-7. Per seat → `view(state, {kind:'seat', seat})`. Moderator → `view(state, {kind:'moderator'})`. A spectator → `{kind:'public'}`.
-8. Grants → `channels(state, seatId)` for players, and `channels(state, {kind:'moderator'})` for the moderator (today the moderator is hard-coded to public).
+## What the server must do (foundation's code; not done here)
+1. Replace the fixture engine with `createRulesEngine()`. Use `minPlayers` and `maxPlayers` for `canStart`.
+2. Route player `act` → `submit`, and moderator actions → `moderate` (**new route**).
+3. **Automatic-mode timing** (approved pause rule):
+   - after every change: `s = sync(s, now)`, then schedule a wake at `timer(s, now).deadline`;
+   - on wake: `s = tick(s, now)` and reschedule. A stale wake is harmless, since `tick` does nothing unless the phase has expired;
+   - when **all player seats** are disconnected: `s = pause(s, now)` and cancel the wake. A connected moderator or spectator does not prevent this. When **any player** reconnects: `s = resume(s, now)` and reschedule;
+   - optional Hunter early close: if `phase().earlyClose`, call `advance` then `sync`.
+4. Views: per seat `view(s, {kind:'seat', seat})`; moderator `{kind:'moderator'}`; spectators `{kind:'public'}`. Never send `HostState`.
+5. Grants: `channels(s, seatId)` for players and `channels(s, {kind:'moderator'})` for the moderator. Recompute them after every change.
+6. Host removal of a long-disconnected player → `remove()`. It's refused at night; retry in the day.
 
-### Host enforcement for the approved Hunter pending window (Q06/Q24)
-While `phase().name === 'hunter'`, a dead Hunter whose shot is pending gets `channels() = [{public, listen, no speak}]`. `isPendingHunter(state, seat)` is exported. The server and voice adapter must:
-- **Voice:** apply the grant change. The Hunter is not in the `ghosts` voice room while pending. When the shot resolves, grants change again to add `ghosts`, so recompute grants after every state change (the room already diffs them in `flush`).
-- **Live text and emotes on `ghosts`:** deliver only to seats whose *current* grant has `ghosts.listen`, and accept only from `ghosts.speak`.
-- **History:** filter ghost-chat history by the grant **at read time** (on open, reconnect or scroll-back), not only live messages. A pending Hunter who reconnects gets no ghost history; after the shot they may read it.
-- **Indicators and rosters:** don't show `ghosts` speaking indicators or membership to a seat without `ghosts.listen`.
-- The engine adds no ghost-only knowledge to the Hunter's `view()`; the Hunter's facts stay frozen at death.
-Engine tests cover the grants and views. Whether voice and text actually obey them needs server and voice integration tests.
+### Channel enforcement the server and voice must provide (approved Q25 and Q06)
+- **Live voice, text and emotes:** deliver on a channel only to seats whose *current* grant has `listen`, and accept only from `speak`.
+- **History** (ghost chat, wolf chat): filter by the grant **at read time** (open, reconnect, scroll-back). A pending Hunter gets no ghost history until the shot resolves.
+- **Membership, rosters and speaking indicators** for a channel go only to seats with `listen` on it.
+- `isPendingHunter(state, seat)` is exported. While pending, the Hunter's grants are public-listen only; they change to ghost access when the turn resolves.
 
-## Core calls
+## Core calls (engine level)
 ```ts
-createMatch({ seed, playerCount } | { seed, roles: Role[] } | { seed, playerCount, deck }, config?) -> {ok, state} | {ok:false, error}
-apply(state, actor, command) -> {ok:true, state} | {ok:false, error:{code, message}}   // input is never mutated
-project(state, viewer) -> Projection        // the ONLY thing to send to a client
-check(state, actor, command) -> error|null  // validate without applying (cheap; same rules as apply)
-stepTiming(state) -> {seconds, earlyCloseReady}   // for the automatic orchestrator
+createMatch({ seed, playerCount } | { seed, roles } | { seed, playerCount, deck }, config?) -> {ok, state} | {ok:false, error}
+apply(state, actor, command) -> {ok:true, state} | {ok:false, error:{code, message}}   // never mutates input
+check(state, actor, command) -> error | null                                         // same validation, no clone
+project(state, viewer) -> Projection
+stepTiming(state) -> {seconds, earlyCloseReady}
+startClock / pauseClock / resumeClock / remainingMs / deadlineOf / isExpired          // pure PhaseClock helpers
 ```
-- `state` is plain JSON. Persist it as is; replaying the same commands on the same seed gives the same state.
-- Actors: `{kind:'seat', seat}`, `{kind:'moderator'}`, `{kind:'system'}`. The server authenticates; the engine authorizes:
-  - A seat may only issue its own seat commands.
-  - The moderator may issue any command, including acting for any seat (`moderator.mayBreakRules=false`: still validated).
-  - `step.close`, `player.remove` and `match.abort` are moderator or system only. `wolf.decide` and `day.setOutcome` are moderator only.
-- Errors: `forbidden | wrong_step | bad_seat | bad_target | rule | locked | ended`. Return only the code and message to the caller; never broadcast them.
+- `state` is plain JSON. Replaying the same commands on the same seed gives the same state. `state.stepSeq` increments on every new step, but not when a step resumes after a removal.
+- Actors: `{kind:'seat', seat}`, `{kind:'moderator'}`, `{kind:'system'}`. A seat issues only its own seat commands. `step.close`, `player.remove` and `match.abort` are moderator or system only; `wolf.decide` and `day.confirmCount` are moderator only. Unknown commands are rejected with `bad_value`.
+- Approved rules can't be bypassed by the provisional `moderator.mayBreakRules`.
+- Errors: `forbidden | wrong_step | bad_seat | bad_target | bad_value | rule | locked | ended`. Return them to the caller only.
 
-## Steps (state.step.kind)
-`night.main` (wolves `wolf.pick`, seer `seer.inspect`, guard `guard.protect`)
-→ `night.witch` (`witch.heal {use}`, `witch.poison {target|'pass'}`; runs whenever the deck has a Witch, alive or dead)
-→ [`hunter` (`hunter.shoot`) if a Hunter died] → victory check → `day.discussion` → `day.vote` (`vote.nominate {target|'skip'|null}`)
-→ `day.defense` → `day.confirm` (`vote.confirm {choice|null}`) → execution → [`hunter`] → victory check → `night.main` … → `ended`.
-Every step advances only on `step.close`. Anything not submitted counts as a pass.
-
-## Orchestration
-- **Automatic**: on entering a step, start a timer of `stepTiming(state).seconds`. After every accepted command, if `earlyCloseReady` is true, you may close the step. When the timer fires, send `step.close` as `system`. Night steps never report early-ready (Q11), so the engine adds no timing signal. Server timers, moderator pacing and traffic are outside these tests.
-- **Moderator**: the moderator sends `step.close` when ready. They may also act for seats, set the pack target (`wolf.decide`), set the day result (`day.setOutcome {execute: seat|null}`), remove players or abort.
-- **Disconnects** (Q26): the engine has no notion of presence. A disconnected seat simply misses its inputs, which count as passes. `player.remove` is a death with cause `removed`, and victory is checked right after. A system removal is refused during night steps; the moderator may remove at any time.
+## Steps (`state.step.kind`)
+`night.main` (40 s, provisional split: `wolf.pick`, `seer.inspect`, `guard.protect`) → `night.witch` (the rest of the fixed 60 s; **always runs**, even with no or a dead Witch: `witch.heal {use}`, `witch.poison {target|'pass'}`)
+→ [`hunter` (20 s, `hunter.shoot`) if a Hunter died] → victory check → `day.discussion` → `day.vote` (30 s, `vote.nominate {target|'skip'|null}`)
+→ [trial: `day.defense` (30 s, fixed) → `day.confirm` (15 s, `vote.confirm {choice|null}` or moderator `day.confirmCount`)] → [`hunter`] → victory check → `night.main` … → `ended`.
+Every step closes only on `step.close`/`tick`. Anything not submitted counts as a pass.
 
 ## Projection (secrecy contract)
-`project(state, {kind:'seat', seat})` contains:
-- **Public**: step (live votes if `day.openVotes`), seats alive/dead, death cause masked as `'night'` for night deaths, `publicLog`, role counts.
-- **Roles**: own role; the pack for wolves; roles revealed publicly; all roles once ended.
-- `me.facts`: this seat's knowledge ledger (Seer results, the Witch's victim, the pack target, own actions). A fact is granted only while the seat is alive and entitled under the current settings (e.g. with `witch.seesVictim='never'` the Witch's heal fact has `target:null`). So **ghosts keep but never gain**; tests check the ledger contents are unchanged after death.
-- `me.actions`: legal options now, with targets, produced by `check()` (the same validation `apply` uses). Render menus from this list.
+`project(state, {kind:'seat', seat})`:
+- **Public:** the step; who is alive or dead (night deaths show the cause `'night'`); `publicLog`; role counts.
+- **Votes (approved):** while a vote is open, `step.votes` is `null` for every non-moderator viewer, and no tally or event exists until close. `step.voted` (who has voted) is `null` unless `day.showWhoVoted` (provisional). The voter's own choice is in `me.ballot` (and `me.actions[].current`). At close, `publicLog` gets `nomination`/`confirm` with totals, plus ballots if `day.revealBallotsAtClose` (provisional).
+- **Roles:** own role; the pack for wolves; the Hunter once their shot turn opens; all roles at the end.
+- `me.facts`: the seat's knowledge ledger, granted only while alive and entitled (ghosts keep, never gain).
+- `me.actions`: legal options with targets, produced by `check()`.
 - `pack.picks`: live pack picks, only for a living wolf during `night.main`.
 
-`{kind:'public'}` gives public data only (spectators, a host without a seat). `{kind:'moderator'}` adds `moderator: {seats, nightRec, history, knowledge, config}`. At `ended`, everyone gets `reveal.roles` (+ `reveal.history` if `reveal.historyAtEnd`).
-Never send `state` itself, and never send a moderator projection to a player seat. Voice and text permissions come from `channelsFor(state, viewer)` / `engine.channels()`.
-
-## Known public side channels (by design, see the proposal)
-- A `hunter` step and `shot` reveal the Hunter (Q06/Q20).
-- Early close only for the Hunter step by default.
+`{kind:'public'}` gives public data only. `{kind:'moderator'}` adds `moderator: {seats, nightRec, history, knowledge, config}`, plus live ballots if `moderator.seesLiveBallots` (provisional). At `ended`, everyone gets `reveal.roles` (and `reveal.history` if `reveal.historyAtEnd`).
 
 ## What the tests prove, and what they don't
-- **Engine-level, tested:**
-  - views carry only what a seat is entitled to under the selected settings (differential tests, plus randomized matches with invariants checked after every command);
-  - ghost ledgers stay identical after death;
-  - removed seats can't be announced or shoot;
-  - victory waits for the death chain;
-  - every provisional key can be swapped.
-- **Not proven here; needs server and voice integration evidence:**
-  - that the server sends only `view()` output;
-  - that reconnecting yields the same view and nothing more;
-  - that voice and text membership, rosters, speaking indicators and chat history follow `channels()`;
-  - timing and traffic side channels.
+- **Engine, tested:**
+  - entitlement under the selected settings: differential tests, randomized matches with invariants after every command, and hidden interim ballots;
+  - frozen ghost ledgers; the channel grant table across phases, deaths and reconnect;
+  - the 60 s night in every role and death combination;
+  - exact pause/resume in every phase type; every provisional key swappable.
+- **Needs server and voice evidence:** that only `view()` output is sent; reconnect behaviour; voice and text actually obeying `channels()` (membership, rosters, indicators, history); presence detection driving pause/resume; timing and traffic side channels.

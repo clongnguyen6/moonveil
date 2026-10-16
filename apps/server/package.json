@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@moonveil/protocol": "*",
+    "@moonveil/rules": "*",
     "ws": "8.22.0"
   },
   "devDependencies": {
