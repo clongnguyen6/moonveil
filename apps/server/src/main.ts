@@ -13,7 +13,7 @@ if (port < 4100 || port > 4199) console.warn(`port ${port} is outside Moonveil's
 const phaseMs = process.env.MOONVEIL_FIXTURE_MS ? Number(process.env.MOONVEIL_FIXTURE_MS) : undefined;
 
 const { http, stop } = createMoonveilServer({
-  // STUB until packages/rules publishes its API.
+  // STUB until packages/rules is in dev; then createRulesEngine() from @moonveil/rules (see ADR 0001 §6).
   engine: () => createFixtureEngine({ hiddenMs: phaseMs, openMs: phaseMs }),
   staticDir: process.env.STATIC_DIR ?? join(here, '../../web/dist'),
   ...(process.env.MOONVEIL_ROOM_IDLE_MS ? { idleMs: Number(process.env.MOONVEIL_ROOM_IDLE_MS) } : {}),
