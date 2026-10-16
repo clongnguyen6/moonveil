@@ -14,6 +14,8 @@ Approved as recommended:
 
 Now fixed in the engine (`PROPOSAL.md` Q17/Q18). **Batches B–E below are still pending.**
 
+*Follow-up evidence (bots, `BALANCE.md`): at 13–15 players, 3 Wolves screens wolf-favoured even with smarter village bots (Village 35–39%), while 2 Wolves screens village-favoured (64–71%). Watch this in playtests; no decision is requested now.*
+
 ## Batch B — Pace (blocks first playtest)
 | # | Question | Recommend | Alternative | Evidence |
 |---|---|---|---|---|

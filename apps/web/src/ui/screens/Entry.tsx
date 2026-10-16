@@ -66,7 +66,8 @@ export function EntryScreen({ s }: { s: SessionState }) {
     saveProfile(p);
     fn(p);
   };
-  const create = (m: Mode) => go((p) => session.create(m, p));
+  const [inPerson, setInPerson] = useState(false);
+  const create = (m: Mode) => go((p) => session.create(m, p, inPerson ? 'inPerson' : 'remote'));
   return (
     <main className="entry fade-in" data-testid="entry">
       <div>
@@ -87,6 +88,10 @@ export function EntryScreen({ s }: { s: SessionState }) {
       {!linkCode && (
         <section className="card stack" style={{ padding: 16 }}>
           <p className="hint center">{t('entryOr')}</p>
+          <label className="field row" style={{ justifyContent: 'center' }}>
+            <input type="checkbox" checked={inPerson} onChange={(e) => setInPerson(e.target.checked)} data-testid="in-person" />
+            {t('entryInPerson')}
+          </label>
           <Button wide kind="secondary" testId="create-automatic" disabled={!valid || busy} onClick={() => create('automatic')}>{t('entryCreateAuto')}</Button>
           <p className="muted center" style={{ fontSize: 'var(--fs-0)' }}>{t('entryCreateAutoHint')}</p>
           <Button wide kind="secondary" testId="create-moderator" disabled={!valid || busy} onClick={() => create('moderator')}>{t('entryCreateMod')}</Button>

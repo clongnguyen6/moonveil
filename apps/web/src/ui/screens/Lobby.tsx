@@ -1,12 +1,15 @@
 // Lobby: who is here, ready state, invite, mic check (incl. denied/failed), settings, help.
 import { type Profile, normalizeName } from '@moonveil/protocol';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { SessionState } from '../../game/session.ts';
 import type { SeatView } from '../../game/types.ts';
 import { Avatar, Button, Meter } from '../components/index.tsx';
 import { useT } from '../i18n/index.ts';
 import { useSession } from '../session-context.ts';
 import type { Mic } from '../voice/mic.ts';
+import { useVoiceClient } from '../voice/useVoiceClient.ts';
+import { ROLES, type Role } from '@moonveil/rules';
+import { copyText } from '../lan.ts';
 import { ProfileEditor, saveProfile } from './Entry.tsx';
 import { SettingsRow } from './Settings.tsx';
 
@@ -14,11 +17,15 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
   const t = useT();
   const session = useSession();
   const me = view.players.find((p) => p.seat === view.me.seat);
-  const link = `${location.origin}/r/${view.code}`;
+  const [origin, setOrigin] = useState(location.origin);
+  useEffect(() => { void session.inviteBase?.().then(setOrigin).catch(() => {}); }, [session]);
+  const link = `${origin}/r/${view.code}`;
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState<'link' | 'code' | null>(null);
-  const copy = (what: 'link' | 'code') => {
-    void navigator.clipboard?.writeText(what === 'link' ? link : view.code);
+  const [manual, setManual] = useState(false);
+  const copy = async (what: 'link' | 'code') => {
+    const r = await copyText(what === 'link' ? link : view.code);
+    if (r === 'manual') return setManual(true); // insecure origin (LAN http): show the link to long-press
     setCopied(what);
     setTimeout(() => setCopied(null), 1500);
   };
@@ -26,11 +33,12 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
   const allReady = view.players.every((p) => p.ready);
   const host = view.players.find((p) => p.seat === (view.me.host ? view.me.seat : ''));
   return (
-    <main className="lobby fade-in" data-testid="lobby">
+    <main className="lobby fade-in" data-testid="lobby" data-ui>
       <header className="row between">
         <div>
           <h1 className="panel-title">{t('lobbyTitle')}</h1>
           <p className="hint">{view.mode === 'moderator' ? t('lobbyModeMod') : t('lobbyModeAuto')} · {t('lobbyPlayers', { n: view.players.length, min: view.limits.minPlayers, max: view.limits.maxPlayers })}</p>
+          <p className="hint" data-testid="you">{t('youLabel')}: {view.me.kind === 'moderator' ? `${view.moderator?.name ?? ''} (${t('moderator')})` : me?.name}{view.me.host ? ` · ${t('host')}` : ''}</p>
         </div>
         <div className="row">
           <Button kind="icon" label={t('chat')} onClick={onChat}>💬</Button>
@@ -44,9 +52,15 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
           <kbd className="code" data-testid="room-code">{view.code}</kbd>
         </div>
         <div className="row">
-          <Button kind="secondary" testId="copy-link" onClick={() => copy('link')}>{copied === 'link' ? t('copied') : t('lobbyCopyLink')}</Button>
-          <Button kind="quiet" onClick={() => copy('code')}>{copied === 'code' ? t('copied') : t('lobbyCopyCode')}</Button>
+          <Button kind="secondary" testId="copy-link" onClick={() => void copy('link')}>{copied === 'link' ? t('copied') : t('lobbyCopyLink')}</Button>
+          <Button kind="quiet" onClick={() => void copy('code')}>{copied === 'code' ? t('copied') : t('lobbyCopyCode')}</Button>
         </div>
+        {manual && (
+          <div className="col" style={{ width: '100%' }} data-testid="copy-manual">
+            <p className="hint">{t('copyManual')}</p>
+            <input className="input" readOnly value={link} onFocus={(e) => e.target.select()} />
+          </div>
+        )}
       </section>
 
       <section className="card stack">
@@ -68,6 +82,8 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
           ))}
         </ul>
       </section>
+
+      {view.deck && <DeckCard view={view} />}
 
       {view.me.kind === 'player' && <MicCheck mic={mic} voiceMode={s.voiceMode} />}
 
@@ -98,6 +114,48 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
   );
 }
 
+/** Lobby deck (public): engine default for this player count, the host's custom counts, validation error. Host edits. */
+function DeckCard({ view }: { view: SeatView }) {
+  const t = useT();
+  const session = useSession();
+  const d = view.deck!;
+  const shown = d.custom ?? d.default;
+  const [draft, setDraft] = useState<Record<string, number> | null>(null);
+  const roles = ROLES as readonly Role[];
+  const total = (c: Record<string, number>) => roles.reduce((n, r) => n + (c[r] ?? 0), 0);
+  const editing = draft !== null;
+  const counts = draft ?? shown ?? {};
+  const bump = (r: Role, by: number) => setDraft({ ...counts, [r]: Math.max(0, (counts[r] ?? 0) + by) });
+  return (
+    <section className="card stack" data-testid="deck" data-custom={d.custom !== null} data-error={d.error !== null}>
+      <div className="row between">
+        <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('deckTitle')}</h2>
+        <span className={`pill ${d.custom ? 'warn' : ''}`}>{d.custom ? t('deckCustom') : t('deckDefault')}</span>
+      </div>
+      {shown === null && !editing && <p className="hint">{t('deckNone', { n: view.players.length })}</p>}
+      <div className="row wrap" data-testid="deck-counts">
+        {roles.map((r) => (
+          <span key={r} className={`pill team-${r === 'wolf' ? 'wolves' : 'village'}`} data-role={r} data-count={counts[r] ?? 0}>
+            {editing && view.me.host && <button type="button" className="btn icon" style={{ width: 28, minHeight: 28 }} aria-label={`- ${t.role(r)}`} onClick={() => bump(r, -1)}>−</button>}
+            {t.role(r)} × {counts[r] ?? 0}
+            {editing && view.me.host && <button type="button" className="btn icon" style={{ width: 28, minHeight: 28 }} aria-label={`+ ${t.role(r)}`} onClick={() => bump(r, 1)}>+</button>}
+          </span>
+        ))}
+        <span className="pill">{t('deckTotal', { n: total(counts), players: view.players.length })}</span>
+      </div>
+      {d.error && <p className="danger" role="alert" data-testid="deck-error">{d.error}</p>}
+      {view.me.host && (
+        <div className="btn-row">
+          {!editing && <Button kind="secondary" testId="deck-edit" onClick={() => setDraft({ ...(shown ?? {}) })}>{t('deckEdit')}</Button>}
+          {!editing && d.custom && <Button kind="quiet" testId="deck-reset" onClick={() => session.send({ t: 'deck', counts: null })}>{t('deckReset')}</Button>}
+          {editing && <Button kind="quiet" onClick={() => setDraft(null)}>{t('cancel')}</Button>}
+          {editing && <Button testId="deck-apply" onClick={() => { session.send({ t: 'deck', counts: draft! }); setDraft(null); }}>{t('deckApply')}</Button>}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function EditProfile({ initial, onDone }: { initial: Profile; onDone: () => void }) {
   const t = useT();
   const session = useSession();
@@ -113,6 +171,31 @@ function EditProfile({ initial, onDone }: { initial: Profile; onDone: () => void
 
 export function MicCheck({ mic, voiceMode }: { mic: Mic; voiceMode: 'remote' | 'inPerson' }) {
   const t = useT();
+  const session = useSession();
+  const { client: vc, snap } = useVoiceClient(session);
+  if (snap && voiceMode !== 'inPerson') {
+    // Real voice: state comes from the single VoiceClient (mic acquired when a speak session exists).
+    const st = snap.mic;
+    return (
+      <section className="card stack" data-testid="mic" data-status={st === 'granted' ? 'ok' : st === 'requesting' ? 'checking' : st}>
+        <div className="row between">
+          <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('micTitle')}</h2>
+          {st === 'granted' && <span className="pill ok">{t('ok')}</span>}
+          {(st === 'denied' || st === 'failed') && <span className="pill danger">{t('off')}</span>}
+        </div>
+        {st === 'idle' && <p className="hint">{t('micWaitingSession')}</p>}
+        {st === 'requesting' && <p className="hint">{t('micChecking')}</p>}
+        {st === 'granted' && <p className="hint">{snap.muted ? t('voiceMuted') : t('micOkVoice')}</p>}
+        {st === 'denied' && (<><p className="danger">{t('micDenied')}</p><p className="hint">{t('micDeniedHelp')}</p></>)}
+        {st === 'failed' && (<><p className="danger">{t('micFailed')}</p>{snap.micError && <p className="muted" style={{ fontSize: 'var(--fs-0)' }}>{snap.micError}</p>}<p className="hint">{t('micDeniedHelp')}</p></>)}
+        {snap.audioBlocked && <Button kind="secondary" testId="audio-unlock" onClick={() => void vc?.unlockAudio()}>{t('voiceUnlock')}</Button>}
+        <div className="btn-row">
+          {st === 'granted' && <Button kind="secondary" testId="mic-mute" pressed={!snap.muted} onClick={() => void vc?.setMuted(!snap.muted)}>{snap.muted ? t('voiceUnmute') : t('voiceMute')}</Button>}
+          {(st === 'denied' || st === 'failed') && <Button kind="quiet" testId="mic-reload" onClick={() => location.reload()}>{t('micRetry')}</Button>}
+        </div>
+      </section>
+    );
+  }
   if (voiceMode === 'inPerson') {
     return (
       <section className="card stack" data-testid="mic" data-status="inPerson">

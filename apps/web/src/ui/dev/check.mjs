@@ -51,7 +51,17 @@ await page.getByTestId('confirm').click();
 ok('own vote line shows chosen name', /Your vote: Bình|Your vote: An/.test(await page.getByTestId('my-vote').textContent()));
 await page.getByTestId('vote-skip').click();
 ok('vote changed to skip', /Skip/.test(await page.getByTestId('my-vote').textContent()));
-ok('no tally / voted counters rendered', !/of \d+ voted|\d+ votes?\b/.test(await page.locator('.dock').innerText()));
+{
+  const me = (await page.locator('.topbar .sub').textContent()).split('·').pop().trim();
+  const row = page.locator('[data-testid=ballots] li', { hasText: me });
+  ok('open ballots: live voter→choice list shows my Skip', (await row.count()) === 1 && /Skip/.test(await row.innerText()));
+  await page.locator('.seat-grid button:not([disabled])').first().click();
+  await page.getByTestId('confirm').click();
+  const target = (await page.locator('.seat-grid button[aria-pressed=true] .nm').first().innerText()).replace(/\s*\(.*\)$/, '');
+  ok('open ballots: list updates to my new target', new RegExp(target).test(await row.innerText()));
+  ok('open ballots: other voters\' choices listed (scenario pre-cast votes)', (await page.locator('[data-testid=ballots] li:not(.muted)').count()) >= 4);
+  ok('voted count pill shows', /\d+ of \d+ voted/.test(await page.getByTestId('voted-count').innerText()));
+}
 
 // 6. Confirm: yes, then close -> announcement + next step.
 await open('confirm');
@@ -70,7 +80,7 @@ ok('hunter shot locked', /locked/.test(await page.locator('[data-testid=hunter-s
 // 8. Ghost: ghost chat tab exists; living seat has no ghosts tab.
 await open('ghost');
 await page.getByTestId('open-chat').click();
-ok('ghost sees Ghosts tab', (await page.locator('.tabs .tab').allTextContents()).some((x) => /Ghosts/.test(x)));
+ok('ghost sees Ghosts tab (chat-tab hook)', (await page.locator('[data-testid=chat-tab][data-channel=ghosts]').count()) === 1);
 await page.keyboard.press('Escape');
 await open('day');
 await page.getByTestId('open-chat').click();
@@ -80,12 +90,28 @@ await page.getByTestId('chat-send').click();
 ok('chat message sent and shown', /hello camp/.test(await page.getByTestId('chat-log').innerText()));
 await page.keyboard.press('Escape');
 
+// 8b. Deck card (stub): host edits, invalid deck rejected, reset.
+await open('lobby');
+ok('deck card shows default deck', (await page.locator('[data-testid=deck][data-custom=false]').count()) === 1);
+await page.getByTestId('deck-edit').click();
+for (let i = 0; i < 2; i++) await page.locator('[data-role=wolf] button[aria-label^="-"]').click();
+await page.getByTestId('deck-apply').click();
+ok('deck: invalid custom deck shows an engine error', (await page.locator('[data-testid=error], [data-testid=deck-error]').count()) > 0);
+await page.getByTestId('deck-edit').click();
+await page.locator('[data-role=villager] button[aria-label^="+"]').click();
+await page.locator('[data-role=hunter] button[aria-label^="-"]').click();
+await page.getByTestId('deck-apply').click();
+ok('deck: valid custom deck accepted (custom badge)', (await page.locator('[data-testid=deck][data-custom=true]').count()) === 1);
+await page.getByTestId('deck-reset').click();
+ok('deck: reset to default', (await page.locator('[data-testid=deck][data-custom=false]').count()) === 1);
+await open('day');
+
 // 9. Reconnect overlay shows and clears, view unchanged.
 const before = await page.getByTestId('match').getAttribute('data-step');
 await stub((r) => r.simulateReconnect(600));
-ok('reconnect overlay visible', await page.getByTestId('conn-overlay').isVisible());
+ok('reconnect overlay visible', (await page.getByTestId('conn').getAttribute('data-status')) === 'reconnecting');
 await page.waitForTimeout(900);
-ok('reconnect overlay gone, same step', (await page.locator('[data-testid=conn-overlay]').count()) === 0 && (await page.getByTestId('match').getAttribute('data-step')) === before);
+ok('reconnect overlay gone, same step', (await page.getByTestId('conn').getAttribute('data-status')) === 'open' && (await page.getByTestId('match').getAttribute('data-step')) === before);
 
 // 10. Role card: hidden until tapped.
 await page.getByTestId('open-role').click();

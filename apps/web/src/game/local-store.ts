@@ -1,5 +1,4 @@
-// Local-only preferences and private notes. Nothing here is game state and nothing is secret from the
-// server's point of view: notes are the player's own guesses, never sent anywhere.
+// Local-only preferences. Nothing here is game state.
 import { useSyncExternalStore } from 'react';
 
 export type Lang = 'en' | 'vi';
@@ -9,11 +8,13 @@ export interface Settings {
   reducedMotion: 'system' | 'on' | 'off';
   /** PROVISIONAL aids pending Human decisions (kept behind settings, default off). */
   modNarration: boolean;
-  nightNotes: boolean;
+  /** Scene ambience audio (procedural). Starts after a gesture. */
+  ambience: boolean;
+  /** Camp scene canvas. Off = panels only (low-end devices, accessibility, automated checks). */
+  scene: boolean;
 }
 
 const SETTINGS_KEY = 'moonveil.ui.settings';
-const NOTES_KEY = (code: string) => `moonveil.ui.notes.${code}`;
 
 function detectLang(): Lang {
   const l = (navigator.language || '').toLowerCase();
@@ -29,7 +30,7 @@ function read<T>(key: string, fallback: T): T {
   }
 }
 
-let settings: Settings = read<Settings>(SETTINGS_KEY, { lang: detectLang(), sound: true, reducedMotion: 'system', modNarration: false, nightNotes: true });
+let settings: Settings = read<Settings>(SETTINGS_KEY, { lang: detectLang(), sound: true, reducedMotion: 'system', modNarration: false, ambience: false, scene: true });
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((fn) => fn());
 
@@ -50,35 +51,3 @@ export function useSettings(): Settings {
   return useSyncExternalStore(settingsStore.subscribe, settingsStore.get);
 }
 
-/** Private suspect notes per seat index: 'suspect' | 'trust' | null. Keyed by room code. */
-export type Note = 'suspect' | 'trust';
-let notesCode = '';
-let notes: Record<number, Note> = {};
-const noteListeners = new Set<() => void>();
-
-export const notesStore = {
-  load(code: string) {
-    if (notesCode === code) return;
-    notesCode = code;
-    notes = read<Record<number, Note>>(NOTES_KEY(code), {});
-    noteListeners.forEach((fn) => fn());
-  },
-  subscribe: (fn: () => void) => {
-    noteListeners.add(fn);
-    return () => noteListeners.delete(fn);
-  },
-  get: () => notes,
-  set(seat: number, note: Note | null) {
-    const next = { ...notes };
-    if (note) next[seat] = note;
-    else delete next[seat];
-    notes = next;
-    if (notesCode) localStorage.setItem(NOTES_KEY(notesCode), JSON.stringify(notes));
-    noteListeners.forEach((fn) => fn());
-  },
-};
-
-export function useNotes(code: string): Record<number, Note> {
-  notesStore.load(code);
-  return useSyncExternalStore(notesStore.subscribe, notesStore.get);
-}
