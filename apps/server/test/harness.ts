@@ -89,7 +89,7 @@ export const profile = (name: string, color: Profile['appearance']['color'] = 'm
   appearance: { color, hat: 'none' },
 });
 
-export function setup(opts: { fixture?: FixtureOptions; engine?: () => RulesEngine<unknown> } = {}) {
+export function setup(opts: { fixture?: FixtureOptions; engine?: () => RulesEngine<unknown>; seed?: string } = {}) {
   const clock = new ManualClock();
   const voice = recordingVoiceGateway();
   const registry = new Registry({
@@ -97,6 +97,7 @@ export function setup(opts: { fixture?: FixtureOptions; engine?: () => RulesEngi
     voice: voice.gateway,
     scheduler: clock,
     now: clock.now,
+    ...(opts.seed !== undefined ? { seed: () => opts.seed! } : {}),
   });
   const client = () => new FakeClient(registry);
 

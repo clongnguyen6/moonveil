@@ -19,6 +19,8 @@ export interface RegistryOptions {
   now?: () => number;
   // Rooms with no connection for this long are closed.
   idleMs?: number;
+  // Match seed source (tests pass a deterministic one). Default: 128 random bits.
+  seed?: () => string;
 }
 
 export class Registry {
@@ -44,7 +46,7 @@ export class Registry {
       voice: this.opts.voice ?? nullVoiceGateway,
       scheduler: this.opts.scheduler ?? realScheduler,
       now: this.opts.now ?? Date.now,
-      seed: () => randomBytes(16).toString('hex'),
+      seed: this.opts.seed ?? (() => randomBytes(16).toString('hex')),
     });
     this.rooms.set(code, room);
     return room;
@@ -84,12 +86,13 @@ export class Session {
   }
 
   receive(msg: ClientMessage) {
+    const ref = 'ref' in msg ? msg.ref : undefined;
     try {
       this.dispatch(msg);
-      if (msg.ref) this.conn.send({ t: 'ack', ref: msg.ref });
+      if (ref) this.conn.send({ t: 'ack', ref });
     } catch (e) {
       if (!(e instanceof RoomError)) throw e;
-      this.conn.send({ t: 'error', code: e.code, message: e.message, ...(msg.ref ? { ref: msg.ref } : {}) });
+      this.conn.send({ t: 'error', code: e.code, message: e.message, ...(ref ? { ref } : {}) });
     }
   }
 
