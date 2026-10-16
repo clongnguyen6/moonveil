@@ -68,9 +68,10 @@ export function realMatch(opts: { mode: 'automatic' | 'moderator'; seats: number
   driver.send({ t: 'start' });
   const r = rng(opts.seed);
   // Run: each step, every bot acts once, then the step closes (timer, or moderator step.close).
-  function run(maxSteps = 400) {
+  function run(maxSteps = 400, beforeClose?: () => void) {
     for (let i = 0; i < maxSteps && driver.view.status === 'playing'; i++) {
       for (const p of room.players) botAct(p, r);
+      beforeClose?.();
       if (opts.mode === 'moderator') {
         room.moderator!.send({ t: 'act', action: { type: 'step.close' } });
       } else {
@@ -105,21 +106,60 @@ export function assertSeatIsolation(p: FakeClient) {
   }
 }
 
-// Approved Q22: until a vote closes, no running totals or others' ballots reach a player (snapshot, event,
-// reconnect). Results at close are allowed (ballots at close = provisional day.revealBallotsAtClose).
-export function assertBallotSecrecy(p: FakeClient): number {
-  let voteFrames = 0;
-  for (const g of games(p)) {
-    const st = g.step as { kind: string; day?: number; votes?: unknown };
-    if (st.kind !== 'day.vote' && st.kind !== 'day.confirm') continue;
-    voteFrames++;
-    assert.equal(st.votes ?? null, null, `seat ${g.me!.seat} saw ballots during ${st.kind}`);
-    const open = st.kind === 'day.vote' ? 'nomination' : 'confirm';
-    assert.ok(
-      !g.publicLog.some((e) => e.t === open && (e as { day?: number }).day === st.day),
-      `seat ${g.me!.seat} saw a ${open} result before close`,
-    );
+// Approved (2026-10-16, supersedes hidden ballots): day votes are open. During nomination and Yes/No every
+// seat sees each voter's choice live; snapshots (incl. reconnect) agree. Checked across seats at one moment.
+// Returns true if a vote step was checked.
+export function assertOpenBallots(clients: FakeClient[]): boolean {
+  const views = clients.map((c) => gv(c));
+  const st = views[0]!.step as { kind: string; votes?: unknown };
+  if (st.kind !== 'day.vote' && st.kind !== 'day.confirm') return false;
+  const ref = JSON.stringify(st.votes ?? null);
+  assert.notEqual(ref, 'null', `ballots hidden during ${st.kind}`);
+  for (const g of views) {
+    assert.equal(JSON.stringify((g.step as { votes?: unknown }).votes ?? null), ref, `seat ${g.me!.seat} sees different ballots`);
+    const votes = (g.step as { votes: unknown[] }).votes;
+    const own = (g.me as { ballot?: unknown }).ballot ?? null;
+    assert.deepEqual(votes[g.me!.seat] ?? null, own, `seat ${g.me!.seat}: own ballot differs from the open tally`);
   }
-  return voteFrames;
+  return true;
 }
 
+
+// ---- scripted scenarios (real engine, fixed seed) ----
+
+export function scripted(mode: 'automatic' | 'moderator', seats: number, seed: string) {
+  const h = setup({ engine: () => createRulesEngine() as RulesEngine<unknown>, seed });
+  const room = h.room(mode, seats);
+  const P = room.players;
+  let driver = room.moderator ?? room.creator;
+  const toNext = () => {
+    if (driver.view.status !== 'playing') throw new Error(`toNext: status ${driver.view.status}`);
+    if (mode === 'moderator') room.moderator!.send({ t: 'act', action: { type: 'step.close' } });
+    else h.clock.tick(Math.max(0, driver.view.phaseEndsAt! - h.clock.now()));
+  };
+  // Bounded: a synchronous loop can't be stopped by test timeouts.
+  const advanceUntil = (pred: () => boolean, max = 20) => {
+    for (let i = 0; i < max; i++) {
+      if (pred()) return;
+      toNext();
+    }
+    throw new Error(`advanceUntil: gave up at ${stepKind(driver)} (${driver.view.status})`);
+  };
+  // Reconnect on a new connection; the new client replaces the old one in P and as driver.
+  const resume = (old: FakeClient) => {
+    if (old.closedWith === null) old.drop();
+    const c = h.client();
+    c.send({ t: 'resume', code: room.code, token: old.token! });
+    const i = P.indexOf(old);
+    if (i >= 0) P[i] = c;
+    if (driver === old) driver = c;
+    return c;
+  };
+  // Choose a connected client to read shared state from (the driver may have dropped).
+  const watcher = () => [room.moderator, ...P].find((c) => c && c.closedWith === null)!;
+  const setDriver = (c: FakeClient) => {
+    driver = c;
+  };
+  const by = (r: string) => P.filter((p) => role(p) === r);
+  return { h, ...room, P, get driver() { return driver; }, setDriver, toNext, advanceUntil, resume, watcher, by };
+}

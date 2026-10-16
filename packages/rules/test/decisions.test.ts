@@ -1,5 +1,5 @@
 // APPROVED 2026-10-16 (batch): Q03 Witch, Q07 wolf target, Q09/Q10 nomination + 30 s defense, night timing,
-// day votes (deadline + hidden interim results), Q25 channels. Fixed behaviour.
+// day votes (fixed deadline; open ballots in ballots.test.ts), Q25 channels. Fixed behaviour.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
@@ -171,7 +171,7 @@ describe('APPROVED night timing: fixed 60 s, never early', () => {
   });
 });
 
-describe('APPROVED day votes: run to deadline; interim results hidden', () => {
+describe('APPROVED day votes: run to deadline (open ballots are tested in ballots.test.ts)', () => {
   /** Day 1 nomination step (nobody dead unless `bite`), with `ballots` cast. */
   const voting = (ballots: Record<number, number | 'skip'>, bite: number | 'pass' = 'pass') => {
     let s = close(night(match(), { bite }));
@@ -188,32 +188,7 @@ describe('APPROVED day votes: run to deadline; interim results hidden', () => {
     assert.equal(s.step.kind, 'day.confirm', 'still open until step.close at the deadline');
   });
 
-  it('mid-vote: no tally and no other choice in any non-moderator view (living, ghost, public, reconnect); voters shown; own choice visible', () => {
-    const s = voting({ 0: 1, 1: 0, 2: 0 }, 6); // seat 6 is a ghost
-    const views: [string, Viewer][] = [['voter', seat(2)], ['non-voter', seat(4)], ['ghost', seat(6)], ['public', { kind: 'public' }]];
-    for (const [name, v] of views) {
-      for (const p of [project(s, v), reconnect(s, v)]) {
-        assert.deepEqual(p.step, { kind: 'day.vote', day: 1, votes: null, voted: [true, true, true, false, false, false, false] }, name);
-        assert.equal(p.publicLog.some((e) => e.t === 'nomination'), false, name);
-      }
-    }
-    assert.equal(project(s, seat(2)).me?.ballot, 0);
-    assert.equal(project(s, seat(4)).me?.ballot, null);
-    assert.ok(project(s, { kind: 'moderator' }).step.kind === 'day.vote' && (project(s, { kind: 'moderator' }).step as { votes: unknown }).votes !== null, 'moderator live view (provisional)');
-  });
-
-  it('two vote states differing only in other ballots look identical to a third seat, a ghost and the public', () => {
-    const a = voting({ 0: 1, 1: 0, 2: 0 }, 6);
-    const b = voting({ 0: 'skip', 1: 2, 2: 1 }, 6);
-    for (const v of [seat(4), seat(6), { kind: 'public' } as Viewer]) assert.deepEqual(project(a, v), project(b, v));
-    let ca = close(close(voting({ 0: 1, 1: 0, 2: 0, 3: 0 })));
-    let cb = close(close(voting({ 0: 1, 1: 0, 2: 0, 3: 0 })));
-    ca = ok(ok(ca, S(1), { type: 'vote.confirm', seat: 1, choice: 'yes' }), S(2), { type: 'vote.confirm', seat: 2, choice: 'no' });
-    cb = ok(ok(cb, S(1), { type: 'vote.confirm', seat: 1, choice: 'no' }), S(2), { type: 'vote.confirm', seat: 2, choice: 'yes' });
-    assert.deepEqual(project(ca, seat(5)), project(cb, seat(5)));
-  });
-
-  it('at close the result appears (tally and ballots per current provisional Q22 form)', () => {
+  it('at close the result event carries the tally and every ballot', () => {
     const s = close(voting({ 0: 1, 1: 0, 2: 0, 3: 0 }));
     assert.deepEqual(lastLog(s, 'nomination'), {
       t: 'nomination', day: 1, accused: 0,

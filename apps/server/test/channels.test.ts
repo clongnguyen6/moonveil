@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { ServerMessage } from '@moonveil/protocol';
 import { createRulesEngine } from '@moonveil/rules';
+import { CORE, createMap, isWalkable } from '@moonveil/scene/map';
 import type { RulesEngine } from '../src/rules/engine.ts';
 import { type FakeClient, setup } from './harness.ts';
 import { gv, idx, role, stepKind } from './match-driver.ts';
@@ -211,10 +212,18 @@ test('speaking indicators: per viewer by listen grant; no leak of wolf or ghost 
 
 test('poses: lobby all; during play living never receive poses, ghosts move and see ghosts; moderator sees ghosts', () => {
   const s = scenario('moderator');
-  const move = (c: FakeClient, x: number) => c.send({ t: 'move', x, y: 0.5, facing: 0, moving: true });
-  move(s.P[0]!, 0.1);
+  // Scene world coords. A walkable lobby point from the same map the renderer builds.
+  const map = createMap(8);
+  const walk = { x: CORE.x + 200, y: CORE.y + 600 };
+  assert.ok(isWalkable(map, walk.x, walk.y), 'test point must be walkable');
+  const move = (c: FakeClient, x: number, y = walk.y) => c.send({ t: 'move', x, y, facing: 1, moving: true });
+  move(s.P[1]!, -150, 50); // outside walk bounds: dropped
+  move(s.P[0]!, walk.x);
   s.h.clock.tick(150);
-  for (const c of [...s.P, s.moderator!]) assert.equal(c.frames.filter((f) => f.t === 'poses').at(-1)!.t, 'poses');
+  for (const c of [...s.P, s.moderator!]) {
+    const last = c.frames.filter((f): f is Msg<'poses'> => f.t === 'poses').at(-1)!;
+    assert.deepEqual(last.poses.map((p) => p.seat), [s.P[0]!.seat], 'only the valid lobby move is published');
+  }
 
   s.moderator!.send({ t: 'start' });
   const wolves = s.by('wolf');
@@ -223,12 +232,12 @@ test('poses: lobby all; during play living never receive poses, ghosts move and 
   s.advanceUntil(() => stepKind(s.moderator!).startsWith('day.'));
   const living = s.P.filter((p) => gv(p).me!.alive);
   const marks = living.map((l) => l.frames.filter((f) => f.t === 'poses').length);
-  move(living[0]!, 0.3); // living may not move: dropped
-  move(victim, 0.7); // ghost moves
+  move(living[0]!, walk.x + 20); // living may not move during play: dropped
+  move(victim, 1650, 100); // ghost drifts anywhere in the world (not walkable for the living)
   s.h.clock.tick(150);
   living.forEach((l, i) => assert.equal(l.frames.filter((f) => f.t === 'poses').length, marks[i], 'living got poses'));
   const vp = victim.frames.filter((f): f is Msg<'poses'> => f.t === 'poses').at(-1)!;
   assert.deepEqual(vp.poses.map((p) => p.seat), [victim.seat]);
   const mp = s.moderator!.frames.filter((f): f is Msg<'poses'> => f.t === 'poses').at(-1)!;
-  assert.deepEqual(mp.poses.map((p) => [p.seat, p.x]), [[victim.seat, 0.7]]);
+  assert.deepEqual(mp.poses.map((p) => [p.seat, p.x, p.y]), [[victim.seat, 1650, 100]]);
 });

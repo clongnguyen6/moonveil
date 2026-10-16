@@ -46,11 +46,12 @@ Server-authoritative social-deduction game. 7–10 players typical, more desirab
      - Message ids are random.
      - Speaking indicators are re-published per viewer, filtered by `listen`, and only for speakers that still hold `speak`.
      - Poses: lobby, everyone. Play: only seats with `listen` on `ghosts` move and see poses (ghosts, moderator). Living seats get no pose frames; nothing after the end.
+     - Coordinates are integer scene world units (`@moonveil/scene` WORLD; adopted from docs/visual/POSES.md), `facing` ±1. No speed/teleport check: it protects no secret, and network jitter would drop legitimate moves. The server validates with the scene's own geometry: `isWalkable(createMap(players))` for living lobby moves, `inWorld` for ghosts. Invalid moves are dropped silently.
 7. **Voice seam.** `apps/server/src/voice.ts` defines `VoiceGateway.setGrants(room, seat, grants)`, and the seat sees its own grants in `view.voice`. A provider adapter must:
    - mint tokens only from server grants,
    - revoke them on change,
    - not expose cross-channel rosters,
-   - re-publish speaking indicators per seat through the server.
+   - re-publish speaking indicators per seat through the server. (Proposed change with LiveKit: SDK indicators inside server-issued sessions, see 0004.)
 8. **Web shell: Vite + React 19, mobile-first.** The game renderer belongs to the visual scope. `apps/web/src/provisional/` holds only the fixture UI.
 9. **Tests.**
    - `node:test` server tests use an in-process harness with a manual clock, plus a real-socket test on 4120.
@@ -63,7 +64,7 @@ Server-authoritative social-deduction game. 7–10 players typical, more desirab
 - Presence freeze during secret phases: players can't see who dropped at night.
 - Ghost, dead-player knowledge and channels: engine-defined. The shell carries whatever `view`/`channels` return.
 - Moderator ≠ creator, mode switch in lobby, moderator handoff: not supported.
-- Rooms are in memory, so a server restart drops rooms. The client then falls back to the join form.
+- Restart recovery: rooms persisted to `.data/rooms` and restored on boot (0003). The host operator can read secrets on disk and in memory.
 - One seat per browser profile per room. Two players on one device is unsupported.
 - Player cap is the engine's `maxPlayers` (fixture: 3–20). Larger rooms are untested.
-- Traffic-size padding.
+- Traffic analysis (timing/size padding, voice uplink): deferred until TLS is decided; proposed bundle in 0005 P10.

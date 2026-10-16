@@ -1,14 +1,18 @@
 // Realtime client: one socket, seat token in localStorage, auto-resume after reload/network drop.
 // The server sends full per-seat snapshots, so resuming = reconnect + `resume`; no client-side replay.
 import {
+  type ChatMessage,
   CLOSE,
   type ClientMessageInput,
   type ErrorCode,
   HEARTBEAT_MS,
   type Mode,
+  type Pose,
   type Profile,
+  type SeatId,
   type SeatView,
   type ServerMessage,
+  type VoiceMode,
   WS_PATH,
 } from '@moonveil/protocol';
 
@@ -19,21 +23,55 @@ export interface ClientState {
   code: string | null;
   view: SeatView | null;
   error: { code: ErrorCode | 'network'; message: string } | null;
+  // Per channel, as the server sent it (history replaced on `chatlog`, live appended on `chat`).
+  // Show only channels with a current `listen` grant in view.voice.
+  chat: Record<string, ChatMessage[]>;
+  // Server relay of speaking seats (to be replaced by SDK-scoped indicators with LiveKit, ADR 0004).
+  speaking: SeatId[];
+  voiceMode: VoiceMode;
+  // serverNow ≈ Date.now() + serverOffsetMs (from `now` in state/hb frames).
+  serverOffsetMs: number;
 }
 
 type Intent =
-  | { t: 'create'; mode: Mode; profile: Profile }
+  | { t: 'create'; mode: Mode; profile: Profile; voiceMode?: VoiceMode }
   | { t: 'join'; code: string; profile: Profile }
   | { t: 'resume'; code: string; token: string };
 
 const tokenKey = (code: string) => `moonveil.seat.${code}`;
 export const storedToken = (code: string) => localStorage.getItem(tokenKey(code));
 
+// Platform capabilities for the UI's fallbacks (mic check, copy link, wake lock). Secure context gates all three.
+export function capabilities() {
+  const n = navigator as Navigator & { wakeLock?: unknown };
+  return {
+    secureContext: globalThis.isSecureContext === true,
+    microphone: typeof navigator.mediaDevices?.getUserMedia === 'function',
+    clipboardWrite: typeof navigator.clipboard?.writeText === 'function',
+    wakeLock: typeof n.wakeLock === 'object' && n.wakeLock !== null,
+  };
+}
+
+// Base URL for invite links. A host browsing on localhost gets the server's LAN URL (if bound to the LAN),
+// since a localhost link is useless to phones. Falls back to location.origin.
+export async function inviteBase(): Promise<string> {
+  const loopback = /^(localhost|127\.|\[::1\])/.test(location.hostname);
+  if (!loopback) return location.origin;
+  try {
+    const r = await fetch('/api/lan', { cache: 'no-store' });
+    const { urls } = (await r.json()) as { urls: string[] };
+    return urls[0] ?? location.origin;
+  } catch {
+    return location.origin;
+  }
+}
+
 const BACKOFF = [250, 500, 1000, 2000, 4000];
 const WATCHDOG_MS = HEARTBEAT_MS * 2.5;
 
 export class Client {
-  state: ClientState = { status: 'idle', code: null, view: null, error: null };
+  state: ClientState = { status: 'idle', code: null, view: null, error: null, chat: {}, speaking: [], voiceMode: 'remote', serverOffsetMs: 0 };
+  private poseListeners = new Set<(poses: Pose[]) => void>();
   private ws: WebSocket | null = null;
   private intent: Intent | null = null;
   private attempt = 0;
@@ -57,14 +95,20 @@ export class Client {
     return () => this.listeners.delete(fn);
   };
   getState = () => this.state;
+  // Poses arrive at up to 10 Hz; delivered to listeners (the scene), not stored in state.
+  onPoses = (fn: (poses: Pose[]) => void) => {
+    this.poseListeners.add(fn);
+    return () => this.poseListeners.delete(fn);
+  };
+  serverNow = () => Date.now() + this.state.serverOffsetMs;
 
   private set(patch: Partial<ClientState>) {
     this.state = { ...this.state, ...patch };
     for (const fn of this.listeners) fn();
   }
 
-  create(mode: Mode, profile: Profile) {
-    this.begin({ t: 'create', mode, profile });
+  create(mode: Mode, profile: Profile, voiceMode: VoiceMode = 'remote') {
+    this.begin({ t: 'create', mode, profile, voiceMode });
   }
   join(code: string, profile: Profile) {
     this.begin({ t: 'join', code, profile });
@@ -95,7 +139,7 @@ export class Client {
   private begin(intent: Intent) {
     this.intent = intent;
     this.attempt = 0;
-    this.set({ error: null, code: intent.t === 'create' ? null : intent.code });
+    this.set({ error: null, code: intent.t === 'create' ? null : intent.code, chat: {}, speaking: [] });
     this.open('connecting');
   }
 
@@ -176,7 +220,19 @@ export class Client {
         if (location.pathname !== `/r/${m.code}`) history.replaceState(null, '', `/r/${m.code}`);
         return;
       case 'state':
-        this.set({ view: m.view });
+        this.set({ view: m.view, voiceMode: m.view.voiceMode ?? 'remote', serverOffsetMs: m.now - Date.now() });
+        return;
+      case 'chatlog':
+        this.set({ chat: { ...this.state.chat, [m.channel]: m.messages } });
+        return;
+      case 'chat':
+        this.set({ chat: { ...this.state.chat, [m.channel]: [...(this.state.chat[m.channel] ?? []), m.msg] } });
+        return;
+      case 'speaking':
+        this.set({ speaking: m.seats });
+        return;
+      case 'poses':
+        for (const fn of this.poseListeners) fn(m.poses);
         return;
       case 'error':
         this.set({ error: { code: m.code, message: m.message } });
@@ -197,8 +253,10 @@ export class Client {
           this.set({ status: 'ended', view: null });
         }
         return;
-      case 'ack':
       case 'hb':
+        this.state = { ...this.state, serverOffsetMs: m.now - Date.now() };
+        return;
+      case 'ack':
         return;
     }
   }

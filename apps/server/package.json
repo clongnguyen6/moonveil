@@ -6,11 +6,12 @@
     "start": "node src/main.ts",
     "dev": "node --watch src/main.ts",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "node --test --test-concurrency=1 'test/**/*.test.ts'"
+    "test": "node --test --test-concurrency=1 --test-timeout=60000 'test/**/*.test.ts'"
   },
   "dependencies": {
     "@moonveil/protocol": "*",
     "@moonveil/rules": "*",
+    "@moonveil/scene": "*",
     "ws": "8.22.0"
   },
   "devDependencies": {
