@@ -28,7 +28,7 @@ Never in SceneInput: `Projection.me.role`, `facts`, `pack`, `actions`, `moderato
 
 Scene state that is not in the snapshot is **positional**: the scene computes seat and tent positions from seat index, so living players during a match need no pose data at all. Only free movement needs the stream below: lobby (everyone) and ghosts (during play).
 
-## Pose stream (new; foundation protocol + server)
+## Pose stream (landed in foundation-3 as `move` / `poses` / `speaking`; units proposal in POSES.md, mount seam in MOUNT.md)
 
 - Client → server: `{ t: 'move', x, y, facing, moving }` at ≤ 10 Hz, sent only when the shell says movement is allowed (lobby, or `seats[me].alive === false` during play). The server validates bounds and rate and silently drops moves from seats that may not move (living seat during play; any seat while `status === 'ended'`). No ack.
 - Server → client: `{ t: 'poses', poses: [{ seat, x, y, facing, moving }] }` at ≤ 10 Hz, batched per room tick. The recipient set is derived server-side:
