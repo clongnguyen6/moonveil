@@ -325,7 +325,7 @@ export class LocalRoom implements Session {
       phaseEndsAt: this.phaseEndsAt,
       phaseDurationMs: this.game && this.phaseEndsAt !== null ? this.engine.phase(this.game).durationMs : null,
       voiceMode: this.voiceMode,
-      deck: this.status === 'lobby' ? { default: defaultDeck(this.players.length, this.config), custom: this.customDeck, error: this.deckError() } : null,
+      deck: this.status === 'lobby' ? { default: defaultDeck(this.players.length), custom: this.customDeck, error: this.deckError() } : null,
       game: this.game ? this.engine.view(this.game, isMod ? { kind: 'moderator' } : { kind: 'seat', seat: me.id }) : null,
       voice: grants,
     };
