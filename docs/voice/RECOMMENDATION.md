@@ -71,29 +71,17 @@ Fix adopted and verified: **rotate a channel whenever anyone must leave it**. Ne
 - Capacity: 10 players ≈ 10 publishers at ~32 kbps Opus and ≤90 forwarded streams; trivial for one core. Tested with 10 browsers on one laptop; >10 not tested **[unverified]**.
 - Use `room.auto_create: false` and create rooms from the server (needed for the rotation guard).
 
-## Fit with Foundation's `VoiceGateway` seam (as merged on `dev` a905925; unchanged since `foundation` b3d9ece)
+## Seam: agreed with Foundation (docs/architecture/0004-voice-seam.md), built in `packages/voice`
 
-Seam as read: `VoiceGateway.setGrants(room, seat, grants: VoiceGrant[])` (sync, per seat, full set, `[]` = revoke all) and `closeRoom(room)`; `VoiceGrant = {channel, listen, speak}`; the seat sees its grants in `view.voice`; `Room.flush()` calls `setGrants` for each seat whose grant JSON changed, then sends each seat its view. Grants come from `engine.channels(game, seat | {kind:'moderator'})`, implemented by `packages/rules/src/channels.ts channelsFor()` (`ChannelGrant`, structurally identical to `VoiceGrant`). ADR 0001 §7 asks adapters to mint tokens only from grants, revoke on change, expose no cross-channel rosters, and re-publish speaking indicators per seat through the server.
+Agreed and implemented in `LiveKitVoiceGateway`:
+- `sync(room, grants)`: one call per `Room.flush()` with every seat's full grants; LiveKit changes (UpdateParticipant, rotation, DeleteRoom) are applied before it resolves; it returns each seat's sessions for the server's `{t:'voice', gen, sessions}` message **[test: "sync resolves only after LiveKit changes were applied"]**.
+- `sessionsFor(room, seat)` for reconnects; `closeRoom(room)` async.
+- Tokens never in `state` views. Speaking indicators from the SDK, bounded by the sessions the server issued.
+- `VoiceSession` = ADR shape `{channel, url, token, listen, speak}` plus two extras the client uses: `room` (rotation detection) and `visible`. Extra fields are harmless if passed through; the client also derives them when absent.
 
-Two differences between `channelsFor()` on `dev` and the approved policy of 2026-10-16, for the rules owner and Lead (not edited here):
-- the moderator gets `public: speak: true`; the policy says moderator publishing is not approved yet, off by default;
-- `config.comms.livingHearPublicAtNight` can give living players a listen grant on public at night; the policy table gives them no grant. Either is enforceable by the adapter; the spike follows the policy literally (no grant = not connected).
+Visibility (ADR 0004 §1 counter-proposal: derive `visible = speak`): adopted with one refinement, backed by a test. The adapter derives visibility **when a seat enters a room generation** (`speak` ⇒ visible, listen-only ⇒ hidden) and **keeps it while the seat stays** in that room. Every policy row matches the ADR table (ghost, pending Hunter and moderator sessions are hidden with no explicit bit **[test]**). The one row the ADR changes, defense, is where the refinement matters: with pure `visible = speak`, living listeners flip visible→hidden at defense start and back at its end; hidden flips cannot be applied in-room (others never learn a visible participant became hidden), so each flip rotates the public room and everyone, including the accused, reconnects twice per defense **[test: "defense (evidence)…"]**. With sticky visibility the same transition is two `UpdateParticipant` calls. Nothing leaks either way: a listen-only participant cannot publish and never appears as a speaker. An explicit `visible` on the internal grant type remains possible later (the adapter honours it when present) but is not needed for any approved row.
 
-What maps directly (adapter = a `LiveKitVoiceGateway` inside the server; `spikes/voice/server.mjs` is the reference):
-- channel → LiveKit room `${code}-${channel}-g${gen}`; seat id → LiveKit identity; `speak` → `canPublish` (+`canPublishData`); `listen` → `canSubscribe`.
-- `setGrants(room, seat, [])` → the seat leaves every channel room (by rotation, below). `closeRoom` → `DeleteRoom` on all channel rooms of that code.
-- "Revoke on change" is met by rotation, not by LiveKit revocation (OSS ignores `revokeTokenTs`). Because grants are absent rather than listen-only at night, public and wolves rooms rotate at every day/night boundary; all members reconnect once per phase (about 1–2 s, inside the scene transition) **[test]**.
-- Rosters: a client only joins rooms it holds tokens for, so it sees only members of its own channels **[test]**.
-
-Three places where the seam should change (proposals; evidence in `spikes/voice`):
-
-1. **`VoiceGrant` needs a visibility bit.** A ghost in `public` is `listen:true, speak:false` and must be *hidden*; a living player at night is also `listen:true, speak:false` and must stay *visible* (a vanishing participant would leak). The adapter cannot tell them apart. Proposal: `VoiceGrant = {channel, listen, speak, visible?: boolean}` (default true), set by the engine's `channels()`. The alternative, a channel-name convention such as `public` vs `public~hidden`, forces the adapter to know two names mean one room; worse.
-2. **Tokens must reach the client, and minting is async.** `setGrants` is sync and `view.voice` carries grants only. Proposal: `VoiceGateway.sessions(room, seat): Promise<VoiceSession[]>` with `VoiceSession = {channel, url, token, speak, listen, visible}`, plus a `ServerMessage {t:'voice', sessions}` that `Room` sends to a seat after its grants changed (await the gateway outside the sync `flush`, then send). Tokens stay out of `state` views, which are diffed and re-sent whole. The gateway must apply LiveKit changes (`UpdateParticipant`, rotation) **before** `sessions()` resolves, so a client that ignores the message is still cut off **[test: forced publish after nightfall is rejected]**.
-3. **Batch per flush, not per seat.** Rotation and shuffled parallel updates need the whole room's grant set. Add `VoiceGateway.commit(room)` called once at the end of `flush()`; coalescing `setGrants` on a microtask inside the adapter works today but is fragile.
-
-One ADR point to challenge: **speaking indicators via the server.** With room-per-channel, LiveKit sends speaker updates only for publishers the subscriber may receive **[src: `room.go onSubscribeStatusChanged`; test: villager at night sees no speakers]**, so reading `isSpeaking` from the SDK inside an entitled room leaks nothing and is ~100 ms faster than a server relay. Relaying through the server would require the server to sit in every room as a hidden participant or to poll `ListParticipants`. Proposal: allow SDK-side indicators scoped to held sessions; the server stays the source for *who is a participant* in the UI. Lead/Foundation decide.
-
-Server duties that stay in Foundation's server whatever the seam shape: hold the LiveKit API key/secret; derive grants only from the engine's `channels()`; issue no voice sessions in in-person mode; re-issue sessions on reconnect under the same seat identity (LiveKit replaces the older connection **[test]**); nothing special for mic denial (listen-only session, text continues **[test]**); create rooms explicitly with `auto_create: false`; serve the page, the game WS and LiveKit signaling behind one TLS origin (`SECURE_CONTEXT.md`).
+Server duties that stay in Foundation's server: hold the LiveKit API key/secret; derive grants only from the engine's `channels()`; `voiceMode === 'inPerson'` ⇒ every grant set is `[]` ⇒ no sessions, no LiveKit rooms **[test: "in-person"]**; re-issue sessions on reconnect under the same seat identity; serve page, game WS and LiveKit signaling behind one TLS origin (`SECURE_CONTEXT.md`).
 
 ## Mobile constraints (documentation only, not tested on devices)
 
@@ -112,7 +100,7 @@ Checked against documentation/source only: hidden-participant semantics in serve
 Unverified: real iOS/Android devices and backgrounding, NAT traversal/TURN, TLS deployment, >10 participants, network-level traffic analysis (a LAN observer could see that a wolf's uplink carries audio at night; mitigation would be constant-bitrate silence frames, not pursued), LiveKit Cloud `revokeTokenTs` behaviour.
 
 ## Follow-ups
-- Engine `channels()` must emit the `visible` bit (proposal above) and the moderator seat's grants; the spike's `entitlements()` is the reference.
+- Moderator `speak:false` in `channelsFor` (rules owner, via Human). No `visible` bit needed (see Seam).
 - Warm connections (e.g. wolves parked listen-only in their room by day) would avoid the per-phase reconnect, but contradict the literal policy; decide later with play-feel evidence.
 - Text/emote enforcement for defense and pending Hunter is Foundation's protocol work; same grant source.
 

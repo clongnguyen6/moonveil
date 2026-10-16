@@ -157,10 +157,87 @@ test('closeRoom deletes every channel room of that game', async () => {
   gw.setGrants('X', 'p1', [g('public', true, true)]);
   gw.setGrants('X', 'w1', [g('wolves', true, true)]);
   await gw.commit('X');
-  gw.closeRoom('X');
-  await new Promise((r) => setTimeout(r, 0));
+  await gw.closeRoom('X');
   assert.deepEqual(backend.deleted.sort(), ['X-public-g1', 'X-wolves-g1']);
   assert.deepEqual(await gw.sessions('X', 'p1'), []);
+});
+
+// ---- ADR 0004 seam: sync / sessionsFor ----
+
+test('sync: one call per flush with every seat; omitted seats lose their grants; returns sessions ready to send', async () => {
+  const { gw, backend } = make();
+  const r1 = await gw.sync('S1', new Map([['p1', [g('public', true, true)]], ['p2', [g('public', true, true)]], ['p3', []]]));
+  assert.deepEqual([...r1.keys()], ['p1', 'p2', 'p3']);
+  assert.equal(r1.get('p1')!.length, 1);
+  assert.deepEqual(r1.get('p3'), []);
+  const s = r1.get('p1')![0]!;
+  assert.deepEqual(Object.keys(s).sort(), ['channel', 'listen', 'room', 'speak', 'token', 'url', 'visible']); // ADR shape + room/visible extras
+  for (const seat of ['p1', 'p2']) backend.connect(s.room, seat, { canPublish: true, canSubscribe: true, hidden: false });
+  // next flush: p2 omitted entirely (left the room) -> must leave public -> rotation; p1 gets a new token
+  const r2 = await gw.sync('S1', new Map([['p1', [g('public', true, true)]]]));
+  assert.deepEqual(backend.deleted, ['S1-public-g1']);
+  assert.equal(r2.get('p1')![0]!.room, 'S1-public-g2');
+  assert.deepEqual(await gw.sessionsFor('S1', 'p2'), []);
+  assert.equal((await gw.sessionsFor('S1', 'p1'))[0]!.room, 'S1-public-g2');
+});
+
+test('sync resolves only after LiveKit changes were applied (a slow client that ignores the message is already cut off)', async () => {
+  const backend = new FakeBackend();
+  const order: string[] = [];
+  const origDelete = backend.deleteRoom.bind(backend);
+  backend.deleteRoom = async (room) => {
+    await new Promise((r) => setTimeout(r, 20));
+    order.push('deleted');
+    return origDelete(room);
+  };
+  const gw = new LiveKitVoiceGateway({ backend, keys, publicWsUrl: 'wss://x', autoCommit: false });
+  await gw.sync('T', new Map([['a', [g('public', true, true)]], ['b', [g('public', true, true)]]]));
+  backend.connect('T-public-g1', 'a', { canPublish: true, canSubscribe: true, hidden: false });
+  backend.connect('T-public-g1', 'b', { canPublish: true, canSubscribe: true, hidden: false });
+  await gw.sync('T', new Map([['a', [g('wolves', true, true)]], ['b', []]]));
+  order.push('resolved');
+  assert.deepEqual(order, ['deleted', 'resolved']);
+});
+
+// ---- visibility derived from speak (ADR 0004 §1), evidence for the one row that differs ----
+
+test('derived visibility: ghost/pending Hunter/moderator listen-only sessions are hidden without any explicit bit', async () => {
+  const { gw } = make();
+  const r = await gw.sync('V', new Map([
+    ['ghost', [{ channel: 'public', listen: true, speak: false }, { channel: 'ghosts', listen: true, speak: true }]],
+    ['hunter', [{ channel: 'public', listen: true, speak: false }]],
+    ['mod', [{ channel: 'public', listen: true, speak: false }, { channel: 'wolves', listen: true, speak: false }, { channel: 'ghosts', listen: true, speak: false }]],
+    ['p1', [{ channel: 'public', listen: true, speak: true }]],
+  ]));
+  assert.deepEqual(r.get('ghost')!.map((s) => [s.channel, s.visible]), [['public', false], ['ghosts', true]]);
+  assert.deepEqual(r.get('hunter')!.map((s) => s.visible), [false]);
+  assert.deepEqual(r.get('mod')!.map((s) => s.visible), [false, false, false]);
+  assert.equal((await readToken(keys, r.get('mod')![0]!.token)).video?.hidden, true);
+  assert.deepEqual(r.get('p1')!.map((s) => s.visible), [true]);
+});
+
+test('defense (evidence): sticky visibility keeps living listeners visible => UpdateParticipant only; pure visible=speak would rotate public twice', async () => {
+  // sticky (this adapter)
+  const a = make();
+  await a.gw.sync('DEF', new Map([['acc', [g('public', true, true)]], ['v1', [g('public', true, true)]], ['v2', [g('public', true, true)]]]));
+  for (const s of ['acc', 'v1', 'v2']) a.backend.connect('DEF-public-g1', s, { canPublish: true, canSubscribe: true, hidden: false });
+  await a.gw.sync('DEF', new Map([['acc', [g('public', true, true)]], ['v1', [g('public', false, true)]], ['v2', [g('public', false, true)]]]));
+  assert.deepEqual(a.backend.deleted, []);
+  assert.deepEqual(a.backend.calls.filter((c) => c.op === 'update').map((c) => c.identity).sort(), ['v1', 'v2']);
+  assert.deepEqual(a.backend.participants('DEF-public-g1').map((p) => [p.identity, p.permission.hidden]).sort(), [['acc', false], ['v1', false], ['v2', false]]);
+  // back to day: another update, still no rotation
+  await a.gw.sync('DEF', new Map([['acc', [g('public', true, true)]], ['v1', [g('public', true, true)]], ['v2', [g('public', true, true)]]]));
+  assert.deepEqual(a.backend.deleted, []);
+
+  // pure visible = speak (what ADR 0004 §1 proposes literally), expressed with the explicit bit
+  const b = make();
+  await b.gw.sync('LIT', new Map([['acc', [g('public', true, true)]], ['v1', [g('public', true, true)]], ['v2', [g('public', true, true)]]]));
+  for (const s of ['acc', 'v1', 'v2']) b.backend.connect('LIT-public-g1', s, { canPublish: true, canSubscribe: true, hidden: false });
+  await b.gw.sync('LIT', new Map([['acc', [g('public', true, true)]], ['v1', [g('public', false, true, false)]], ['v2', [g('public', false, true, false)]]]));
+  assert.deepEqual(b.backend.deleted, ['LIT-public-g1']); // everyone, including the accused, reconnects as the defense starts
+  for (const s of ['acc', 'v1', 'v2']) b.backend.connect('LIT-public-g2', s, { canPublish: s === 'acc', canSubscribe: true, hidden: s !== 'acc' });
+  await b.gw.sync('LIT', new Map([['acc', [g('public', true, true)]], ['v1', [g('public', true, true)]], ['v2', [g('public', true, true)]]]));
+  assert.deepEqual(b.backend.deleted, ['LIT-public-g1', 'LIT-public-g2']); // and again when the defense ends
 });
 
 test('backend errors are reported, not thrown into the server', async () => {

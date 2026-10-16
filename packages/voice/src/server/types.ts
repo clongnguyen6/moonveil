@@ -1,8 +1,9 @@
 // Server-side types for the LiveKit adapter. Pure data; no IO here.
 import type { SeatId, VoiceGrant } from '@moonveil/protocol';
 
-// Grant as the gateway consumes it. `visible` is the proposed protocol addition (RECOMMENDATION.md §seam 1):
-// a ghost listening on public must be hidden, a living night listener must not. Default true.
+// Grant as the gateway consumes it. `visible` is an optional override; when absent the adapter derives
+// it (ADR 0004 §1): a seat is visible in a room iff it may speak there, decided when it enters that
+// room generation and kept while it stays (so a speak->listen flip inside a room does not rotate it).
 export interface VoiceGrantLike extends VoiceGrant {
   visible?: boolean;
 }
@@ -14,14 +15,15 @@ export interface RoomPermission {
   hidden: boolean;
 }
 
-// A seat's handle to one channel room: everything the browser needs, nothing more.
+// A seat's handle to one channel room (ADR 0004 shape: channel, url, token, listen, speak) plus two
+// extras the client uses: `room` (rotation detection without decoding the token) and `visible`.
 export interface VoiceSession {
   channel: string;
-  room: string; // LiveKit room name (includes the rotation generation)
   url: string; // wss:// signaling URL as seen by the client
   token: string;
-  speak: boolean;
   listen: boolean;
+  speak: boolean;
+  room: string; // LiveKit room name (includes the rotation generation)
   visible: boolean;
 }
 

@@ -1,6 +1,6 @@
 # Voice: from spike to product code (proposal, not started)
 
-Status: proposal for Human/Lead. Nothing built yet. Evidence: `spikes/voice` (52-check policy suite, plain + TLS) and `RECOMMENDATION.md`.
+Status: split confirmed by Human (2026-10-16); seam agreed in `docs/architecture/0004-voice-seam.md`. Built so far in `packages/voice`: server gateway (`sync`/`sessionsFor`/`closeRoom`), mapping/rotation, tokens, LiveKit backend + fake, pinned LiveKit tooling, browser `VoiceClient` + React hook, unit tests. Open: Foundation wiring, package e2e on the real server, full-match suites.
 
 ## 1. Split
 
@@ -49,7 +49,11 @@ Status: proposal for Human/Lead. Nothing built yet. Evidence: `spikes/voice` (52
 4. **Budget:** policy suite ~2 min per mode; full match ~5 min per mode. Per PR: unit + policy (plain). Nightly: everything incl. TLS.
 5. **Not covered, stated:** real phones, backgrounding, NAT/TURN, >10 players, LAN traffic analysis.
 
-## 5. How Foundation evaluates the four seam proposals
+## 5. Seam proposals: resolved (ADR 0004)
+
+1. `visible` bit: not added; derived from `speak` at room entry and kept while present (evidence test for the defense row in `packages/voice/test/gateway.test.ts`). 2. Tokens via a `voice` message: agreed; `sync` returns sessions. 3. Per-flush batching: agreed as the single async `sync`. 4. SDK speaking indicators: agreed; server relay retired when the adapter lands. The original evaluation plan is kept below for the record.
+
+### Original evaluation plan
 
 Each comes as a small reviewable diff plus a failing-then-passing test, so acceptance is evidence-based, not taste.
 

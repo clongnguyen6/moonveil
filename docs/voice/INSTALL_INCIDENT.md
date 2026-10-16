@@ -51,6 +51,13 @@ After: `/opt/homebrew/Cellar/livekit`, `/opt/homebrew/bin/livekit-server`, `/opt
 
 **Deviation:** Homebrew's default autoremove also removed `libnghttp3` 1.18.0 and `libngtcp2` 1.25.0. They were not livekit dependencies (its dependency list was empty); Homebrew judged them orphaned leftovers of an earlier install. By the autoremove criterion no installed formula depended on them, so nothing installed should break. `brew install libnghttp3 libngtcp2` would restore them (needs approval). Untouched as instructed: the bottle and manifest in `~/Library/Caches/Homebrew/downloads`, npm/npx caches and logs, `/tmp/voice-results.txt`, Go telemetry. No claim is made that any cache state was restored.
 
+### Disposition (Human, 2026-10-16)
+
+- `libnghttp3` and `libngtcp2` stay removed; they will not be reinstalled.
+- The removal was outside the original cleanup grant (which covered `livekit` only). Human accepts the resulting state; this is not retroactive authorization of the extra removal.
+- Known evidence: no installed Homebrew dependents (`brew uses --installed` empty for both). Possible non-Homebrew consumers were not ruled out.
+- No further system cleanup or Homebrew operations are authorized.
+
 ### Autoremove details (read-only checks, 2026-10-16 ~15:50)
 
 Human: removing these two formulae went beyond the cleanup grant (livekit only); reported upstream. Nothing reinstalled.

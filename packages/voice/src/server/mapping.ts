@@ -7,8 +7,17 @@ export function isActive(g: VoiceGrantLike): boolean {
   return g.listen || g.speak;
 }
 
-export function toPermission(g: VoiceGrantLike): RoomPermission {
-  return { canPublish: g.speak, canSubscribe: g.listen, hidden: !(g.visible ?? true) };
+// Visibility: explicit override, else derived from speak (ADR 0004). `sticky` is the seat's current
+// visibility in this room generation, if it is already present there: a seat that entered visible stays
+// visible while it stays in the room (defense: other living players keep listening, visible, no rotation).
+export function visibilityOf(g: VoiceGrantLike, sticky?: boolean): boolean {
+  if (g.visible !== undefined) return g.visible;
+  if (g.speak) return true;
+  return sticky ?? false;
+}
+
+export function toPermission(g: VoiceGrantLike, sticky?: boolean): RoomPermission {
+  return { canPublish: g.speak, canSubscribe: g.listen, hidden: !visibilityOf(g, sticky) };
 }
 
 export function samePermission(a: RoomPermission, b: RoomPermission): boolean {
@@ -22,14 +31,16 @@ export function roomName(code: string, channel: string, gen: number): string {
 }
 
 // Desired participants per channel: seat -> permission, for seats holding an active grant.
-export function desiredByChannel(grants: Grants): Map<string, Map<SeatId, RoomPermission>> {
+// `present` (channel -> participants currently in that room) supplies the sticky visibility.
+export function desiredByChannel(grants: Grants, present?: ReadonlyMap<string, readonly BackendParticipant[]>): Map<string, Map<SeatId, RoomPermission>> {
   const out = new Map<string, Map<SeatId, RoomPermission>>();
   for (const [seat, gs] of grants) {
     for (const g of gs) {
       if (!isActive(g)) continue;
       let m = out.get(g.channel);
       if (!m) out.set(g.channel, (m = new Map()));
-      m.set(seat, toPermission(g));
+      const cur = present?.get(g.channel)?.find((p) => p.identity === seat);
+      m.set(seat, toPermission(g, cur ? !cur.permission.hidden : undefined));
     }
   }
   return out;

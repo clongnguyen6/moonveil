@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { test } from 'node:test';
-import { EV, type MicTrackLike, type RoomLike, VoiceClient } from '../../src/client/voice-client.ts';
+import { EV, type MicTrackLike, normalizeSession, type RoomLike, roomFromToken, VoiceClient } from '../../src/client/voice-client.ts';
 import type { VoiceSession } from '../../src/server/types.ts';
 
 class FakeMic implements MicTrackLike {
@@ -228,6 +228,20 @@ test('disconnected room is reconnected on the next applySessions when a fresh to
   await client.applySessions([S('public', 'R-public-g1', true, true, true, 'fresh')]);
   assert.equal(rooms.length, 2);
   assert.equal(rooms[1]!.connected?.token, 'fresh');
+});
+
+test('ADR 0004 session shape (no room/visible) is accepted: room read from the token, visible = speak', async () => {
+  const payload = Buffer.from(JSON.stringify({ video: { room: 'ABC-public-g3', roomJoin: true }, sub: 'p1' })).toString('base64url');
+  const token = `eyJhbGciOiJIUzI1NiJ9.${payload}.sig`;
+  assert.equal(roomFromToken(token), 'ABC-public-g3');
+  assert.equal(roomFromToken('garbage'), '');
+  const n = normalizeSession({ channel: 'public', url: 'wss://x', token, listen: true, speak: false });
+  assert.equal(n.room, 'ABC-public-g3');
+  assert.equal(n.visible, false);
+  const { client, rooms } = make();
+  await client.applySessions([{ channel: 'public', url: 'wss://x', token, listen: true, speak: false }]);
+  assert.equal(client.getSnapshot().channels.public?.room, 'ABC-public-g3');
+  assert.equal(rooms[0]!.published.length, 0);
 });
 
 test('dispose disconnects everything and stops mics', async () => {

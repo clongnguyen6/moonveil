@@ -5,6 +5,35 @@
 // Dependencies on livekit-client are injected (defaults load it lazily) so unit tests run in Node.
 import type { VoiceSession } from '../server/types.ts';
 
+// What arrives in the server's `voice` message (ADR 0004 shape). `room`/`visible` are optional extras;
+// when absent, `room` is read from the token's own claims and `visible` follows `speak`.
+export interface VoiceSessionInput {
+  channel: string;
+  url: string;
+  token: string;
+  listen: boolean;
+  speak: boolean;
+  room?: string;
+  visible?: boolean;
+}
+
+export function normalizeSession(s: VoiceSessionInput): VoiceSession {
+  return { channel: s.channel, url: s.url, token: s.token, listen: s.listen, speak: s.speak, room: s.room ?? roomFromToken(s.token), visible: s.visible ?? s.speak };
+}
+
+// JWT payload (base64url JSON); the room is in video.room. No verification: this is our own server's token.
+export function roomFromToken(token: string): string {
+  try {
+    const part = token.split('.')[1] ?? '';
+    const b64 = part.replace(/-/g, '+').replace(/_/g, '/').padEnd(part.length + ((4 - (part.length % 4)) % 4), '=');
+    const json = typeof atob === 'function' ? atob(b64) : Buffer.from(b64, 'base64').toString('utf8');
+    const room = (JSON.parse(json) as { video?: { room?: string } }).video?.room;
+    return typeof room === 'string' ? room : '';
+  } catch {
+    return '';
+  }
+}
+
 export type MicState = 'idle' | 'requesting' | 'granted' | 'denied' | 'failed';
 export type ChannelState = 'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'failed';
 
@@ -122,8 +151,9 @@ export class VoiceClient {
   // --- commands ---
 
   // Apply the server's current sessions. Serialized: a second call waits for the first.
-  applySessions(sessions: readonly VoiceSession[]): Promise<void> {
-    this.chain = this.chain.then(() => this.reconcile(sessions)).catch((err) => this.opts.onError?.('*', err));
+  applySessions(sessions: readonly VoiceSessionInput[]): Promise<void> {
+    const normalized = sessions.map(normalizeSession);
+    this.chain = this.chain.then(() => this.reconcile(normalized)).catch((err) => this.opts.onError?.('*', err));
     return this.chain;
   }
 
