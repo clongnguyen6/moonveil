@@ -50,7 +50,7 @@ Server-authoritative social-deduction game. 7–10 players typical, more desirab
    - mint tokens only from server grants,
    - revoke them on change,
    - not expose cross-channel rosters,
-   - re-publish speaking indicators per seat through the server.
+   - re-publish speaking indicators per seat through the server. (Proposed change with LiveKit: SDK indicators inside server-issued sessions, see 0004.)
 8. **Web shell: Vite + React 19, mobile-first.** The game renderer belongs to the visual scope. `apps/web/src/provisional/` holds only the fixture UI.
 9. **Tests.**
    - `node:test` server tests use an in-process harness with a manual clock, plus a real-socket test on 4120.
@@ -66,4 +66,4 @@ Server-authoritative social-deduction game. 7–10 players typical, more desirab
 - Rooms are in memory, so a server restart drops rooms. The client then falls back to the join form.
 - One seat per browser profile per room. Two players on one device is unsupported.
 - Player cap is the engine's `maxPlayers` (fixture: 3–20). Larger rooms are untested.
-- Traffic-size padding.
+- Traffic analysis (timing/size padding, voice uplink): deferred until TLS is decided; proposed bundle in 0005 P10.

@@ -16,6 +16,9 @@ export const RoomCode = z
 
 export const Mode = z.enum(['moderator', 'automatic']);
 export type Mode = z.infer<typeof Mode>;
+// 'inPerson' = in-game voice off (text and game continue); no voice sessions are issued. Chosen at creation.
+export const VoiceMode = z.enum(['remote', 'inPerson']);
+export type VoiceMode = z.infer<typeof VoiceMode>;
 
 // PROVISIONAL catalog: visual scope owns the final appearance set. Ids are stable keys, not art.
 export const APPEARANCE_COLORS = ['ember', 'moss', 'river', 'dusk', 'sand', 'berry', 'pine', 'slate'] as const;
@@ -41,7 +44,7 @@ export type Profile = z.infer<typeof Profile>;
 
 const Ref = z.string().max(32).optional();
 
-export const CHAT_MAX = 280;
+export const CHAT_MAX = 500;
 // Chat text: NFC, no control/format chars except newline, collapsed spaces, 1..CHAT_MAX.
 export function normalizeChat(raw: string): string {
   return raw
@@ -58,7 +61,7 @@ const Coord = z.number().min(0).max(1);
 const Token = z.string().regex(/^[A-Za-z0-9_-]{20,64}$/);
 
 export const ClientMessage = z.discriminatedUnion('t', [
-  z.strictObject({ t: z.literal('create'), ref: Ref, mode: Mode, profile: Profile }),
+  z.strictObject({ t: z.literal('create'), ref: Ref, mode: Mode, profile: Profile, voiceMode: VoiceMode.optional() }),
   z.strictObject({ t: z.literal('join'), ref: Ref, code: RoomCode, profile: Profile }),
   z.strictObject({ t: z.literal('resume'), ref: Ref, code: RoomCode, token: Token }),
   z.strictObject({ t: z.literal('profile'), ref: Ref, profile: Profile }),
@@ -66,7 +69,7 @@ export const ClientMessage = z.discriminatedUnion('t', [
   z.strictObject({ t: z.literal('start'), ref: Ref }),
   // Game action, opaque here; the rules engine validates it.
   z.strictObject({ t: z.literal('act'), ref: Ref, action: z.unknown() }),
-  // Moderator mode only: close the current phase.
+  // Moderator mode only: close the current phase. Same as the moderator's act {type:'step.close'}.
   z.strictObject({ t: z.literal('advance'), ref: Ref }),
   z.strictObject({ t: z.literal('leave'), ref: Ref }),
   // Text on a channel. Server accepts only with a current `speak` grant on that channel.
@@ -102,16 +105,20 @@ export interface SeatView {
   // Rules engine id: 'moonveil-werewolf' (real) or 'fixture' (tests). Selects how to read `game`.
   engine: string;
   mode: Mode;
+  voiceMode: VoiceMode;
   status: RoomStatus;
   me: { seat: SeatId; kind: SeatKind; host: boolean };
   players: PublicSeat[];
   moderator: { name: string; connected: boolean } | null;
   limits: { minPlayers: number; maxPlayers: number };
   canStart: boolean;
-  // Automatic mode: server time (ms epoch) when the current phase closes. Null otherwise.
+  // Automatic mode: server time (ms epoch) when the current phase closes; null while paused or in moderator mode.
   phaseEndsAt: number | null;
+  // Automatic mode: full length of the current phase (static per phase). Ring = (phaseEndsAt - serverNow) / this.
+  phaseDurationMs: number | null;
   // Rules-engine projection for this viewer. Opaque to the shell.
   game: unknown;
+  // This seat's channel grants now, for text AND voice. Voice runs only when voiceMode === 'remote'.
   voice: VoiceGrant[];
 }
 
@@ -146,6 +153,8 @@ export function gameView(v: SeatView): GameView | null {
 export interface ChatMessage {
   id: string;
   from: SeatId;
+  // Sender's display name at send time (public).
+  name: string;
   text: string;
   at: number;
 }
@@ -160,10 +169,11 @@ export interface Pose {
 export type ServerMessage =
   | { t: 'welcome'; code: string; seat: SeatId; kind: SeatKind; host: boolean; token?: string }
   // seq counts frames sent on this connection only; never a room-global counter (would leak hidden activity).
-  | { t: 'state'; seq: number; view: SeatView }
+  // `now` = server clock (ms) when sent; clients derive skew for phaseEndsAt. Not part of the diffed view.
+  | { t: 'state'; seq: number; now: number; view: SeatView }
   | { t: 'ack'; ref: string }
   | { t: 'error'; ref?: string; code: ErrorCode; message: string }
-  | { t: 'hb' }
+  | { t: 'hb'; now: number }
   | { t: 'bye'; reason: 'replaced' | 'left' | 'closed' }
   // Live chat on a channel this seat may listen to now.
   | { t: 'chat'; channel: string; msg: ChatMessage }
