@@ -33,11 +33,19 @@ Maintained by Lead (93ca0cd6-c546-456f-b97f-c3c9c4115a14). Peers: read, don't ed
 ## Pending Human decisions
 - Standing permission to ff-merge scope branches into `dev` (not main) after owner checks + Lead diff review? [pending, NOT approved]
 - Rollback of Homebrew livekit-server install. [pending Peer report, then Human]
+- Integration of foundation b3d9ece into dev (ff from dev b210c4d). [proposed to Supervisor]
+- Other outside-Moonveil writes + rollback (see Risks). [proposed to Supervisor]
+- WebKit/iOS emulation needs ~/Library writes: approve, or accept Chromium-only emulation. [proposed]
+- Phone LAN mic/voice needs HTTPS with trusted cert (getUserMedia secure-context). Hosting/device-trust decision with voice. [open]
 - Coming: rules proposal, preview approval, voice provider/cost.
 
 ## Risks / notes
 - Some web doc fetches are being rejected by the permission system; Peers source claims locally and label provenance; don't retry denied calls.
+- Outside writes by foundation (2026-10-16): ~/.npm/_npx/e41f203b7505f1fb (rewritten), ~/.npm/_cacache (8 files), 3 ~/.npm/_logs files (07_05_07, 07_09_58, 07_10_05), /tmp/.mv_marker_never_used (created+deleted), WebKit: ~/Library/{Preferences/org.webkit.Playwright.plist, WebKit/org.webkit.Playwright/, Caches/org.webkit.Playwright/}, ~/Library/Caches/com.apple.nsservicescache.plist recreated. Not undone.
+- Outside write by Lead: /tmp/null (331 B, npm ci output) 14:31, command mistake. Not undone.
+- Foundation repo scripts now pin caches/tmp/browsers to .cache/ (verified: no new ~/.npm logs on check run).
+- Open from foundation: ghost knowledge wording ambiguous (→ rules); fixed-length secret phases = pace vs timing-secrecy (→ rules); rooms in memory (restart loses); no mode/moderator change after creation.
 - INCIDENT: Voice Peer installed livekit-server system-wide via Homebrew. Outside existing authorization (WORKSPACE_PROTOCOL already limited writes to Moonveil). Pending: Peer's exact report (command/time, packages, running services, rollback + shared-machine impact) in docs/voice/INSTALL_INCIDENT.md. No uninstall, service stop or other outside-repo change without Human approval. Tools stay inside Moonveil.
 
 ## Acceptance evidence
-- (none yet)
+- foundation b3d9ece: Lead re-ran `node scripts/env.mjs npm run check` 14:31 → typecheck ok, server 10/10, e2e 7/7 (8-browser auto isolation, 7+mod isolation, lobby, reconnect, 2nd tab, Pixel 7 emu). Chromium only. No new ~/.npm logs. Not integrated (merge held).
