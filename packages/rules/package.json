@@ -8,15 +8,15 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "test": "node --test \"test/**/*.test.ts\"",
-    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test 'test/**/*.test.ts'",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.src.json",
     "check": "npm run typecheck && npm test"
   },
   "engines": {
-    "node": ">=22.18"
+    "node": ">=24.12"
   },
   "devDependencies": {
-    "@types/node": "24.19.2",
-    "typescript": "5.9.3"
+    "@types/node": "26.6.5",
+    "typescript": "7.0.2"
   }
 }

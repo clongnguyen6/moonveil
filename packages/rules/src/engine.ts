@@ -1,4 +1,5 @@
 // Engine: createMatch + apply. Pure: apply clones the input state and returns a new one.
+import { clone } from './clone.ts';
 import { type DeckCounts, type DeepPartial, type RulesConfig, resolveConfig } from './config.ts';
 import {
   defaultDeck,
@@ -90,7 +91,7 @@ export function apply(input: MatchState, actor: Actor, cmd: Command): ApplyResul
   if (input.step.kind === 'ended') return fail('ended', 'match has ended');
   const auth = authorize(actor, cmd);
   if (auth) return { ok: false, error: auth };
-  const state = structuredClone(input);
+  const state = clone(input);
   const lax = actor.kind === 'moderator' && state.config.moderator.mayBreakRules;
   const e = handle(state, cmd, lax, false, actor.kind);
   if (e) return { ok: false, error: e };

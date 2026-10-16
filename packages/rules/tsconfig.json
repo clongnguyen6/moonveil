@@ -1,18 +1,22 @@
 {
+  "//": "Same compilerOptions as foundation's tsconfig.base.json (TS 7.0.2). Once in the workspace this can become { \"extends\": \"../../tsconfig.base.json\", \"compilerOptions\": { \"types\": [\"node\"] }, \"include\": [\"src\", \"test\"] }.",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "target": "es2023",
+    "lib": ["es2023"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": false,
     "noEmit": true,
     "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
-    "types": ["node"],
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node"]
   },
   "include": ["src", "test"]
 }

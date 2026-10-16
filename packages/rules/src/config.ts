@@ -1,5 +1,6 @@
 // Rules configuration. Every key is PROVISIONAL (see docs/rules/PROPOSAL.md, Qxx) until Human approves it.
 // Approved rules (six roles, parity/no-wolves victory, resolve-before-victory) are not configurable.
+import { clone } from './clone.ts';
 import type { Role } from './types.ts';
 
 export type DeckCounts = Record<Role, number>;
@@ -184,13 +185,13 @@ export type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartia
 
 /** Deep-merge overrides onto defaults. `distribution` is replaced wholesale when given. */
 export function resolveConfig(overrides: DeepPartial<RulesConfig> = {}): RulesConfig {
-  const out = structuredClone(DEFAULT_CONFIG) as unknown as Record<string, unknown>;
+  const out = clone(DEFAULT_CONFIG) as unknown as Record<string, unknown>;
   for (const [k, v] of Object.entries(overrides)) {
     if (v === undefined) continue;
     if (k === 'distribution' || typeof v !== 'object' || v === null) {
-      out[k] = structuredClone(v);
+      out[k] = clone(v);
     } else {
-      out[k] = { ...(out[k] as object), ...structuredClone(v) };
+      out[k] = { ...(out[k] as object), ...clone(v) };
     }
   }
   return out as unknown as RulesConfig;

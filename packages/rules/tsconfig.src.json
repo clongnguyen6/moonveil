@@ -1,0 +1,6 @@
+{
+  "//": "Engine sources must typecheck with no host globals (no node, no DOM).",
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "types": [] },
+  "include": ["src"]
+}

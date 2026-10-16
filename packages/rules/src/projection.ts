@@ -1,5 +1,6 @@
 // Per-viewer projection. The ONLY sanctioned way to expose state outside the server.
 // Rule: a seat sees public info + its own knowledge ledger + live secrets it is entitled to while alive.
+import { clone } from './clone.ts';
 import { check } from './engine.ts';
 import type { Command, DeathCause, Fact, HistoryEntry, MatchState, NightRecord, Outcome, Pick, PublicEvent, Role, Seat, SeatState } from './types.ts';
 import type { RulesConfig } from './config.ts';
@@ -99,19 +100,19 @@ export function project(state: MatchState, viewer: Viewer): Projection {
     day: state.day,
     step: stepView(state),
     seats,
-    publicLog: structuredClone(state.publicLog),
+    publicLog: clone(state.publicLog),
     me: me ? meView(state, me) : null,
     pack: me && me.role === 'wolf' ? packView(state, me) : null,
     outcome: state.outcome,
     reveal: ended
-      ? { roles: state.seats.map((s) => s.role), history: state.config.reveal.historyAtEnd ? structuredClone(state.history) : null }
+      ? { roles: state.seats.map((s) => s.role), history: state.config.reveal.historyAtEnd ? clone(state.history) : null }
       : null,
     moderator: isMod
       ? {
-          seats: structuredClone(state.seats),
-          nightRec: structuredClone(state.nightRec),
-          history: structuredClone(state.history),
-          knowledge: structuredClone(state.knowledge),
+          seats: clone(state.seats),
+          nightRec: clone(state.nightRec),
+          history: clone(state.history),
+          knowledge: clone(state.knowledge),
           config: state.config,
         }
       : null,
@@ -150,7 +151,7 @@ function meView(state: MatchState, me: SeatState): MeView {
     seat: me.seat,
     role: me.role,
     alive: me.alive,
-    facts: structuredClone(state.knowledge[me.seat] ?? []),
+    facts: clone(state.knowledge[me.seat] ?? []),
     potions: me.role === 'witch' ? { heal: me.heal, poison: me.poison } : null,
     guardLast: me.role === 'guard' ? me.guardLast : null,
     actions: availableActions(state, me),
