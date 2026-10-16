@@ -1,7 +1,7 @@
 # Camp visual preview (M1) — for direction approval
 
 Branch `visual`, revision: see report. Run: `cd preview && npm install && npm run dev` → http://127.0.0.1:4200.
-All captures are browser emulation (Playwright Chromium, GPU headless); no real device was used.
+All captures are browser emulation (Playwright Chromium, GPU headless; three extra shots from Playwright WebKit, the Safari engine); no real device was used. WebKit shots are "WebKit/browser emulation", not iPhone validation.
 
 ## What it shows
 
@@ -25,6 +25,7 @@ All captures are browser emulation (Playwright Chromium, GPU headless); no real 
 | laptop-16-players-seating.jpg | 1440×900 | Density check at 16 |
 | phone-portrait-*.jpg | 390×844 @2x, iPhone 13 emulation, touch | lobby (fit + tight framing), seating, night, ghost view |
 | phone-landscape-*.jpg | 844×390 @2x | lobby, night |
+| webkit-phone-portrait-*.jpg | 390×844 @2x, iPhone 13 emulation in Playwright WebKit | lobby, seating, night (WebKit/browser emulation) |
 | motion.mp4 | 960×540, ~40 s | lobby walk + emote + talk → seating → night → dawn → ghost drifting |
 
 ## Rendering choice: PixiJS v8 (WebGL, WebGPU-capable)

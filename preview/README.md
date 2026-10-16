@@ -17,15 +17,17 @@ URL params: `?scene=lobby|seating|night|day|ghost`, `?view=ghost`, `?n=4..16` pl
 
 ```sh
 npm run capture            # writes docs/visual/preview/*.jpg and motion.mp4 (needs the dev server on :4200 and ffmpeg)
-npm run capture -- --no-video
+npm run capture -- --no-video      # also: --no-webkit, --only <name-substring>
 ```
 
 Uses Playwright's Chromium (new headless mode, GPU-accelerated). All caches stay inside `preview/.cache/`:
 
 ```sh
 export PLAYWRIGHT_BROWSERS_PATH=$PWD/.cache/ms-playwright TMPDIR=$PWD/.cache/tmp
-npx playwright install chromium
+npx playwright install chromium webkit
 ```
+
+WebKit itself writes only to `~/Library/Preferences/org.webkit.Playwright.plist`, `~/Library/WebKit/org.webkit.Playwright/` and `~/Library/Caches/org.webkit.Playwright/` (granted). Skip with `--no-webkit`.
 
 ## Layout
 

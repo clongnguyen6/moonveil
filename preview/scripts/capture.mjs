@@ -1,6 +1,6 @@
 // Captures screenshots and one motion video with Playwright (headless Chromium, browser emulation only).
 // Usage: node scripts/capture.mjs [--out ../docs/visual/preview] [--no-video]
-import { chromium, devices } from '@playwright/test';
+import { chromium, webkit, devices } from '@playwright/test';
 import { mkdirSync, existsSync, readdirSync, renameSync, unlinkSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
@@ -27,9 +27,9 @@ const phone = { ...devices['iPhone 13'], deviceScaleFactor: 2 };                
 const phoneLand = { ...devices['iPhone 13 landscape'], deviceScaleFactor: 2 };         // 844x390
 const url = (scene, extra = '') => `${base}?scene=${scene}&audio=0${extra}`;
 
-async function shot(ctxOpts, scene, name, waitMs, extra = '', before) {
+async function shot(ctxOpts, scene, name, waitMs, extra = '', before, br = browser) {
   if (only && !name.includes(only)) return;
-  const ctx = await browser.newContext(ctxOpts);
+  const ctx = await br.newContext(ctxOpts);
   const page = await ctx.newPage();
   await page.goto(url(scene, extra));
   await page.waitForFunction(() => window.__moonveil?.ready, null, { timeout: 20000 });
@@ -58,6 +58,17 @@ await shot(phone, 'ghost', 'phone-portrait-ghost-view', 4000);
 // phone landscape
 await shot(phoneLand, 'lobby', 'phone-landscape-day-lobby', 4200);
 await shot(phoneLand, 'night', 'phone-landscape-night', 12500);
+
+// WebKit (Safari engine) phone emulation. Labelled "WebKit/browser emulation", not iPhone validation.
+// WebKit writes only ~/Library/{Preferences/org.webkit.Playwright.plist, WebKit/org.webkit.Playwright/, Caches/org.webkit.Playwright/} (granted).
+if (!args.includes('--no-webkit')) {
+  const wk = await webkit.launch();
+  const wkPhone = { ...devices['iPhone 13'], deviceScaleFactor: 2 };
+  await shot(wkPhone, 'lobby', 'webkit-phone-portrait-day-lobby', 4200, '', undefined, wk);
+  await shot(wkPhone, 'seating', 'webkit-phone-portrait-campfire-seating', 6500, '', undefined, wk);
+  await shot(wkPhone, 'night', 'webkit-phone-portrait-night', 12500, '', undefined, wk);
+  await wk.close();
+}
 
 if (!noVideo && !only) {
   const size = { width: 1280, height: 720 };
