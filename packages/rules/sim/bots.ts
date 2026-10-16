@@ -1,32 +1,38 @@
-// Balance-screening bots. NOT players: crude, explicit policies to catch obviously broken setups (Q17/Q18).
-// Bots decide only from their own seat projection + a modelled public "claims" table (speech), never hidden state.
-import { apply, createMatch, project, stepTiming, type AvailableAction, type Command, type DeckCounts, type DeepPartial, type MatchState, type Projection, type RulesConfig, type Seat } from '../src/index.ts';
+// Balance-screening bots (PROVISIONAL tooling). NOT players: crude, explicit policies that only screen for obviously
+// broken setups (Q17/Q18). Bots act on their own seat projection plus a modelled public-speech table. Hidden state
+// is used in exactly two documented places: the noisy "social read" weight and which wolf counter-claims.
+import {
+  apply, createMatch, project, stepTiming,
+  type AvailableAction, type Command, type DeckCounts, type DeepPartial, type MatchState, type Projection, type RulesConfig, type Seat,
+} from '../src/index.ts';
 import { nextInt, nextRandom } from '../src/rng.ts';
 
 export type PolicyName = 'random' | 'heuristic';
 
-/** Heuristic knobs (all explicit assumptions). */
-export const HEURISTIC = {
-  /** Village read quality: a living wolf is this many times more likely to be suspected than a villager. */
+/** Heuristic knobs: every one is an assumption about human play. Override per run via playMatch({ knobs }). */
+export const HEURISTIC_DEFAULTS = {
+  /** Social read: a living wolf is this many times more likely than a villager to be suspected (1 = no read). */
   wolfSuspicionWeight: 1.5,
-  /** Chance a village voter follows the current leading candidate (bandwagon). */
+  /** Chance a villager repeats the currently most-accused player instead of its own read. */
   bandwagon: 0.5,
-  /** Chance a village voter votes Skip when it has no claim to follow. */
+  /** Chance a villager votes Skip when no claim guides it. */
   skip: 0.1,
   /** When the real Seer claims, chance a living wolf counter-claims (accusing the real Seer). */
   counterClaim: 0.5,
-  /** With two Seer claims, chance a village voter trusts the real one. */
+  /** With two Seer claims, chance a villager trusts the real one. */
   trustRealSeer: 0.6,
-  /** Yes/No: village says yes with this chance (no claim info). */
+  /** Yes/No: chance a villager votes Yes on an accused with no claim information. */
   confirmYes: 0.65,
-  /** Guard protects self with this chance when no Seer claim. */
+  /** Chance a Guard protects itself when there is no Seer claim to protect. */
   guardSelf: 0.2,
 };
+export type Knobs = typeof HEURISTIC_DEFAULTS;
+let K: Knobs = HEURISTIC_DEFAULTS;
 
 class Rng {
   s: number;
   constructor(seed: number) {
-    this.s = seed;
+    this.s = seed >>> 0;
   }
   int(n: number): number {
     const r = nextInt(this.s, n);
@@ -53,69 +59,80 @@ class Rng {
     }
     return xs[xs.length - 1] as T;
   }
+  shuffle<T>(xs: T[]): T[] {
+    for (let i = xs.length - 1; i > 0; i--) {
+      const j = this.int(i + 1);
+      [xs[i], xs[j]] = [xs[j] as T, xs[i] as T];
+    }
+    return xs;
+  }
 }
 
-/** Public speech model: what has been claimed out loud. */
-interface Claims {
+/** Public speech: Seer claims and the day's spoken accusations. */
+interface Table {
   real: { seat: Seat; wolves: Seat[]; clears: Seat[] } | null;
   fake: { seat: Seat; accuses: Seat } | null;
+  /** Seat -> who they accused aloud in today's discussion. */
+  accusations: Map<Seat, Seat>;
 }
 
 export interface MatchResult {
   winner: string;
   nights: number;
+  /** Sum of full step durations entered (votes and nights always run to deadline; Hunter counted at full 20 s). */
   seconds: number;
-  /** Final state, for diagnostics only. */
-  final: MatchState;
-  claimed: boolean;
-  counterClaimed: boolean;
+  executions: { wolf: number; village: number };
 }
 
-export function playMatch(opts: { seed: number; players: number; policy: PolicyName; deck?: DeckCounts; config?: DeepPartial<RulesConfig> }): MatchResult {
+export function playMatch(opts: {
+  seed: number;
+  players: number;
+  policy: PolicyName;
+  deck?: DeckCounts;
+  config?: DeepPartial<RulesConfig>;
+  knobs?: Partial<Knobs>;
+}): MatchResult {
+  K = { ...HEURISTIC_DEFAULTS, ...opts.knobs };
   const r = createMatch({ seed: opts.seed, playerCount: opts.players, deck: opts.deck, config: { players: { min: 3, max: 30 }, ...opts.config } });
   if (!r.ok) throw new Error(r.error.message);
   let s = r.state;
   const rng = new Rng(opts.seed ^ 0x5bd1e995);
-  const claims: Claims = { real: null, fake: null };
+  const table: Table = { real: null, fake: null, accusations: new Map() };
   let seconds = 0;
-  let lastStep = '';
-  const act = (seat: Seat, cmd: Command) => {
+  let seq = -1;
+  const act = (seat: Seat, cmd: Command | null) => {
+    if (!cmd) return;
     const res = apply(s, { kind: 'seat', seat }, cmd);
-    if (res.ok) s = res.state; // menus are legal; a rejection only means a stale choice, ignore
+    if (res.ok) s = res.state;
   };
-  for (let guard = 0; guard < 2000 && s.step.kind !== 'ended'; guard++) {
-    const key = `${s.step.kind}:${s.night}:${s.day}`;
-    if (key !== lastStep) {
-      seconds += stepTiming(s).seconds; // full durations (no early close): upper-bound pace
-      lastStep = key;
+  for (let guard = 0; guard < 3000 && s.step.kind !== 'ended'; guard++) {
+    if (s.stepSeq !== seq) {
+      seq = s.stepSeq;
+      seconds += stepTiming(s).seconds;
+      if (s.step.kind === 'day.discussion') {
+        table.accusations.clear();
+        if (opts.policy === 'heuristic') discuss(s, table, rng);
+      }
     }
-    if (s.step.kind === 'day.discussion' && opts.policy === 'heuristic') speak(s, claims, rng);
-    // Seats act in random order (so bandwagon sees earlier votes).
-    const order = s.seats.map((x) => x.seat);
-    for (let i = order.length - 1; i > 0; i--) {
-      const j = rng.int(i + 1);
-      [order[i], order[j]] = [order[j] as Seat, order[i] as Seat];
-    }
-    for (const seat of order) {
-      const p = project(s, { kind: 'seat', seat });
-      for (const a of p.me?.actions ?? []) {
-        const fresh = project(s, { kind: 'seat', seat });
-        const cur = fresh.me?.actions.find((x) => x.type === a.type);
-        if (!cur || hasActed(cur)) continue;
-        const cmd = opts.policy === 'random' ? randomChoice(cur, seat, rng) : heuristicChoice(cur, fresh, s, claims, rng);
-        if (cmd) act(seat, cmd);
+    for (const seat of rng.shuffle(s.seats.map((x) => x.seat))) {
+      const types = (project(s, { kind: 'seat', seat }).me?.actions ?? []).map((a) => a.type);
+      for (const type of types) {
+        const p = project(s, { kind: 'seat', seat }); // re-project: an earlier action can change later menus
+        const a = p.me?.actions.find((x) => x.type === type);
+        if (!a || hasActed(a)) continue;
+        act(seat, opts.policy === 'random' ? randomChoice(a, seat, rng) : heuristicChoice(a, p, s, table, rng));
       }
     }
     const closed = apply(s, { kind: 'system' }, { type: 'step.close' });
     if (!closed.ok) throw new Error(closed.error.message);
     s = closed.state;
   }
-  return { winner: s.outcome?.winner ?? 'timeout', nights: s.night, seconds, final: s, claimed: claims.real !== null, counterClaimed: claims.fake !== null };
+  const executions = { wolf: 0, village: 0 };
+  for (const e of s.publicLog) if (e.t === 'executed') executions[s.seats[e.seat]?.role === 'wolf' ? 'wolf' : 'village']++;
+  return { winner: s.outcome?.winner ?? 'timeout', nights: s.night, seconds, executions };
 }
 
-function hasActed(a: AvailableAction): boolean {
-  return 'current' in a && a.current !== null;
-}
+const hasActed = (a: AvailableAction) => 'current' in a && a.current !== null;
 
 // ---------- random policy: uniform over legal options ----------
 
@@ -123,11 +140,9 @@ function randomChoice(a: AvailableAction, seat: Seat, rng: Rng): Command | null 
   const t = 'targets' in a ? a.targets : [];
   switch (a.type) {
     case 'wolf.pick':
-      return t.length ? { type: a.type, seat, target: rng.pick(t) } : null;
     case 'seer.inspect':
       return t.length ? { type: a.type, seat, target: rng.pick(t) } : null;
     case 'guard.protect':
-    case 'hunter.pin':
     case 'hunter.shoot':
       return { type: a.type, seat, target: t.length ? rng.pick(t) : 'pass' };
     case 'witch.heal':
@@ -135,34 +150,13 @@ function randomChoice(a: AvailableAction, seat: Seat, rng: Rng): Command | null 
     case 'witch.poison':
       return { type: a.type, seat, target: t.length && rng.chance(0.25) ? rng.pick(t) : 'pass' };
     case 'vote.nominate':
-      return { type: a.type, seat, target: rng.chance(1 / (t.length + 1)) || !t.length ? 'skip' : rng.pick(t) };
+      return { type: a.type, seat, target: !t.length || rng.chance(1 / (t.length + 1)) ? 'skip' : rng.pick(t) };
     case 'vote.confirm':
       return { type: a.type, seat, choice: rng.chance(0.5) ? 'yes' : 'no' };
   }
 }
 
 // ---------- heuristic policy ----------
-
-/** Day speech: Seer claims once it has found a living wolf; a wolf may counter-claim. */
-function speak(s: MatchState, claims: Claims, rng: Rng): void {
-  if (claims.real) {
-    // Real seer updates results each day while alive.
-    const p = project(s, { kind: 'seat', seat: claims.real.seat });
-    if (p.me?.alive) Object.assign(claims.real, seerResults(p));
-    return;
-  }
-  for (const seat of s.seats.filter((x) => x.alive)) {
-    const p = project(s, { kind: 'seat', seat: seat.seat });
-    if (p.me?.role !== 'seer') continue;
-    const res = seerResults(p);
-    if (res.wolves.some((w) => s.seats[w]?.alive)) {
-      claims.real = { seat: seat.seat, ...res };
-      // A living wolf decides to counter-claim (each wolf knows its own role; no other hidden state used).
-      const wolves = s.seats.filter((x) => x.alive && x.role === 'wolf');
-      if (wolves.length && rng.chance(HEURISTIC.counterClaim)) claims.fake = { seat: rng.pick(wolves).seat, accuses: seat.seat };
-    }
-  }
-}
 
 function seerResults(p: Projection): { wolves: Seat[]; clears: Seat[] } {
   const f = p.me?.facts ?? [];
@@ -172,62 +166,119 @@ function seerResults(p: Projection): { wolves: Seat[]; clears: Seat[] } {
   };
 }
 
-function heuristicChoice(a: AvailableAction, p: Projection, s: MatchState, claims: Claims, rng: Rng): Command | null {
+/** Discussion: the Seer may claim; then every living player accuses someone aloud, in random order. */
+function discuss(s: MatchState, table: Table, rng: Rng): void {
+  const alive = s.seats.filter((x) => x.alive).map((x) => x.seat);
+  const isAlive = (x: Seat) => alive.includes(x);
+  if (table.real && isAlive(table.real.seat)) Object.assign(table.real, seerResults(project(s, { kind: 'seat', seat: table.real.seat })));
+  if (!table.real) {
+    for (const seat of alive) {
+      const p = project(s, { kind: 'seat', seat });
+      if (p.me?.role !== 'seer') continue;
+      const res = seerResults(p);
+      if (res.wolves.some(isAlive)) {
+        table.real = { seat, ...res };
+        // Documented hidden-state use #2: which living wolf counter-claims.
+        const wolves = s.seats.filter((x) => x.alive && x.role === 'wolf');
+        if (wolves.length && rng.chance(K.counterClaim)) table.fake = { seat: rng.pick(wolves).seat, accuses: seat };
+      }
+    }
+  }
+  for (const seat of rng.shuffle([...alive])) {
+    const p = project(s, { kind: 'seat', seat });
+    const target = accuse(p, s, table, rng);
+    if (target !== null) table.accusations.set(seat, target);
+  }
+}
+
+function mostAccused(table: Table, alive: (x: Seat) => boolean, exclude: Set<Seat> = new Set()): Seat | null {
+  const counts = new Map<Seat, number>();
+  for (const t of table.accusations.values()) if (alive(t) && !exclude.has(t)) counts.set(t, (counts.get(t) ?? 0) + 1);
+  let best: Seat | null = null;
+  let n = 0;
+  for (const [k, c] of counts) if (c > n) [best, n] = [k, c];
+  return best;
+}
+
+function claimTarget(table: Table, alive: (x: Seat) => boolean, rng: Rng): Seat | null {
+  const realWolf = table.real?.wolves.find(alive) ?? null;
+  const fake = table.fake && alive(table.fake.seat) && alive(table.fake.accuses) ? table.fake.accuses : null;
+  if (realWolf !== null && fake !== null) return rng.chance(K.trustRealSeer) ? realWolf : fake;
+  return realWolf ?? fake;
+}
+
+/** Who this seat accuses aloud. */
+function accuse(p: Projection, s: MatchState, table: Table, rng: Rng): Seat | null {
+  const me = p.me;
+  if (!me) return null;
+  const alive = (x: Seat) => p.seats[x]?.alive === true;
+  const others = p.seats.filter((x) => x.alive && x.seat !== me.seat).map((x) => x.seat);
+  if (!others.length) return null;
+  const pack = new Set(p.pack?.seats ?? []);
+  if (me.role === 'wolf') {
+    const lead = mostAccused(table, alive, pack);
+    if (lead !== null) return lead;
+    if (table.real && alive(table.real.seat)) return table.real.seat;
+    const v = others.filter((x) => !pack.has(x));
+    return v.length ? rng.pick(v) : null;
+  }
+  if (table.real?.seat === me.seat) return table.real.wolves.find(alive) ?? null;
+  const follow = claimTarget(table, alive, rng);
+  if (follow !== null && follow !== me.seat) return follow;
+  const lead = mostAccused(table, alive);
+  if (lead !== null && lead !== me.seat && rng.chance(K.bandwagon)) return lead;
+  const cleared = new Set(table.real?.clears ?? []);
+  const pool = others.filter((x) => !cleared.has(x));
+  // Documented hidden-state use #1: the noisy social read weights true wolves by wolfSuspicionWeight.
+  return rng.weighted(pool.length ? pool : others, (x) => (s.seats[x]?.role === 'wolf' ? K.wolfSuspicionWeight : 1));
+}
+
+function heuristicChoice(a: AvailableAction, p: Projection, s: MatchState, table: Table, rng: Rng): Command | null {
   const me = p.me;
   if (!me) return null;
   const seat = me.seat;
   const t = 'targets' in a ? a.targets : [];
   const alive = (x: Seat) => p.seats[x]?.alive === true;
   const pack = new Set(p.pack?.seats ?? []);
-  const claimedWolf = claims.real?.wolves.find(alive) ?? null;
+  const claimedWolf = table.real?.wolves.find(alive) ?? null;
   switch (a.type) {
     case 'wolf.pick': {
-      // Pack bites the real claimed Seer; else follows an existing pack pick; else random village.
+      if (table.real && t.includes(table.real.seat)) return { type: a.type, seat, target: table.real.seat };
       const existing = p.pack?.picks?.find((x) => typeof x === 'number');
-      if (claims.real && t.includes(claims.real.seat)) return { type: a.type, seat, target: claims.real.seat };
       if (typeof existing === 'number' && t.includes(existing)) return { type: a.type, seat, target: existing };
       return t.length ? { type: a.type, seat, target: rng.pick(t) } : null;
     }
     case 'seer.inspect': {
       const seen = new Set(me.facts.flatMap((f) => (f.k === 'inspect' ? [f.target] : [])));
       const fresh = t.filter((x) => !seen.has(x));
-      return { type: a.type, seat, target: rng.pick(fresh.length ? fresh : t) };
+      return t.length ? { type: a.type, seat, target: rng.pick(fresh.length ? fresh : t) } : null;
     }
     case 'guard.protect': {
-      if (claims.real && t.includes(claims.real.seat)) return { type: a.type, seat, target: claims.real.seat };
-      if (t.includes(seat) && rng.chance(HEURISTIC.guardSelf)) return { type: a.type, seat, target: seat };
+      if (table.real && t.includes(table.real.seat)) return { type: a.type, seat, target: table.real.seat };
+      if (t.includes(seat) && rng.chance(K.guardSelf)) return { type: a.type, seat, target: seat };
       const others = t.filter((x) => x !== seat);
       return { type: a.type, seat, target: others.length ? rng.pick(others) : 'pass' };
     }
     case 'witch.heal':
       return { type: a.type, seat, use: a.canUse };
-    case 'witch.poison':
-      return { type: a.type, seat, target: claimedWolf !== null && t.includes(claimedWolf) && trustsReal(claims, rng) ? claimedWolf : 'pass' };
-    case 'hunter.pin':
+    case 'witch.poison': {
+      const trusted = claimedWolf !== null && (!table.fake || rng.chance(K.trustRealSeer));
+      return { type: a.type, seat, target: trusted && t.includes(claimedWolf) ? claimedWolf : 'pass' };
+    }
     case 'hunter.shoot': {
-      const sus = claimedWolf ?? lastLeader(p);
+      const sus = claimedWolf ?? mostAccused(table, alive, new Set([seat]));
       return { type: a.type, seat, target: sus !== null && t.includes(sus) ? sus : t.length ? rng.pick(t) : 'pass' };
     }
     case 'vote.nominate': {
-      const step = s.step.kind === 'day.vote' ? s.step : null;
-      const leader = step ? leading(p) : null;
+      // Ballots are hidden until close (approved), so votes follow what was said aloud.
       if (me.role === 'wolf') {
-        // Wolves pile on the leading non-wolf, else the real Seer if claimed, else a random village seat.
-        if (leader !== null && !pack.has(leader)) return { type: a.type, seat, target: leader };
-        if (claims.real && t.includes(claims.real.seat)) return { type: a.type, seat, target: claims.real.seat };
+        const lead = mostAccused(table, alive, pack);
         const v = t.filter((x) => !pack.has(x));
-        return { type: a.type, seat, target: v.length ? rng.pick(v) : 'skip' };
+        return { type: a.type, seat, target: lead !== null && t.includes(lead) ? lead : v.length ? rng.pick(v) : 'skip' };
       }
-      if (claims.real && claims.real.seat === seat && claimedWolf !== null && t.includes(claimedWolf)) return { type: a.type, seat, target: claimedWolf };
-      const follow = claimTarget(claims, alive, rng);
-      if (follow !== null && t.includes(follow) && follow !== seat) return { type: a.type, seat, target: follow };
-      if (leader !== null && t.includes(leader) && rng.chance(HEURISTIC.bandwagon)) return { type: a.type, seat, target: leader };
-      if (rng.chance(HEURISTIC.skip)) return { type: a.type, seat, target: 'skip' };
-      const cleared = new Set(claims.real?.clears ?? []);
-      const pool = t.filter((x) => !cleared.has(x));
-      const pool2 = pool.length ? pool : t;
-      // Noisy read: wolves slightly more suspicious. (Uses true role only as a weight, modelling imperfect social reads.)
-      return { type: a.type, seat, target: rng.weighted(pool2, (x) => (s.seats[x]?.role === 'wolf' ? HEURISTIC.wolfSuspicionWeight : 1)) };
+      const said = table.accusations.get(seat);
+      if (said !== undefined && t.includes(said) && !(claimedWolf === null && rng.chance(K.skip))) return { type: a.type, seat, target: said };
+      return { type: a.type, seat, target: 'skip' };
     }
     case 'vote.confirm': {
       const accused = s.step.kind === 'day.confirm' ? s.step.accused : null;
@@ -235,43 +286,9 @@ function heuristicChoice(a: AvailableAction, p: Projection, s: MatchState, claim
       if (me.role === 'wolf') return { type: a.type, seat, choice: pack.has(accused) ? 'no' : 'yes' };
       if (accused === seat) return { type: a.type, seat, choice: 'no' };
       if (claimedWolf === accused) return { type: a.type, seat, choice: 'yes' };
-      if (claims.real?.seat === accused) return { type: a.type, seat, choice: rng.chance(1 - HEURISTIC.trustRealSeer) ? 'yes' : 'no' };
-      return { type: a.type, seat, choice: rng.chance(HEURISTIC.confirmYes) ? 'yes' : 'no' };
+      if (table.real?.seat === accused) return { type: a.type, seat, choice: rng.chance(1 - K.trustRealSeer) ? 'yes' : 'no' };
+      if (table.accusations.get(seat) === accused) return { type: a.type, seat, choice: 'yes' };
+      return { type: a.type, seat, choice: rng.chance(K.confirmYes) ? 'yes' : 'no' };
     }
   }
-}
-
-function trustsReal(claims: Claims, rng: Rng): boolean {
-  return !claims.fake || rng.chance(HEURISTIC.trustRealSeer);
-}
-
-/** Who a village voter follows given public claims (null = no claim to follow). */
-function claimTarget(claims: Claims, alive: (x: Seat) => boolean, rng: Rng): Seat | null {
-  const realWolf = claims.real?.wolves.find(alive) ?? null;
-  const fake = claims.fake && alive(claims.fake.seat) && alive(claims.fake.accuses) ? claims.fake.accuses : null;
-  if (realWolf !== null && fake !== null) return rng.chance(HEURISTIC.trustRealSeer) ? realWolf : fake;
-  return realWolf ?? fake;
-}
-
-/** Current leading nomination candidate (public, open votes). */
-function leading(p: Projection): Seat | null {
-  if (p.step.kind !== 'day.vote' || !p.step.votes) return null;
-  const counts = new Map<Seat, number>();
-  for (const v of p.step.votes) if (typeof v === 'number') counts.set(v, (counts.get(v) ?? 0) + 1);
-  let best: Seat | null = null;
-  let n = 0;
-  for (const [k, c] of counts) if (c > n) [best, n] = [k, c];
-  return best;
-}
-
-/** Top suspect from the most recent public nomination tally. */
-function lastLeader(p: Projection): Seat | null {
-  for (let i = p.publicLog.length - 1; i >= 0; i--) {
-    const e = p.publicLog[i];
-    if (e?.t === 'nomination') {
-      const top = e.tally.find((x) => typeof x.target === 'number' && p.seats[x.target as Seat]?.alive);
-      return top ? (top.target as Seat) : null;
-    }
-  }
-  return null;
 }
