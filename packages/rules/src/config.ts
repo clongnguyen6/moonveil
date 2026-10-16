@@ -13,6 +13,9 @@ export const NIGHT_TOTAL_SECONDS = 60;
 /** APPROVED: defense length in seconds. */
 export const DEFENSE_SECONDS = 30;
 
+/** APPROVED F1-A (2026-10-16): consecutive no-death full cycles that end the match as a stalemate draw (warning after one fewer). */
+export const STALEMATE_CYCLES = 3;
+
 /** APPROVED Batch A (2026-10-16): supported table sizes. */
 export const PLAYERS_MIN = 7;
 export const PLAYERS_MAX = 15;
