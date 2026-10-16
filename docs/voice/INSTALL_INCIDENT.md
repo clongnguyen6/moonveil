@@ -66,6 +66,11 @@ brew install libnghttp3 libngtcp2
 ```
 Note: this reinstalls them as "installed on request", not as dependencies, so a future autoremove will not remove them again.
 
+Would it bring back the same versions? (read-only, ~16:40)
+- `brew info` today: `libnghttp3: stable 1.18.0 (bottled)`, `libngtcp2: stable 1.25.0 (bottled)`, both with an `arm64_tahoe` bottle; `libngtcp2` depends on `openssl@4`, which is installed (4.0.2_1). So `brew install` would install exactly the removed versions, 1.18.0 and 1.25.0.
+- Old bottles are still in the cache: `~/Library/Caches/Homebrew/downloads/…libnghttp3--1.18.0.arm64_tahoe.bottle.tar.gz` (189,455 B, Jul 26) and `…libngtcp2--1.25.0.arm64_tahoe.bottle.tar.gz` (426,711 B, Jul 27), plus both manifests (Sep 10). Homebrew would reuse them if their checksums match the current formula; otherwise it re-downloads the same version.
+- Uncertain: whether the formulae were last *rebuilt* (bottle revision) since those cached bottles were fetched; the manifests from Sep 10 are newer than the tarballs, which may mean a re-fetch happened then. Also uncertain is the original "installed as dependency of" parent (receipts were deleted). Neither changes the version that would be installed.
+
 ## 4a. Original rollback proposal (kept for the record)
 
 ```
