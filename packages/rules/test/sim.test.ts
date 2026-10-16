@@ -120,7 +120,7 @@ function simulate(seed: number, players: number, config: DeepPartial<RulesConfig
 const VARIANTS: [string, DeepPartial<RulesConfig>][] = [
   ['defaults', {}],
   ['cause at dawn + no history at end', { reveal: { causeAtDawn: true, historyAtEnd: false } }],
-  ['totals only at close, who-voted shown, passes ignored', { day: { revealBallotsAtClose: false, showWhoVoted: true }, wolves: { passHandling: 'ignored' } }],
+  ['totals only at close, passes ignored', { day: { revealBallotsAtClose: false }, wolves: { passHandling: 'ignored' } }],
 ];
 
 describe('randomized matches', () => {

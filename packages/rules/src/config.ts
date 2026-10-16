@@ -2,7 +2,7 @@
 // Approved rules are fixed engine behaviour and are NOT here: six roles; victory (parity / no wolves / zero = draw);
 // resolve-before-victory; Q03 Witch; Q06 Hunter; Q07 wolf plurality; Q09/Q10 nomination, 30 s defense, Yes/No with
 // Yes*2 > living; Q11 night = fixed 60 s, never early; day votes run to deadline with hidden interim results;
-// Q16 moderator Yes count; Q20 reveal rules; Q24 ghost knowledge; Q25 channel policy (except moderator speaking).
+// Q16 moderator Yes count; voted status shown during day votes (choices hidden); Q20 reveal rules; Q24 ghost knowledge; Q25 channel policy (except moderator speaking).
 import { clone } from './clone.ts';
 import type { Role } from './types.ts';
 
@@ -48,8 +48,6 @@ export interface RulesConfig {
     accusedVotesOnConfirm: boolean; // Q10 (not covered by the approvals)
     /** Q22: at close, publish who voted for what (true) or only the totals (false). Interim results are hidden (approved). */
     revealBallotsAtClose: boolean;
-    /** Q22: mid-vote, may players see WHO has voted (not what)? */
-    showWhoVoted: boolean;
   };
   moderator: {
     mayBreakRules: boolean; // Q16
@@ -104,7 +102,7 @@ export const DEFAULT_CONFIG: RulesConfig = {
   seer: { result: 'wolfOrNot' },
   guard: { canProtectSelf: true, noRepeatTarget: true, passResetsRepeat: true },
   protection: { guardBlocksPoison: false, doubleProtectionKills: false },
-  day: { selfVote: false, accusedVotesOnConfirm: true, revealBallotsAtClose: true, showWhoVoted: false },
+  day: { selfVote: false, accusedVotesOnConfirm: true, revealBallotsAtClose: true },
   // speaksInPublic=false: approved Q25 grants the moderator listening only; speech is not approved.
   moderator: { mayBreakRules: false, canActForSeats: true, canSetWolfTarget: true, seesLiveBallots: true, speaksInPublic: false },
   removal: { systemDuringSecret: false },
@@ -142,7 +140,6 @@ export const PROVISIONAL: Record<string, string> = {
   'day.selfVote': 'Q01',
   'day.accusedVotesOnConfirm': 'Q10',
   'day.revealBallotsAtClose': 'Q22',
-  'day.showWhoVoted': 'Q22',
   'moderator.mayBreakRules': 'Q16',
   'moderator.canActForSeats': 'Q16',
   'moderator.canSetWolfTarget': 'Q16',

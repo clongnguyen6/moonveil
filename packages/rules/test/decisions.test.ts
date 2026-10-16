@@ -188,12 +188,12 @@ describe('APPROVED day votes: run to deadline; interim results hidden', () => {
     assert.equal(s.step.kind, 'day.confirm', 'still open until step.close at the deadline');
   });
 
-  it('mid-vote: no tally and no other ballot in any non-moderator view (living, ghost, public, reconnect); own choice visible', () => {
+  it('mid-vote: no tally and no other choice in any non-moderator view (living, ghost, public, reconnect); voters shown; own choice visible', () => {
     const s = voting({ 0: 1, 1: 0, 2: 0 }, 6); // seat 6 is a ghost
     const views: [string, Viewer][] = [['voter', seat(2)], ['non-voter', seat(4)], ['ghost', seat(6)], ['public', { kind: 'public' }]];
     for (const [name, v] of views) {
       for (const p of [project(s, v), reconnect(s, v)]) {
-        assert.deepEqual(p.step, { kind: 'day.vote', day: 1, votes: null, voted: null }, name);
+        assert.deepEqual(p.step, { kind: 'day.vote', day: 1, votes: null, voted: [true, true, true, false, false, false, false] }, name);
         assert.equal(p.publicLog.some((e) => e.t === 'nomination'), false, name);
       }
     }

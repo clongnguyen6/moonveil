@@ -20,10 +20,10 @@ export type StepView =
   | { kind: 'night.main' | 'night.witch'; night: number }
   | { kind: 'hunter'; pending: Seat[]; submitted: Seat[] }
   | { kind: 'day.discussion'; day: number }
-  /** APPROVED: mid-vote, votes is null for every non-moderator viewer; voted is null unless day.showWhoVoted (provisional). */
-  | { kind: 'day.vote'; day: number; votes: (Seat | 'skip' | null)[] | null; voted: boolean[] | null }
+  /** APPROVED: mid-vote, `votes` (choices) is null for every non-moderator viewer; `voted` (who has voted, not what) is shown to all. */
+  | { kind: 'day.vote'; day: number; votes: (Seat | 'skip' | null)[] | null; voted: boolean[] }
   | { kind: 'day.defense'; day: number; accused: Seat }
-  | { kind: 'day.confirm'; day: number; accused: Seat; votes: ('yes' | 'no' | null)[] | null; voted: boolean[] | null }
+  | { kind: 'day.confirm'; day: number; accused: Seat; votes: ('yes' | 'no' | null)[] | null; voted: boolean[] }
   | { kind: 'ended' };
 
 export type AvailableAction =
@@ -128,9 +128,8 @@ function publicCause(c: DeathCause, state: MatchState, full: boolean): DeathCaus
 
 function stepView(state: MatchState, viewer: Viewer): StepView {
   const s = state.step;
-  // APPROVED: interim ballots/tallies are hidden until close. Moderator live view is provisional (seesLiveBallots).
+  // APPROVED: interim choices/tallies are hidden until close; who has voted is shown. Moderator live view is provisional (seesLiveBallots).
   const live = viewer.kind === 'moderator' && state.config.moderator.seesLiveBallots;
-  const who = live || state.config.day.showWhoVoted;
   switch (s.kind) {
     case 'night.main':
     case 'night.witch':
@@ -140,7 +139,7 @@ function stepView(state: MatchState, viewer: Viewer): StepView {
     case 'day.discussion':
       return { kind: s.kind, day: s.day };
     case 'day.vote':
-      return { kind: s.kind, day: s.day, votes: live ? [...s.votes] : null, voted: who ? s.votes.map((v) => v !== null) : null };
+      return { kind: s.kind, day: s.day, votes: live ? [...s.votes] : null, voted: s.votes.map((v) => v !== null) };
     case 'day.defense':
       return { kind: s.kind, day: s.day, accused: s.accused };
     case 'day.confirm':
@@ -149,7 +148,7 @@ function stepView(state: MatchState, viewer: Viewer): StepView {
         day: s.day,
         accused: s.accused,
         votes: live ? [...s.votes] : null,
-        voted: who ? s.votes.map((v) => v !== null) : null,
+        voted: s.votes.map((v) => v !== null),
       };
     case 'ended':
       return { kind: 'ended' };
