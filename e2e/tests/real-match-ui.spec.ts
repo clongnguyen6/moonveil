@@ -5,7 +5,7 @@
 // Skips itself until the UI's entry screen exists in the served build (a skip is never a pass).
 import type { GameView, SeatView } from '@moonveil/protocol';
 import { assertOpenBallotsViews, assertOutcome, assertSeatIsolationViews } from '../../apps/server/test/assertions.ts';
-import { seedFor } from '../../apps/server/test/acceptance-seeds.ts';
+import { ALL_ACCEPTANCE } from '../../apps/server/test/acceptance-seeds.ts';
 import { expect, type Player, test } from '../harness/index.ts';
 import { type BrowserMatch, game, runRealMatch } from '../harness/match.ts';
 import { seatRealMatchUi, uiBotAct, uiCloseStep, uiPresent, uiStats } from '../harness/ui.ts';
@@ -31,16 +31,16 @@ async function resumed(p: Player, seat: string) {
   expect(p.view().me.seat).toBe(seat);
 }
 
-for (const mode of ['automatic', 'moderator'] as const) {
-  for (const seats of [7, 8, 9, 10]) {
-    test(`UI match, ${mode}, ${seats} browsers: reload + network drop, ghosts, open ballots, isolation, outcome`, async ({ table }, info) => {
+for (const seed of ALL_ACCEPTANCE) {
+  const { mode, seats } = seed;
+  {
+    test(`UI match, ${mode}, ${seats} browsers, seed ${seed.S} (${seed.expect.winner}/${seed.expect.reason}): reload + network drop, ghosts, open ballots, isolation, outcome`, async ({ table }, info) => {
       test.skip(isPhone(info.project.name) && seats !== 7, 'phone projects run 7 seats');
       test.setTimeout(isPhone(info.project.name) ? 900_000 : 600_000);
       const probe = await table.player('probe', { baseURL: `http://127.0.0.1:${REAL_PORT}` });
       test.skip(!(await uiPresent(probe)), 'game UI not wired in this build (no [data-testid=entry])');
       await probe.context.close();
 
-      const seed = seedFor(mode, seats); // fixed acceptance seed: roles + bot choices, expected end path
       let outcome: unknown = null;
       uiStats.attempted = uiStats.done = 0;
       uiStats.misses = [];

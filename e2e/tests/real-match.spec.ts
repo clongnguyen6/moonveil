@@ -3,7 +3,7 @@
 // Asserts on the wire of every browser: isolation, open day ballots, wolf chat isolation, outcome.
 import type { GameView, SeatView } from '@moonveil/protocol';
 import { assertOpenBallotsViews, assertOutcome, assertSeatIsolationViews } from '../../apps/server/test/assertions.ts';
-import { seedFor } from '../../apps/server/test/acceptance-seeds.ts';
+import { ALL_ACCEPTANCE } from '../../apps/server/test/acceptance-seeds.ts';
 import { expect, type Player, test } from '../harness/index.ts';
 import { game, protocolActor, runRealMatch, seatRealMatch, send } from '../harness/match.ts';
 
@@ -35,11 +35,11 @@ function assertVoiceWire(p: Player): number {
   return checked;
 }
 
-for (const mode of ['automatic', 'moderator'] as const) {
-  for (const seats of [7, 8, 9, 10]) {
-    test(`real match, ${mode}, ${seats} browsers: isolation, open ballots, wolf chat, outcome`, async ({ table }) => {
+for (const seed of ALL_ACCEPTANCE) {
+  const { mode, seats } = seed;
+  {
+    test(`real match, ${mode}, ${seats} browsers, seed ${seed.S} (${seed.expect.winner}/${seed.expect.reason}): isolation, open ballots, wolf chat, outcome`, async ({ table }) => {
       test.setTimeout(240_000);
-      const seed = seedFor(mode, seats); // fixed acceptance seed: roles + bot choices, expected end path
       const m = await seatRealMatch(table, { mode, seats, baseURL: `http://127.0.0.1:${REAL_PORT}`, hostName: seed.S });
       let ballotSteps = 0;
       let wolfChat = false;

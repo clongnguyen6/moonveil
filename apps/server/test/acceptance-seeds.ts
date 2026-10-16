@@ -19,11 +19,20 @@ export const ACCEPTANCE_SEEDS: AcceptanceSeed[] = [
   { mode: 'moderator', seats: 10, S: 'm10-39', expect: { winner: 'village', reason: 'noWolves' } },
 ];
 
+// Extra matches for paths the 7-10 grid doesn't hit (seed-search-zero.ts): Q14 zero survivors, one per mode.
+export const EXTRA_SEEDS: AcceptanceSeed[] = [
+  { mode: 'automatic', seats: 9, S: 'a9-1025', expect: { winner: 'draw', reason: 'zeroSurvivors' } },
+  { mode: 'moderator', seats: 7, S: 'm7-1124', expect: { winner: 'draw', reason: 'zeroSurvivors' } },
+];
+
+// Every acceptance match: the grid (one per mode x 7-10 seats) plus the extras.
+export const ALL_ACCEPTANCE: AcceptanceSeed[] = [...ACCEPTANCE_SEEDS, ...EXTRA_SEEDS];
+
 export const seedFor = (mode: string, seats: number) => {
   const s = ACCEPTANCE_SEEDS.find((x) => x.mode === mode && x.seats === seats);
   if (!s) throw new Error(`no acceptance seed for ${mode} ${seats}`);
   return s;
 };
 
-// End paths the suite must cover per mode (zero-survivors: only if a seed is found; see seed-search-zero.ts).
-export const REQUIRED_PATHS = ['wolves/parity', 'village/noWolves', 'draw/stalemate'];
+// End paths every acceptance suite covers per mode.
+export const REQUIRED_PATHS = ['wolves/parity', 'village/noWolves', 'draw/stalemate', 'draw/zeroSurvivors'];

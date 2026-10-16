@@ -57,5 +57,5 @@ Status: foundation, 2026-10-16. The harness is ready now; the UI-driven layer wa
   | moderator | m7-2 village | m8-3 wolves | m9-54 stalemate | m10-39 village |
 
   Phones reuse the 7-seat seeds. Every browser suite asserts each match's expected outcome. `acceptance-seeds.test.ts` re-simulates the table in-process, so a rules change that shifts an outcome fails a light test, not only the heavy suites.
-- **Q14 zero survivors:** no seed found for automatic 7 or 8 in 2,000 seeds each (bot policy as above); the remaining shapes are being searched. Reachability under this policy is not shown; if a seed turns up, it's added as an extra match.
+- **Q14 zero survivors:** reachable. Found within seats + 3 days for automatic 9 and 10, and moderator 7, 8 and 9; none in 2,000 seeds for automatic 7/8 or moderator 10. Added as extra matches: `a9-1025` (automatic, 9, day 5) and `m7-1124` (moderator, 7, day 3), so each mode covers all four end paths (`EXTRA_SEEDS`, required by `acceptance-seeds.test.ts`). Phones run the 7-seat cases (`a7-0`, `m7-2`, `m7-1124`).
 - **Search scripts must yield to the event loop between simulated matches.** Otherwise pending voice-sync callbacks hold every room and memory grows about 0.5 MB per match. Measured: flat at 10–14 MB over 400 matches with yields. Not a server leak.
