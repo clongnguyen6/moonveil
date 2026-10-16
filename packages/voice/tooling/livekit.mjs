@@ -47,6 +47,9 @@ export function goIsRecentEnough(v) {
 }
 
 // Render the server config. auto_create off: only names the game server chose can be joined.
+// UDP: LiveKit's multiplexed `udp_port` range (many peer connections per port) instead of one port per
+// connection (`port_range_*`): a 10-seat match with a moderator holds ~17 concurrent connections and a
+// rotation doubles that briefly, which exhausted a 30-port range (ICE "could not establish pc connection").
 export function renderConfig({ port, tcpPort, udpStart, udpEnd, apiKey, apiSecret, bind = '127.0.0.1' }) {
   return [
     `port: ${port}`,
@@ -54,8 +57,7 @@ export function renderConfig({ port, tcpPort, udpStart, udpEnd, apiKey, apiSecre
     `  - ${bind}`,
     'rtc:',
     `  tcp_port: ${tcpPort}`,
-    `  port_range_start: ${udpStart}`,
-    `  port_range_end: ${udpEnd}`,
+    `  udp_port: ${udpStart}-${udpEnd}`,
     '  use_external_ip: false',
     'keys:',
     `  ${apiKey}: ${apiSecret}`,
