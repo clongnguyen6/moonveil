@@ -1,0 +1,22 @@
+{
+  "name": "moonveil-preview",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Moonveil camp visual preview. Self-contained; not wired into the root workspace yet.",
+  "scripts": {
+    "dev": "vite --port 4200 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4201 --strictPort",
+    "capture": "node scripts/capture.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "pixi.js": "8.22.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.4"
+  }
+}
