@@ -63,17 +63,7 @@ function Root() {
   const wake = useWakeLock(!!view && view.status === 'playing');
 
   return (
-    <div
-      className="app"
-      data-testid="app"
-      data-phase={skin}
-      // Keys typed into a text field must not reach window listeners (the scene's WASD/Space handler walks the avatar
-      // and swallows spaces, packages/scene/src/input.ts:16; reported as P14). Escape still bubbles so sheets close.
-      onKeyDown={(e) => {
-        const el = e.target as HTMLElement;
-        if (e.key !== 'Escape' && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) e.stopPropagation();
-      }}
-    >
+    <div className="app" data-testid="app" data-phase={skin}>
       {!view ? (
         <EntryScreen s={s} />
       ) : (
