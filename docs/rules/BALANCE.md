@@ -131,6 +131,49 @@ Reading: at 6, 7 and 13 players the Village needs every trial to hit a wolf unle
 6. **The random policy is wolf-favoured at every size** (Village 0–15%). That's expected under the approved parity rule.
 7. **Match length** (heuristic, median, upper bound): 11–16 min at 7–9 players, 20–26 min at 10–12, 24–30 min at 13–16. That fits the Q19 estimate.
 
+## Smarter-village sensitivity on the approved decks (bounds the bot artifact)
+The default bots let a perfectly coordinated wolf bloc steer a naive village. This preset makes the village smarter:
+- the Seer claims by day 2 and shares every result;
+- villagers trust the real Seer 90% of the time and never accuse or convict a player the Seer cleared;
+- villagers follow the live vote leader less (0.2).
+
+Run with `node packages/rules/sim/balance.ts 1000 smart` (knobs: `SMART_VILLAGE` in `sim/bots.ts`). Bots are still not players.
+
+#### Smarter-village sensitivity on the approved decks (heuristic, n=1000 per row)
+
+| Players | Deck | Village bots | Village win % [95% CI] | Wolves % | Exec. hit wolf % | Nights | Minutes p50 |
+|---|---|---|---|---|---|---|---|
+| 7 | 2W 1S 1Wi 1G 1H 1V | default | 42 [39–45] | 58 | 38 | 2.8 | 11 |
+| 7 | 2W 1S 1Wi 1G 1H 1V | smart | 50 [47–53] | 50 | 49 | 3.0 | 14 |
+| 8 | 2W 1S 1Wi 1G 1H 2V | default | 49 [45–52] | 52 | 36 | 3.3 | 14 |
+| 8 | 2W 1S 1Wi 1G 1H 2V | smart | 56 [52–59] | 45 | 43 | 3.5 | 15 |
+| 9 | 2W 1S 1Wi 1G 1H 3V | default | 50 [47–53] | 50 | 32 | 3.7 | 16 |
+| 9 | 2W 1S 1Wi 1G 1H 3V | smart | 58 [55–61] | 42 | 40 | 3.9 | 18 |
+| 10 | 2W 1S 1Wi 1G 1H 4V | default | 55 [52–58] | 45 | 31 | 4.0 | 20 |
+| 10 | 2W 1S 1Wi 1G 1H 4V | smart | 60 [57–63] | 40 | 37 | 4.3 | 21 |
+| 11 | 2W 1S 1Wi 1G 1H 5V | default | 57 [54–60] | 43 | 29 | 4.4 | 22 |
+| 11 | 2W 1S 1Wi 1G 1H 5V | smart | 62 [59–65] | 38 | 34 | 4.8 | 25 |
+| 12 | 2W 1S 1Wi 1G 1H 6V | default | 57 [54–60] | 43 | 26 | 4.8 | 26 |
+| 12 | 2W 1S 1Wi 1G 1H 6V | smart | 65 [62–68] | 35 | 31 | 5.2 | 27 |
+| 13 | 3W 1S 1Wi 1G 1H 6V | default | 27 [24–30] | 73 | 26 | 5.4 | 28 |
+| 13 | 3W 1S 1Wi 1G 1H 6V | smart | 35 [32–38] | 65 | 31 | 5.8 | 30 |
+| 13 | 2W 1S 1Wi 1G 1H 7V | default | 58 [55–61] | 42 | 25 | 5.2 | 28 |
+| 13 | 2W 1S 1Wi 1G 1H 7V | smart | 64 [61–67] | 36 | 30 | 5.6 | 30 |
+| 14 | 3W 1S 1Wi 1G 1H 7V | default | 34 [31–37] | 66 | 26 | 5.9 | 32 |
+| 14 | 3W 1S 1Wi 1G 1H 7V | smart | 39 [36–42] | 61 | 30 | 6.3 | 34 |
+| 14 | 2W 1S 1Wi 1G 1H 8V | default | 64 [61–67] | 36 | 26 | 5.5 | 30 |
+| 14 | 2W 1S 1Wi 1G 1H 8V | smart | 64 [61–67] | 36 | 28 | 6.0 | 34 |
+| 15 | 3W 1S 1Wi 1G 1H 8V | default | 31 [28–34] | 69 | 23 | 6.4 | 34 |
+| 15 | 3W 1S 1Wi 1G 1H 8V | smart | 37 [34–40] | 63 | 26 | 6.9 | 37 |
+| 15 | 2W 1S 1Wi 1G 1H 9V | default | 63 [60–66] | 37 | 23 | 5.9 | 34 |
+| 15 | 2W 1S 1Wi 1G 1H 9V | smart | 71 [68–73] | 29 | 27 | 6.3 | 36 |
+
+**Reading:**
+1. **7–12 players, 2 Wolves (approved):** Village wins 42–57% with default bots and 50–65% with the smarter village. Balanced to slightly village-favoured; no warning sign.
+2. **13–15 players, 3 Wolves (approved):** 27–34% with default bots and 35–39% with the smarter village. That's **wolf-favoured under both assumptions**, so this is the size to watch in playtests.
+3. **13–15 players with 2 Wolves (information only):** 58–64% and 64–71%, which is village-favoured. Real play likely lies between the two settings for 13–15; playtest data should decide.
+4. Smarter bots raise the share of executions that hit a Wolf by 2–11 points (most at small tables). At 13–15 players it stays near or below random play (23–31%), so even these bots probably understate a real village at large tables.
+
 ## Suggested next step (for the Q17/Q18 decision, provisional)
 Playtest candidates; these aren't recommendations to adopt yet:
 - 7–9 players: 2 wolves (as now).
