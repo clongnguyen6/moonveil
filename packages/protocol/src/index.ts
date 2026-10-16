@@ -107,7 +107,8 @@ export interface SeatView {
   // Rules engine id: 'moonveil-werewolf' (real) or 'fixture' (tests). Selects how to read `game`.
   engine: string;
   mode: Mode;
-  voiceMode: VoiceMode;
+  // Always sent by the server. Optional only until the game-ui stub sets it; then required.
+  voiceMode?: VoiceMode;
   status: RoomStatus;
   me: { seat: SeatId; kind: SeatKind; host: boolean };
   players: PublicSeat[];
@@ -117,7 +118,8 @@ export interface SeatView {
   // Automatic mode: server time (ms epoch) when the current phase closes; null while paused or in moderator mode.
   phaseEndsAt: number | null;
   // Automatic mode: full length of the current phase (static per phase). Ring = (phaseEndsAt - serverNow) / this.
-  phaseDurationMs: number | null;
+  // Always sent by the server. Optional only until the game-ui stub sets it; then required.
+  phaseDurationMs?: number | null;
   // Rules-engine projection for this viewer. Opaque to the shell.
   game: unknown;
   // This seat's channel grants now, for text AND voice. Voice runs only when voiceMode === 'remote'.
@@ -155,8 +157,8 @@ export function gameView(v: SeatView): GameView | null {
 export interface ChatMessage {
   id: string;
   from: SeatId;
-  // Sender's display name at send time (public).
-  name: string;
+  // Sender's display name at send time (public). Always sent by the server; optional until the game-ui stub sets it.
+  name?: string;
   text: string;
   at: number;
 }
