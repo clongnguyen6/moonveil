@@ -114,11 +114,12 @@ test('stale sync results are dropped; a failed sync is retried on the next flush
   };
   const sessionsFor = (grants: ReadonlyMap<SeatId, readonly VoiceGrant[]>, tag: string) =>
     new Map([...grants].map(([seat, g]) => [seat, g.map((x) => ({ channel: x.channel, url: 'wss://x', token: `${tag}-${seat}`, listen: x.listen, speak: x.speak }))]));
-  const r = room(gw, { seats: 6 });
+  const r = room(gw, { seats: 7 }); // approved range starts at 7 (rules Batch A)
   await settle();
   // Two grant changes in flight (lobby -> playing -> ...): resolve the newer first, then the older.
   for (const p of r.players) p.send({ t: 'ready', ready: true });
   r.host.send({ t: 'start' });
+  assert.equal(r.host.view.status, 'playing', 'match started');
   const older = pending.at(-2)!;
   const newer = pending.at(-1)!;
   newer.resolve(sessionsFor(newer.grants, 'new'));

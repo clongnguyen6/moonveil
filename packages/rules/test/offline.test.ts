@@ -7,7 +7,7 @@ import { channelsFor, createRulesEngine, project, type HostState, type MatchStat
 import { alive, close, day, lastLog, match, night, ok, S } from './helpers.ts';
 
 const IDS = ['a', 'b', 'c', 'd', 'e', 'f', 'g']; // seat i <-> IDS[i]; ROLES7: 0,1 wolf; 2 seer; 3 guard; 4 witch; 5 hunter; 6 villager
-const eng = createRulesEngine({ config: { players: { min: 1, max: 99 } } });
+const eng = createRulesEngine();
 const host = (m: MatchState): HostState => ({ seatIds: IDS, match: m, clock: null });
 const persist = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 const GHOST = [{ channel: 'public', listen: true, speak: false }, { channel: 'ghosts', listen: true, speak: true }];

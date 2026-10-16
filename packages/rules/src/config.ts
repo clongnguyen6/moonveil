@@ -1,5 +1,5 @@
 // Rules configuration. Every key here is PROVISIONAL (see docs/rules/PROPOSAL.md, Qxx) until Human approves it.
-// Approved rules are fixed engine behaviour and are NOT here: six roles; victory (parity / no wolves / zero = draw);
+// Approved rules are fixed engine behaviour and are NOT here: six roles; Batch A table sizes/decks (7-15); victory (parity / no wolves / zero = draw);
 // resolve-before-victory; Q03 Witch; Q06 Hunter; Q07 wolf plurality; Q09/Q10 nomination, 30 s defense, Yes/No with
 // Yes*2 > living; Q11 night = fixed 60 s, never early; day votes run to deadline with hidden interim results;
 // Q16 moderator Yes count; day votes are open ballots shown live (Q22); Q20 reveal rules; Q24 ghost knowledge; Q25 channel policy (except moderator speaking).
@@ -13,15 +13,27 @@ export const NIGHT_TOTAL_SECONDS = 60;
 /** APPROVED: defense length in seconds. */
 export const DEFENSE_SECONDS = 30;
 
+/** APPROVED Batch A (2026-10-16): supported table sizes. */
+export const PLAYERS_MIN = 7;
+export const PLAYERS_MAX = 15;
+/** APPROVED Batch A: custom decks may hold at most one of each special role. */
+export const MAX_PER_SPECIAL_ROLE = 1;
+
+const d = (wolf: number, seer: number, witch: number, guard: number, hunter: number, villager: number): DeckCounts => ({
+  wolf, seer, witch, guard, hunter, villager,
+});
+/** APPROVED Batch A: default deck. 2 Wolves at 7-12, 3 at 13-15; one each of Seer, Witch, Guard, Hunter; rest Villagers. */
+export const DEFAULT_DECKS: Readonly<Record<number, DeckCounts>> = Object.freeze(
+  Object.fromEntries(
+    Array.from({ length: PLAYERS_MAX - PLAYERS_MIN + 1 }, (_, i) => {
+      const n = PLAYERS_MIN + i;
+      const wolves = n <= 12 ? 2 : 3;
+      return [n, d(wolves, 1, 1, 1, 1, n - wolves - 4)];
+    }),
+  ),
+);
+
 export interface RulesConfig {
-  players: { min: number; max: number }; // Q18
-  /** Default deck per player count (Q17). Keys are player counts as strings. */
-  distribution: Record<string, DeckCounts>;
-  limits: {
-    maxPerSpecialRole: number; // Q17
-    /** Q17 (F3): reject decks where ordinary first-night deaths can force parity at the first dawn. */
-    firstDawnParityCheck: 'biteAndPoison' | 'biteOnly' | 'off';
-  };
   firstNightKill: boolean; // Q23
   reveal: {
     causeAtDawn: boolean; // Q21
@@ -72,26 +84,7 @@ export interface RulesConfig {
   };
 }
 
-const d = (wolf: number, seer: number, witch: number, guard: number, hunter: number, villager: number): DeckCounts => ({
-  wolf, seer, witch, guard, hunter, villager,
-});
-
 export const DEFAULT_CONFIG: RulesConfig = {
-  players: { min: 6, max: 16 },
-  distribution: {
-    '6': d(2, 1, 0, 1, 1, 1), // F3: no Witch at 6 (bite+poison could force parity at first dawn)
-    '7': d(2, 1, 1, 1, 1, 1),
-    '8': d(2, 1, 1, 1, 1, 2),
-    '9': d(2, 1, 1, 1, 1, 3),
-    '10': d(3, 1, 1, 1, 1, 3),
-    '11': d(3, 1, 1, 1, 1, 4),
-    '12': d(3, 1, 1, 1, 1, 5),
-    '13': d(4, 1, 1, 1, 1, 5),
-    '14': d(4, 1, 1, 1, 1, 6),
-    '15': d(4, 1, 1, 1, 1, 7),
-    '16': d(5, 1, 1, 1, 1, 7),
-  },
-  limits: { maxPerSpecialRole: 1, firstDawnParityCheck: 'biteAndPoison' },
   firstNightKill: true,
   reveal: { causeAtDawn: false, historyAtEnd: true },
   wolves: { canTargetWolf: false, mayPass: true, passHandling: 'counted' },
@@ -116,11 +109,6 @@ export const DEFAULT_CONFIG: RulesConfig = {
 
 /** Registry of provisional config paths -> proposal item. Tests assert every entry has a swap test. */
 export const PROVISIONAL: Record<string, string> = {
-  'players.min': 'Q18',
-  'players.max': 'Q18',
-  distribution: 'Q17',
-  'limits.maxPerSpecialRole': 'Q17',
-  'limits.firstDawnParityCheck': 'Q17',
   firstNightKill: 'Q23',
   'reveal.causeAtDawn': 'Q21',
   'reveal.historyAtEnd': 'Q24-history',
@@ -154,13 +142,12 @@ export type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartia
 
 /** Allowed values for string-enum settings. */
 export const ENUMS: Record<string, readonly string[]> = {
-  'limits.firstDawnParityCheck': ['biteAndPoison', 'biteOnly', 'off'],
   'wolves.passHandling': ['counted', 'ignored'],
   'seer.result': ['wolfOrNot', 'exactRole'],
 };
 
 /**
- * Deep-merge overrides onto defaults. `distribution` is replaced wholesale when given.
+ * Deep-merge overrides onto defaults.
  * STRICT: unknown keys (including removed settings, e.g. the old comms.* keys), wrong types and invalid enum values
  * throw, so approved behaviour cannot be configured away by a stale or mistyped option.
  */
@@ -174,10 +161,7 @@ export function resolveConfig(overrides: DeepPartial<RulesConfig> = {}): RulesCo
     if (v === undefined) continue;
     if (!(k in defaults)) bad(`unknown setting '${k}'`);
     const def = defaults[k];
-    if (k === 'distribution') {
-      if (typeof v !== 'object' || v === null) bad(`'distribution' must be an object`);
-      out[k] = clone(v);
-    } else if (typeof def === 'object' && def !== null) {
+    if (typeof def === 'object' && def !== null) {
       if (typeof v !== 'object' || v === null) bad(`'${k}' must be an object`);
       for (const [sk, sv] of Object.entries(v as Record<string, unknown>)) {
         if (sv === undefined) continue;

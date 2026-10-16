@@ -8,19 +8,6 @@ type Cfg = DeepPartial<RulesConfig>;
 
 /** key -> [alternative config, scenario returning an observable]. */
 const SWAPS: Record<string, [Cfg, (cfg: Cfg) => unknown]> = {
-  'players.min': [{ players: { min: 7, max: 16 } }, (c) => createMatch({ seed: 1, playerCount: 6, config: c }).ok],
-  'players.max': [{ players: { min: 6, max: 15 } }, (c) => createMatch({ seed: 1, playerCount: 16, config: c }).ok],
-  distribution: [
-    { distribution: { '7': { wolf: 1, seer: 1, witch: 1, guard: 1, hunter: 1, villager: 2 } } },
-    (c) => {
-      const r = createMatch({ seed: 1, playerCount: 7, config: c });
-      return r.ok && r.state.seats.filter((s) => s.role === 'wolf').length;
-    },
-  ],
-  'limits.maxPerSpecialRole': [
-    { limits: { maxPerSpecialRole: 2 } },
-    (c) => createMatch({ seed: 1, roles: ['wolf', 'wolf', 'seer', 'seer', 'villager', 'villager', 'villager'], config: { players: { min: 1, max: 99 }, ...c } }).ok,
-  ],
   firstNightKill: [{ firstNightKill: false }, (c) => apply(match(undefined, c), S(0), { type: 'wolf.pick', seat: 0, target: 6 }).ok],
   'reveal.causeAtDawn': [
     { reveal: { causeAtDawn: true, historyAtEnd: true } },
@@ -61,10 +48,6 @@ const SWAPS: Record<string, [Cfg, (cfg: Cfg) => unknown]> = {
   ],
   'moderator.mayBreakRules': [{ moderator: { mayBreakRules: true } }, (c) => apply(match(undefined, c), MOD, { type: 'seer.inspect', seat: 2, target: 2 }).ok],
   'removal.systemDuringSecret': [{ removal: { systemDuringSecret: true } }, (c) => apply(match(undefined, c), SYS, { type: 'player.remove', seat: 6 }).ok],
-  'limits.firstDawnParityCheck': [
-    { limits: { firstDawnParityCheck: 'off' } },
-    (c) => createMatch({ seed: 1, playerCount: 7, deck: { wolf: 3, seer: 0, witch: 0, guard: 0, hunter: 0, villager: 4 }, config: c }).ok,
-  ],
   // Q11-split: only the split moves; the approved 60 s total is unchanged (asserted in timing tests).
   'timing.nightMain': [{ timing: { nightMain: 30 } }, (c) => [stepTiming(match(undefined, c)).seconds, stepTiming(close(match(undefined, c))).seconds]],
   'wolves.passHandling': [

@@ -1,7 +1,7 @@
 // Public API of @moonveil/rules. See API.md.
 export { createMatch, apply, check, isSecretStep, type CreateOptions, type CreateResult } from './engine.ts';
 export { project, availableActions, type Viewer, type Projection, type SeatView, type StepView, type MeView, type PackView, type AvailableAction } from './projection.ts';
-export { DEFAULT_CONFIG, ENUMS, PROVISIONAL, resolveConfig, type RulesConfig, type DeckCounts, type DeepPartial } from './config.ts';
+export { DEFAULT_CONFIG, DEFAULT_DECKS, ENUMS, MAX_PER_SPECIAL_ROLE, PLAYERS_MAX, PLAYERS_MIN, PROVISIONAL, resolveConfig, type RulesConfig, type DeckCounts, type DeepPartial } from './config.ts';
 export {
   stepTiming,
   nightInputsComplete,

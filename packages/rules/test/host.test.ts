@@ -6,13 +6,13 @@ import { close, day, match, night, ok, S } from './helpers.ts';
 const IDS = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
 
 describe('host contract (server adapter)', () => {
-  const eng = createRulesEngine({ config: { players: { min: 7, max: 16 } } });
+  const eng = createRulesEngine();
 
   it('setup + phase: night is secret, fixed length, never early', () => {
     const s = eng.setup({ seats: IDS, seed: 's1' });
     assert.deepEqual(eng.phase(s), { name: 'night.main', secret: true, durationMs: 40_000, earlyClose: false, ended: false });
     assert.equal(eng.minPlayers, 7);
-    assert.equal(eng.maxPlayers, 16);
+    assert.equal(eng.maxPlayers, 15);
   });
 
   it('submit injects the actor seat; players cannot act for others or drive steps', () => {
