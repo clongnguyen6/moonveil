@@ -26,9 +26,11 @@ export async function voiceStats(p: Player): Promise<AudioStats[]> {
     return v && typeof v.stats === 'function' ? ((await v.stats()) as AudioStats[]) : [];
   });
 }
+// The web client creates its VoiceClient lazily on the first non-empty `voice` message (dynamic import).
 export async function requireVoiceWiring(p: Player) {
-  const snap = await voiceSnapshot(p);
-  expect(snap, 'voice wiring missing: the web shell must expose its VoiceClient as globalThis.__moonveil.voice').not.toBeNull();
+  await expect
+    .poll(async () => (await voiceSnapshot(p)) !== null, { message: 'voice wiring missing: the web shell must expose its VoiceClient as globalThis.__moonveil.voice', timeout: 20_000 })
+    .toBe(true);
 }
 
 // Wait until every player's voice channels match its grants (names) and are connected.
@@ -78,14 +80,21 @@ export interface MatrixReport {
   step: string;
   checked: number;
   failures: string[];
+  // true when grants changed during the measurement window (automatic mode, short steps): not counted.
+  skipped?: boolean;
 }
 
 // Expected: A hears B on c  <=>  A.listen(c) && B.speak(c) && B's mic is granted.
 // Also: A's rosters contain only seats holding a grant on c; A holds no channel without a grant.
 export async function checkHearMatrix(players: Player[], stepName: string): Promise<MatrixReport> {
   const report: MatrixReport = { step: stepName, checked: 0, failures: [] };
+  const grantsBefore = players.map((p) => JSON.stringify(p.view().voice));
   const snaps = new Map(await Promise.all(players.map(async (p) => [p, (await voiceSnapshot(p))!] as const)));
   const energy = await measure(players);
+  if (players.some((p, i) => JSON.stringify(p.view().voice) !== grantsBefore[i])) {
+    report.skipped = true;
+    return report;
+  }
   for (const a of players) {
     const va = a.view();
     const sa = snaps.get(a)!;

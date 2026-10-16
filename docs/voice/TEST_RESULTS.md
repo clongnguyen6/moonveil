@@ -1,4 +1,23 @@
-# Voice spike: test results
+# Voice: test results
+
+## Browser full-match suite (`packages/voice/e2e`, product code on foundation's wiring, 2026-10-16)
+
+Command: `E2E_PORT=4350 node scripts/env.mjs npm run e2e -w @moonveil/voice` (web build, pinned LiveKit 1.13.10 on 4360/4361 + UDP 4370–4399, real-engine server with `MOONVEIL_TEST_TIME_SCALE=3`; headless-shell Chromium, fake mic = speech-like bursts, one context per seat; foundation's harness).
+
+**Measured hear-matrix** (received audio energy per channel and remote seat, 2 s window after every step, compared with the matrix derived from each seat's own `state.voice` grants: A hears B on c ⇔ A.listen(c) ∧ B.speak(c) ∧ B's mic granted):
+
+| Match | Steps measured | Pair-channel checks | should-hear failures | must-not-hear failures |
+|---|---|---|---|---|
+| moderator, 7 seats + moderator, complete match (run 4) | 26 (lobby, 4 full day/night cycles with defense + confirm, ended) | 1,960 | 0 | 0 |
+| automatic, 10 seats, real timers ×3, 4 min budget (run 3) | 15 (lobby → 3 nights, 2 defenses, confirm, hunter); 1 skipped (grants changed mid-window) | 1,215 | 0 | 0 |
+
+**Token / channel checks (separate from the audio measurement), all pass in runs 3–4:** every page holds exactly the channels of its grants, each connected; rosters contain only granted seats and never a listen-only one; every `voice` frame carries only channels the seat is granted at that moment, with `speak` never beyond the state grant; LiveKit's own participant list shows the moderator hidden while listen-only and visible at `ended` (engine grants everyone public speak then); in-person room: no sessions in any `voice` frame, no LiveKit room for the code, no voice channel in any page, public text delivered in the lobby.
+
+History of this suite: run 1 (steady 440 Hz tone) measured ~1/40 of the expected energy for every should-hear pair (noise suppression on the product mic treats a constant tone as noise; 0 must-not-hear failures) → speech-like bursts. Run 2: hearing 0/0 failures, but 315 + 297 roster hits: listen-only seats visible in the public roster (sticky visibility: seats that died mid-room stayed visible) → adapter switched to the literal ADR rule, visible iff speak. Run 3: 0 hear-matrix failures; one false assertion of mine (moderator expected hidden at `ended`) fixed → run 4 green.
+
+Not covered here: real devices, NAT/TURN, >10 seats, TLS in this suite (the spike covers TLS), timing/traffic side channels.
+
+## Spike suites (`spikes/voice/tests/`)
 
 Suites (`spikes/voice/tests/`): `channels.spec.ts` (approved channel policy, 11 sessions: 10 players + hidden listen-only moderator, 52 checks) and `secure-context.spec.ts` (3 tests). Playwright 1.64.1 with full Chrome for Testing 156.0.8078.4 from `spikes/voice/.browsers`, headless, one isolated context per seat, fake mic = generated 440 Hz WAV. Browser `HOME` and `TMPDIR` point into `spikes/voice/.tmp`.
 

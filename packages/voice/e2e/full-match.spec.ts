@@ -15,10 +15,12 @@ const NAMES = ['Ann', 'Bao', 'Chi', 'Dan', 'Eve', 'Fay', 'Gia', 'Hai', 'Ivy', 'J
 const livekit = () => new RoomServiceClient(`http://127.0.0.1:${process.env.LIVEKIT_PORT ?? 4360}`, 'moonveil-e2e', 'moonveil-e2e-secret-not-for-production-000000000');
 
 function summarize(reports: MatrixReport[]) {
-  const failures = reports.flatMap((r) => r.failures);
-  const checked = reports.reduce((n, r) => n + r.checked, 0);
-  const steps = reports.map((r) => r.step);
-  console.log(`hear-matrix: ${checked} pair-channel checks over steps [${steps.join(' → ')}], ${failures.length} failures`);
+  const done = reports.filter((r) => !r.skipped);
+  const failures = done.flatMap((r) => r.failures);
+  const checked = done.reduce((n, r) => n + r.checked, 0);
+  const steps = done.map((r) => r.step);
+  const skipped = reports.filter((r) => r.skipped).map((r) => r.step);
+  console.log(`hear-matrix: ${checked} pair-channel checks over ${done.length} steps [${steps.join(' → ')}], ${failures.length} failures; skipped (grants changed mid-window): [${skipped.join(', ')}]`);
   return { failures, checked, steps };
 }
 
@@ -69,12 +71,15 @@ test('moderator mode, full match with voice: hear-matrix equals grants on every 
   const leaks = all.flatMap(voiceFrameLeaks);
   expect(leaks, leaks.join('\n')).toEqual([]);
   expect(voiceFrames(players[0]!).length, 'player received voice frames').toBeGreaterThan(0);
-  // LiveKit side: every room of this match carries the match code; the moderator is hidden in all of them
+  // LiveKit side: in every room of this match the moderator's hidden flag equals !speak of its current grant
+  // (listen-only while playing => hidden; at `ended` the engine grants everyone public speak => visible).
   const rooms = await livekit().listRooms();
   for (const room of rooms.filter((x) => x.name.startsWith(code))) {
+    const channel = room.name.slice(code.length + 1).replace(/-g\d+$/, '');
+    const g = mod!.view().voice.find((x) => x.channel === channel);
     const ps = await livekit().listParticipants(room.name);
     const modP = ps.find((x) => x.identity === mod!.seat);
-    if (modP) expect(modP.permission?.hidden, `moderator hidden in ${room.name}`).toBe(true);
+    if (modP && g) expect(modP.permission?.hidden, `moderator hidden=${!g.speak} in ${room.name}`).toBe(!g.speak);
   }
 });
 
