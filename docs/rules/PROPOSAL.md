@@ -12,7 +12,7 @@ Plain language. "Recommend" is only my suggestion.
 | ID | Question | Recommendation (alternatives are in the item) |
 |---|---|---|
 | Q15/Q26 (removal) | Removing a disconnected player | Only the moderator (any time) or the host after a 2-minute disconnect (not during the night) may remove; removal is a death with no Hunter shot |
-| Q16 (rest) | Moderator powers beyond listening and the Yes count | Runs the pace, can act for a player, can set the wolves' target, can remove a player or stop the match, may speak in public, sees ballots live. Cannot break the rules, bring anyone back or undo |
+| Q16 (rest) | Moderator powers beyond listening and the Yes count | Runs the pace, can act for a player, can set the wolves' target, can remove a player or stop the match, sees ballots live. Speaking in public: recommend allowing it; currently **off** until you decide. Cannot break the rules, bring anyone back or undo |
 | Q17 | Roles per player count | About one Wolf per three players (table in Q17). At 6 players a Hunter instead of a Witch, and the app refuses custom setups that the Wolves could win on the very first night |
 | Q18 | Number of players | 6 to 16 (16 still to be checked with the real screens and voice) |
 | Q22 (rest) | What a vote shows when it closes, and who-has-voted indicators | At close, show who voted for whom plus the totals. During the vote, don't show who has voted |
@@ -76,7 +76,7 @@ Low-stakes defaults you could accept as a group: Q01, Q02, Q04, Q05, Q12, Q13, Q
   - Ghosts speak and listen on the ghost channel and listen to public, never the wolf channel (pending Hunter excepted, as above).
   - The moderator listens to every channel.
   - No channel membership, participant list or speaking indicator reaches a seat without the matching access.
-  - *Not covered:* the moderator speaking or intervening (provisional).
+  - *Not covered:* the moderator speaking or intervening (provisional; speech is off by default, `moderator.speaksInPublic=false`).
 
 Consequence to note: parity ends the match immediately, even when the Village still has a Witch's poison or a
 Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called that case a draw (AV1:1105-1111).
@@ -307,14 +307,14 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 | When | Living Wolf | Other living | Ghost | Moderator |
 |---|---|---|---|---|
 | Night | Wolf channel (talk) | Silent | Ghost channel + hears public | Hears everything |
-| Day (discussion, votes) | Public (talk) | Public (talk) | Ghost channel + hears public | Hears all; may talk in public (provisional) |
+| Day (discussion, votes) | Public (talk) | Public (talk) | Ghost channel + hears public | Hears all; talking in public is provisional and off by default |
 | Defense | Listen; only the nominee talks | Listen; only the nominee talks | Ghost channel + hears public | Same |
 | Hunter's 20 s shot | Public (talk) | Public (talk) | The shooting Hunter: hears public only (approved, Q06); other ghosts as usual | Same |
 | Match end | Public (all) | Public (all) | Public (all) | Public (all) |
 
   The same grants apply to text and emotes. In-person play keeps voice off (a server/room setting), and wolves use text at night.
 - **No leaks (approved)**: no channel membership, participant list or speaking indicator reaches a seat without the matching grant. The engine never puts channel data in views; enforcement is the server's and voice's.
-- **Engine**: fixed `channelsFor()` (the `comms.*` settings were removed); provisional `moderator.speaksInPublic`. Tests: grant table across phases in `test/decisions.test.ts`. The engine only *computes* grants. Whether voice and text actually obey them (membership, rosters, speaking indicators, chat history) needs evidence from the server and voice integration.
+- **Engine**: fixed `channelsFor()`; the old `comms.*` settings are removed and now rejected if passed (strict config). The only provisional part is `moderator.speaksInPublic` (default `false`). Tests: the grant table across phases (`test/decisions.test.ts`), and the approved table against every combination of provisional settings (`test/channels-invariant.test.ts`). The engine only *computes* grants. Whether voice and text actually obey them (membership, rosters, speaking indicators, chat history) needs evidence from the server and voice integration.
 
 ## Q26 Disconnects during secret phases — DECIDED 2026-10-16 (except removal)
 - **Server today (ADR 0001)**: presence shown to players is frozen during secret phases, so nobody sees who dropped at night. The moderator sees it live.

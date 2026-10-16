@@ -8,7 +8,7 @@ Rules live in `docs/rules/PROPOSAL.md`. **Approved rules are fixed behaviour; ev
 - Q03 Witch; Q06 Hunter; Q07 wolf plurality;
 - Q09/Q10 trial, 30 s defense and Yes/No with `Yes × 2 > all living`; Q16 moderator Yes count;
 - Q11 fixed 60 s nights, never early; day votes run to their deadline with hidden interim results;
-- Q20 reveals; Q24 ghosts; Q25 channels (except moderator speaking);
+- Q20 reveals; Q24 ghosts; Q25 channels (except moderator speaking, which is provisional and **off** by default);
 - disconnected seats and the automatic-mode pause.
 
 ## Run
@@ -37,7 +37,7 @@ const engine = createRulesEngine({ config?, deck? });   // RulesEngine<HostState
 | `pause(s, now)` / `resume(s, now)` | freeze / continue the remaining time (idempotent). A step that begins while paused starts paused |
 | `timer(s, now) -> {durationMs, remainingMs, deadline, paused} \| null` | `deadline` (absolute ms) is `null` while paused; use it for `phaseEndsAt` and for scheduling the next `tick` |
 | `view(s, viewer)` | Projection (below) plus `seatIds` (index → SeatId). Viewers: `{kind:'seat', seat: SeatId}`, `{kind:'moderator'}`, `{kind:'public'}` |
-| `channels(s, seatId \| viewer)` | `[{channel:'public'\|'wolves'\|'ghosts', listen, speak}]`, same shape as `VoiceGrant`; for voice **and** text (Q25) |
+| `channels(s, seatId \| viewer)` | `[{channel:'public'\|'wolves'\|'ghosts', listen, speak}]`, same shape as `VoiceGrant`; for voice **and** text (Q25). No setting can change the approved player/ghost grants; the moderator listens to all, and public speech is only granted if `moderator.speaksInPublic` is set (default `false`) |
 
 Seats inside the game are **indices**; `view().seatIds[i]` is the SeatId, and clients send targets as indices.
 
@@ -69,6 +69,7 @@ stepTiming(state) -> {seconds, earlyCloseReady}
 startClock / pauseClock / resumeClock / remainingMs / deadlineOf / isExpired          // pure PhaseClock helpers
 ```
 - `state` is plain JSON. Replaying the same commands on the same seed gives the same state. `state.stepSeq` increments on every new step, but not when a step resumes after a removal.
+- **Config is strict:** `createMatch`/`createRulesEngine` reject unknown keys (including removed settings such as `comms.*` and `witch.*`), wrong types and invalid enum values (`createMatch` returns `bad_value`; `resolveConfig` throws).
 - Actors: `{kind:'seat', seat}`, `{kind:'moderator'}`, `{kind:'system'}`. A seat issues only its own seat commands. `step.close`, `player.remove` and `match.abort` are moderator or system only; `wolf.decide` and `day.confirmCount` are moderator only. Unknown commands are rejected with `bad_value`.
 - Approved rules can't be bypassed by the provisional `moderator.mayBreakRules`.
 - Errors: `forbidden | wrong_step | bad_seat | bad_target | bad_value | rule | locked | ended`. Return them to the caller only.
