@@ -1,60 +1,82 @@
 # Moonveil rules proposal
 
-Status: **proposal, v0.5, 2026-10-16** (v0.2: revised after independent review of 9af74b8; v0.3–v0.5: Q10 execution threshold, Q06, Q14, Q20 (incl. Hunter exception), Q24 and the Q16 moderator Yes count approved). Owner: rules scope (`packages/rules`, `docs/rules`).
-Nothing below is an accepted rule unless it is listed under "Approved rules". Every other item is
-**provisional** until the Human approves it. The engine implements each provisional recommendation as a named
-setting (`config.*`) or one isolated function, so a decision changes a setting, not the engine. Approved rules are
-fixed engine behaviour and are no longer settings.
+Status: **proposal, v0.6, 2026-10-16**. v0.2 was revised after an independent review of 9af74b8; v0.3 to v0.6 record your decisions. Owner: rules scope (`packages/rules`, `docs/rules`).
+Only what is listed under "Approved rules" is accepted. Everything else is **provisional** until you approve it.
+The engine implements each provisional recommendation as a named setting (`config.*`) or one isolated function.
+Approved rules are fixed engine behaviour, no longer settings.
 
-## Decisions needed (summary)
+## Still open (summary)
 
-Plain-language summary. "Recommend" is my suggestion only; every open line stays open until you decide. ★ = changed after the review. Decided items are listed separately below the table.
+Plain language. "Recommend" is only my suggestion.
 
 | ID | Question | Recommendation (alternatives are in the item) |
 |---|---|---|
-| Q03 | Witch | One healing potion and one poison per match, both usable in one night. She is told who the wolves attacked only while she still has her heal. She may heal herself but not poison herself |
-| Q07 | Wolves disagree | Wolves see each other's choices. The most-chosen target is attacked; a tie is decided at random |
-| Q09 ★ | Who is put on trial | The person with the most votes ("Skip" counts as an option). A tie means nobody |
-| Q10 (rest) | Defense and the Yes/No round | 30 s defense where only the accused talks (recommend yes); keep the Yes/No round (recommend yes; without it the approved threshold would never apply); the accused may vote (recommend yes) |
-| Q11 ★ | Timers | Nights always last the same time (60 s), even if roles are dead, so night length gives nothing away. Votes also run to the end of their timer, so the last voter can't decide the outcome by watching everyone else |
-| Q25 | Voice and text | Day: everyone talks. Night: only living wolves, on their own channel. Defense: only the accused talks. Ghosts: their own channel, and they hear the day talk. Moderator hears everything |
-| Q26 | Someone drops during the night | What they already chose stands; anything missing counts as "do nothing". Nobody is told. Removing them waits until morning (except by the moderator) |
-| Q15 | Disconnected players | They stay in the game. Only the moderator, or the host after a long disconnect, can remove them |
-| Q16 (rest) | Moderator powers | Runs the pace, can act for a player, can set the wolves' target, can remove a player or stop the match. Cannot break the rules, bring anyone back or undo. (Entering the Yes count is decided.) |
-| Q17 ★ | Roles per player count | About one Wolf per three players (table in Q17). At 6 players, Hunter instead of Witch, and the app refuses custom setups that the Wolves could win on the very first night |
+| Q15/Q26 (removal) | Removing a disconnected player | Only the moderator (any time) or the host after a 2-minute disconnect (not during the night) may remove; removal is a death with no Hunter shot |
+| Q16 (rest) | Moderator powers beyond listening and the Yes count | Runs the pace, can act for a player, can set the wolves' target, can remove a player or stop the match, may speak in public, sees ballots live. Cannot break the rules, bring anyone back or undo |
+| Q17 | Roles per player count | About one Wolf per three players (table in Q17). At 6 players a Hunter instead of a Witch, and the app refuses custom setups that the Wolves could win on the very first night |
 | Q18 | Number of players | 6 to 16 (16 still to be checked with the real screens and voice) |
+| Q22 (rest) | What a vote shows when it closes, and who-has-voted indicators | At close, show who voted for whom plus the totals. During the vote, don't show who has voted |
+| Q11 (rest) | Durations other than night (60 s) and defense (30 s) | Main night 40 s / Witch 20 s; nomination 30 s; Yes/No 15 s; Hunter 20 s; discussion 60 s + 15 s per living player (90–240 s) |
+| Q08 | Wolves choosing "nobody" | Allowed. "Nobody" wins only if it alone has the most wolf choices |
+| Q10 (rest) | May the accused vote in their own Yes/No round? | Yes |
 
-Low-stakes defaults you could accept as a group: Q01, Q02, Q04, Q05, Q08, Q12, Q13, Q19, Q21, Q22, Q23.
-
-**Decided 2026-10-16** (details in "Approved rules"):
-- Q10: the execution threshold.
-- Q06: the Hunter.
-- Q14: zero survivors is a draw.
-- Q20: no role reveal on death.
-- Q24: ghost knowledge.
-- Q20 Hunter exception: the Hunter is revealed when the shot turn opens.
-- Q16: the moderator's Yes count.
+Low-stakes defaults you could accept as a group: Q01, Q02, Q04, Q05, Q12, Q13, Q19, Q21, Q23.
 
 ## Approved rules (binding)
 
+**Core (brief):**
 - Exactly six roles: Wolf, Villager, Seer, Guard, Witch, Hunter. Factions: Wolves = Wolf; Village = all others.
 - Wolves win when living Wolves ≥ living Village members (special roles included).
-- Village wins when no Wolves are alive.
-- All simultaneous deaths and linked effects (for example the Hunter) resolve before victory is checked.
-- Ghosts keep only what they legitimately knew while alive. No one learns secrets they are not entitled to.
-- Both a separate human moderator and automatic orchestration are supported. A room creator who plays gets no secret access.
-- **Q06 Hunter (approved 2026-10-16).**
-  - A *gameplay* death from any cause (night attack, poison, daytime execution, another Hunter's shot) gives the Hunter 20 s to shoot one living player. If time runs out, there is no shot.
-  - The shot, and any death chain it causes, resolves before victory is checked.
-  - While the shot is pending, the Hunter gets no ghost voice or text (including ghost-chat history) and no new ghost-only knowledge.
-  - Administrative removal (by the moderator, or by the host for a disconnected player) is not a gameplay death and gives no shot.
-- **Q14 Zero survivors (approved 2026-10-16).** If nobody survives after all pending Hunter shots and death chains have resolved, the match is a draw.
-- **Q20 Role reveal (approved 2026-10-16).** No role is revealed on death, and all roles are revealed at match end.
-  - **Hunter exception (approved 2026-10-16, replaces the earlier "revealed by shooting" wording):** the Hunter's identity and role are revealed when the 20 s shot turn opens, even if it then times out with no shot. Ordinary deaths still reveal no role.
-  - Rejected alternative: a uniform post-death window after every death, so that waiting would not reveal the Hunter. It would have cost about 20 s per death batch, roughly 2–3 min per match.
-- **Q16 Moderator Yes count (approved 2026-10-16).** For an in-person show of hands, the moderator may enter the Yes count, and the engine applies `Yes × 2 > living`. The moderator cannot override the threshold, and there is no command that sets the day result directly. The count must be a whole number from 0 to the number of living players at the moment it's entered.
-- **Q24 Ghost knowledge (approved 2026-10-16).** Ghosts keep what they legitimately learned while alive. They gain no additional secret roles, actions or wolf-channel access. Public events and ghost conversation are allowed, subject to the Hunter's pending-shot isolation (Q06). Not covered by this approval: whether the full night history is also shown at match end (`reveal.historyAtEnd`, still provisional).
-- **Day execution threshold (approved 2026-10-16).** In the Yes/No round, the accused is executed only if `Yes × 2 > number of living players`: a strict majority of *all* living players. Abstaining or not voting does not shrink the count, and disconnected players still count as living. (Players removed from the match are dead and no longer count.) Examples: 10 living, 6 Yes executes; 5 Yes doesn't; 3 Yes + 2 No doesn't. 7 living needs 4 Yes. The approval covers only this threshold. Nomination (Q09), vote visibility (Q22) and the rest of Q10 stay provisional.
+- The Village wins when no Wolves are alive.
+- All simultaneous deaths and linked effects resolve before victory is checked.
+- Nobody learns secrets they aren't entitled to.
+- Both a human moderator and automatic orchestration are supported. A room creator who plays gets no secret access.
+
+**Decided 2026-10-16:**
+- **Witch (Q03).**
+  - One heal and one poison per match; both may be used on the same night.
+  - She may heal herself, but may not poison herself.
+  - She sees the wolves' victim only while her heal is unused.
+- **Wolf target (Q07).** Living wolves see one another's picks. The target with the most wolf votes is attacked; a tie is broken at random among the tied top targets. *Not covered:* the moderator setting the wolf target (Q16), "wolves can't target a wolf" (Q01), and how "nobody" picks count (Q08).
+- **Trial (Q09/Q10).**
+  - The player with the single highest nomination count goes on trial; no majority is needed. "Skip" is a counted option.
+  - No votes at all, a tie for the highest count (including a tie with Skip), or Skip leading means no trial and no execution that day.
+  - The accused gets a 30 s defense, then the Yes/No round.
+- **Execution threshold (Q10).**
+  - Executed only if `Yes × 2 > number of living players`. Abstentions and disconnected players still count as living; players removed from the match don't.
+  - Examples: with 10 living, 6 Yes executes; 5 Yes doesn't; 3 Yes + 2 No doesn't. With 7 living, 4 Yes are needed.
+- **Moderator Yes count (Q16).** For a show of hands, the moderator may enter the Yes count, and the engine applies the threshold. The moderator can't override it; there's no "set the result" command. The count must be a whole number from 0 to the current number of living players.
+- **Night timing (Q11).** Every night lasts a fixed 60 s, whatever roles survive and however early actions finish, so timing reveals no roles. The split between the two night steps isn't decided (currently 40 s + 20 s); both steps always run their full length, even if the Witch is dead, her heal is spent, or the setup has no Witch.
+- **Day votes (Q11/Q22).**
+  - Nomination and the Yes/No round both run to their deadline; nothing ends early.
+  - Until a vote closes, players see no running totals and no one else's ballot (nor does the public view or a reconnecting device). Each voter sees their own choice.
+  - Results appear when the vote closes.
+  - *Not covered:* what the moderator sees mid-vote (provisional, currently everything).
+- **Hunter (Q06).**
+  - Any gameplay death (night attack, poison, execution, another Hunter's shot) gives a 20 s turn to shoot one living player. On timeout, there is no shot.
+  - The shot and any chain it causes resolve before victory is checked.
+  - While the shot is pending, the Hunter has no ghost voice or text (including history) and gains no ghost-only knowledge.
+  - Removal by the moderator or host isn't a gameplay death and gives no shot.
+- **Zero survivors (Q14).** If nobody survives after all shots and chains resolve, the match is a draw.
+- **Role reveal (Q20).**
+  - No role is revealed on death; all roles are revealed at match end.
+  - Exception: the Hunter is revealed when their 20 s shot turn opens, even if it times out. (Rejected alternative: a uniform post-death window after every death, about 20 s per death, roughly 2–3 min per match.)
+- **Ghosts (Q24).** Ghosts keep what they legitimately learned while alive, and gain no new secret roles, actions or wolf-channel access. They get public events and ghost conversation, subject to the Hunter's pending-shot isolation. *Not covered:* showing the full night history at match end (`reveal.historyAtEnd`).
+- **Disconnected players (Q15/Q26, except removal).**
+  - Choices already submitted stay; a missing choice becomes a pass at the deadline.
+  - Disconnected players stay alive and count in the execution threshold.
+  - Reconnecting restores the same identity, role and state, with no extra knowledge.
+- **Pause in automatic mode.**
+  - Game timers pause while *all* player seats are disconnected, and resume when any player reconnects. A connected moderator or spectator doesn't prevent the pause.
+  - Time spent paused never expires a phase; on resume the phase has exactly the time left that it had when it paused.
+- **Voice and text channels (Q25).**
+  - Day: living players speak and listen in public.
+  - Night: only living wolves communicate, on the private wolf channel; nobody else speaks.
+  - Defense: only the accused speaks; others listen.
+  - Ghosts speak and listen on the ghost channel and listen to public, never the wolf channel (pending Hunter excepted, as above).
+  - The moderator listens to every channel.
+  - No channel membership, participant list or speaking indicator reaches a seat without the matching access.
+  - *Not covered:* the moderator speaking or intervening (provisional).
 
 Consequence to note: parity ends the match immediately, even when the Village still has a Witch's poison or a
 Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called that case a draw (AV1:1105-1111).
@@ -91,13 +113,12 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 - **Alternatives**: no restriction; never the same player twice in the whole match.
 - **Engine**: `guard.noRepeatTarget`, `guard.passResetsRepeat`.
 
-## Q03 Witch: potions, timing and what she sees — product decision needed
+## Q03 Witch: potions, timing and what she sees — DECIDED 2026-10-16
 - **sky2 doc**: one heal and one poison; the poison goes through protection (LUAT §3).
 - **sky2 code**: one of each (DIS:966). The catalog says that once the heal is used, she is no longer told who was attacked (DIS:966). The UI offers the heal only on the wolves' victim (play:986-988), and that panel disappears once the heal is spent (AV1:913). She may use both potions in the same night, because they are separate slots (AV1:362). She can heal herself.
-- **Recommend**: one heal and one poison per match; both may be used in the same night. She acts after the Wolves and sees the victim only while her heal is unused. The heal works only on tonight's victim (self allowed); the poison may hit any other living player.
-- **Alternatives**: (a) she always sees the victim; (b) at most one potion per night; (c) no self-heal.
-- **Why**: matches sky2 as played, and hiding the victim after the heal keeps a used-up Witch from being an information source.
-- **Engine**: `witch.seesVictim` (`whileHealUnused` | `always` | `never`), `witch.bothPotionsSameNight`, `witch.canHealSelf`.
+- **Decision**: as recommended (see Approved rules). The heal works only on tonight's victim (self allowed); the poison may hit any other living player.
+- **Rejected alternatives**: she always sees the victim; at most one potion per night; no self-heal.
+- **Engine**: fixed (the `witch.*` settings were removed); `witchSeesVictim()`; tests in `test/decisions.test.ts`. A moderator with `mayBreakRules` cannot bypass these rules.
 
 ## Q04 Witch and Guard interactions — low-stakes default
 - **sky2 code**: the poison cannot be prevented (MSS:492-493, 624). Guard protection and the Witch's heal both just remove the bite (MSS:528, 623). Protecting someone twice has no side effect.
@@ -117,52 +138,46 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 - **Rejected alternatives**: sky2's nightly pin (LUAT §3, DIS:969; MSS:549-550, 644-660; execution did nothing, MSS:707-734); no shot when poisoned; a standing target locked while alive; letting the pending Hunter join ghost chat.
 - **Engine**: fixed. `hunterTriggers()`, `afterDeaths()`, `isPendingHunter()` and `channelsFor()`; tests in `test/hunter.test.ts`. The pin mode and its settings were removed.
 
-## Q07 Wolves disagree — product decision needed
+## Q07 Wolves disagree — DECIDED 2026-10-16 (target rule)
 - **sky2 doc**: the alpha wolf decides; without an alpha, one of the picks is chosen at random (LUAT §7.4).
 - **sky2 code**: same (AV1:1014-1023). The random choice is fixed once per night (AV1:1017-1018). The pack sees each other's picks live (AV1:587-605, 636-640).
-- **Recommend**: the pack sees picks live and can change them. When the step closes, the target picked by the most wolves wins, and a tie is broken at random (seeded, so it can be replayed). If no wolf picks, nobody is attacked. The moderator may set the pack's target directly.
-- **Alternatives**: (a) unanimous or no kill; (b) random among all picks (sky2 without an alpha).
-- **Why**: there is no alpha among the six roles. Plurality rewards agreement without letting one wolf block the kill.
-- **Engine**: `wolves.resolve` (`plurality` | `unanimous` | `random`), `wolves.mayPass`.
+- **Decision**: living wolves see one another's picks; the most-picked target is attacked; ties are broken at random (seeded) among the tied top targets.
+- **Still provisional**: no picks means no attack, and how "nobody" picks count (Q08, `wolves.passHandling`); the moderator setting the target (Q16, `moderator.canSetWolfTarget`); "wolves can't target a wolf" (Q01).
+- **Rejected alternatives**: unanimous or no kill; random among all picks.
+- **Engine**: fixed `resolveWolfTarget()`; tests in `test/decisions.test.ts`.
 
 ## Q08 Abstentions — low-stakes default
 - **sky2 code**: every night action and the day vote have a "Skip" option (AV1:305-324, 349-354). Not acting before the timer ends counts as a skip.
 - **Recommend**: same. Every night role may pass. By day, "Skip" is an explicit option (Q09). Not voting counts as abstaining and is not "Skip".
-- **Engine**: `wolves.mayPass`; the vote rules follow Q09 and Q10.
+- **Wolves' "nobody" pick (still provisional)**: counted as an option; it prevents the attack only if it alone has the most picks. Alternative: passes are ignored (`wolves.passHandling='ignored'`).
+- **Engine**: `wolves.mayPass`, `wolves.passHandling`; the day vote rules are approved (Q09/Q10).
 
-## Q09 Nomination: threshold and ties — product decision needed
+## Q09 Nomination: threshold and ties — DECIDED 2026-10-16
 - **sky2 doc and code**: the top target needs more than 50% of *living* players (AV1:950, 958). "Skip" is counted as an option (AV1:950). Ties are picked arbitrarily (AV1:968-977), but they can never pass the 50% bar.
-- **Recommend**: the player with the most votes is nominated. "Skip" counts as a candidate. A tie at the top (including a tie with "Skip") means no nomination. Non-voters are ignored.
+- **Decision**: the single highest count goes on trial, with no majority needed. "Skip" is counted. No votes, a tie at the top (including a tie with Skip), or Skip leading means no trial and no execution that day.
 - **Alternatives**: (a) sky2's majority of living players. It is safer, but with 7–10 players it produces many days without an execution, which favors the Wolves. (b) A runoff vote between the tied players.
 - **Why**: plurality keeps days moving with 7–10 players. ★ Corrected after review: in v0.1 I wrote that the Yes/No vote "already requires a majority", which overstated the safeguard at the time.
 - **How this interacts with the approved Q10 threshold**: nomination only decides *who* faces the Yes/No round; nobody can be executed without Yes from a majority of all living players. So a plurality nomination with few votes is safe; it just leads to a vote that fails. The alternative "nomination needs a majority of living players" would stack a second majority on top. It would mean fewer trials and fewer executions, which helps the Wolves. I still recommend plurality.
-- **Engine**: `day.nomination` (`plurality` | `majorityOfLiving`); tie rule in `tallyNomination()`.
+- **Engine**: fixed `tallyNomination()` (the `day.nomination` setting was removed); tests in `test/decisions.test.ts`.
 
-## Q10 Defense interval and Yes/No vote — partly decided
+## Q10 Defense interval and Yes/No vote — DECIDED 2026-10-16 (except whether the accused votes)
 - **sky2 doc and code**: no defense step. The Yes/No vote is on by default (`isNeedVote=true`, AV1:98). Execution needs Yes from more than 50% of living players (AV1:955), so not voting counts against.
 - **DECIDED (Human, 2026-10-16): execution threshold.** `Yes × 2 > all living players` (see Approved rules). The other options I offered after review F4 ("Yes > No plus half participation", "Yes > No among votes cast") are rejected. Fixed in the engine; not a setting.
-- **Still open, recommendation unchanged:**
-  - a defense step of 30 s in which only the nominee speaks (voice enforcement belongs to the server);
-  - then Yes/No for 15 s;
-  - the nominee may vote;
-  - votes are open (Q22).
-- **Still-open alternatives:**
-  - no defense step;
-  - no Yes/No round, so the nominee is executed directly. Note: this would bypass the approved threshold entirely, so I recommend keeping the round;
-  - the nominee may not vote (they still count as living in the threshold).
+- **DECIDED (2026-10-16)**: the accused always gets a 30 s defense (only they speak, Q25), always followed by the Yes/No round.
+- **Still open**: whether the accused may vote in their own round (recommend yes; either way they count as living). The Yes/No duration (15 s) is provisional (Q11).
 - **Effect of the decision:** silent, absent and disconnected players now count against execution. Expect more days without an execution than under v0.2, which tends to help the Wolves; balance screening will measure this.
-- **Engine**: `tallyConfirm()` (approved, fixed); provisional: `day.defense`, `day.confirmVote`, `day.accusedVotesOnConfirm`.
+- **Engine**: fixed `tallyConfirm()`, `DEFENSE_SECONDS = 30`, defense → confirm always; provisional: `day.accusedVotesOnConfirm`.
 
-## Q11 Secret-phase timing — product decision needed
+## Q11 Secret-phase timing — DECIDED 2026-10-16 (60 s nights; votes run to deadline); split and other durations open
 - **sky2 code**: defaults are day 90 s, night 120 s, wolf choice 40 s and vote 45 s (AV1:60-77). When everyone has acted, the timer drops to 5 s (AV1:375-377, 453-465). When a role is dead, sky2 adds a random fake delay so that nobody can tell (AV1:761-769, 816-821, 828-831).
 - **Server today (foundation, ADR 0001)**: automatic mode never closes a secret phase early, so every phase runs a fixed deadline.
-- **Recommend: fixed.** The main night step is 40 s and the Witch step 20 s, so each night lasts 60 s. That is the same every night, whatever has happened and whoever is alive. The Witch step runs whenever the match has a Witch, even if she is dead. Anything not submitted is a pass. The discussion runs its full time unless the moderator ends it. Votes: see the ★ part below. In moderator mode the moderator sets the pace and accepts that their own timing is a cue (ADR 0001).
+- **DECIDED**: every night is a fixed 60 s, never ending early, whoever survives. Both night steps always run their full length (even with no Witch in the setup). **Still open**: the split (recommend 40 s main + 20 s Witch). Anything not submitted is a pass. The discussion runs its full time unless the moderator ends it. Votes: see the ★ part below. In moderator mode the moderator sets the pace and accepts that their own timing is a cue (ADR 0001).
 - **Trade-off**: fixed nights cost about 20–40 s per night when everyone is quick, which over 4–6 nights is 2–4 min per match. Ending early in any form leaks information. "Night ended fast" means that every night actor is done or dead, which over a few nights reveals that the Witch or Seer is dead. Even sky2's random delay leaks statistically, because the extra time depends on hidden state.
 - **Alternatives**: (a) adaptive: end once all *living* actors are done, plus a random 5–15 s (sky2), which is faster but leaks; (b) fixed but shorter (30 s + 15 s), which is faster with more players timing out; (c) players may tap "ready", with the night still fixed.
 - **★ Ending votes early (review finding F6).** Votes are open and changeable (Q22). If a vote closes the moment everyone has voted, the last person to vote sees everyone else's choice and settles the outcome with no chance to react. Options:
-  - **A (recommend)**: votes stay open and changeable until their fixed deadline (30 s nomination, 15 s Yes/No). Only the Hunter's shot may end early, since it is one person's choice and there's nothing to react to. Cost: up to about 45 s per day.
+  - **A (DECIDED 2026-10-16)**: votes stay open and changeable until their fixed deadline, with interim results hidden (Q22). The Hunter's shot may still end early once taken (provisional). Cost: up to about 45 s per day.
   - **B**: end early once everyone has voted, and tell players plainly that the last vote decides. Optionally, a 5 s grace period restarts whenever anyone changes their vote.
-- **Engine**: `timing.*`, `timing.nightEarlyClose=false`, `timing.publicEarlyClose=false` (option A), `stepTiming()`. The host contract reports `secret=true` and `earlyClose=false` for night steps. This covers only the engine's own signals; server timers, moderator pacing and network traffic are tested separately (by foundation).
+- **Engine**: `NIGHT_TOTAL_SECONDS = 60` (fixed), `timing.nightMain` (provisional split), other `timing.*` provisional; `stepTiming()` never reports early close for night or vote steps. The host contract reports `secret=true` and `earlyClose=false` for night steps. This covers only the engine's own signals; server timers, moderator pacing and network traffic are tested separately (by foundation).
 
 ## Q12 When victory is checked — low-stakes default (follows the approved rules)
 - **sky2 code**: victory is checked after the night (AV1:1001) and after an execution (AV1:1170). Moderator mode never checks it; the moderator ends the match by hand (MSC:130-146).
@@ -178,11 +193,12 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 - **Decision**: draw, judged after all pending Hunter shots and chains have resolved. Both approved win statements are literally true at zero survivors (0 Wolves alive, and 0 ≥ 0); this decision settles that. sky2 had the same outcome ("the world collapses", LUAT §2; AV1:1064-1066).
 - **Engine**: fixed in `evaluateVictory()`; tests in `test/approved.test.ts` and `test/hunter.test.ts`.
 
-## Q15 Disconnected or leaving players — product decision needed
+## Q15 Disconnected or leaving players — DECIDED 2026-10-16 (except removal)
 - **sky2 code**: there is no concept of a disconnected player. Identity comes from a device cookie (MSS:224-250). Missing actions simply time out.
-- **Recommend**: a disconnected player stays in the game, keeps their seat and role, and their missed actions are passes or abstentions. Reconnecting restores the same seat (server). There is no automatic elimination. The moderator, or the host when the player has been disconnected for at least 2 minutes (a server rule), may **remove** a player. Removal by the host or server waits until the night is over (Q26). Removal is a death with cause "removed": no Hunter shot (approved, Q06), and victory is checked.
+- **Decision**: a disconnected player stays alive and in the game; missed actions become passes; they count in the execution threshold; reconnecting restores the same seat, role and state with no extra knowledge. In automatic mode the timers pause while all player seats are disconnected (see Approved rules).
+- **Still open (removal)**: the moderator, or the host when the player has been disconnected for at least 2 minutes (a server rule), may **remove** a player. Removal by the host or server waits until the night is over (Q26). Removal is a death with cause "removed": no Hunter shot (approved, Q06), and victory is checked.
 - **Alternatives**: automatic removal after N missed phases; a bot takes over the seat.
-- **Engine**: command `player.remove`; the authority check belongs to the server.
+- **Engine**: no presence in the engine (passes at close); the pause is `PhaseClock` with host `sync`, `tick`, `pause`, `resume` and `timer` (see API.md); `player.remove` is provisional. Tests in `test/disconnect.test.ts`.
 
 ## Q16 Moderator powers — partly decided
 - **DECIDED part (2026-10-16)**: for a show of hands, the moderator enters the Yes count (`day.confirmCount`) and the engine applies the approved threshold. The direct "set the day result" power has been removed.
@@ -244,11 +260,14 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 - **Recommend**: dawn lists only the names of the dead, sorted by seat, with no cause. "Nobody died" when no one died. Execution and the Hunter's shot are public by nature.
 - **Engine**: `reveal.causeAtDawn=false`.
 
-## Q22 Vote visibility — low-stakes default
+## Q22 Vote visibility — partly decided 2026-10-16
 - **sky2 code**: votes are live and open, showing who voted for whom (AV1:527, 665-696).
-- **Recommend**: open live votes, which players may change until close, for both the nomination and Yes/No. Votes run to their deadline (Q11 ★ option A).
-- **Alternatives**: secret votes with only the totals shown at close.
-- **Engine**: `day.openVotes`.
+- **DECIDED**: until a vote closes, nobody but the moderator sees running totals or other players' ballots: not in a player's view, the public view, events, or a reconnect. Each voter sees their own choice. Results appear when the vote closes.
+- **Still open**:
+  - what is shown at close (recommend who voted for what plus totals; alternative: totals only), `day.revealBallotsAtClose`;
+  - whether players see *who has* voted mid-vote (recommend no), `day.showWhoVoted`;
+  - whether the moderator sees live ballots (currently yes), `moderator.seesLiveBallots`.
+- **Engine**: `stepView()` hides ballots; `me.ballot` carries the voter's own choice; tests in `test/decisions.test.ts`.
 
 ## Q23 First phase — low-stakes default
 - **sky2**: starts at night (the admin opens the night board first).
@@ -280,32 +299,32 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 - **Rejected alternatives**: (b) reset to public only; (c) ghosts see everything, as a spectator mode.
 - **Engine**: per-seat knowledge ledger; facts are granted only to living seats (tested: "ghost knowledge is frozen at death"); `reveal.historyAtEnd`.
 
-## Q25 Voice and text channels — product decision needed
+## Q25 Voice and text channels — DECIDED 2026-10-16 (except moderator speaking)
 - **Brief**: ghost rules approved (see the table above). "Public communication during daytime; private wolf communication at night; ghost communication separate" is a working proposal.
 - **sky2 code**: text only. The wolf chat is for living wolves; the "all" chat is for everyone (LUAT §1). There is no voice.
-- **Recommend**:
+- **Decision** (moderator *speaking* still provisional):
 
 | When | Living Wolf | Other living | Ghost | Moderator |
 |---|---|---|---|---|
 | Night | Wolf channel (talk) | Silent | Ghost channel + hears public | Hears everything |
-| Day (discussion, votes) | Public (talk) | Public (talk) | Ghost channel + hears public | Public (talk) + hears all |
+| Day (discussion, votes) | Public (talk) | Public (talk) | Ghost channel + hears public | Hears all; may talk in public (provisional) |
 | Defense | Listen; only the nominee talks | Listen; only the nominee talks | Ghost channel + hears public | Same |
 | Hunter's 20 s shot | Public (talk) | Public (talk) | The shooting Hunter: hears public only (approved, Q06); other ghosts as usual | Same |
 | Match end | Public (all) | Public (all) | Public (all) | Public (all) |
 
   The same grants apply to text and emotes. In-person play keeps voice off (a server/room setting), and wolves use text at night.
-- **Alternatives**: wolves also have a private channel by day (stronger wolves); living players hear public at night (pointless, since nobody may speak); the moderator does not hear the wolves.
-- **Engine**: `channelsFor()`; `comms.wolvesAtNight`, `comms.livingHearPublicAtNight`, `comms.defenseOnlyAccusedSpeaks`, `comms.moderatorHearsAll`. The pending-Hunter rule is approved and fixed (not a setting). The engine only *computes* grants. Whether voice and text actually obey them (membership, rosters, speaking indicators, chat history) needs evidence from the server and voice integration.
+- **No leaks (approved)**: no channel membership, participant list or speaking indicator reaches a seat without the matching grant. The engine never puts channel data in views; enforcement is the server's and voice's.
+- **Engine**: fixed `channelsFor()` (the `comms.*` settings were removed); provisional `moderator.speaksInPublic`. Tests: grant table across phases in `test/decisions.test.ts`. The engine only *computes* grants. Whether voice and text actually obey them (membership, rosters, speaking indicators, chat history) needs evidence from the server and voice integration.
 
-## Q26 Disconnects during secret phases — product decision needed
+## Q26 Disconnects during secret phases — DECIDED 2026-10-16 (except removal)
 - **Server today (ADR 0001)**: presence shown to players is frozen during secret phases, so nobody sees who dropped at night. The moderator sees it live.
 - **sky2 code**: there is no presence concept; missing actions time out (AV1:979-1002).
-- **Recommend**:
+- **Decided**:
   - an action submitted before the drop stands, and can still be changed after reconnecting before the step closes;
   - if nothing was submitted, it counts as a pass when the fixed step ends: no kill vote from that wolf (the other wolves' picks decide), no inspection, no protection, no potion;
   - a disconnected wolf's earlier pick still counts toward the pack's choice;
   - nothing is announced, and reconnecting restores the same seat and knowledge;
-  - removal by the host or server is refused during night steps, because a removal at night would publish a night-time event. It waits for the day. The moderator may still remove at any time.
+- **Still open (removal)**: removal by the host or server is refused during night steps, because a removal at night would publish a night-time event; it waits for the day. The moderator may still remove at any time.
 - **Alternatives**: a bot submits a random legal action (keeps balance, but surprises); hidden auto-removal at dawn.
 - **Engine**: no presence in the engine. `removal.systemDuringSecret=false` (the moderator is exempt).
 

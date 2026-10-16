@@ -1,10 +1,17 @@
-// Rules configuration. Every key is PROVISIONAL (see docs/rules/PROPOSAL.md, Qxx) until Human approves it.
-// Approved rules (not configurable): six roles, parity/no-wolves victory, resolve-before-victory, Yes/No execution
-// threshold, Q06 Hunter, Q14 zero survivors = draw, Q20 no reveal on death, Q24 ghost knowledge.
+// Rules configuration. Every key here is PROVISIONAL (see docs/rules/PROPOSAL.md, Qxx) until Human approves it.
+// Approved rules are fixed engine behaviour and are NOT here: six roles; victory (parity / no wolves / zero = draw);
+// resolve-before-victory; Q03 Witch; Q06 Hunter; Q07 wolf plurality; Q09/Q10 nomination, 30 s defense, Yes/No with
+// Yes*2 > living; Q11 night = fixed 60 s, never early; day votes run to deadline with hidden interim results;
+// Q16 moderator Yes count; Q20 reveal rules; Q24 ghost knowledge; Q25 channel policy (except moderator speaking).
 import { clone } from './clone.ts';
 import type { Role } from './types.ts';
 
 export type DeckCounts = Record<Role, number>;
+
+/** APPROVED: total night length in seconds (main + Witch step), fixed regardless of roles or completion. */
+export const NIGHT_TOTAL_SECONDS = 60;
+/** APPROVED: defense length in seconds. */
+export const DEFENSE_SECONDS = 30;
 
 export interface RulesConfig {
   players: { min: number; max: number }; // Q18
@@ -21,9 +28,10 @@ export interface RulesConfig {
     historyAtEnd: boolean; // Q24 end-of-match history (not covered by the Q24 approval)
   };
   wolves: {
-    resolve: 'plurality' | 'unanimous' | 'random'; // Q07
     canTargetWolf: boolean; // Q01
     mayPass: boolean; // Q08
+    /** Q08: how 'pass' picks count in the (approved) plurality. 'counted': pass wins only if it alone leads; 'ignored'. */
+    passHandling: 'counted' | 'ignored';
   };
   seer: { result: 'wolfOrNot' | 'exactRole' }; // Q05
   guard: {
@@ -31,51 +39,42 @@ export interface RulesConfig {
     noRepeatTarget: boolean; // Q02
     passResetsRepeat: boolean; // Q02
   };
-  witch: {
-    seesVictim: 'whileHealUnused' | 'always' | 'never'; // Q03
-    bothPotionsSameNight: boolean; // Q03
-    canHealSelf: boolean; // Q01/Q03
-    canPoisonSelf: boolean; // Q01
-  };
   protection: {
     guardBlocksPoison: boolean; // Q04
     doubleProtectionKills: boolean; // Q04
   };
   day: {
     selfVote: boolean; // Q01
-    nomination: 'plurality' | 'majorityOfLiving'; // Q09
-    defense: boolean; // Q10
-    confirmVote: boolean; // Q10
-    accusedVotesOnConfirm: boolean; // Q10
-    openVotes: boolean; // Q22
+    accusedVotesOnConfirm: boolean; // Q10 (not covered by the approvals)
+    /** Q22: at close, publish who voted for what (true) or only the totals (false). Interim results are hidden (approved). */
+    revealBallotsAtClose: boolean;
+    /** Q22: mid-vote, may players see WHO has voted (not what)? */
+    showWhoVoted: boolean;
   };
   moderator: {
     mayBreakRules: boolean; // Q16
+    /** Q16: moderator may submit actions on behalf of seats. */
+    canActForSeats: boolean;
+    /** Q16: moderator may set the pack target (wolf.decide). */
+    canSetWolfTarget: boolean;
+    /** Q16/Q22: moderator sees live ballots mid-vote. */
+    seesLiveBallots: boolean;
+    /** Q16/Q25: moderator may speak in public (listening to every channel is approved). */
+    speaksInPublic: boolean;
   };
   /** Q26: may the system/host remove a seat during a secret (night) step? Moderator always may. */
   removal: { systemDuringSecret: boolean };
-  /** Q25: voice/text channels. Ghost rules (ghost channel, hear public, no wolf channel) are approved, not configurable. */
-  comms: {
-    wolvesAtNight: boolean;
-    livingHearPublicAtNight: boolean;
-    defenseOnlyAccusedSpeaks: boolean;
-    moderatorHearsAll: boolean;
-  };
-  /** Seconds. Q11/Q19. */
+  /** Seconds. Q11/Q19. Night total (60) and defense (30) are approved constants above. */
   timing: {
+    /** Q11: main night step; the Witch step gets NIGHT_TOTAL_SECONDS - nightMain. Must be 1..59. */
     nightMain: number;
-    nightWitch: number;
     discussionBase: number;
     discussionPerAlive: number;
     discussionMin: number;
     discussionMax: number;
     vote: number;
-    defense: number;
     confirm: number;
     hunter: number;
-    nightEarlyClose: boolean;
-    /** Q11/Q22 (F6): votes may close early once everyone has voted. Hunter step always may. */
-    publicEarlyClose: boolean;
   };
 }
 
@@ -101,35 +100,22 @@ export const DEFAULT_CONFIG: RulesConfig = {
   limits: { maxPerSpecialRole: 1, firstDawnParityCheck: 'biteAndPoison' },
   firstNightKill: true,
   reveal: { causeAtDawn: false, historyAtEnd: true },
-  wolves: { resolve: 'plurality', canTargetWolf: false, mayPass: true },
+  wolves: { canTargetWolf: false, mayPass: true, passHandling: 'counted' },
   seer: { result: 'wolfOrNot' },
   guard: { canProtectSelf: true, noRepeatTarget: true, passResetsRepeat: true },
-  witch: { seesVictim: 'whileHealUnused', bothPotionsSameNight: true, canHealSelf: true, canPoisonSelf: false },
   protection: { guardBlocksPoison: false, doubleProtectionKills: false },
-  day: {
-    selfVote: false,
-    nomination: 'plurality',
-    defense: true,
-    confirmVote: true,
-    accusedVotesOnConfirm: true,
-    openVotes: true,
-  },
-  moderator: { mayBreakRules: false },
+  day: { selfVote: false, accusedVotesOnConfirm: true, revealBallotsAtClose: true, showWhoVoted: false },
+  moderator: { mayBreakRules: false, canActForSeats: true, canSetWolfTarget: true, seesLiveBallots: true, speaksInPublic: true },
   removal: { systemDuringSecret: false },
-  comms: { wolvesAtNight: true, livingHearPublicAtNight: false, defenseOnlyAccusedSpeaks: true, moderatorHearsAll: true },
   timing: {
     nightMain: 40,
-    nightWitch: 20,
     discussionBase: 60,
     discussionPerAlive: 15,
     discussionMin: 90,
     discussionMax: 240,
     vote: 30,
-    defense: 30,
     confirm: 15,
     hunter: 20,
-    nightEarlyClose: false,
-    publicEarlyClose: false,
   },
 };
 
@@ -143,43 +129,33 @@ export const PROVISIONAL: Record<string, string> = {
   firstNightKill: 'Q23',
   'reveal.causeAtDawn': 'Q21',
   'reveal.historyAtEnd': 'Q24-history',
-  'wolves.resolve': 'Q07',
   'wolves.canTargetWolf': 'Q01',
   'wolves.mayPass': 'Q08',
+  'wolves.passHandling': 'Q08',
   'seer.result': 'Q05',
   'guard.canProtectSelf': 'Q01',
   'guard.noRepeatTarget': 'Q02',
   'guard.passResetsRepeat': 'Q02',
-  'witch.seesVictim': 'Q03',
-  'witch.bothPotionsSameNight': 'Q03',
-  'witch.canHealSelf': 'Q03',
-  'witch.canPoisonSelf': 'Q01',
   'protection.guardBlocksPoison': 'Q04',
   'protection.doubleProtectionKills': 'Q04',
   'day.selfVote': 'Q01',
-  'day.nomination': 'Q09',
-  'day.defense': 'Q10',
-  'day.confirmVote': 'Q10',
   'day.accusedVotesOnConfirm': 'Q10',
-  'day.openVotes': 'Q22',
+  'day.revealBallotsAtClose': 'Q22',
+  'day.showWhoVoted': 'Q22',
   'moderator.mayBreakRules': 'Q16',
+  'moderator.canActForSeats': 'Q16',
+  'moderator.canSetWolfTarget': 'Q16',
+  'moderator.seesLiveBallots': 'Q16',
+  'moderator.speaksInPublic': 'Q16/Q25',
   'removal.systemDuringSecret': 'Q26',
-  'comms.wolvesAtNight': 'Q25',
-  'comms.livingHearPublicAtNight': 'Q25',
-  'comms.defenseOnlyAccusedSpeaks': 'Q25',
-  'comms.moderatorHearsAll': 'Q25',
-  'timing.nightMain': 'Q11',
-  'timing.nightWitch': 'Q11',
+  'timing.nightMain': 'Q11-split',
   'timing.discussionBase': 'Q19',
   'timing.discussionPerAlive': 'Q19',
   'timing.discussionMin': 'Q19',
   'timing.discussionMax': 'Q19',
   'timing.vote': 'Q19',
-  'timing.defense': 'Q19',
   'timing.confirm': 'Q19',
   'timing.hunter': 'Q19',
-  'timing.nightEarlyClose': 'Q11',
-  'timing.publicEarlyClose': 'Q11/Q22',
 };
 
 export type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };

@@ -71,6 +71,7 @@ export function createMatch(opts: CreateOptions): CreateResult {
     night: 0,
     day: 0,
     step: { kind: 'night.main', night: 0 },
+    stepSeq: 0,
     nightRec: null,
     publicLog: [],
     knowledge: roles.map(() => []),
@@ -89,7 +90,7 @@ export function createMatch(opts: CreateOptions): CreateResult {
 
 export function apply(input: MatchState, actor: Actor, cmd: Command): ApplyResult {
   if (input.step.kind === 'ended') return fail('ended', 'match has ended');
-  const auth = authorize(actor, cmd);
+  const auth = authorize(actor, cmd, input.config);
   if (auth) return { ok: false, error: auth };
   const state = clone(input);
   const lax = actor.kind === 'moderator' && state.config.moderator.mayBreakRules;
@@ -105,7 +106,7 @@ export function apply(input: MatchState, actor: Actor, cmd: Command): ApplyResul
 /** Validate without applying (no clone, no mutation). Used for menus; same rules as apply(). */
 export function check(state: MatchState, actor: Actor, cmd: Command): EngineError | null {
   if (state.step.kind === 'ended') return err('ended', 'match has ended');
-  const auth = authorize(actor, cmd);
+  const auth = authorize(actor, cmd, state.config);
   if (auth) return auth;
   return handle(state, cmd, actor.kind === 'moderator' && state.config.moderator.mayBreakRules, true, actor.kind);
 }
@@ -115,11 +116,11 @@ export function check(state: MatchState, actor: Actor, cmd: Command): EngineErro
 const MOD_ONLY = new Set<Command['type']>(['wolf.decide', 'day.confirmCount']);
 const MOD_OR_SYSTEM = new Set<Command['type']>(['step.close', 'player.remove', 'match.abort']);
 
-function authorize(actor: Actor, cmd: Command): EngineError | null {
+function authorize(actor: Actor, cmd: Command, config: RulesConfig): EngineError | null {
   if (MOD_ONLY.has(cmd.type)) return actor.kind === 'moderator' ? null : err('forbidden', 'moderator only');
   if (MOD_OR_SYSTEM.has(cmd.type)) return actor.kind === 'seat' ? err('forbidden', 'not allowed for seats') : null;
-  // Seat commands: own seat, or moderator acting for a seat.
-  if (actor.kind === 'moderator') return null;
+  // Seat commands: own seat, or moderator acting for a seat (provisional Q16: moderator.canActForSeats).
+  if (actor.kind === 'moderator') return config.moderator.canActForSeats ? null : err('forbidden', 'moderator may not act for seats');
   if (actor.kind === 'seat' && 'seat' in cmd && cmd.seat === actor.seat) return null;
   return err('forbidden', 'may only act for own seat');
 }
@@ -155,6 +156,7 @@ function handle(state: MatchState, cmd: Command, lax: boolean, dry = false, acto
       return null;
     }
     case 'wolf.decide': {
+      if (!c.moderator.canSetWolfTarget) return err('forbidden', 'moderator may not set the wolf target');
       const rec = nightStep(state, 'night.main');
       if (!rec) return err('wrong_step', 'not night');
       if (cmd.target !== 'pass' && !isAlive(state, cmd.target)) return err('bad_target', 'target not alive');
@@ -208,22 +210,10 @@ function handle(state: MatchState, cmd: Command, lax: boolean, dry = false, acto
       if (!rec) return err('wrong_step', 'not witch step');
       const w = state.seats[cmd.seat];
       if (!w || !isAliveRole(state, cmd.seat, 'witch')) return err('bad_seat', 'not a living witch');
+      // APPROVED Q03: one heal per match, only on tonight's victim (self allowed); she sees the victim while it's unused.
       if (cmd.use) {
         if (!w.heal) return err('rule', 'heal already used');
-        // Victim-dependent checks only when the witch can see the victim (no leak otherwise).
-        if (witchSeesVictim(state, cmd.seat)) {
-          if (rec.victim === null) {
-            const e = rule('no victim tonight');
-            if (e) return e;
-          } else if (rec.victim === cmd.seat && !c.witch.canHealSelf) {
-            const e = rule('witch may not heal self');
-            if (e) return e;
-          }
-        }
-        if (!c.witch.bothPotionsSameNight && typeof rec.poisons[cmd.seat] === 'number') {
-          const e = rule('only one potion per night');
-          if (e) return e;
-        }
+        if (rec.victim === null) return err('rule', 'no victim tonight');
       }
       if (dry) return null;
       rec.heals[cmd.seat] = cmd.use;
@@ -235,16 +225,10 @@ function handle(state: MatchState, cmd: Command, lax: boolean, dry = false, acto
       const w = state.seats[cmd.seat];
       if (!w || !isAliveRole(state, cmd.seat, 'witch')) return err('bad_seat', 'not a living witch');
       if (cmd.target !== 'pass') {
+        // APPROVED Q03: one poison per match; never on self; may be used the same night as the heal.
         if (!w.poison) return err('rule', 'poison already used');
         if (!isAlive(state, cmd.target)) return err('bad_target', 'target not alive');
-        if (cmd.target === cmd.seat && !c.witch.canPoisonSelf) {
-          const e = rule('witch may not poison self');
-          if (e) return e;
-        }
-        if (!c.witch.bothPotionsSameNight && rec.heals[cmd.seat] === true) {
-          const e = rule('only one potion per night');
-          if (e) return e;
-        }
+        if (cmd.target === cmd.seat) return err('rule', 'witch may not poison self');
       }
       if (dry) return null;
       rec.poisons[cmd.seat] = cmd.target;
@@ -337,21 +321,20 @@ function closeStep(state: MatchState): void {
       resolveNight(state);
       return;
     case 'day.discussion':
-      state.step = { kind: 'day.vote', day: state.day, votes: state.seats.map(() => null) };
+      setStep(state, { kind: 'day.vote', day: state.day, votes: state.seats.map(() => null) });
       return;
     case 'day.vote': {
-      const living = state.seats.filter((s) => s.alive).length;
-      const r = tallyNomination(step.votes, living, c.day.nomination);
+      // APPROVED Q09/Q10: plurality nomination; results published only at close.
+      const r = tallyNomination(step.votes);
       state.publicLog.push({
         t: 'nomination',
         day: state.day,
         accused: r.accused,
         tally: r.tally,
-        votes: c.day.openVotes ? [...step.votes] : null,
+        votes: c.day.revealBallotsAtClose ? [...step.votes] : null,
       });
       if (r.accused === null) return startNight(state);
-      if (c.day.defense) state.step = { kind: 'day.defense', day: state.day, accused: r.accused };
-      else afterDefense(state, r.accused);
+      setStep(state, { kind: 'day.defense', day: state.day, accused: r.accused });
       return;
     }
     case 'day.defense':
@@ -360,7 +343,7 @@ function closeStep(state: MatchState): void {
     case 'day.confirm': {
       // Approved: denominator = all living players (incl. the accused, abstainers, disconnected seats).
       const r = tallyConfirm(step.votes, state.seats.filter((s) => s.alive).length);
-      resolveConfirm(state, step.accused, 'votes', r.yes, r.no, c.day.openVotes ? [...step.votes] : null, r.executed);
+      resolveConfirm(state, step.accused, 'votes', r.yes, r.no, c.day.revealBallotsAtClose ? [...step.votes] : null, r.executed);
       return;
     }
     case 'hunter':
@@ -385,12 +368,9 @@ function resolveConfirm(
   else startNight(state);
 }
 
+/** APPROVED Q10: the 30 s defense is always followed by the Yes/No round. */
 function afterDefense(state: MatchState, accused: Seat): void {
-  if (state.config.day.confirmVote) {
-    state.step = { kind: 'day.confirm', day: state.day, accused, votes: state.seats.map(() => null) };
-  } else {
-    execute(state, accused);
-  }
+  setStep(state, { kind: 'day.confirm', day: state.day, accused, votes: state.seats.map(() => null) });
 }
 
 function execute(state: MatchState, seat: Seat): void {
@@ -414,13 +394,13 @@ function startNight(state: MatchState): void {
     victim: null,
     byModerator: [],
   };
-  state.step = { kind: 'night.main', night: state.night };
+  setStep(state, { kind: 'night.main', night: state.night });
   state.publicLog.push({ t: 'nightStart', night: state.night });
 }
 
 function startDay(state: MatchState): void {
   state.day = state.night;
-  state.step = { kind: 'day.discussion', day: state.day };
+  setStep(state, { kind: 'day.discussion', day: state.day });
   state.publicLog.push({ t: 'dayStart', day: state.day });
 }
 
@@ -434,7 +414,7 @@ function closeNightMain(state: MatchState): void {
       victim = rec.wolfDecision === 'pass' ? null : rec.wolfDecision;
     } else {
       const picks = wolves.map((w) => rec.wolfPicks[w.seat]).filter((p): p is Seat | 'pass' => p !== null && p !== undefined);
-      const r = resolveWolfTarget(picks, wolves.length, c.wolves.resolve, state.rng);
+      const r = resolveWolfTarget(picks, c.wolves.passHandling, state.rng);
       victim = r.target;
       state.rng = r.rng;
     }
@@ -448,16 +428,13 @@ function closeNightMain(state: MatchState): void {
       grant(state, s.seat, { k: 'own', night: rec.night, act: 'protect', target: g === 'pass' ? null : g });
     }
   }
-  // Q11: the witch step runs whenever the deck has a witch, alive or not (public deck; hides witch death).
-  if (state.seats.some((s) => s.role === 'witch')) {
-    state.step = { kind: 'night.witch', night: rec.night };
-    for (const s of state.seats) {
-      if (s.alive && s.role === 'witch' && witchSeesVictim(state, s.seat)) {
-        grant(state, s.seat, { k: 'victim', night: rec.night, target: victim });
-      }
+  // APPROVED night timing: the Witch step ALWAYS runs (even with no Witch in the deck, a dead Witch or a spent heal),
+  // so every night has the same fixed total length.
+  setStep(state, { kind: 'night.witch', night: rec.night });
+  for (const s of state.seats) {
+    if (s.alive && s.role === 'witch' && witchSeesVictim(state, s.seat)) {
+      grant(state, s.seat, { k: 'victim', night: rec.night, target: victim });
     }
-  } else {
-    resolveNight(state);
   }
 }
 
@@ -475,13 +452,10 @@ function resolveNight(state: MatchState): void {
   let healed = false;
   const poisoned: Seat[] = [];
   for (const w of living.filter((s) => s.role === 'witch')) {
-    if (rec.heals[w.seat] === true && w.heal) {
-      // F5: record the healed target only if this witch was entitled to see the victim (decided before consuming).
-      const sees = witchSeesVictim(state, w.seat);
-      const selfBlocked = rec.victim === w.seat && !c.witch.canHealSelf;
-      if (rec.victim !== null && !selfBlocked) healed = true;
-      if (rec.victim !== null || !sees) w.heal = false;
-      grant(state, w.seat, { k: 'own', night: rec.night, act: 'heal', target: sees ? rec.victim : null });
+    if (rec.heals[w.seat] === true && w.heal && rec.victim !== null) {
+      healed = true;
+      w.heal = false;
+      grant(state, w.seat, { k: 'own', night: rec.night, act: 'heal', target: rec.victim });
     }
     const p = rec.poisons[w.seat];
     if (typeof p === 'number' && w.poison && isAlive(state, p)) {
@@ -508,7 +482,7 @@ function resolveNight(state: MatchState): void {
 function afterDeaths(state: MatchState, deaths: { seat: Seat; cause: DeathCause }[], then: Continuation): void {
   const hunters = deaths.filter((d) => state.seats[d.seat]?.role === 'hunter' && hunterTriggers(d.cause)).map((d) => d.seat);
   if (hunters.length > 0) {
-    state.step = { kind: 'hunter', pending: hunters, shots: state.seats.map(() => null), then };
+    setStep(state, { kind: 'hunter', pending: hunters, shots: state.seats.map(() => null), then });
     state.publicLog.push({ t: 'hunterTurn', seats: hunters });
     // APPROVED Q20 (2026-10-16): no role is revealed on death, except the Hunter, revealed when the shot turn opens (even on timeout).
     for (const h of hunters) state.publicLog.push({ t: 'roleRevealed', seat: h, role: 'hunter' });
@@ -538,7 +512,7 @@ function finishBatch(state: MatchState, then: Continuation): void {
   if (then.to === 'night') return startNight(state);
   const s = then.step;
   if ((s.kind === 'day.defense' || s.kind === 'day.confirm') && !isAlive(state, s.accused)) return startNight(state);
-  state.step = s;
+  state.step = s; // resumed after a removal: same step instance, stepSeq unchanged (phase clock continues)
 }
 
 function removePlayer(state: MatchState, seat: Seat): void {
@@ -562,9 +536,15 @@ function removePlayer(state: MatchState, seat: Seat): void {
   afterDeaths(state, [{ seat, cause: 'removed' }], { to: 'resume', step: cur });
 }
 
+/** Every new step instance gets a new stepSeq, so hosts can tell a fresh phase (new clock) from a resumed one. */
+function setStep(state: MatchState, step: MatchState['step']): void {
+  state.step = step;
+  state.stepSeq += 1;
+}
+
 function endMatch(state: MatchState, outcome: Outcome): void {
   state.outcome = outcome;
-  state.step = { kind: 'ended' };
+  setStep(state, { kind: 'ended' });
   state.publicLog.push({ t: 'ended', outcome });
 }
 
@@ -591,10 +571,8 @@ function grant(state: MatchState, seat: Seat, fact: Fact): void {
   if (s && s.alive) state.knowledge[seat]?.push(fact);
 }
 
+/** APPROVED Q03: the Witch sees the wolves' victim only while her heal is unused. */
 export function witchSeesVictim(state: MatchState, seat: Seat): boolean {
-  const mode = state.config.witch.seesVictim;
-  if (mode === 'always') return true;
-  if (mode === 'never') return false;
   return state.seats[seat]?.heal === true;
 }
 

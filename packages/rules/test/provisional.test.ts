@@ -30,16 +30,8 @@ const SWAPS: Record<string, [Cfg, (cfg: Cfg) => unknown]> = {
     { reveal: { causeAtDawn: false, historyAtEnd: false } },
     (c) => project(night(match(['wolf', 'villager', 'villager'] as Role[], c), { bite: 1 }), { kind: 'seat', seat: 2 }).reveal?.history === null,
   ],
-  'wolves.resolve': [
-    { wolves: { resolve: 'unanimous', canTargetWolf: false, mayPass: true } },
-    (c) => {
-      let s = ok(match(undefined, c), S(0), { type: 'wolf.pick', seat: 0, target: 5 });
-      s = ok(s, S(1), { type: 'wolf.pick', seat: 1, target: 6 });
-      return close(s).nightRec?.victim === null;
-    },
-  ],
-  'wolves.canTargetWolf': [{ wolves: { resolve: 'plurality', canTargetWolf: true, mayPass: true } }, (c) => apply(match(undefined, c), S(0), { type: 'wolf.pick', seat: 0, target: 1 }).ok],
-  'wolves.mayPass': [{ wolves: { resolve: 'plurality', canTargetWolf: false, mayPass: false } }, (c) => apply(match(undefined, c), S(0), { type: 'wolf.pick', seat: 0, target: 'pass' }).ok],
+  'wolves.canTargetWolf': [{ wolves: { canTargetWolf: true } }, (c) => apply(match(undefined, c), S(0), { type: 'wolf.pick', seat: 0, target: 1 }).ok],
+  'wolves.mayPass': [{ wolves: { mayPass: false } }, (c) => apply(match(undefined, c), S(0), { type: 'wolf.pick', seat: 0, target: 'pass' }).ok],
   'seer.result': [{ seer: { result: 'exactRole' } }, (c) => ok(match(undefined, c), S(2), { type: 'seer.inspect', seat: 2, target: 5 }).knowledge[2]?.at(-1)],
   'guard.canProtectSelf': [{ guard: { canProtectSelf: false, noRepeatTarget: true, passResetsRepeat: true } }, (c) => apply(match(undefined, c), S(3), { type: 'guard.protect', seat: 3, target: 3 }).ok],
   'guard.noRepeatTarget': [
@@ -54,29 +46,6 @@ const SWAPS: Record<string, [Cfg, (cfg: Cfg) => unknown]> = {
       return apply(s, S(3), { type: 'guard.protect', seat: 3, target: 6 }).ok;
     },
   ],
-  'witch.seesVictim': [
-    { witch: { seesVictim: 'always', bothPotionsSameNight: true, canHealSelf: true, canPoisonSelf: false } },
-    (c) => {
-      let s = day(night(match(undefined, c), { bite: 6, heal: true }), 'skip');
-      s = close(ok(s, S(0), { type: 'wolf.pick', seat: 0, target: 3 }));
-      return s.knowledge[4]?.filter((f) => f.k === 'victim').length;
-    },
-  ],
-  'witch.bothPotionsSameNight': [
-    { witch: { seesVictim: 'whileHealUnused', bothPotionsSameNight: false, canHealSelf: true, canPoisonSelf: false } },
-    (c) => {
-      const s = ok(close(ok(match(undefined, c), S(0), { type: 'wolf.pick', seat: 0, target: 6 })), S(4), { type: 'witch.heal', seat: 4, use: true });
-      return apply(s, S(4), { type: 'witch.poison', seat: 4, target: 0 }).ok;
-    },
-  ],
-  'witch.canHealSelf': [
-    { witch: { seesVictim: 'whileHealUnused', bothPotionsSameNight: true, canHealSelf: false, canPoisonSelf: false } },
-    (c) => apply(close(ok(match(undefined, c), S(0), { type: 'wolf.pick', seat: 0, target: 4 })), S(4), { type: 'witch.heal', seat: 4, use: true }).ok,
-  ],
-  'witch.canPoisonSelf': [
-    { witch: { seesVictim: 'whileHealUnused', bothPotionsSameNight: true, canHealSelf: true, canPoisonSelf: true } },
-    (c) => apply(close(match(undefined, c)), S(4), { type: 'witch.poison', seat: 4, target: 4 }).ok,
-  ],
   'protection.guardBlocksPoison': [
     { protection: { guardBlocksPoison: true, doubleProtectionKills: false } },
     (c) => night(match(undefined, c), { bite: 'pass', protect: 6, poison: 6 }).seats[6]?.alive,
@@ -86,62 +55,43 @@ const SWAPS: Record<string, [Cfg, (cfg: Cfg) => unknown]> = {
     (c) => night(match(undefined, c), { bite: 6, protect: 6, heal: true }).seats[6]?.alive,
   ],
   'day.selfVote': [{ day: { selfVote: true } }, (c) => apply(close(night(match(undefined, c), { bite: 'pass' })), S(2), { type: 'vote.nominate', seat: 2, target: 2 }).ok],
-  'day.nomination': [
-    { day: { nomination: 'majorityOfLiving' } },
-    (c) => {
-      let s = close(night(match(undefined, c), { bite: 'pass' }));
-      for (const v of [1, 2]) s = ok(s, S(v), { type: 'vote.nominate', seat: v, target: 0 });
-      return close(s).step.kind;
-    },
-  ],
-  'day.defense': [{ day: { defense: false } }, (c) => close(day1Voted(c)).step.kind],
-  'day.confirmVote': [{ day: { confirmVote: false } }, (c) => close(close(day1Voted(c))).step.kind],
   'day.accusedVotesOnConfirm': [
     { day: { accusedVotesOnConfirm: false } },
     (c) => apply(close(close(day1Voted(c))), S(0), { type: 'vote.confirm', seat: 0, choice: 'no' }).ok,
   ],
-  'day.openVotes': [{ day: { openVotes: false } }, (c) => project(day1Voted(c), { kind: 'public' }).step],
   'moderator.mayBreakRules': [{ moderator: { mayBreakRules: true } }, (c) => apply(match(undefined, c), MOD, { type: 'seer.inspect', seat: 2, target: 2 }).ok],
   'removal.systemDuringSecret': [{ removal: { systemDuringSecret: true } }, (c) => apply(match(undefined, c), SYS, { type: 'player.remove', seat: 6 }).ok],
-  'comms.wolvesAtNight': [{ comms: { wolvesAtNight: false } }, (c) => channelsFor(match(undefined, c), { kind: 'seat', seat: 0 })],
-  'comms.livingHearPublicAtNight': [{ comms: { livingHearPublicAtNight: true } }, (c) => channelsFor(match(undefined, c), { kind: 'seat', seat: 6 })],
-  'comms.defenseOnlyAccusedSpeaks': [{ comms: { defenseOnlyAccusedSpeaks: false } }, (c) => channelsFor(close(day1Voted(c)), { kind: 'seat', seat: 2 })],
-  'comms.moderatorHearsAll': [{ comms: { moderatorHearsAll: false } }, (c) => channelsFor(match(undefined, c), { kind: 'moderator' })],
   'limits.firstDawnParityCheck': [
     { limits: { firstDawnParityCheck: 'off' } },
     (c) => createMatch({ seed: 1, playerCount: 7, deck: { wolf: 3, seer: 0, witch: 0, guard: 0, hunter: 0, villager: 4 }, config: c }).ok,
   ],
-  'timing.nightMain': [{ timing: { nightMain: 60 } }, (c) => stepTiming(match(undefined, c)).seconds],
-  'timing.nightWitch': [{ timing: { nightWitch: 30 } }, (c) => stepTiming(close(match(undefined, c))).seconds],
+  // Q11-split: only the split moves; the approved 60 s total is unchanged (asserted in timing tests).
+  'timing.nightMain': [{ timing: { nightMain: 30 } }, (c) => [stepTiming(match(undefined, c)).seconds, stepTiming(close(match(undefined, c))).seconds]],
+  'wolves.passHandling': [
+    { wolves: { passHandling: 'ignored' } },
+    (c) => {
+      // 2 pass vs 1 pick: 'counted' -> pass leads, no attack; 'ignored' -> the single pick wins.
+      let s = match(['wolf', 'wolf', 'wolf', 'seer', 'guard', 'witch', 'hunter', 'villager', 'villager'] as Role[], c);
+      s = ok(s, S(0), { type: 'wolf.pick', seat: 0, target: 'pass' });
+      s = ok(s, S(1), { type: 'wolf.pick', seat: 1, target: 'pass' });
+      s = ok(s, S(2), { type: 'wolf.pick', seat: 2, target: 8 });
+      return close(s).nightRec?.victim;
+    },
+  ],
+  'day.revealBallotsAtClose': [{ day: { revealBallotsAtClose: false } }, (c) => close(day1Voted(c)).publicLog.find((e) => e.t === 'nomination')],
+  'day.showWhoVoted': [{ day: { showWhoVoted: true } }, (c) => project(day1Voted(c), { kind: 'public' }).step],
+  'moderator.canActForSeats': [{ moderator: { canActForSeats: false } }, (c) => apply(match(undefined, c), MOD, { type: 'guard.protect', seat: 3, target: 6 }).ok],
+  'moderator.canSetWolfTarget': [{ moderator: { canSetWolfTarget: false } }, (c) => apply(match(undefined, c), MOD, { type: 'wolf.decide', target: 6 }).ok],
+  'moderator.seesLiveBallots': [{ moderator: { seesLiveBallots: false } }, (c) => project(day1Voted(c), { kind: 'moderator' }).step],
+  'moderator.speaksInPublic': [{ moderator: { speaksInPublic: false } }, (c) => channelsFor(match(undefined, c), { kind: 'moderator' })],
   'timing.discussionBase': [{ timing: { discussionBase: 30 } }, (c) => stepTiming(night(match(undefined, c), { bite: 'pass' })).seconds],
   'timing.discussionPerAlive': [{ timing: { discussionPerAlive: 20 } }, (c) => stepTiming(night(match(undefined, c), { bite: 'pass' })).seconds],
   'timing.discussionMin': [{ timing: { discussionMin: 200 } }, (c) => stepTiming(night(match(undefined, c), { bite: 'pass' })).seconds],
   'timing.discussionMax': [{ timing: { discussionMax: 120 } }, (c) => stepTiming(night(match(undefined, c), { bite: 'pass' })).seconds],
   'timing.vote': [{ timing: { vote: 45 } }, (c) => stepTiming(close(night(match(undefined, c), { bite: 'pass' }))).seconds],
-  'timing.defense': [{ timing: { defense: 45 } }, (c) => stepTiming(close(day1Voted(c))).seconds],
   'timing.confirm': [{ timing: { confirm: 25 } }, (c) => stepTiming(close(close(day1Voted(c)))).seconds],
   'timing.hunter': [{ timing: { hunter: 30 } }, (c) => stepTiming(night(match(undefined, c), { bite: 5 })).seconds],
-  'timing.nightEarlyClose': [
-    { timing: { nightEarlyClose: true } },
-    (c) => stepTiming(night1AllActed(c)).earlyCloseReady,
-  ],
-  'timing.publicEarlyClose': [
-    { timing: { publicEarlyClose: true } },
-    (c) => {
-      let s = close(night(match(undefined, c), { bite: 'pass' }));
-      for (const x of s.seats.filter((q) => q.alive)) s = ok(s, S(x.seat), { type: 'vote.nominate', seat: x.seat, target: 'skip' });
-      return stepTiming(s).earlyCloseReady;
-    },
-  ],
 };
-
-/** Night 1 main step with every living night actor submitted. */
-function night1AllActed(c: Cfg) {
-  let s = match(undefined, c);
-  for (const w of [0, 1]) s = ok(s, S(w), { type: 'wolf.pick', seat: w, target: 6 });
-  s = ok(s, S(2), { type: 'seer.inspect', seat: 2, target: 0 });
-  return ok(s, S(3), { type: 'guard.protect', seat: 3, target: 6 });
-}
 
 /** Day 1 at the nomination step with seats 1,2,3 voting for seat 0. */
 function day1Voted(c: Cfg) {

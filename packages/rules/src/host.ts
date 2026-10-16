@@ -4,6 +4,7 @@ import { type ChannelGrant, channelsFor } from './channels.ts';
 import { type DeepPartial, type DeckCounts, type RulesConfig, resolveConfig } from './config.ts';
 import { apply, createMatch, isSecretStep } from './engine.ts';
 import { stepTiming } from './policies.ts';
+import { deadlineOf, isExpired, type PhaseClock, pauseClock, remainingMs, resumeClock, startClock } from './clock.ts';
 import { type Projection, project } from './projection.ts';
 import type { Actor, Command, MatchState, Seat } from './types.ts';
 
@@ -26,6 +27,16 @@ export type HostResult<S> = { ok: true; state: S } | { ok: false; error: string;
 export interface HostState {
   seatIds: SeatId[];
   match: MatchState;
+  /** Automatic-mode phase clock (null until the first sync, and after the match ends). */
+  clock: PhaseClock | null;
+}
+
+export interface TimerInfo {
+  durationMs: number;
+  remainingMs: number;
+  /** Absolute ms when the phase closes; null while paused (or no clock). */
+  deadline: number | null;
+  paused: boolean;
 }
 
 export type HostView = Projection & { seatIds: SeatId[] };
@@ -42,8 +53,18 @@ export interface RulesEngine<S> {
   moderate(state: S, action: unknown): HostResult<S>;
   /** ADDED: system removal (host/server policy, e.g. long disconnect). Rejected during secret steps by default (Q26). */
   remove(state: S, seat: SeatId): HostResult<S>;
-  /** Close the current step (automatic timer or moderator). */
+  /** Close the current step (moderator, or the server's early close). In automatic mode use tick() for expiry. */
   advance(state: S): S;
+  /** ADDED (automatic mode). After ANY change, call sync(now): starts a full clock when the step changed. */
+  sync(state: S, now: number): S;
+  /** ADDED. Closes the step only if its clock is running and expired, then starts the next clock. Paused never expires. */
+  tick(state: S, now: number): S;
+  /** ADDED. Freeze remaining time (server: all player seats disconnected). Idempotent. */
+  pause(state: S, now: number): S;
+  /** ADDED. Continue with exactly the remaining time frozen at pause (server: any player reconnected). Idempotent. */
+  resume(state: S, now: number): S;
+  /** ADDED. Current timer for phaseEndsAt / UI. */
+  timer(state: S, now: number): TimerInfo | null;
   /** The ONLY game data for a client. CHANGED: viewer may also be 'public'. */
   view(state: S, viewer: HostViewer): HostView;
   /** CHANGED: accepts a SeatId (as drafted) or a viewer (moderator). Grants apply to voice and text alike. */
@@ -66,16 +87,16 @@ export function createRulesEngine(opts: HostOptions = {}): RulesEngine<HostState
   const run = (s: HostState, actor: Actor, cmd: Command | null): HostResult<HostState> => {
     if (!cmd) return { ok: false, code: 'bad_action', error: 'malformed action' };
     const r = apply(s.match, actor, cmd);
-    return r.ok ? { ok: true, state: { seatIds: s.seatIds, match: r.state } } : { ok: false, code: r.error.code, error: r.error.message };
+    return r.ok ? { ok: true, state: { ...s, match: r.state } } : { ok: false, code: r.error.code, error: r.error.message };
   };
-  return {
+  const eng: RulesEngine<HostState> = {
     id: 'moonveil-werewolf',
     minPlayers: config.players.min,
     maxPlayers: config.players.max,
     setup({ seats, seed }) {
       const r = createMatch({ seed, playerCount: seats.length, config: opts.config, deck: opts.deck?.(seats.length) });
       if (!r.ok) throw new Error(r.error.message);
-      return { seatIds: [...seats], match: r.state };
+      return { seatIds: [...seats], match: r.state, clock: null };
     },
     phase(s) {
       const t = stepTiming(s.match);
@@ -97,7 +118,31 @@ export function createRulesEngine(opts: HostOptions = {}): RulesEngine<HostState
     },
     advance(s) {
       const r = apply(s.match, { kind: 'system' }, { type: 'step.close' });
-      return r.ok ? { seatIds: s.seatIds, match: r.state } : s;
+      return r.ok ? { ...s, match: r.state } : s;
+    },
+    sync(s, now) {
+      if (s.match.step.kind === 'ended') return s.clock === null ? s : { ...s, clock: null };
+      if (s.clock && s.clock.stepSeq === s.match.stepSeq) return s;
+      // A new phase inherits the paused state (e.g. a step changed while every player was disconnected).
+      return { ...s, clock: startClock(s.match, now, s.clock !== null && s.clock.runningSince === null) };
+    },
+    tick(s, now) {
+      const t = eng.sync(s, now);
+      if (!t.clock || !isExpired(t.clock, now)) return t;
+      return eng.sync(eng.advance(t), now);
+    },
+    pause(s, now) {
+      const t = eng.sync(s, now);
+      return t.clock ? { ...t, clock: pauseClock(t.clock, now) } : t;
+    },
+    resume(s, now) {
+      const t = eng.sync(s, now);
+      return t.clock ? { ...t, clock: resumeClock(t.clock, now) } : t;
+    },
+    timer(s, now) {
+      const c = s.clock;
+      if (!c || c.stepSeq !== s.match.stepSeq) return null;
+      return { durationMs: c.durationMs, remainingMs: remainingMs(c, now), deadline: deadlineOf(c), paused: c.runningSince === null };
     },
     view(s, viewer) {
       const v = viewer.kind === 'seat' ? { kind: 'seat' as const, seat: index(s, viewer.seat) } : viewer;
@@ -110,6 +155,7 @@ export function createRulesEngine(opts: HostOptions = {}): RulesEngine<HostState
       return channelsFor(s.match, { kind: 'moderator' }).filter((g) => g.channel === 'public').map((g) => ({ ...g, speak: false }));
     },
   };
+  return eng;
 }
 
 // ---------- untrusted input parsing ----------

@@ -205,19 +205,9 @@ describe('day', () => {
     rejects(s, S(6), { type: 'vote.nominate', seat: 6, target: 0 }, 'bad_seat');
   });
 
-  it('early close: never at night; votes only if timing.publicEarlyClose (Q11/F6); hunter step yes', () => {
-    let s = match();
-    assert.deepEqual(stepTiming(s), { seconds: 40, earlyCloseReady: false });
-    s = night(s, { bite: 'pass' });
-    assert.equal(stepTiming(s).earlyCloseReady, false);
+  it('hunter step may close once the shot is in; discussion length scales with living players', () => {
+    const s = night(match(), { bite: 'pass' });
     assert.equal(stepTiming(s).seconds, 60 + 15 * 7);
-    const vote = (cfg: Parameters<typeof match>[1]) => {
-      let v = close(night(match(undefined, cfg), { bite: 'pass' }));
-      for (const x of alive(v)) v = ok(v, S(x), { type: 'vote.nominate', seat: x, target: 'skip' });
-      return stepTiming(v).earlyCloseReady;
-    };
-    assert.equal(vote({}), false);
-    assert.equal(vote({ timing: { publicEarlyClose: true } }), true);
     const h = ok(night(match(), { bite: 5 }), S(5), { type: 'hunter.shoot', seat: 5, target: 'pass' });
     assert.equal(stepTiming(h).earlyCloseReady, true);
   });

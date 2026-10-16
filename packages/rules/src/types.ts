@@ -95,6 +95,8 @@ export interface MatchState {
   night: number;
   day: number;
   step: Step;
+  /** Increments on every new step instance (not on resume after removal). Hosts key phase clocks on it. */
+  stepSeq: number;
   nightRec: NightRecord | null;
   publicLog: PublicEvent[];
   knowledge: Fact[][];
