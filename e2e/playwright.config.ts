@@ -23,10 +23,8 @@ export default defineConfig({
   projects: [
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /mobile\.spec/ },
     { name: 'mobile-chromium', use: { ...devices['Pixel 7'] }, testMatch: /mobile\.spec/ },
-    // BLOCKED: Playwright WebKit on macOS writes ~/Library/{WebKit,Caches,Preferences}/org.webkit.Playwright*
-    // (outside the repo). Off until Human approves; E2E_WEBKIT=1 enables it.
-    ...(process.env.E2E_WEBKIT === '1'
-      ? [{ name: 'mobile-webkit', use: { ...devices['iPhone 15'] }, testMatch: /mobile\.spec/ }]
-      : []),
+    // Grant b (WORKSPACE_PROTOCOL.md): WebKit may write ONLY ~/Library/{Preferences/org.webkit.Playwright.plist,
+    // WebKit/org.webkit.Playwright/, Caches/org.webkit.Playwright/}. Results = "WebKit/browser emulation", not iPhone.
+    { name: 'mobile-webkit', use: { ...devices['iPhone 15'] }, testMatch: /mobile\.spec/ },
   ],
 });

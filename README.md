@@ -6,8 +6,8 @@ Web Werewolf for colleagues. Read `AGENTS.md` first. Architecture: `docs/archite
 All caches/tmp/browsers go to `.cache/` (gitignored) via `scripts/env.mjs`. Never install globally; don't run npm outside the root scripts.
 
     node scripts/env.mjs npm install
-    npm run e2e:install      # Playwright chromium headless shell into .cache/ms-playwright
-    # WebKit e2e is off: it writes to ~/Library on macOS (see e2e/playwright.config.ts).
+    npm run e2e:install      # Playwright chromium headless shell + webkit into .cache/ms-playwright
+    # WebKit writes 3 ~/Library paths on macOS, allowed only by grant b (WORKSPACE_PROTOCOL.md). Label results "WebKit/browser emulation".
     npm run dev              # server :4100 + vite :4101 -> http://127.0.0.1:4101
     npm run check            # typecheck + server tests + e2e (:4120, :4150)
 
