@@ -141,7 +141,7 @@ export function createMoonveilServer(opts: ServerOptions): { http: Server; regis
       }
       alive.set(ws, false);
       ws.ping();
-      if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: 'hb', now: Date.now() } satisfies ServerMessage));
+      if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: 'hb', now: (opts.now ?? Date.now)() } satisfies ServerMessage));
     }
     registry.sweep();
   }, opts.heartbeatMs ?? HEARTBEAT_MS);

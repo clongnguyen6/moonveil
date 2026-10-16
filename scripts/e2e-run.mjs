@@ -17,6 +17,7 @@ const free = () =>
 const env = { ...process.env };
 env.E2E_PORT ??= String(await free());
 env.E2E_RESTART_PORT ??= String(await free());
+env.E2E_REAL_PORT ??= String(await free());
 const child = spawn('playwright', ['test', ...process.argv.slice(2)], { stdio: 'inherit', env });
 child.on('exit', (code, signal) => process.exit(signal ? 1 : (code ?? 1)));
 for (const s of ['SIGINT', 'SIGTERM']) process.on(s, () => child.kill(s));

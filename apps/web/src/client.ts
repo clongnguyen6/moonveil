@@ -83,6 +83,8 @@ export class Client {
 
   constructor(url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${WS_PATH}`) {
     this.url = url;
+    // Debug/e2e handle (owned here so it survives UI changes). Holds only this seat's own data.
+    (globalThis as { __moonveil?: Client }).__moonveil ??= this;
     // A socket may look open after a network change or a frozen tab; don't trust it.
     addEventListener('online', () => this.wake(true));
     document.addEventListener('visibilitychange', () => {
