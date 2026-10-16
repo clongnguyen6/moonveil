@@ -19,9 +19,13 @@ function summarize(reports: MatrixReport[]) {
   const failures = done.flatMap((r) => r.failures);
   const checked = done.reduce((n, r) => n + r.checked, 0);
   const steps = done.map((r) => r.step);
-  const skipped = reports.filter((r) => r.skipped).map((r) => r.step);
-  console.log(`hear-matrix: ${checked} pair-channel checks over ${done.length} steps [${steps.join(' → ')}], ${failures.length} failures; skipped (grants changed mid-window): [${skipped.join(', ')}]`);
-  return { failures, checked, steps };
+  const skipped = reports.filter((r) => r.skipped);
+  console.log(`hear-matrix: ${checked} pair-channel checks over ${done.length} steps [${steps.join(' → ')}], ${failures.length} failures; skipped windows: ${skipped.length}`);
+  for (const r of skipped) {
+    const changed = Object.keys(r.skipped!.after).filter((k) => r.skipped!.after[k] !== r.skipped!.before[k]);
+    console.log(`  skipped ${r.step}: ${r.skipped!.reason}; pages that differ/changed: ${changed.map((k) => `${k} ${r.skipped!.before[k]} -> ${r.skipped!.after[k]}`).join(' | ') || JSON.stringify(r.skipped!.before)}`);
+  }
+  return { failures, checked, steps, skipped: skipped.length };
 }
 
 async function seatTable(table: { player(name: string): Promise<Player>; seat(mode: 'automatic' | 'moderator', host: Player, others: Player[]): Promise<string> }, mode: 'automatic' | 'moderator', seats: number) {

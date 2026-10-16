@@ -80,8 +80,8 @@ export interface MatrixReport {
   step: string;
   checked: number;
   failures: string[];
-  // true when grants changed during the measurement window (automatic mode, short steps): not counted.
-  skipped?: boolean;
+  // Set when the window was not measurable: the step/grants per page before and after, as evidence.
+  skipped?: { reason: string; before: Record<string, string>; after: Record<string, string> };
 }
 
 // Expected: A hears B on c  <=>  A.listen(c) && B.speak(c) && B's mic is granted.
@@ -93,14 +93,16 @@ export async function checkHearMatrix(players: Player[], stepName: string): Prom
   // page; a matrix mixing two steps is meaningless, so it is skipped rather than failed.
   const stepsBefore = players.map((p) => step(p));
   const grantsBefore = players.map((p) => JSON.stringify(p.view().voice));
+  const skew = () => Object.fromEntries(players.map((p) => [p.name, `${step(p)} ${p.view().voice.map((g) => `${g.channel}:${g.speak ? 'S' : ''}${g.listen ? 'L' : ''}`).join(',')}`]));
+  const before = skew();
   if (new Set(stepsBefore).size !== 1) {
-    report.skipped = true;
+    report.skipped = { reason: 'pages show different steps before the window', before, after: before };
     return report;
   }
   const snaps = new Map(await Promise.all(players.map(async (p) => [p, (await voiceSnapshot(p))!] as const)));
   const energy = await measure(players);
   if (players.some((p, i) => JSON.stringify(p.view().voice) !== grantsBefore[i] || step(p) !== stepsBefore[0])) {
-    report.skipped = true;
+    report.skipped = { reason: 'step or grants changed during the 2 s window', before, after: skew() };
     return report;
   }
   for (const a of players) {
