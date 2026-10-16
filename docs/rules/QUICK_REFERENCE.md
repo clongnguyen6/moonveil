@@ -51,4 +51,4 @@ How many of each role: about one Wolf per three players; see the table in `PROPO
 ## Moderated games
 - A human moderator runs the pace and hears every channel. ✅
 - For a show of hands, the moderator enters the Yes count, and the game applies the same "more than half" rule. ✅
-- The moderator's other powers (acting for a player, removing a player, speaking) are 🟡.
+- The moderator's other powers (acting for a player, removing a player, speaking aloud: currently off) are 🟡.
