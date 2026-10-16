@@ -9,6 +9,7 @@ import { SeatGrid } from '../components/SeatGrid.tsx';
 import { type T, useT } from '../i18n/index.ts';
 import { useSession } from '../session-context.ts';
 import type { Mic } from '../voice/mic.ts';
+import { useVoiceClient } from '../voice/useVoiceClient.ts';
 
 const roleDesc = (t: T, r: Role) => t(`roleDesc${r[0]!.toUpperCase()}${r.slice(1)}` as 'roleDescWolf');
 const teamOf = (r: Role) => (r === 'wolf' ? 'wolves' : 'village');
@@ -135,7 +136,7 @@ export function RolesInPlay({ g }: { g: GameView }) {
   );
 }
 
-export function HelpSheet({ g, onClose }: { g: GameView | null; onClose: () => void }) {
+export function HelpSheet({ g, onClose, limits }: { g: GameView | null; onClose: () => void; limits?: { min: number; max: number } }) {
   const t = useT();
   return (
     <Sheet title={t('helpTitle')} onClose={onClose} testId="help-sheet">
@@ -145,7 +146,7 @@ export function HelpSheet({ g, onClose }: { g: GameView | null; onClose: () => v
         <h3 className="hint" style={{ fontWeight: 700 }}>{t('helpRoles')}</h3>
         <ul className="facts">
           {(g ? rolesInPlay(g) : (['wolf', 'villager', 'seer', 'guard', 'witch', 'hunter'] as Role[])).map((r) => (
-            <li key={r}><strong className={`team-${teamOf(r)}`}>{t.role(r)}</strong> — {roleDesc(t, r)}</li>
+            <li key={r}><strong className={`team-${teamOf(r)}`}>{t.role(r)}</strong> — {roleDesc(t, r)}{r === 'seer' || r === 'guard' ? <> <span className="pill warn">{t('provisional')}</span></> : null}</li>
           ))}
         </ul>
         <h3 className="hint" style={{ fontWeight: 700 }}>{t('helpRulesApproved')}</h3>
@@ -157,7 +158,13 @@ export function HelpSheet({ g, onClose }: { g: GameView | null; onClose: () => v
           <li>{t('helpRuleHunter')}</li>
           <li>{t('helpRuleReveal')}</li>
           <li>{t('helpRuleGhost')}</li>
-          <li className="muted">{t('helpProvisional')}</li>
+          {limits && <li>{t('helpRulePlayers', limits)}</li>}
+        </ul>
+        <h3 className="hint" style={{ fontWeight: 700 }}>{t('helpProvisional')} <span className="pill warn">{t('provisional')}</span></h3>
+        <ul className="facts" data-testid="help-provisional">
+          <li>{t('helpProvSeer')}</li>
+          <li>{t('helpProvGuard')}</li>
+          <li>{t('helpProvWolfPass')}</li>
         </ul>
       </div>
     </Sheet>
@@ -197,12 +204,12 @@ export function ChatSheet({ s, view, onClose }: { s: SessionState; view: SeatVie
   return (
     <Sheet title={t('chatTitle')} onClose={onClose} testId="chat-sheet">
       <div className="chat">
-        {channels.length > 1 && <Tabs tabs={channels.map((c) => ({ key: c, label: t(CHANNEL_LABEL[c]) }))} value={active} onChange={setTab} />}
+        {channels.length > 1 && <Tabs tabs={channels.map((c) => ({ key: c, label: t(CHANNEL_LABEL[c]) }))} value={active} onChange={setTab} testId="chat-tab" dataKey="channel" />}
         <div className="chat-log" ref={log} data-testid="chat-log" data-channel={active}>
           {msgs.length === 0 && <p className="muted">{t('chatNone')}</p>}
           {msgs.map(({ msg: m }) => (
             <div key={m.id} className={`chat-msg ${m.from === view.me.seat ? 'mine' : ''}`}>
-              <span className="from">{nameOf(view, m.from)}</span> {m.text}
+              <span className="from">{m.name ?? nameOf(view, m.from)}</span> {m.text}
             </div>
           ))}
         </div>
@@ -237,26 +244,35 @@ export function GhostBar({ view, g }: { view: SeatView; g: GameView }) {
 /** Mic button + channel label strictly from grants. No grant for a channel = no trace of it. */
 export function VoiceBar({ s, view, mic, night }: { s: SessionState; view: SeatView; mic: Mic; night?: boolean }) {
   const t = useT();
+  const session = useSession();
+  const { client: vc, snap } = useVoiceClient(session);
   const speakOn = view.voice.filter((v) => v.speak).map((v) => v.channel as ChannelId);
   const off = s.voiceMode === 'inPerson';
   const listenOnly = speakOn.length === 0;
-  const label = off ? t('voiceOff') : listenOnly ? t('voiceListen') : mic.muted ? t('voiceMuted') : t(CHANNEL_LABEL[speakOn[0]!]);
+  // One mic model: the VoiceClient when it exists (real voice), else the local check (stub / no sessions yet).
+  const muted = snap ? snap.muted : mic.muted;
+  const micBad = snap ? snap.mic === 'denied' || snap.mic === 'failed' : mic.status === 'denied' || mic.status === 'error';
+  const toggle = () => (vc && snap ? void vc.setMuted(!snap.muted) : mic.setMuted(!mic.muted));
+  const label = off ? t('voiceOff') : listenOnly ? t('voiceListen') : micBad ? t('voiceMicOff') : muted ? t('voiceMuted') : t(CHANNEL_LABEL[speakOn[0]!]);
+  const unlock = snap?.audioBlocked ? <Button kind="secondary" testId="audio-unlock" onClick={() => void vc?.unlockAudio()}>{t('voiceUnlock')}</Button> : null;
   // Night: one neutral button for every seat, no channel label, so the top bar gives no role tell at a glance.
   // A wolf's tap still toggles mute (grant-driven); the label is in the aria text only.
   if (night) {
     return (
-      <div className="mic-bar" data-testid="voice" data-speak={speakOn.join(',')}>
+      <div className="mic-bar" data-testid="voice" data-speak={speakOn.join(',')} data-mic={snap?.mic ?? mic.status}>
         {/* never `disabled` here: a dimmed button would mark the seats that cannot speak */}
-        <Button kind="icon" label={label} onClick={() => !off && !listenOnly && mic.setMuted(!mic.muted)}>🎙️</Button>
+        <Button kind="icon" label={label} onClick={() => !off && !listenOnly && toggle()}>🎙️</Button>
+        {unlock}
       </div>
     );
   }
   return (
-    <div className="mic-bar" data-testid="voice" data-speak={speakOn.join(',')}>
-      <Button kind="icon" label={mic.muted ? t('voiceUnmute') : t('voiceMute')} pressed={!off && !listenOnly && !mic.muted} disabled={off || listenOnly} onClick={() => mic.setMuted(!mic.muted)}>
-        {off || listenOnly || mic.muted ? '🔇' : '🎙️'}
+    <div className="mic-bar" data-testid="voice" data-speak={speakOn.join(',')} data-mic={snap?.mic ?? mic.status} data-muted={muted}>
+      <Button kind="icon" label={muted ? t('voiceUnmute') : t('voiceMute')} pressed={!off && !listenOnly && !muted && !micBad} disabled={off || listenOnly || micBad} onClick={toggle}>
+        {off || listenOnly || muted || micBad ? '🔇' : '🎙️'}
       </Button>
       <span className="pill voice-label">{label}</span>
+      {unlock}
     </div>
   );
 }
@@ -264,9 +280,12 @@ export function VoiceBar({ s, view, mic, night }: { s: SessionState; view: SeatV
 export function ConnOverlay({ status }: { status: ConnStatus }) {
   const t = useT();
   const session = useSession();
-  if (status === 'open' || status === 'idle' || status === 'connecting') return null;
+  if (status === 'idle') return null;
+  if (status === 'open' || status === 'connecting') {
+    return <span className="banner ok conn-chip" role="status" data-testid="conn" data-status={status}>{status === 'open' ? t('connConnected') : t('waiting')}</span>;
+  }
   return (
-    <div className="conn-overlay" role="status" data-testid="conn-overlay" data-status={status}>
+    <div className="conn-overlay" role="status" data-testid="conn" data-status={status}>
       <div className="card raised stack">
         {status === 'reconnecting' && (
           <>

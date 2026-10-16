@@ -3,6 +3,7 @@ import type { Appearance, PublicSeat } from '@moonveil/protocol';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useT } from '../i18n/index.ts';
 import { playCue } from '../audio/cues.ts';
+import { serverNow } from '../../game/clock.ts';
 
 const HAT_GLYPH: Record<Appearance['hat'], string> = { none: '', beanie: '🧢', cap: '🧢', bucket: '👒', flower: '🌼', hood: '🧥' };
 
@@ -38,12 +39,12 @@ export function Button(props: { children: ReactNode; onClick?: () => void; kind?
 }
 
 /** Countdown from a server deadline. Same for every seat; shows nothing when the server gives no deadline. */
-export function Timer({ endsAt, totalMs }: { endsAt: number | null; totalMs?: number }) {
+export function Timer({ endsAt, totalMs }: { endsAt: number | null; totalMs?: number | null }) {
   const t = useT();
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(serverNow());
   useEffect(() => {
     if (endsAt === null) return;
-    const id = setInterval(() => setNow(Date.now()), 250);
+    const id = setInterval(() => setNow(serverNow()), 250);
     return () => clearInterval(id);
   }, [endsAt]);
   if (endsAt === null) return null;
@@ -112,11 +113,11 @@ export function Toasts({ items }: { items: ToastItem[] }) {
   );
 }
 
-export function Tabs<K extends string>({ tabs, value, onChange }: { tabs: { key: K; label: string }[]; value: K; onChange: (k: K) => void }) {
+export function Tabs<K extends string>({ tabs, value, onChange, testId, dataKey }: { tabs: { key: K; label: string }[]; value: K; onChange: (k: K) => void; testId?: string; dataKey?: string }) {
   return (
     <div className="tabs" role="tablist">
       {tabs.map((x) => (
-        <button key={x.key} role="tab" className="tab" aria-selected={value === x.key} onClick={() => onChange(x.key)}>{x.label}</button>
+        <button key={x.key} role="tab" className="tab" aria-selected={value === x.key} data-testid={testId} {...(dataKey ? { [`data-${dataKey}`]: x.key } : {})} onClick={() => onChange(x.key)}>{x.label}</button>
       ))}
     </div>
   );
