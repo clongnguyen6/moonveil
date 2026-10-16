@@ -8,18 +8,15 @@ const P = (canPublish: boolean, canSubscribe: boolean, hidden = false): RoomPerm
 
 test('grant -> permission follows the approved policy table', () => {
   assert.deepEqual(toPermission(g('public', true, true)), P(true, true)); // day, living
-  assert.deepEqual(toPermission(g('public', false, true), true), P(false, true)); // defense, not accused (already present, visible)
-  assert.deepEqual(toPermission(g('public', false, true)), P(false, true, true)); // ghost / pending Hunter / moderator: hidden
+  assert.deepEqual(toPermission(g('public', false, true)), P(false, true, true)); // defense non-accused, ghost, pending Hunter, moderator: hidden
   assert.deepEqual(toPermission(g('wolves', true, true)), P(true, true)); // night, wolf
   assert.equal(isActive(g('public', false, false)), false); // no grant = not connected
 });
 
-test('visibility (ADR 0004): derived from speak on entry, sticky while present, explicit bit wins', () => {
+test('visibility (ADR 0004): visible iff speak; explicit bit wins', () => {
   const listenOnly: VoiceGrantLike = { channel: 'public', listen: true, speak: false };
-  assert.equal(visibilityOf(listenOnly), false); // ghost, pending Hunter, moderator: hidden newcomers
+  assert.equal(visibilityOf(listenOnly), false); // ghost, pending Hunter, moderator, defense listeners: hidden
   assert.equal(visibilityOf({ ...listenOnly, speak: true }), true);
-  assert.equal(visibilityOf(listenOnly, true), true); // defense: a living listener who entered visible stays visible
-  assert.equal(visibilityOf(listenOnly, false), false); // a hidden listener stays hidden
   assert.equal(visibilityOf({ ...listenOnly, visible: true }), true); // explicit override
   assert.deepEqual(toPermission(listenOnly), P(false, true, true));
 });
@@ -39,10 +36,6 @@ test('desiredByChannel groups active grants per channel', () => {
   );
   assert.deepEqual([...d.keys()].sort(), ['ghosts', 'public']);
   assert.deepEqual(d.get('public')!.get('p2'), P(false, true, true));
-  // sticky: p1 present and visible, now listen-only -> stays visible; p2 present hidden -> stays hidden
-  const d2 = desiredByChannel(new Map([['p1', [g('public', false, true)]], ['p2', [g('public', false, true)]]]), new Map([['public', [{ identity: 'p1', permission: P(true, true, false) }, { identity: 'p2', permission: P(false, true, true) }]]]));
-  assert.deepEqual(d2.get('public')!.get('p1'), P(false, true, false));
-  assert.deepEqual(d2.get('public')!.get('p2'), P(false, true, true));
   assert.equal(d.get('public')!.has('p3'), false);
 });
 

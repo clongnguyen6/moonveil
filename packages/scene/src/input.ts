@@ -1,4 +1,5 @@
 // Keyboard (laptop) + floating virtual joystick (touch). Produces a unit direction vector.
+import { keysToDir, sceneHandlesKey, SPEAK_KEY, type KeyTargetLike } from './keys.ts';
 export class Input {
   dir = { x: 0, y: 0 };
   readonly touch: boolean;
@@ -13,9 +14,18 @@ export class Input {
   constructor(surface: HTMLElement) {
     const hud = surface;
     this.touch = navigator.maxTouchPoints > 0 || matchMedia('(pointer: coarse)').matches;
-    window.addEventListener('keydown', (e) => { if (e.repeat) return; this.keys.add(e.code); if (e.code === 'Space') { this.onSpeakKey?.(true); e.preventDefault(); } });
-    window.addEventListener('keyup', (e) => { this.keys.delete(e.code); if (e.code === 'Space') this.onSpeakKey?.(false); });
-    window.addEventListener('blur', () => this.keys.clear());
+    // Keys typed into chat/inputs or HUD ([data-ui]) are left alone (P14); Escape is never claimed.
+    const keydown = (e: KeyboardEvent) => {
+      if (e.repeat || !sceneHandlesKey(e.code, e.target as KeyTargetLike | null)) return;
+      this.keys.add(e.code);
+      if (e.code === SPEAK_KEY) { this.onSpeakKey?.(true); e.preventDefault(); }
+    };
+    // keyup always releases, so a key pressed in the scene and released inside a text field cannot stick
+    const keyup = (e: KeyboardEvent) => { if (this.keys.delete(e.code) && e.code === SPEAK_KEY) this.onSpeakKey?.(false); };
+    const blur = () => { if (this.keys.has(SPEAK_KEY)) this.onSpeakKey?.(false); this.keys.clear(); };
+    window.addEventListener('keydown', keydown);
+    window.addEventListener('keyup', keyup);
+    window.addEventListener('blur', blur);
 
     this.base = document.createElement('div'); this.base.className = 'joy-base';
     this.knob = document.createElement('div'); this.knob.className = 'joy-knob';
@@ -50,7 +60,7 @@ export class Input {
       this.joy.active = false; this.joy.x = this.joy.y = 0; this.restJoystick();
     };
     surface.addEventListener('pointerdown', down);
-    this.detach = () => { surface.removeEventListener('pointerdown', down); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); this.base.remove(); };
+    this.detach = () => { surface.removeEventListener('pointerdown', down); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); window.removeEventListener('keydown', keydown); window.removeEventListener('keyup', keyup); window.removeEventListener('blur', blur); this.base.remove(); };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
     window.addEventListener('pointercancel', up);
@@ -63,12 +73,7 @@ export class Input {
   }
 
   update() {
-    let x = 0, y = 0;
-    const k = this.keys;
-    if (k.has('ArrowLeft') || k.has('KeyA')) x -= 1;
-    if (k.has('ArrowRight') || k.has('KeyD')) x += 1;
-    if (k.has('ArrowUp') || k.has('KeyW')) y -= 1;
-    if (k.has('ArrowDown') || k.has('KeyS')) y += 1;
+    let { x, y } = keysToDir(this.keys);
     if (this.joy.active) { x = this.joy.x; y = this.joy.y; }
     const d = Math.hypot(x, y);
     if (d > 1) { x /= d; y /= d; }
