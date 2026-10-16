@@ -15,12 +15,13 @@ Maintained by Lead (93ca0cd6-c546-456f-b97f-c3c9c4115a14). Peers: read, don't ed
 | rules: proposal + pure engine | fd99d2a9 | packages/rules, docs/rules | — |
 | visual preview | d9e8c62b | preview/, docs/visual | 4200–4299 |
 | voice investigation | 87bbae25 | spikes/voice, docs/voice | 4300–4399 |
+| review (read-only): rules 9af74b8 | 09a95d56 (codex) | none | — |
 
 ## Milestones
 - M0 init: docs committed on `dev` (acf85a0). [done]
 - M1 visual preview → Human approval before broad visual production. [in progress]
-- M1 rule proposal → Human gameplay decisions. [in progress]
-- M1 voice recommendation (provider/cost) → Human cost decision if non-zero. [in progress]
+- M1 rule proposal: rules 9af74b8, 15 product decisions + low-stakes batch. Lead re-ran check: typecheck ok, 115/115. Independent review running; then to Human. Rules Peer now: balance sim, TS7 alignment, narration draft.
+- M1 voice recommendation: self-hosted LiveKit OSS, room-per-channel, server sole token issuer, rotate channel on membership loss (OSS doesn't revoke tokens). 43/43 checks on voice a94fe73 (Peer-reported; Lead re-run pending). Hosted options need sign-ups → Human. [reported upstream]
 - M2 playable vertical slice: full automatic + moderator match, server-side isolation, reconnect, 7–10 browser sessions. [blocked on M1 rules decisions for final rules; engine uses provisional defaults]
 - M3 production visuals/audio/animation/UI (after preview approval) + voice integration.
 - M4 acceptance: full matches both modes, isolation, ghosts, reconnect, phone/laptop emulation; exact revision + limits reported; merge/deploy request.
@@ -32,8 +33,9 @@ Maintained by Lead (93ca0cd6-c546-456f-b97f-c3c9c4115a14). Peers: read, don't ed
 
 ## Pending Human decisions
 - Standing permission to ff-merge scope branches into `dev` (not main) after owner checks + Lead diff review? [pending, NOT approved]
-- Rollback of Homebrew livekit-server install. [pending Peer report, then Human]
+- Rollback: `brew uninstall livekit` (1.13.10, no deps/services) + delete 3 npm logs, 3 org.webkit.Playwright paths, /tmp/null. [proposed to Supervisor]
 - Integration of foundation b3d9ece into dev (ff from dev b210c4d). [proposed to Supervisor]
+- Blocked by merge hold: server↔rules wiring (needs rules pkg in workspace), voice integration.
 - Other outside-Moonveil writes + rollback (see Risks). [proposed to Supervisor]
 - WebKit/iOS emulation needs ~/Library writes: approve, or accept Chromium-only emulation. [proposed]
 - Phone LAN mic/voice needs HTTPS with trusted cert (getUserMedia secure-context). Hosting/device-trust decision with voice. [open]
@@ -42,6 +44,7 @@ Maintained by Lead (93ca0cd6-c546-456f-b97f-c3c9c4115a14). Peers: read, don't ed
 ## Risks / notes
 - Some web doc fetches are being rejected by the permission system; Peers source claims locally and label provenance; don't retry denied calls.
 - Outside writes by foundation (2026-10-16): ~/.npm/_npx/e41f203b7505f1fb (rewritten), ~/.npm/_cacache (8 files), 3 ~/.npm/_logs files (07_05_07, 07_09_58, 07_10_05), /tmp/.mv_marker_never_used (created+deleted), WebKit: ~/Library/{Preferences/org.webkit.Playwright.plist, WebKit/org.webkit.Playwright/, Caches/org.webkit.Playwright/}, ~/Library/Caches/com.apple.nsservicescache.plist recreated. Not undone.
+- Outside write by rules: /tmp/x (created+deleted 14:31). Unattributed: ~/.npm/_logs 07_05_15 (npm ls --global) and 07_05_55 (npx playwright --version), cwd moonveil — asking Peers.
 - Outside write by Lead: /tmp/null (331 B, npm ci output) 14:31, command mistake. Not undone.
 - Foundation repo scripts now pin caches/tmp/browsers to .cache/ (verified: no new ~/.npm logs on check run).
 - Open from foundation: ghost knowledge wording ambiguous (→ rules); fixed-length secret phases = pace vs timing-secrecy (→ rules); rooms in memory (restart loses); no mode/moderator change after creation.
