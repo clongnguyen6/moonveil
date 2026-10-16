@@ -7,7 +7,7 @@ import type { GameView, SeatView } from '@moonveil/protocol';
 import { assertOpenBallotsViews, assertOutcome, assertSeatIsolationViews } from '../../apps/server/test/assertions.ts';
 import { expect, type Player, test } from '../harness/index.ts';
 import { type BrowserMatch, game, runRealMatch } from '../harness/match.ts';
-import { seatRealMatchUi, uiBotAct, uiCloseStep, uiPresent } from '../harness/ui.ts';
+import { seatRealMatchUi, uiBotAct, uiCloseStep, uiPresent, uiStats } from '../harness/ui.ts';
 
 const REAL_PORT = Number(process.env.E2E_REAL_PORT ?? 4152);
 const states = (p: Player): SeatView[] => p.frames.flatMap((f) => (f.msg.t === 'state' ? [f.msg.view] : []));
@@ -28,6 +28,7 @@ for (const mode of ['automatic', 'moderator'] as const) {
       test.skip(!(await uiPresent(probe)), 'game UI not wired in this build (no [data-testid=entry])');
       await probe.context.close();
 
+      uiStats.attempted = uiStats.done = 0;
       const m = await seatRealMatchUi(table, { mode, seats, baseURL: `http://127.0.0.1:${REAL_PORT}` });
       const stats = { ballotSteps: 0, reloads: 0, drops: 0, ghostChecks: 0, overflowChecks: 0 };
       await runRealMatch(
@@ -76,7 +77,10 @@ for (const mode of ['automatic', 'moderator'] as const) {
       expect(m.driver.view().status).toBe('ended');
       assertOutcome(game(m.players[0]!) as GameView);
       for (const p of m.players) assertSeatIsolationViews(states(p));
-      console.log(`UIMATCH ${JSON.stringify({ project: info.project.name, mode, seats, steps: m.steps, ...stats, outcome: (game(m.players[0]!) as GameView).outcome })}`);
+      console.log(`UIMATCH ${JSON.stringify({ project: info.project.name, mode, seats, steps: m.steps, ...stats, uiActions: { ...uiStats }, outcome: (game(m.players[0]!) as GameView).outcome })}`);
+      // Most UI actions must land (some may race a closing step; that counts as a pass in the rules).
+      expect(uiStats.done, 'UI actions performed').toBeGreaterThan(0);
+      expect(uiStats.done / uiStats.attempted, 'share of UI actions that landed').toBeGreaterThanOrEqual(0.8);
       expect(stats.ballotSteps).toBeGreaterThan(0);
       expect(stats.reloads + stats.drops).toBeGreaterThan(0);
     });
