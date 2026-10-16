@@ -35,14 +35,27 @@ export interface CreateOptions {
   /** Exact role per seat (moderator-assigned). Overrides playerCount/deck. */
   roles?: Role[];
   playerCount?: number;
-  /** Custom deck counts (host customization, Q17). Default: config.distribution. */
+  /** Custom deck counts (host customization, approved within limits). Default: DEFAULT_DECKS. */
   deck?: DeckCounts;
   config?: DeepPartial<RulesConfig>;
 }
 
 export type CreateResult = { ok: true; state: MatchState } | { ok: false; error: EngineError };
 
+/** Creates a match. Every deck and table size is validated against the approved Batch A rules. */
 export function createMatch(opts: CreateOptions): CreateResult {
+  return build(opts, true);
+}
+
+/**
+ * TEST-ONLY: same as createMatch but skips deck/table-size validation, for synthetic tables (e.g. 3 seats).
+ * Deliberately not exported from index.ts, so hosts cannot bypass the approved rules.
+ */
+export function createMatchUnchecked(opts: CreateOptions): CreateResult {
+  return build(opts, false);
+}
+
+function build(opts: CreateOptions, validate: boolean): CreateResult {
   let config: RulesConfig;
   try {
     config = resolveConfig(opts.config);
@@ -54,13 +67,13 @@ export function createMatch(opts: CreateOptions): CreateResult {
   if (opts.roles) {
     roles = [...opts.roles];
     const deck = Object.fromEntries(ROLES.map((r) => [r, roles.filter((x) => x === r).length])) as DeckCounts;
-    const bad = validateDeck(deck, roles.length, config);
+    const bad = validate ? validateDeck(deck, roles.length, config) : null;
     if (bad) return fail('rule', bad);
   } else {
     const n = opts.playerCount ?? 0;
-    const deck = opts.deck ?? defaultDeck(n, config);
-    if (!deck) return fail('rule', `no default deck for ${n} players`);
-    const bad = validateDeck(deck, n, config);
+    const deck = opts.deck ?? defaultDeck(n);
+    if (!deck) return fail('rule', `no default deck for ${n} players (supported: 7-15)`);
+    const bad = validate ? validateDeck(deck, n, config) : null;
     if (bad) return fail('rule', bad);
     const list = ROLES.flatMap((r) => Array<Role>(deck[r]).fill(r));
     const sh = shuffle(list, rng);

@@ -1,9 +1,9 @@
 // Scripted clients for the REAL rules engine (protocol level, in-process, manual clock).
 // Bots read only their own snapshot (me.actions) and send `act` like a browser would.
-import assert from 'node:assert/strict';
 import type { GameView, SeatView } from '@moonveil/protocol';
 import { createRulesEngine } from '@moonveil/rules';
 import type { RulesEngine } from '../src/rules/engine.ts';
+import { assertOpenBallotsViews, assertSeatIsolationViews } from './assertions.ts';
 import { type FakeClient, setup } from './harness.ts';
 
 export const gv = (c: FakeClient) => c.view.game as GameView;
@@ -84,46 +84,16 @@ export function realMatch(opts: { mode: 'automatic' | 'moderator'; seats: number
   return { h, ...room, driver, run, r };
 }
 
-// ---- shared isolation assertions ----
-
-const games = (c: FakeClient) => views(c).map((v) => v.game as GameView | null).filter((g): g is GameView => g !== null);
+// ---- shared isolation assertions (pure versions in ./assertions.ts, also used by the browser harness) ----
 
 export function assertSeatIsolation(p: FakeClient) {
-  const all = games(p);
-  const me = all[0]!.me!;
-  for (const g of all) {
-    assert.equal(g.me!.seat, me.seat, 'identity stable');
-    assert.equal(g.me!.role, me.role, 'role stable');
-    if (g.step.kind === 'ended') continue;
-    assert.equal(g.moderator, null, `seat ${me.seat} got moderator data`);
-    if (me.role !== 'wolf') assert.equal(g.pack, null, `seat ${me.seat} got pack view`);
-    const revealed = new Set(g.publicLog.flatMap((e) => (e.t === 'roleRevealed' ? [e.seat] : [])));
-    const wolves = new Set(g.pack?.seats ?? []);
-    for (const s of g.seats) {
-      if (s.role === null || s.seat === me.seat || revealed.has(s.seat)) continue;
-      assert.ok(me.role === 'wolf' && wolves.has(s.seat) && s.role === 'wolf', `seat ${me.seat} learned role of ${s.seat}`);
-    }
-  }
+  assertSeatIsolationViews(views(p));
 }
 
-// Approved (2026-10-16, supersedes hidden ballots): day votes are open. During nomination and Yes/No every
-// seat sees each voter's choice live; snapshots (incl. reconnect) agree. Checked across seats at one moment.
-// Returns true if a vote step was checked.
+// Approved: day votes are open; checks the latest snapshot of every client at one moment.
 export function assertOpenBallots(clients: FakeClient[]): boolean {
-  const views = clients.map((c) => gv(c));
-  const st = views[0]!.step as { kind: string; votes?: unknown };
-  if (st.kind !== 'day.vote' && st.kind !== 'day.confirm') return false;
-  const ref = JSON.stringify(st.votes ?? null);
-  assert.notEqual(ref, 'null', `ballots hidden during ${st.kind}`);
-  for (const g of views) {
-    assert.equal(JSON.stringify((g.step as { votes?: unknown }).votes ?? null), ref, `seat ${g.me!.seat} sees different ballots`);
-    const votes = (g.step as { votes: unknown[] }).votes;
-    const own = (g.me as { ballot?: unknown }).ballot ?? null;
-    assert.deepEqual(votes[g.me!.seat] ?? null, own, `seat ${g.me!.seat}: own ballot differs from the open tally`);
-  }
-  return true;
+  return assertOpenBallotsViews(clients.map((c) => c.view));
 }
-
 
 // ---- scripted scenarios (real engine, fixed seed) ----
 

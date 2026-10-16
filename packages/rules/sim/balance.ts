@@ -64,11 +64,11 @@ export function row(c: Cell, label: string, flag = ''): string {
 
 if (import.meta.main) {
   const n = Number(process.argv[2] ?? 1000);
-  const cfg = { ...DEFAULT_CONFIG, players: { min: 3, max: 30 } };
+  const cfg = DEFAULT_CONFIG;
   const head = `| Players | Deck | Policy | Village win % [95% CI] | Wolves % | Draw % | Exec. hit wolf % | Nights | Minutes p10/p50/p90 | Flag |\n|---|---|---|---|---|---|---|---|---|---|`;
   console.log(`### Recommended decks and wolf±1 variants (n=${n} per row)\n\n${head}`);
-  for (let players = 6; players <= 16; players++) {
-    const base = defaultDeck(players, DEFAULT_CONFIG) as DeckCounts;
+  for (let players = 7; players <= 15; players++) {
+    const base = defaultDeck(players) as DeckCounts;
     for (const [label, deck] of [['default', base], ['wolf-1', variant(base, -1)], ['wolf+1', variant(base, +1)]] as const) {
       if (!deck) continue;
       const invalid = validateDeck(deck, players, cfg);
@@ -86,8 +86,8 @@ if (import.meta.main) {
     }
   }
   console.log(`\n### Sensitivity of the recommended decks to the social-read assumption (heuristic, n=${Math.round(n / 2)})\n\n${head}`);
-  for (const players of [6, 7, 8, 9, 10, 12, 14, 16]) {
-    const deck = defaultDeck(players, DEFAULT_CONFIG) as DeckCounts;
+  for (const players of [7, 8, 9, 10, 12, 13, 15]) {
+    const deck = defaultDeck(players) as DeckCounts;
     for (const w of [1.0, 2.5]) {
       console.log(row(runCell(players, 'heuristic', deck, Math.round(n / 2), { wolfSuspicionWeight: w }, 7), `read=${w}`));
     }

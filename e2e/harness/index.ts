@@ -3,7 +3,7 @@
 //   import { test, expect } from '../harness/index.ts';
 //   test('x', async ({ table }) => { const host = await table.player('Ann'); ... });
 import { type Browser, type BrowserContext, type BrowserContextOptions, expect, type Page, test as base } from '@playwright/test';
-import type { Appearance, Mode, SeatView, ServerMessage } from '@moonveil/protocol';
+import { type Appearance, type Mode, type SeatView, type ServerMessage, WS_PATH } from '@moonveil/protocol';
 
 export interface Frame {
   at: number;
@@ -22,6 +22,8 @@ export class Player {
     this.context = context;
     this.page = page;
     page.on('websocket', (ws) => {
+      // Only the game socket (WS_PATH). Pages may also open LiveKit signaling (binary, /rtc): not ours.
+      if (new URL(ws.url()).pathname !== WS_PATH) return;
       ws.on('framereceived', ({ payload }) => {
         const raw = typeof payload === 'string' ? payload : payload.toString('utf8');
         this.frames.push({ at: Date.now(), raw, msg: JSON.parse(raw) as ServerMessage });

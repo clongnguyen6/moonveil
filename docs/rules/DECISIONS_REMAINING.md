@@ -1,19 +1,18 @@
 # Rules still to decide — one page
 
-Status: 2026-10-16, for the decision-maker. Everything below is **provisional**. The app already runs on the "Recommend" column, except rows marked ⚠, where a "yes" changes a setting. Details and sky2 evidence: `PROPOSAL.md` (Qxx). Bot results: `BALANCE.md`. Bots are not players.
+Status: 2026-10-16, for the decision-maker. Batch A is decided; everything else below is **provisional**. The app already runs on the "Recommend" column, except rows marked ⚠, where a "yes" changes a setting. Details and sky2 evidence: `PROPOSAL.md` (Qxx). Bot results: `BALANCE.md`. Bots are not players.
 
 **Reply format:** "Batch A yes", or "Batch A yes except A3: alternative".
 **Blocks first playtest** = needs an answer before colleagues play; everything else can wait for playtest feedback.
 
-## Batch A — Who can play and with which roles (blocks first playtest)
-| # | Question | Recommend | Alternative | Evidence |
-|---|---|---|---|---|
-| A1 (Q18) ⚠ | Smallest table | **7 players** (6 not supported; today: 6) | Keep 6: 2 Wolves, Seer, Guard, Hunter, 1 Villager | 6 players is lopsided either way: Village wins 21% with 2 Wolves, 65% with 1 |
-| A2 (Q18) ⚠ | Largest table | **15 for the first playtest**; 16 once there's playtest data (today: 16) | 16 now | At 16, Village wins only 3% with 5 Wolves and 12% with 4 |
-| A3 (Q17) ⚠ | Wolves per table size | **7–9: 2 · 10–12: 2 · 13–15: 3** (16: 4, if allowed). Every table also has 1 Seer, 1 Witch, 1 Guard and 1 Hunter; the rest are Villagers | The current table: 3 Wolves at 10–12, 4 at 13–15 | Village win rate: 7–9 with 2 Wolves 42–50%. 10–12 with 2 Wolves 55–57%, with 3 Wolves 22–27%. 13–15 with 3 Wolves 27–34%, with 4 Wolves 8–10% |
-| A4 (Q17) | May the host customize roles? | Yes, within limits: at most 1 of each special role, and no setup the Wolves could win on the first night | Fixed table only | The first-night check already rejects setups like 7 players = 3 Wolves + 4 Villagers |
+## Batch A — Who can play and with which roles — DECIDED 2026-10-16
+Approved as recommended:
+- 7–15 players;
+- 2 Wolves at 7–12, 3 at 13–15;
+- exactly one each of Seer, Witch, Guard and Hunter, the rest Villagers;
+- the host may customize within limits.
 
-*Note: A3 changes my earlier table (3 Wolves at 10–12) because of the bot results. The bots overstate the Wolves at large tables, so A3 sits at the Village-friendly end; playtest will tune it.*
+Now fixed in the engine (`PROPOSAL.md` Q17/Q18). **Batches B–E below are still pending.**
 
 ## Batch B — Pace (blocks first playtest)
 | # | Question | Recommend | Alternative | Evidence |

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { apply, createMatch, type Actor, type Command, type DeepPartial, type MatchState, type Role, type RulesConfig, type Seat } from '../src/index.ts';
+import { apply, type Actor, type Command, type DeepPartial, type MatchState, type Role, type RulesConfig, type Seat } from '../src/index.ts';
+import { createMatchUnchecked } from '../src/engine.ts';
 
 export const S = (seat: Seat): Actor => ({ kind: 'seat', seat });
 export const MOD: Actor = { kind: 'moderator' };
@@ -9,9 +10,8 @@ export const SYS: Actor = { kind: 'system' };
 export const ROLES7: Role[] = ['wolf', 'wolf', 'seer', 'guard', 'witch', 'hunter', 'villager'];
 
 export function match(roles: Role[] = ROLES7, config: DeepPartial<RulesConfig> = {}, seed = 'test'): MatchState {
-  // Synthetic tables (e.g. 3 seats) bypass player-count and first-dawn deck checks; those are tested explicitly.
-  const limits = { firstDawnParityCheck: 'off' as const, ...config.limits };
-  const r = createMatch({ seed, roles, config: { players: { min: 1, max: 99 }, ...config, limits } });
+  // Synthetic tables (e.g. 3 seats) use the test-only unchecked constructor; Batch A validation is tested explicitly.
+  const r = createMatchUnchecked({ seed, roles, config });
   if (!r.ok) throw new Error(r.error.message);
   return r.state;
 }

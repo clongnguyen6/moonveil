@@ -12,6 +12,7 @@
     "@moonveil/protocol": "*",
     "@moonveil/rules": "*",
     "@moonveil/scene": "*",
+    "@moonveil/voice": "*",
     "ws": "8.22.0"
   },
   "devDependencies": {

@@ -72,12 +72,9 @@ function domain(path: string): unknown[] {
   const def = get(DEFAULT_CONFIG, path);
   if (ENUMS[path]) return [...ENUMS[path]];
   if (typeof def === 'boolean') return [def, !def];
-  if (path === 'players.min') return [def, 1];
-  if (path === 'players.max') return [def, 30];
-  if (path === 'limits.maxPerSpecialRole') return [def, 2];
   if (path === 'timing.nightMain') return [def, 1, 59];
   if (typeof def === 'number') return [def, def + 15];
-  return [def]; // distribution: default table only
+  return [def];
 }
 const PARAMS = Object.keys(PROVISIONAL).map((path) => ({ path, values: domain(path) }));
 
