@@ -79,7 +79,6 @@ const SWAPS: Record<string, [Cfg, (cfg: Cfg) => unknown]> = {
     },
   ],
   'day.revealBallotsAtClose': [{ day: { revealBallotsAtClose: false } }, (c) => close(day1Voted(c)).publicLog.find((e) => e.t === 'nomination')],
-  'day.showWhoVoted': [{ day: { showWhoVoted: true } }, (c) => project(day1Voted(c), { kind: 'public' }).step],
   'moderator.canActForSeats': [{ moderator: { canActForSeats: false } }, (c) => apply(match(undefined, c), MOD, { type: 'guard.protect', seat: 3, target: 6 }).ok],
   'moderator.canSetWolfTarget': [{ moderator: { canSetWolfTarget: false } }, (c) => apply(match(undefined, c), MOD, { type: 'wolf.decide', target: 6 }).ok],
   'moderator.seesLiveBallots': [{ moderator: { seesLiveBallots: false } }, (c) => project(day1Voted(c), { kind: 'moderator' }).step],

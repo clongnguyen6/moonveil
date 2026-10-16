@@ -83,7 +83,7 @@ Every step closes only on `step.close`/`tick`. Anything not submitted counts as 
 ## Projection (secrecy contract)
 `project(state, {kind:'seat', seat})`:
 - **Public:** the step; who is alive or dead (night deaths show the cause `'night'`); `publicLog`; role counts.
-- **Votes (approved):** while a vote is open, `step.votes` is `null` for every non-moderator viewer, and no tally or event exists until close. `step.voted` (who has voted) is `null` unless `day.showWhoVoted` (provisional). The voter's own choice is in `me.ballot` (and `me.actions[].current`). At close, `publicLog` gets `nomination`/`confirm` with totals, plus ballots if `day.revealBallotsAtClose` (provisional).
+- **Votes (approved):** while a vote is open, `step.votes` is `null` for every non-moderator viewer, and no tally or event exists until close. `step.voted` (who has voted, never what) is shown to every viewer (approved). The voter's own choice is in `me.ballot` (and `me.actions[].current`). At close, `publicLog` gets `nomination`/`confirm` with totals, plus ballots if `day.revealBallotsAtClose` (provisional).
 - **Roles:** own role; the pack for wolves; the Hunter once their shot turn opens; all roles at the end.
 - `me.facts`: the seat's knowledge ledger, granted only while alive and entitled (ghosts keep, never gain).
 - `me.actions`: legal options with targets, produced by `check()`.

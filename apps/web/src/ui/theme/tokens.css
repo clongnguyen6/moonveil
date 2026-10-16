@@ -1,0 +1,47 @@
+/* THEME LAYER — the only place with colours, type, radii, shadows and motion timings.
+   Visual direction (camping: forest green, warm firelight, blue/purple moonlight) is approved in principle;
+   the final look awaits a decision. Swap values here, not in components. Phase skins via [data-phase]. */
+:root {
+  color-scheme: dark;
+  --font: ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: var(--font);
+  --fs-0: 0.8rem; --fs-1: 0.92rem; --fs-2: 1rem; --fs-3: 1.15rem; --fs-4: 1.4rem; --fs-5: 1.9rem;
+  --r-1: 10px; --r-2: 16px; --r-3: 24px; --r-pill: 999px;
+  --tap: 44px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --dur-1: 120ms; --dur-2: 220ms; --dur-3: 420ms; --dur-phase: 1400ms;
+  --ease: cubic-bezier(.2,.8,.2,1);
+  --shadow-1: 0 2px 8px rgba(0,0,0,.25); --shadow-2: 0 10px 30px rgba(0,0,0,.35);
+
+  /* Day: warm camp daylight */
+  --bg: #1c2b22; --bg-2: #16231b; --scene: linear-gradient(180deg, #7cb6d9 0%, #a9d0b0 45%, #4b7a4e 100%);
+  --surface: rgba(28, 40, 34, .92); --surface-2: rgba(44, 62, 52, .92); --surface-3: rgba(60, 82, 70, .95);
+  --line: rgba(255,255,255,.12); --line-strong: rgba(255,255,255,.28);
+  --ink: #f3f1e8; --ink-2: #cfd6c8; --ink-3: #93a195; --ink-on-accent: #1d1208;
+  --accent: #f2a65a; --accent-2: #ffc784; --accent-soft: rgba(242,166,90,.18);
+  --ok: #8fd6a5; --warn: #ffd08a; --danger: #ff8f7c; --danger-soft: rgba(255,143,124,.16);
+  --wolves: #d25a4a; --village: #7fc38c; --ghost: #9fb8ff; --ghost-soft: rgba(159,184,255,.16);
+  --focus: 0 0 0 3px rgba(255,199,132,.65);
+  --meter: var(--ok);
+}
+[data-phase="night"] {
+  --bg: #0d1424; --bg-2: #0a1020; --scene: linear-gradient(180deg, #0b1230 0%, #1b2748 55%, #1a2a3a 100%);
+  --surface: rgba(18, 26, 46, .93); --surface-2: rgba(30, 40, 68, .93); --surface-3: rgba(44, 56, 90, .95);
+  --ink: #e9ecff; --ink-2: #b8c0e6; --ink-3: #7e88b4;
+  --accent: #c9b2ff; --accent-2: #e3d6ff; --accent-soft: rgba(201,178,255,.16); --ink-on-accent: #150f2b;
+  --focus: 0 0 0 3px rgba(201,178,255,.6);
+}
+[data-phase="ghost"] {
+  --bg: #0e1620; --bg-2: #0a1118; --scene: linear-gradient(180deg, #16263a 0%, #24405a 60%, #1c3344 100%);
+  --surface: rgba(20, 32, 46, .92); --surface-2: rgba(32, 50, 70, .92); --surface-3: rgba(46, 70, 96, .95);
+  --ink: #e6f0ff; --ink-2: #b7c9e6; --ink-3: #7d95b4;
+  --accent: #9fd3ff; --accent-2: #c9e6ff; --accent-soft: rgba(159,211,255,.16); --ink-on-accent: #07202e;
+  --focus: 0 0 0 3px rgba(159,211,255,.6);
+}
+[data-phase="ended"] {
+  --bg: #1a1d2a; --scene: linear-gradient(180deg, #2a2e4a 0%, #4a3a5a 55%, #2f3a3a 100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion="full"]) { --dur-1: 0ms; --dur-2: 0ms; --dur-3: 0ms; --dur-phase: 0ms; }
+}
+:root[data-motion="reduce"] { --dur-1: 0ms; --dur-2: 0ms; --dur-3: 0ms; --dur-phase: 0ms; }
