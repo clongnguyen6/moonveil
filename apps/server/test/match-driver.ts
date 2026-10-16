@@ -123,3 +123,42 @@ export function assertBallotSecrecy(p: FakeClient): number {
   return voteFrames;
 }
 
+
+// ---- scripted scenarios (real engine, fixed seed) ----
+
+export function scripted(mode: 'automatic' | 'moderator', seats: number, seed: string) {
+  const h = setup({ engine: () => createRulesEngine() as RulesEngine<unknown>, seed });
+  const room = h.room(mode, seats);
+  const P = room.players;
+  let driver = room.moderator ?? room.creator;
+  const toNext = () => {
+    if (driver.view.status !== 'playing') throw new Error(`toNext: status ${driver.view.status}`);
+    if (mode === 'moderator') room.moderator!.send({ t: 'act', action: { type: 'step.close' } });
+    else h.clock.tick(Math.max(0, driver.view.phaseEndsAt! - h.clock.now()));
+  };
+  // Bounded: a synchronous loop can't be stopped by test timeouts.
+  const advanceUntil = (pred: () => boolean, max = 20) => {
+    for (let i = 0; i < max; i++) {
+      if (pred()) return;
+      toNext();
+    }
+    throw new Error(`advanceUntil: gave up at ${stepKind(driver)} (${driver.view.status})`);
+  };
+  // Reconnect on a new connection; the new client replaces the old one in P and as driver.
+  const resume = (old: FakeClient) => {
+    if (old.closedWith === null) old.drop();
+    const c = h.client();
+    c.send({ t: 'resume', code: room.code, token: old.token! });
+    const i = P.indexOf(old);
+    if (i >= 0) P[i] = c;
+    if (driver === old) driver = c;
+    return c;
+  };
+  // Choose a connected client to read shared state from (the driver may have dropped).
+  const watcher = () => [room.moderator, ...P].find((c) => c && c.closedWith === null)!;
+  const setDriver = (c: FakeClient) => {
+    driver = c;
+  };
+  const by = (r: string) => P.filter((p) => role(p) === r);
+  return { h, ...room, P, get driver() { return driver; }, setDriver, toNext, advanceUntil, resume, watcher, by };
+}
