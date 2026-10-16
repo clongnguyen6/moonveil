@@ -51,6 +51,21 @@ After: `/opt/homebrew/Cellar/livekit`, `/opt/homebrew/bin/livekit-server`, `/opt
 
 **Deviation:** Homebrew's default autoremove also removed `libnghttp3` 1.18.0 and `libngtcp2` 1.25.0. They were not livekit dependencies (its dependency list was empty); Homebrew judged them orphaned leftovers of an earlier install. By the autoremove criterion no installed formula depended on them, so nothing installed should break. `brew install libnghttp3 libngtcp2` would restore them (needs approval). Untouched as instructed: the bottle and manifest in `~/Library/Caches/Homebrew/downloads`, npm/npx caches and logs, `/tmp/voice-results.txt`, Go telemetry. No claim is made that any cache state was restored.
 
+### Autoremove details (read-only checks, 2026-10-16 ~15:50)
+
+Human: removing these two formulae went beyond the cleanup grant (livekit only); reported upstream. Nothing reinstalled.
+
+| Formula | Evidence of origin | Dependents now |
+|---|---|---|
+| `libnghttp3` 1.18.0 | bottle downloaded Jul 26 20:16 (`~/Library/Caches/Homebrew/downloads/…libnghttp3--1.18.0.arm64_tahoe.bottle.tar.gz`), manifest Sep 10 12:33; no per-formula log dir (bottled installs leave none); `brew deps curl` lists it, and no brew `curl` is installed now → consistent with an orphaned dependency of a formerly installed `curl` (install receipts were deleted with the formulae, so the installing parent cannot be proven) | `brew uses --installed libnghttp3` → empty |
+| `libngtcp2` 1.25.0 | bottle Jul 27 09:42, manifest Sep 10 12:33; same `brew deps curl` evidence; requires `openssl@4` | `brew uses --installed libngtcp2` → empty |
+
+Exact restore command (not run):
+```
+brew install libnghttp3 libngtcp2
+```
+Note: this reinstalls them as "installed on request", not as dependencies, so a future autoremove will not remove them again.
+
 ## 4a. Original rollback proposal (kept for the record)
 
 ```
@@ -75,7 +90,7 @@ The spike now uses a LiveKit release binary downloaded to `spikes/voice/.bin/` (
 | 14:1x–14:3x | Playwright test runs | browser profiles in the OS temp dir (`$TMPDIR/playwright_chromiumdev_profile-*`), removed by Playwright on close | since 14:40 `TMPDIR` is `spikes/voice/.tmp`, set by `run.mjs` |
 | 14:27 | `cat > /tmp/voice-results.txt` | `/tmp/voice-results.txt` (43 lines) | left in place as instructed |
 | 14:33 | `git push -u origin voice` | GitHub remote | authorized |
-| 14:2x–15:2x | every Playwright run (full Chrome for Testing from `.browsers`, `channel: 'chromium'`) | `~/Library/Preferences/com.google.chrome.for.testing.plist` (created 15:07:14 while a TLS run was active) | macOS preferences are keyed on `HOME`; since 15:30 browser processes get `HOME=spikes/voice/.tmp/home` (`playwright.config.ts`, `secure-context.spec.ts`) |
+| 14:2x–15:4x | every Playwright run until 15:45 (full Chrome for Testing from `.browsers`, `channel: 'chromium'`) | `~/Library/Preferences/com.google.chrome.for.testing.plist` (created 15:07:14 while a TLS run was active) | in-repo `HOME` could not be confirmed to redirect this write; since 15:50 both suites use headless-shell Chromium (no `channel`), full Chrome is no longer launched |
 
 Also mine, inside the repo but worth noting: diagnostic processes started with relative paths at 15:08 (`node server.mjs`, `node tls-proxy.mjs`, `./.bin/livekit-server`) survived my process check, which matched on full paths. Found via the listening ports and stopped at 15:2x; the check now uses `lsof` on ports 4300–4399.
 

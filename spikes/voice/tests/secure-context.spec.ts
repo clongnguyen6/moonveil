@@ -32,7 +32,7 @@ const probe = () => ({
 });
 
 test('http on a non-localhost host is not a secure context: no microphone API at all', async () => {
-  const browser = await chromium.launch({ channel: 'chromium', env, args: BASE_ARGS });
+  const browser = await chromium.launch({ env, args: BASE_ARGS });
   const page = await (await browser.newContext({ permissions: ['microphone'] })).newPage();
   await page.goto('http://camp.local:4302/?player=probe');
   const r = await page.evaluate(probe);
@@ -41,7 +41,7 @@ test('http on a non-localhost host is not a secure context: no microphone API at
 });
 
 test('https with an untrusted certificate is refused by the browser (what a phone without the CA sees)', async () => {
-  const browser = await chromium.launch({ channel: 'chromium', env, args: BASE_ARGS });
+  const browser = await chromium.launch({ env, args: BASE_ARGS });
   const page = await (await browser.newContext()).newPage();
   const err = await page.goto('https://camp.local:4303/?player=probe').then(() => 'loaded', (e) => String(e.message));
   await browser.close();
@@ -50,7 +50,7 @@ test('https with an untrusted certificate is refused by the browser (what a phon
 
 test('https with a trusted certificate: secure context, microphone, LiveKit over wss, audio flows', async () => {
   test.setTimeout(120_000);
-  const browser = await chromium.launch({ channel: 'chromium', env, args: [...BASE_ARGS, `--ignore-certificate-errors-spki-list=${spki}`] });
+  const browser = await chromium.launch({ env, args: [...BASE_ARGS, `--ignore-certificate-errors-spki-list=${spki}`] });
   const setup = await api('/api/setup', { match: `tls${Date.now().toString(36)}`, players: [{ id: 'a', role: 'villager' }, { id: 'b', role: 'villager' }] });
   const pages = [];
   for (const id of ['a', 'b']) {
