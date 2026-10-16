@@ -110,7 +110,7 @@ const SWAPS: Record<string, [Cfg, (cfg: Cfg) => unknown]> = {
   'day.defense': [{ day: { defense: false } }, (c) => close(day1Voted(c)).step.kind],
   'day.confirmVote': [{ day: { confirmVote: false } }, (c) => close(close(day1Voted(c))).step.kind],
   'day.confirm': [
-    { day: { confirm: 'majorityOfLiving' } },
+    { day: { confirm: 'majorityOfCast' } },
     (c) => {
       let s = close(close(day1Voted({ ...c, day: { ...c.day, defense: true, confirmVote: true } })));
       s = ok(s, S(2), { type: 'vote.confirm', seat: 2, choice: 'yes' });
@@ -142,8 +142,42 @@ const SWAPS: Record<string, [Cfg, (cfg: Cfg) => unknown]> = {
   'comms.livingHearPublicAtNight': [{ comms: { livingHearPublicAtNight: true } }, (c) => channelsFor(match(undefined, c), { kind: 'seat', seat: 6 })],
   'comms.defenseOnlyAccusedSpeaks': [{ comms: { defenseOnlyAccusedSpeaks: false } }, (c) => channelsFor(close(day1Voted(c)), { kind: 'seat', seat: 2 })],
   'comms.moderatorHearsAll': [{ comms: { moderatorHearsAll: false } }, (c) => channelsFor(match(undefined, c), { kind: 'moderator' })],
-  timing: [{ timing: { nightMain: 60 } }, (c) => stepTiming(match(undefined, c)).seconds],
+  'limits.firstDawnParityCheck': [
+    { limits: { firstDawnParityCheck: 'off' } },
+    (c) => createMatch({ seed: 1, playerCount: 7, deck: { wolf: 3, seer: 0, witch: 0, guard: 0, hunter: 0, villager: 4 }, config: c }).ok,
+  ],
+  'comms.pendingHunterJoinsGhosts': [{ comms: { pendingHunterJoinsGhosts: true } }, (c) => channelsFor(night(match(undefined, c), { bite: 5 }), { kind: 'seat', seat: 5 })],
+  'timing.nightMain': [{ timing: { nightMain: 60 } }, (c) => stepTiming(match(undefined, c)).seconds],
+  'timing.nightWitch': [{ timing: { nightWitch: 30 } }, (c) => stepTiming(close(match(undefined, c))).seconds],
+  'timing.discussionBase': [{ timing: { discussionBase: 30 } }, (c) => stepTiming(night(match(undefined, c), { bite: 'pass' })).seconds],
+  'timing.discussionPerAlive': [{ timing: { discussionPerAlive: 20 } }, (c) => stepTiming(night(match(undefined, c), { bite: 'pass' })).seconds],
+  'timing.discussionMin': [{ timing: { discussionMin: 200 } }, (c) => stepTiming(night(match(undefined, c), { bite: 'pass' })).seconds],
+  'timing.discussionMax': [{ timing: { discussionMax: 120 } }, (c) => stepTiming(night(match(undefined, c), { bite: 'pass' })).seconds],
+  'timing.vote': [{ timing: { vote: 45 } }, (c) => stepTiming(close(night(match(undefined, c), { bite: 'pass' }))).seconds],
+  'timing.defense': [{ timing: { defense: 45 } }, (c) => stepTiming(close(day1Voted(c))).seconds],
+  'timing.confirm': [{ timing: { confirm: 25 } }, (c) => stepTiming(close(close(day1Voted(c)))).seconds],
+  'timing.hunter': [{ timing: { hunter: 30 } }, (c) => stepTiming(night(match(undefined, c), { bite: 5 })).seconds],
+  'timing.nightEarlyClose': [
+    { timing: { nightEarlyClose: true } },
+    (c) => stepTiming(night1AllActed(c)).earlyCloseReady,
+  ],
+  'timing.publicEarlyClose': [
+    { timing: { publicEarlyClose: true } },
+    (c) => {
+      let s = close(night(match(undefined, c), { bite: 'pass' }));
+      for (const x of s.seats.filter((q) => q.alive)) s = ok(s, S(x.seat), { type: 'vote.nominate', seat: x.seat, target: 'skip' });
+      return stepTiming(s).earlyCloseReady;
+    },
+  ],
 };
+
+/** Night 1 main step with every living night actor submitted. */
+function night1AllActed(c: Cfg) {
+  let s = match(undefined, c);
+  for (const w of [0, 1]) s = ok(s, S(w), { type: 'wolf.pick', seat: w, target: 6 });
+  s = ok(s, S(2), { type: 'seer.inspect', seat: 2, target: 0 });
+  return ok(s, S(3), { type: 'guard.protect', seat: 3, target: 6 });
+}
 
 /** Day 1 at the nomination step with seats 1,2,3 voting for seat 0. */
 function day1Voted(c: Cfg) {

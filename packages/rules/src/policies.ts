@@ -69,7 +69,9 @@ export function tallyConfirm(
 ): { yes: number; no: number; executed: boolean } {
   const yes = votes.filter((v) => v === 'yes').length;
   const no = votes.filter((v) => v === 'no').length;
-  const executed = rule === 'majorityOfCast' ? yes > no : yes * 2 > eligibleVoters;
+  // F4: 'majorityOfCastWithQuorum' also needs at least half of eligible voters to vote Yes or No.
+  const executed =
+    rule === 'majorityOfLiving' ? yes * 2 > eligibleVoters : rule === 'majorityOfCast' ? yes > no : yes > no && (yes + no) * 2 >= eligibleVoters;
   return { yes, no, executed };
 }
 
@@ -147,6 +149,12 @@ export function validateDeck(deck: DeckCounts, playerCount: number, config: Rule
   for (const r of ['seer', 'guard', 'witch', 'hunter'] as const) {
     if (deck[r] > config.limits.maxPerSpecialRole) return `too many ${r}`;
   }
+  // F3: parity at the first dawn is reached if village - wolves <= deaths an ordinary first night can cause.
+  const check = config.limits.firstDawnParityCheck;
+  if (check !== 'off') {
+    const deaths = (config.firstNightKill ? 1 : 0) + (check === 'biteAndPoison' ? deck.witch : 0);
+    if (playerCount - 2 * deck.wolf <= deaths) return 'first night could force a wolf win (parity at first dawn)';
+  }
   return null;
 }
 
@@ -169,12 +177,12 @@ export function stepTiming(state: MatchState): { seconds: number; earlyCloseRead
       return { seconds: Math.min(t.discussionMax, Math.max(t.discussionMin, raw)), earlyCloseReady: false };
     }
     case 'day.vote':
-      return { seconds: t.vote, earlyCloseReady: alive.every((s) => step.votes[s.seat] !== null) };
+      return { seconds: t.vote, earlyCloseReady: t.publicEarlyClose && alive.every((s) => step.votes[s.seat] !== null) };
     case 'day.defense':
       return { seconds: t.defense, earlyCloseReady: false };
     case 'day.confirm': {
       const eligible = alive.filter((s) => state.config.day.accusedVotesOnConfirm || s.seat !== step.accused);
-      return { seconds: t.confirm, earlyCloseReady: eligible.every((s) => step.votes[s.seat] !== null) };
+      return { seconds: t.confirm, earlyCloseReady: t.publicEarlyClose && eligible.every((s) => step.votes[s.seat] !== null) };
     }
     case 'hunter':
       return { seconds: t.hunter, earlyCloseReady: step.pending.every((s) => step.shots[s] !== null) };

@@ -15,6 +15,15 @@ describe('setup', () => {
     assert.equal(defaultDeck(17, DEFAULT_CONFIG), null);
   });
 
+  it('rejects decks where an ordinary first night forces parity (F3)', () => {
+    const c = { ...DEFAULT_CONFIG, players: { min: 1, max: 99 } };
+    // 7 = 3 wolves + 4 villagers: one bite -> 3 v 3.
+    assert.match(validateDeck({ wolf: 3, seer: 0, witch: 0, guard: 0, hunter: 0, villager: 4 }, 7, c) ?? '', /first night/);
+    // Old 6-player preset (2W S Wi G V): bite + poison -> 2 v 2.
+    assert.match(validateDeck({ wolf: 2, seer: 1, witch: 1, guard: 1, hunter: 0, villager: 1 }, 6, c) ?? '', /first night/);
+    assert.equal(validateDeck({ wolf: 2, seer: 1, witch: 1, guard: 1, hunter: 0, villager: 1 }, 6, { ...c, limits: { ...c.limits, firstDawnParityCheck: 'biteOnly' } }), null);
+  });
+
   it('rejects bad decks', () => {
     const base = { wolf: 2, seer: 1, witch: 1, guard: 1, hunter: 1, villager: 1 };
     assert.match(validateDeck({ ...base, wolf: 0, villager: 3 }, 7, DEFAULT_CONFIG) ?? '', /wolf/);
@@ -167,8 +176,7 @@ describe('day', () => {
     s = close(s);
     assert.equal(s.step.kind, 'day.confirm');
     s = ok(s, S(1), { type: 'vote.confirm', seat: 1, choice: 'no' });
-    s = ok(s, S(2), { type: 'vote.confirm', seat: 2, choice: 'yes' });
-    s = ok(s, S(3), { type: 'vote.confirm', seat: 3, choice: 'yes' });
+    for (const v of [2, 3, 4, 5]) s = ok(s, S(v), { type: 'vote.confirm', seat: v, choice: 'yes' });
     s = close(s);
     assert.equal(s.seats[0]?.alive, false);
     assert.deepEqual(s.step, { kind: 'night.main', night: 2 });
@@ -197,15 +205,32 @@ describe('day', () => {
     rejects(s, S(6), { type: 'vote.nominate', seat: 6, target: 0 }, 'bad_seat');
   });
 
-  it('early close readiness only for public steps (Q11)', () => {
+  it('early close: never at night; votes only if timing.publicEarlyClose (Q11/F6); hunter step yes', () => {
     let s = match();
     assert.deepEqual(stepTiming(s), { seconds: 40, earlyCloseReady: false });
     s = night(s, { bite: 'pass' });
     assert.equal(stepTiming(s).earlyCloseReady, false);
     assert.equal(stepTiming(s).seconds, 60 + 15 * 7);
+    const vote = (cfg: Parameters<typeof match>[1]) => {
+      let v = close(night(match(undefined, cfg), { bite: 'pass' }));
+      for (const x of alive(v)) v = ok(v, S(x), { type: 'vote.nominate', seat: x, target: 'skip' });
+      return stepTiming(v).earlyCloseReady;
+    };
+    assert.equal(vote({}), false);
+    assert.equal(vote({ timing: { publicEarlyClose: true } }), true);
+    const h = ok(night(match(), { bite: 5 }), S(5), { type: 'hunter.shoot', seat: 5, target: 'pass' });
+    assert.equal(stepTiming(h).earlyCloseReady, true);
+  });
+
+  it('confirm quorum (F4): Yes > No but fewer than half of voters voted -> no execution', () => {
+    let s = close(close(day0vote(morning())));
+    s = ok(s, S(2), { type: 'vote.confirm', seat: 2, choice: 'yes' });
     s = close(s);
-    for (const x of alive(s)) s = ok(s, S(x), { type: 'vote.nominate', seat: x, target: 'skip' });
-    assert.equal(stepTiming(s).earlyCloseReady, true);
+    assert.equal(s.seats[0]?.alive, true);
+    let t = close(close(day0vote(morning())));
+    for (const v of [2, 3, 4]) t = ok(t, S(v), { type: 'vote.confirm', seat: v, choice: 'yes' });
+    t = ok(t, S(5), { type: 'vote.confirm', seat: 5, choice: 'no' });
+    assert.equal(close(t).seats[0]?.alive, false);
   });
 
   function day0vote(s: ReturnType<typeof match>) {

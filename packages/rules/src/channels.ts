@@ -28,6 +28,10 @@ export function channelsFor(state: MatchState, viewer: ChannelViewer): ChannelGr
   const me = state.seats[viewer.seat];
   if (!me) return [];
   if (!me.alive) {
+    // F1: a Hunter whose shot is pending hears public only, so ghost chat cannot inform the shot.
+    if (step.kind === 'hunter' && step.pending.includes(me.seat) && !c.pendingHunterJoinsGhosts) {
+      return [{ channel: 'public', listen: true, speak: false }];
+    }
     return [
       { channel: 'public', listen: true, speak: false },
       { channel: 'ghosts', listen: true, speak: true },

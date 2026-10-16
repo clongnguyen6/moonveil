@@ -8,7 +8,7 @@ import { nextInt } from '../src/rng.ts';
 
 const SECRET_FACT_OWNER = { inspect: 'seer', victim: 'witch', packTarget: 'wolf' } as const;
 
-function checkInvariants(s: MatchState, frozen: Map<number, number>): void {
+function checkInvariants(s: MatchState, frozen: Map<number, string>): void {
   const ended = s.step.kind === 'ended';
   const revealed = new Set(s.publicLog.flatMap((e) => (e.t === 'roleRevealed' ? [e.seat] : [])));
   for (const v of s.seats) {
@@ -25,15 +25,25 @@ function checkInvariants(s: MatchState, frozen: Map<number, number>): void {
     const ch = channelsFor(s, { kind: 'seat', seat: v.seat }).map((g) => g.channel);
     if (!ended) {
       assert.ok(!ch.includes('wolves') || (v.alive && v.role === 'wolf'), `seat ${v.seat} on wolf channel`);
-      assert.equal(ch.includes('ghosts'), !v.alive, `ghost channel for ${v.seat}`);
+      const pendingHunter = s.step.kind === 'hunter' && s.step.pending.includes(v.seat) && !s.config.comms.pendingHunterJoinsGhosts;
+      assert.equal(ch.includes('ghosts'), !v.alive && !pendingHunter, `ghost channel for ${v.seat}`);
     }
-    for (const f of s.knowledge[v.seat] ?? []) {
+    const facts = s.knowledge[v.seat] ?? [];
+    for (const f of facts) {
       if (f.k in SECRET_FACT_OWNER) assert.equal(v.role, SECRET_FACT_OWNER[f.k as keyof typeof SECRET_FACT_OWNER], `${f.k} fact held by ${v.role}`);
     }
+    // Entitlement under the selected Witch policy (F7), not just role.
+    const mode = s.config.witch.seesVictim;
+    const heal = facts.find((f) => f.k === 'own' && f.act === 'heal');
+    const healNight = heal && heal.k === 'own' ? heal.night : Infinity;
+    for (const f of facts) {
+      if (f.k === 'victim') assert.ok(mode !== 'never' && (mode === 'always' || f.night <= healNight), `victim fact under ${mode}`);
+      if (f.k === 'own' && f.act === 'heal' && mode === 'never') assert.equal(f.target, null, 'heal target leaked');
+    }
     if (!v.alive) {
-      const n = s.knowledge[v.seat]?.length ?? 0;
-      if (!frozen.has(v.seat)) frozen.set(v.seat, n);
-      assert.equal(n, frozen.get(v.seat), `ghost ${v.seat} gained knowledge`);
+      const snap = JSON.stringify(facts);
+      if (!frozen.has(v.seat)) frozen.set(v.seat, snap);
+      assert.equal(snap, frozen.get(v.seat), `ghost ${v.seat} ledger changed`);
       const acts = p.me?.actions ?? [];
       assert.ok(acts.every((a) => a.type === 'hunter.shoot'), 'ghost has only the hunter shot');
     }
@@ -69,7 +79,7 @@ function simulate(seed: number, players: number, config: DeepPartial<RulesConfig
   let s = r.state;
   let rng = seed ^ 0x9e3779b9;
   const pick = (n: number) => { const x = nextInt(rng, n); rng = x.state; return x.value; };
-  const frozen = new Map<number, number>();
+  const frozen = new Map<number, string>();
   const run = (actor: Actor, cmd: Command) => {
     const res = apply(s, actor, cmd);
     assert.ok(res.ok, `${cmd.type} rejected: ${!res.ok && res.error.message}`);
@@ -109,6 +119,7 @@ const VARIANTS: [string, DeepPartial<RulesConfig>][] = [
   ['pinNightOnly + roleOnDeath', { hunter: { mode: 'pinNightOnly' }, reveal: { roleOnDeath: true } }],
   ['secret votes, no defense/confirm', { day: { openVotes: false, defense: false, confirmVote: false } }],
   ['witch always sees, one potion/night, unanimous wolves', { witch: { seesVictim: 'always', bothPotionsSameNight: false }, wolves: { resolve: 'unanimous' } }],
+  ['witch never sees', { witch: { seesVictim: 'never' } }],
 ];
 
 describe('randomized matches', () => {

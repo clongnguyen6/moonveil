@@ -9,7 +9,11 @@ export interface RulesConfig {
   players: { min: number; max: number }; // Q18
   /** Default deck per player count (Q17). Keys are player counts as strings. */
   distribution: Record<string, DeckCounts>;
-  limits: { maxPerSpecialRole: number }; // Q17
+  limits: {
+    maxPerSpecialRole: number; // Q17
+    /** Q17 (F3): reject decks where ordinary first-night deaths can force parity at the first dawn. */
+    firstDawnParityCheck: 'biteAndPoison' | 'biteOnly' | 'off';
+  };
   firstNightKill: boolean; // Q23
   reveal: {
     roleOnDeath: boolean; // Q20
@@ -47,7 +51,7 @@ export interface RulesConfig {
     nomination: 'plurality' | 'majorityOfLiving'; // Q09
     defense: boolean; // Q10
     confirmVote: boolean; // Q10
-    confirm: 'majorityOfCast' | 'majorityOfLiving'; // Q10
+    confirm: 'majorityOfCastWithQuorum' | 'majorityOfCast' | 'majorityOfLiving'; // Q10 (F4)
     accusedVotesOnConfirm: boolean; // Q10
     openVotes: boolean; // Q22
   };
@@ -64,6 +68,8 @@ export interface RulesConfig {
     livingHearPublicAtNight: boolean;
     defenseOnlyAccusedSpeaks: boolean;
     moderatorHearsAll: boolean;
+    /** Q06/Q25 (F1): a dead Hunter whose shot is pending joins ghost chat before shooting. */
+    pendingHunterJoinsGhosts: boolean;
   };
   /** Seconds. Q11/Q19. */
   timing: {
@@ -78,6 +84,8 @@ export interface RulesConfig {
     confirm: number;
     hunter: number;
     nightEarlyClose: boolean;
+    /** Q11/Q22 (F6): votes may close early once everyone has voted. Hunter step always may. */
+    publicEarlyClose: boolean;
   };
 }
 
@@ -88,7 +96,7 @@ const d = (wolf: number, seer: number, witch: number, guard: number, hunter: num
 export const DEFAULT_CONFIG: RulesConfig = {
   players: { min: 6, max: 16 },
   distribution: {
-    '6': d(2, 1, 1, 1, 0, 1),
+    '6': d(2, 1, 0, 1, 1, 1), // F3: no Witch at 6 (bite+poison could force parity at first dawn)
     '7': d(2, 1, 1, 1, 1, 1),
     '8': d(2, 1, 1, 1, 1, 2),
     '9': d(2, 1, 1, 1, 1, 3),
@@ -100,7 +108,7 @@ export const DEFAULT_CONFIG: RulesConfig = {
     '15': d(4, 1, 1, 1, 1, 7),
     '16': d(5, 1, 1, 1, 1, 7),
   },
-  limits: { maxPerSpecialRole: 1 },
+  limits: { maxPerSpecialRole: 1, firstDawnParityCheck: 'biteAndPoison' },
   firstNightKill: true,
   reveal: { roleOnDeath: false, causeAtDawn: false, historyAtEnd: true },
   wolves: { resolve: 'plurality', canTargetWolf: false, mayPass: true },
@@ -114,14 +122,14 @@ export const DEFAULT_CONFIG: RulesConfig = {
     nomination: 'plurality',
     defense: true,
     confirmVote: true,
-    confirm: 'majorityOfCast',
+    confirm: 'majorityOfCastWithQuorum',
     accusedVotesOnConfirm: true,
     openVotes: true,
   },
   victory: { zeroSurvivors: 'draw' },
   moderator: { mayBreakRules: false, canSetDayOutcome: true },
   removal: { systemDuringSecret: false },
-  comms: { wolvesAtNight: true, livingHearPublicAtNight: false, defenseOnlyAccusedSpeaks: true, moderatorHearsAll: true },
+  comms: { wolvesAtNight: true, livingHearPublicAtNight: false, defenseOnlyAccusedSpeaks: true, moderatorHearsAll: true, pendingHunterJoinsGhosts: false },
   timing: {
     nightMain: 40,
     nightWitch: 20,
@@ -134,6 +142,7 @@ export const DEFAULT_CONFIG: RulesConfig = {
     confirm: 15,
     hunter: 20,
     nightEarlyClose: false,
+    publicEarlyClose: false,
   },
 };
 
@@ -143,6 +152,7 @@ export const PROVISIONAL: Record<string, string> = {
   'players.max': 'Q18',
   distribution: 'Q17',
   'limits.maxPerSpecialRole': 'Q17',
+  'limits.firstDawnParityCheck': 'Q17',
   firstNightKill: 'Q23',
   'reveal.roleOnDeath': 'Q20',
   'reveal.causeAtDawn': 'Q21',
@@ -178,7 +188,19 @@ export const PROVISIONAL: Record<string, string> = {
   'comms.livingHearPublicAtNight': 'Q25',
   'comms.defenseOnlyAccusedSpeaks': 'Q25',
   'comms.moderatorHearsAll': 'Q25',
-  timing: 'Q11/Q19',
+  'comms.pendingHunterJoinsGhosts': 'Q06/Q25',
+  'timing.nightMain': 'Q11',
+  'timing.nightWitch': 'Q11',
+  'timing.discussionBase': 'Q19',
+  'timing.discussionPerAlive': 'Q19',
+  'timing.discussionMin': 'Q19',
+  'timing.discussionMax': 'Q19',
+  'timing.vote': 'Q19',
+  'timing.defense': 'Q19',
+  'timing.confirm': 'Q19',
+  'timing.hunter': 'Q19',
+  'timing.nightEarlyClose': 'Q11',
+  'timing.publicEarlyClose': 'Q11/Q22',
 };
 
 export type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };

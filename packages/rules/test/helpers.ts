@@ -9,7 +9,9 @@ export const SYS: Actor = { kind: 'system' };
 export const ROLES7: Role[] = ['wolf', 'wolf', 'seer', 'guard', 'witch', 'hunter', 'villager'];
 
 export function match(roles: Role[] = ROLES7, config: DeepPartial<RulesConfig> = {}, seed = 'test'): MatchState {
-  const r = createMatch({ seed, roles, config: { players: { min: 1, max: 99 }, ...config } });
+  // Synthetic tables (e.g. 3 seats) bypass player-count and first-dawn deck checks; those are tested explicitly.
+  const limits = { firstDawnParityCheck: 'off' as const, ...config.limits };
+  const r = createMatch({ seed, roles, config: { players: { min: 1, max: 99 }, ...config, limits } });
   if (!r.ok) throw new Error(r.error.message);
   return r.state;
 }
