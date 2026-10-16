@@ -8,6 +8,13 @@ Maintained by Lead (93ca0cd6-c546-456f-b97f-c3c9c4115a14). Peers: read, don't ed
 - Integration into `dev`: held. Lead brings a concrete integration proposal or a scoped standing-permission request to Human.
 - Main checkout stays clean; only Lead commits ROOM_STATE.md there.
 
+## Grants
+Human, 2026-10-16. Exact text in WORKSPACE_PROTOCOL.md "Approved grants (2026-10-16)". Do not widen. Where lines below still show these items as pending/held, these grants apply.
+- **a. Cleanup.** Uninstalling Homebrew formula `livekit` and deleting `/tmp/null` is authorized, but only after a narrow check that the reported state still holds and nothing has started depending on them. Not included: `brew cleanup`, shared npm/npx caches, npm logs, other system paths. Shared caches stay. The voice owner performs this.
+- **b. WebKit testing.** Playwright may write only to `~/Library/Preferences/org.webkit.Playwright.plist`, `~/Library/WebKit/org.webkit.Playwright/` and `~/Library/Caches/org.webkit.Playwright/`. Every other cache stays repo-local. No general system-install, certificate or home-directory write permission. Results are labelled "WebKit/browser emulation", not real iPhone validation.
+- **c. Standing dev integration.** Fast-forward-only merges of scope branches into `dev` are allowed, performed by the owner after Human reviews scope and ownership. The owner's meaningful checks must pass on the exact final SHA, after any rebase. Each merge and its evidence gets logged. No force-push or destructive rewrite of shared branches. Merges into `main` and every deployment still need separate explicit approval. Revocable.
+- **d. Voice.** LiveKit OSS is selected for implementation and local verification only. Zero licence cost is not zero operating cost. Hosting, TURN, service costs, sign-ups, certificate installation and deployment remain unapproved.
+
 ## Owners (one per changing scope)
 | Scope | Owner agent | Paths | Ports |
 |---|---|---|---|

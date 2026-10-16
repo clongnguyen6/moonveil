@@ -36,6 +36,15 @@ Approved through user interview, 2026-10-16. Product decisions live in `PROJECT_
 - Make the proposed merge/deployment concrete and reviewable before requesting approval: relevant revision, evidence, remaining limitations, and any cost.
 - Permission to push does not permit destructive history rewrites or data deletion outside explicitly authorized scope. Preserve unrelated work.
 
+## Approved grants (2026-10-16)
+
+Granted by Human. Exact scope; do not widen. Grant c is a standing approval under the merge rule above.
+
+- **a. Cleanup.** Uninstalling Homebrew formula `livekit` and deleting `/tmp/null` is authorized, but only after a narrow check that the reported state still holds and nothing has started depending on them. Not included: `brew cleanup`, shared npm/npx caches, npm logs, other system paths. Shared caches stay. The voice owner performs this.
+- **b. WebKit testing.** Playwright may write only to `~/Library/Preferences/org.webkit.Playwright.plist`, `~/Library/WebKit/org.webkit.Playwright/` and `~/Library/Caches/org.webkit.Playwright/`. Every other cache stays repo-local. No general system-install, certificate or home-directory write permission. Results are labelled "WebKit/browser emulation", not real iPhone validation.
+- **c. Standing dev integration.** Fast-forward-only merges of scope branches into `dev` are allowed, performed by the owner after Human reviews scope and ownership. The owner's meaningful checks must pass on the exact final SHA, after any rebase. Each merge and its evidence gets logged. No force-push or destructive rewrite of shared branches. Merges into `main` and every deployment still need separate explicit approval. Revocable.
+- **d. Voice.** LiveKit OSS is selected for implementation and local verification only. Zero licence cost is not zero operating cost. Hosting, TURN, service costs, sign-ups, certificate installation and deployment remain unapproved.
+
 ## Evidence and acceptance
 
 - Final delivery must include a complete playable first version and polished camping visuals, animation, transitions, audio, and UI. Functional completeness alone is insufficient.
