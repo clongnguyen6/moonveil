@@ -56,9 +56,10 @@ export function normalizeChat(raw: string): string {
 }
 const ChatText = z.string().max(2000).transform(normalizeChat).pipe(z.string().min(1).max(CHAT_MAX));
 const ChannelId = z.string().min(1).max(64);
-// Poses: scene world coords (@moonveil/scene WORLD 1700x1400; ghosts may drift up to 200 outside).
-// The server validates with the scene's own geometry (isWalkable for the living in the lobby, inWorld for ghosts).
-const Coord = z.number().min(-200).max(1900);
+// Poses: integer scene world units (@moonveil/scene WORLD 1700x1400; ghosts may drift up to 200 outside), per
+// docs/visual/POSES.md. The server validates with the scene's geometry (isWalkable lobby, inWorld ghosts).
+const CoordX = z.number().int().min(-200).max(1900);
+const CoordY = z.number().int().min(-200).max(1600);
 const Token = z.string().regex(/^[A-Za-z0-9_-]{20,64}$/);
 
 export const ClientMessage = z.discriminatedUnion('t', [
@@ -76,7 +77,7 @@ export const ClientMessage = z.discriminatedUnion('t', [
   // Text on a channel. Server accepts only with a current `speak` grant on that channel.
   z.strictObject({ t: z.literal('say'), ref: Ref, channel: ChannelId, text: ChatText }),
   // Free movement (lobby; ghosts during play). <= 10 Hz. Server silently drops moves a seat may not make. No ack.
-  z.strictObject({ t: z.literal('move'), x: Coord, y: Coord, facing: z.union([z.literal(1), z.literal(-1)]), moving: z.boolean() }),
+  z.strictObject({ t: z.literal('move'), x: CoordX, y: CoordY, facing: z.union([z.literal(1), z.literal(-1)]), moving: z.boolean() }),
 ]);
 export type ClientMessage = z.infer<typeof ClientMessage>;
 export type ClientMessageInput = z.input<typeof ClientMessage>;

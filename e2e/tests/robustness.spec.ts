@@ -19,7 +19,7 @@ async function moderated(table: import('../harness/index.ts').Table, baseURL?: s
   for (const n of ['Ann', 'Bao', 'Chi']) ps.push(await table.player(n, opts));
   await table.seat('moderator', mod, ps);
   await mod.page.getByTestId('start').click();
-  for (const p of ps) await expect(p.page.getByTestId('phase')).toHaveText('hidden');
+  for (const p of [mod, ...ps]) await expect(p.page.getByTestId('phase')).toHaveText('hidden');
   return { mod, ps };
 }
 
@@ -64,8 +64,8 @@ test('frozen tab (JS paused) catches up on resume with same seat', async ({ tabl
 });
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
-// Own server for restart tests: E2E_PORT + 1 (set E2E_PORT to your scope's port range when sharing the machine).
-const RESTART_PORT = Number(process.env.E2E_PORT ?? 4150) + 1;
+// Own server for restart tests on E2E_RESTART_PORT (free OS port chosen by scripts/e2e-run.mjs).
+const RESTART_PORT = Number(process.env.E2E_RESTART_PORT ?? 4151);
 function startServer(dataDir: string): ChildProcess {
   return spawn(process.execPath, ['apps/server/src/main.ts'], {
     cwd: root,

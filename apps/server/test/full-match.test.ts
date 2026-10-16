@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { GameView } from '@moonveil/protocol';
-import { assertBallotSecrecy, assertSeatIsolation, realMatch } from './match-driver.ts';
+import { assertOpenBallots, assertSeatIsolation, realMatch } from './match-driver.ts';
 
 function assertOutcome(final: GameView) {
   assert.ok(final.outcome, 'outcome set');
@@ -47,9 +47,11 @@ for (const mode of ['automatic', 'moderator'] as const) {
   }
 }
 
-test('ballot secrecy (approved Q22): no ballots or interim tallies reach players before close', () => {
-  const m = realMatch({ mode: 'automatic', seats: 8, seed: 'ballots' });
-  m.run();
-  const seen = m.players.reduce((n, p) => n + assertBallotSecrecy(p), 0);
-  assert.ok(seen > 0, 'no vote steps observed');
+test('open day ballots (approved): every seat sees each choice live, all seats agree', { todo: 'awaiting rules projection change (dev: votes hidden, voted shown)' }, () => {
+  const m = realMatch({ mode: 'automatic', seats: 8, seed: 'open-ballots' });
+  let checked = 0;
+  m.run(400, () => {
+    if (assertOpenBallots(m.players)) checked++;
+  });
+  assert.ok(checked > 0, 'no vote steps observed');
 });

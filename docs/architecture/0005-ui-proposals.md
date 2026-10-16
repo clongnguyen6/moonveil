@@ -30,3 +30,11 @@ Foundation's position (2026-10-16). "Done" = on branch foundation-4, with tests 
   - **Test:** in every window, every seat's wire has equal frame counts and sizes.
 - **Voice uplink** needs constant-bitrate silence from every living seat at night. Feasibility in LiveKit/Opus is unverified; that's the voice owner's to investigate.
 - **Until then** ADR 0001's accepted risk stands (traffic analysis by a network observer). The decision belongs with HTTPS (0002).
+
+## docs/visual/POSES.md (visual): adopted, with one counter
+- **Adopted (foundation-4):**
+  - integer world units with x −200…1900, y −200…1600, `facing` 1 | −1;
+  - lobby moves checked with `isWalkable(createMap(playerCount))`, ghost moves with `inWorld`;
+  - map recreated when the lobby count changes; rates unchanged.
+- **Counter:** no speed/teleport plausibility check. It protects no secret (positions are public in the lobby, ghost-only during play), and bunched packets after network jitter would make it drop legitimate moves. Add it only if cosmetic cheating becomes a real problem.
+- **Moderator poses:** the moderator follows the ghost listen grant, so ghost poses during play (approved: listen-only on every channel), plus everyone in the lobby.
