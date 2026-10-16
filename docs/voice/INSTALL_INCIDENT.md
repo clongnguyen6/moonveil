@@ -51,6 +51,13 @@ After: `/opt/homebrew/Cellar/livekit`, `/opt/homebrew/bin/livekit-server`, `/opt
 
 **Deviation:** Homebrew's default autoremove also removed `libnghttp3` 1.18.0 and `libngtcp2` 1.25.0. They were not livekit dependencies (its dependency list was empty); Homebrew judged them orphaned leftovers of an earlier install. By the autoremove criterion no installed formula depended on them, so nothing installed should break. `brew install libnghttp3 libngtcp2` would restore them (needs approval). Untouched as instructed: the bottle and manifest in `~/Library/Caches/Homebrew/downloads`, npm/npx caches and logs, `/tmp/voice-results.txt`, Go telemetry. No claim is made that any cache state was restored.
 
+### Disposition (Human, 2026-10-16)
+
+- `libnghttp3` and `libngtcp2` stay removed; they will not be reinstalled.
+- The removal was outside the original cleanup grant (which covered `livekit` only). Human accepts the resulting state; this is not retroactive authorization of the extra removal.
+- Known evidence: no installed Homebrew dependents (`brew uses --installed` empty for both). Possible non-Homebrew consumers were not ruled out.
+- No further system cleanup or Homebrew operations are authorized.
+
 ### Autoremove details (read-only checks, 2026-10-16 ~15:50)
 
 Human: removing these two formulae went beyond the cleanup grant (livekit only); reported upstream. Nothing reinstalled.
@@ -65,6 +72,11 @@ Exact restore command (not run):
 brew install libnghttp3 libngtcp2
 ```
 Note: this reinstalls them as "installed on request", not as dependencies, so a future autoremove will not remove them again.
+
+Would it bring back the same versions? (read-only, ~16:40)
+- `brew info` today: `libnghttp3: stable 1.18.0 (bottled)`, `libngtcp2: stable 1.25.0 (bottled)`, both with an `arm64_tahoe` bottle; `libngtcp2` depends on `openssl@4`, which is installed (4.0.2_1). So `brew install` would install exactly the removed versions, 1.18.0 and 1.25.0.
+- Old bottles are still in the cache: `~/Library/Caches/Homebrew/downloads/…libnghttp3--1.18.0.arm64_tahoe.bottle.tar.gz` (189,455 B, Jul 26) and `…libngtcp2--1.25.0.arm64_tahoe.bottle.tar.gz` (426,711 B, Jul 27), plus both manifests (Sep 10). Homebrew would reuse them if their checksums match the current formula; otherwise it re-downloads the same version.
+- Uncertain: whether the formulae were last *rebuilt* (bottle revision) since those cached bottles were fetched; the manifests from Sep 10 are newer than the tarballs, which may mean a re-fetch happened then. Also uncertain is the original "installed as dependency of" parent (receipts were deleted). Neither changes the version that would be installed.
 
 ## 4a. Original rollback proposal (kept for the record)
 
