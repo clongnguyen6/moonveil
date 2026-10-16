@@ -18,17 +18,17 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 ## Owners (one per changing scope)
 | Scope | Owner agent | Paths | Ports |
 |---|---|---|---|
-| foundation: init, root tooling, server, web shell, protocol, e2e harness | 46b279f0 | root config, apps/*, packages/protocol, e2e/, docs/architecture | 4100–4199 |
+| foundation (branch foundation-2): root tooling, server, web shell, protocol, e2e harness | 46b279f0 | root config, apps/*, packages/protocol, e2e/, docs/architecture | 4100–4199 |
 | rules: proposal + pure engine | fd99d2a9 | packages/rules, docs/rules | — |
-| visual preview | d9e8c62b | preview/, docs/visual | 4200–4299 |
+| visual preview → scene (branch visual-2) | d9e8c62b | preview/, docs/visual, (proposed) packages/scene | 4200–4299 |
 | voice investigation | 87bbae25 | spikes/voice, docs/voice | 4300–4399 |
-| review (read-only): rules 9af74b8 | 09a95d56 (codex) | none | — |
+| review (read-only, done): rules 9af74b8 | 09a95d56 (codex) | none | — |
 
 ## Milestones
 - M0 init: docs committed on `dev` (acf85a0). [done]
-- M1 visual preview → Human approval before broad visual production. [in progress]
-- M1 rule proposal: rules 9af74b8, 15 product decisions + low-stakes batch. Lead re-ran check: typecheck ok, 115/115. Independent review running; then to Human. Rules Peer now: balance sim, TS7 alignment, narration draft.
-- M1 voice recommendation: self-hosted LiveKit OSS, room-per-channel, server sole token issuer, rotate channel on membership loss (OSS doesn't revoke tokens). 43/43 checks on voice a94fe73 (Peer-reported; Lead re-run pending). Hosted options need sign-ups → Human. [reported upstream]
+- M1 visual preview: f07b6d5 sent to Human; merged to dev 3225999 (incl. WebKit-emulation captures). Lead conditions proposed: moonlit night, 16-seat crowding, phone label clipping, thin forest. [awaiting Human]
+- M1 rules: proposal v0.2 at rules 01fbb49 (codex review F1–F7 addressed; Lead re-ran 138/138) sent to Human. Approved so far listed under Approved rules; rest pending. Rules Peer: recording approvals + integration into dev.
+- M1 voice: LiveKit OSS selected for local implementation/verification (grant d). Room-per-channel, server sole token issuer, rotate channel on membership loss. 43/43 on a94fe73 (Peer); reconcile with head + re-run on final SHA before merge. Lead re-run pending.
 - M2 playable vertical slice: full automatic + moderator match, server-side isolation, reconnect, 7–10 browser sessions. [blocked on M1 rules decisions for final rules; engine uses provisional defaults]
 - M3 production visuals/audio/animation/UI (after preview approval) + voice integration.
 - M4 acceptance: full matches both modes, isolation, ghosts, reconnect, phone/laptop emulation; exact revision + limits reported; merge/deploy request.
@@ -47,12 +47,20 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - WebKit emulation ~/Library writes. [approved 2026-10-16, grant b: 3 org.webkit.Playwright paths only; label "WebKit/browser emulation"]
 - Phone LAN mic/voice needs HTTPS with trusted cert (getUserMedia secure-context). Hosting/device-trust decision with voice. [open]
 - Voice: LiveKit OSS selected for local implementation/verification; hosting/TURN/cost/certs/deploy still unapproved. [grant d]
-- Coming: rules proposal, preview approval.
+- Visual preview approval (+ 7 visual questions).
+- Remaining rules: Q01–Q05, Q07–Q13, Q15–Q19, Q21–Q23, Q25, Q26, rest of Q09/Q10 (nomination threshold, live-vote visibility).
+
+## Approved rules (Human, 2026-10-16) — rules owner records in docs/rules/PROPOSAL.md
+- Execution: Yes*2 > living count (abstain/disconnected stay in denominator). Only the execution threshold.
+- Q06 Hunter: any gameplay death (incl. execution, Hunter shot) → 20 s to shoot one living player; timeout no shot; shot + chains resolve before victory; pending → no ghost voice/text/history/new ghost knowledge; admin removal gives no shot.
+- Q14: zero survivors after all chains → draw.
+- Q20: no reveal on death; all roles at match end; Hunter revealed by shooting.
+- Q24: ghosts keep legitimately learned info, gain no secrets/actions/wolf channel; public events + ghost talk allowed (subject to Hunter pending isolation).
 
 ## Risks / notes
 - Some web doc fetches are being rejected by the permission system; Peers source claims locally and label provenance; don't retry denied calls.
 - Outside writes by foundation (2026-10-16): ~/.npm/_npx/e41f203b7505f1fb (rewritten), ~/.npm/_cacache (8 files), 3 ~/.npm/_logs files (07_05_07, 07_09_58, 07_10_05), /tmp/.mv_marker_never_used (created+deleted), WebKit: ~/Library/{Preferences/org.webkit.Playwright.plist, WebKit/org.webkit.Playwright/, Caches/org.webkit.Playwright/}, Not undone. (nsservicescache.plist attribution withdrawn: system rewrites it independently, observed 14:44:52/14:44:58 with no browser running.)
-- Outside write by rules: /tmp/x (created+deleted 14:31). ~/.npm/_logs 07_05_55 + ~/.npm/_npx playwright 1.64.1 + _cacache = voice. 07_05_15 (npm ls --global) unattributed (asking visual).
+- Outside write by rules: /tmp/x (created+deleted 14:31). ~/.npm/_logs 07_05_55 + ~/.npm/_npx playwright 1.64.1 + _cacache = voice. 07_05_15 (npm ls --global) = visual (before boundary reminder).
 - Outside writes by voice (besides brew): Homebrew bottle in ~/Library/Caches/Homebrew; /tmp/voice-results.txt; probable Go telemetry in ~/Library/Application Support/go/telemetry; Playwright temp profiles in OS temp (normally auto-removed). Not undone.
 - Outside write by Lead: /tmp/null (331 B, npm ci output) 14:31, command mistake. Not undone.
 - Foundation repo scripts now pin caches/tmp/browsers to .cache/ (verified: no new ~/.npm logs on check run).
@@ -63,6 +71,8 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 ## Merge log
 Grant c merges into `dev`, newest last. Format: date · branch · ff from → head · checks on exact SHA.
 - 2026-10-16 · foundation · ff 0d17f46 → head = the commit adding this entry (parent 0f6a0d6; this commit only adds this log). Reviewed by Human/Lead: 09b33e2 scope + ownership. Checks (foundation owner, clean `node_modules`): `node scripts/env.mjs npm ci` ok; `npm run e2e:install` ok; `npm run check` exit 0 = typecheck clean (4 workspaces), server 10/10, e2e 8/8 (desktop-chromium 6, mobile-chromium Pixel 7 1, mobile-webkit iPhone 15 1 = WebKit/browser emulation). Run on 0f6a0d6 14:48–14:49 and re-run on head before ff. Known open bug: silent-network reconnect (see Risks).
+
+- 2026-10-16 · visual · ff 064fbdf → 3225999 · Lead reviewed scope (preview/, docs/visual, additions only). Owner: typecheck on 3225999; captures regenerated from identical source (Chromium GPU headless + WebKit emulation).
 
 ## Acceptance evidence
 - foundation b3d9ece: Lead re-ran `node scripts/env.mjs npm run check` 14:31 → typecheck ok, server 10/10, e2e 7/7 (8-browser auto isolation, 7+mod isolation, lobby, reconnect, 2nd tab, Pixel 7 emu). Chromium only. No new ~/.npm logs. Superseded by the merged revision (see Merge log).

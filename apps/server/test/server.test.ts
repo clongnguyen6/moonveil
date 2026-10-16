@@ -65,3 +65,30 @@ test('ws: malformed frames get bad-message; create works; app heartbeat arrives'
   await until(() => c.msgs.some((m) => m.t === 'hb'));
   c.ws.close();
 });
+
+test('ws: idle room swept by heartbeat loop; resume then fails with room-not-found', async () => {
+  const idle = createMoonveilServer({ engine: () => createFixtureEngine() as RulesEngine<unknown>, heartbeatMs: 100, idleMs: 150 });
+  await new Promise<void>((r) => idle.http.listen(PORT + 1, '127.0.0.1', r));
+  try {
+    const url = `ws://127.0.0.1:${PORT + 1}/ws`;
+    const a = new WsClient(url);
+    const got: { t: string; [k: string]: unknown }[] = [];
+    a.on('message', (d) => got.push(JSON.parse(String(d))));
+    await new Promise((r) => a.on('open', r));
+    a.send(JSON.stringify({ t: 'create', mode: 'automatic', profile: { name: 'Ann', appearance: { color: 'moss', hat: 'none' } } }));
+    await until(() => got.some((m) => m.t === 'welcome'));
+    const w = got.find((m) => m.t === 'welcome')!;
+    a.close();
+    await until(() => idle.registry.size === 0);
+    const b = new WsClient(url);
+    const got2: { t: string; [k: string]: unknown }[] = [];
+    b.on('message', (d) => got2.push(JSON.parse(String(d))));
+    await new Promise((r) => b.on('open', r));
+    b.send(JSON.stringify({ t: 'resume', code: w.code, token: w.token }));
+    await until(() => got2.length > 0);
+    assert.equal(got2[0]!.code, 'room-not-found');
+    b.close();
+  } finally {
+    await idle.stop();
+  }
+});

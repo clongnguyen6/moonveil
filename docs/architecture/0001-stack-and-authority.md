@@ -28,7 +28,12 @@ Server-authoritative social-deduction game. 7–10 players typical, more desirab
 5. **Modes on one core (`Room`). Mode is fixed at creation.**
    - `moderator`: the creator is a non-playing moderator seat, uses viewer `moderator` and advances phases manually.
    - `automatic`: the creator is a player with host powers in the lobby only (start). It uses viewer `seat` and gets no secrets. A server timer advances phases.
-6. **Rules hosting.** `apps/server/src/rules/engine.ts` defines `RulesEngine<S>`: setup(seed), phase, submit, advance, view(viewer), channels(seat). It's pure, with no clock or IO. `fixture-engine.ts` is a labelled stand-in that models only information shapes, not Werewolf rules. When packages/rules publishes, an adapter maps it onto this contract. `view` and `channels` belong to the engine, because who-knows-what is gameplay.
+6. **Rules hosting.** `apps/server/src/rules/engine.ts` defines `RulesEngine<S>`. It mirrors `@moonveil/rules` `src/host.ts` (rules 01fbb49), which adopted this draft. Methods: setup(seed), phase (incl. `earlyClose`), submit, moderate, remove, advance, view(viewer incl. public), channels(seat|viewer). It's pure, with no clock or IO. Rules is in `dev` (9fceeb3) and in the explicit workspace list. `apps/server/test/rules-engine.test.ts` checks at compile time that `createRulesEngine()` satisfies the contract without a cast. It also runs it through `Room` (role isolation, silent wolf pick, night never early, moderator projection). `main.ts` still serves `fixture-engine.ts` because the web shell has no real-game UI yet. Swap = pass `createRulesEngine()`. New workspace packages must be added to the explicit list (with a lockfile update) by foundation.
+   - Server policy on top of the engine:
+     - Automatic mode never closes a secret phase early, even if the engine reports `earlyClose`.
+     - Public phases close `EARLY_CLOSE_GRACE_MS` (1.5 s) after `earlyClose`; the close is cancelled if it stops being ready.
+     - In moderator mode, the moderator's `act` goes to `moderate`.
+     - `remove` (long-disconnect policy) is unused; policy open.
 7. **Voice seam.** `apps/server/src/voice.ts` defines `VoiceGateway.setGrants(room, seat, grants)`, and the seat sees its own grants in `view.voice`. A provider adapter must:
    - mint tokens only from server grants,
    - revoke them on change,
