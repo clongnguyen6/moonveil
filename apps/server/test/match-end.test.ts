@@ -9,9 +9,8 @@ import { gv, scripted } from './match-driver.ts';
 type Msg<T extends ServerMessage['t']> = Extract<ServerMessage, { t: T }>;
 const lastError = (c: FakeClient) => c.frames.filter((f): f is Msg<'error'> => f.t === 'error').at(-1);
 const END = { type: 'match.end', confirm: 'end-match' };
-const TODO = { todo: 'awaiting rules-12 (match.end) in dev; written against rules-12 5def39a API.md' };
 
-test('moderator ends the match with confirm; players are refused (moderator mode)', TODO, () => {
+test('moderator ends the match with confirm; players are refused (moderator mode)', () => {
   const s = scripted('moderator', 7, 'match-end-mod');
   const mod = s.moderator!;
   mod.send({ t: 'start' });
@@ -22,7 +21,9 @@ test('moderator ends the match with confirm; players are refused (moderator mode
   assert.equal(p.view.status, 'playing');
   s.P.slice(1).forEach((x, i) => assert.equal(x.frames.length, others[i], 'refusal leaked to others'));
   mod.send({ t: 'act', ref: 'm0', action: { type: 'match.end' } });
-  assert.match(lastError(mod)?.message ?? '', /bad_value/, 'missing confirm must be refused');
+  // Refused by the host's strict parser (bad_action) or the engine (bad_value); either way the match continues.
+  assert.equal(lastError(mod)?.ref, 'm0', 'missing confirm must be refused');
+  assert.match(lastError(mod)?.message ?? '', /bad_value|bad_action/);
   assert.equal(mod.view.status, 'playing');
   mod.send({ t: 'act', ref: 'm1', action: END });
   assert.deepEqual(mod.frames.filter((f) => f.t === 'ack').at(-1), { t: 'ack', ref: 'm1' });
@@ -32,7 +33,7 @@ test('moderator ends the match with confirm; players are refused (moderator mode
   }
 });
 
-test('automatic mode: the playing host cannot end the match', TODO, () => {
+test('automatic mode: the playing host cannot end the match', () => {
   const s = scripted('automatic', 7, 'match-end-auto');
   s.creator.send({ t: 'start' });
   s.creator.send({ t: 'act', ref: 'h', action: END });
