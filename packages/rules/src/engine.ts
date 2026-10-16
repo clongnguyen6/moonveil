@@ -43,7 +43,12 @@ export interface CreateOptions {
 export type CreateResult = { ok: true; state: MatchState } | { ok: false; error: EngineError };
 
 export function createMatch(opts: CreateOptions): CreateResult {
-  const config = resolveConfig(opts.config);
+  let config: RulesConfig;
+  try {
+    config = resolveConfig(opts.config);
+  } catch (e) {
+    return fail('bad_value', (e as Error).message);
+  }
   let rng = seedFrom(opts.seed);
   let roles: Role[];
   if (opts.roles) {

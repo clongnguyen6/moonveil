@@ -228,7 +228,8 @@ describe('APPROVED Q25 channel grants (engine side)', () => {
   const PUB_LISTEN = { channel: 'public', listen: true, speak: false };
   const WOLVES = { channel: 'wolves', listen: true, speak: true };
   const GHOSTS = { channel: 'ghosts', listen: true, speak: true };
-  const MOD_GRANTS = [PUB_TALK, { channel: 'wolves', listen: true, speak: false }, { channel: 'ghosts', listen: true, speak: false }];
+  // Approved: moderator listens to every channel; speech is provisional and off by default.
+  const MOD_GRANTS = [PUB_LISTEN, { channel: 'wolves', listen: true, speak: false }, { channel: 'ghosts', listen: true, speak: false }];
   const g = (s: MatchState, v: ChannelViewer) => channelsFor(s, v);
   const at = (s: MatchState) => ({
     villager: g(s, { kind: 'seat', seat: 7 }), wolf: g(s, { kind: 'seat', seat: 1 }), deadWolf: g(s, { kind: 'seat', seat: 0 }),
@@ -287,9 +288,9 @@ describe('APPROVED Q25 channel grants (engine side)', () => {
     for (let i = 0; i < 10; i++) assert.equal(JSON.stringify(project(s, seat(i))).includes('"channel"'), false);
   });
 
-  it('moderator speaking is provisional (speaksInPublic); listening to all is fixed', () => {
-    const s = match(undefined, { moderator: { speaksInPublic: false } });
-    assert.deepEqual(channelsFor(s, { kind: 'moderator' }), [PUB_LISTEN, { channel: 'wolves', listen: true, speak: false }, { channel: 'ghosts', listen: true, speak: false }]);
+  it('moderator speaking is provisional (speaksInPublic, default off); listening to all is fixed', () => {
+    const s = match(undefined, { moderator: { speaksInPublic: true } });
+    assert.deepEqual(channelsFor(s, { kind: 'moderator' }), [PUB_TALK, { channel: 'wolves', listen: true, speak: false }, { channel: 'ghosts', listen: true, speak: false }]);
   });
 });
 
