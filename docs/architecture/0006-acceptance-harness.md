@@ -31,3 +31,17 @@ Status: foundation, 2026-10-16. The harness is ready now; the UI-driven layer wa
 - **`e2e/tests/real-match-ui.spec.ts`:** 7–10 browsers in both modes. It skips itself until `[data-testid=entry]` exists in the served build, so it can't pass vacuously. Run with `npm run e2e:matches`.
 - **Counter-proposal (one gap):** chat tabs are only `.tabs .tab` by order. Selecting a channel reliably (e.g. wolves at night) needs `[data-testid=chat-tab][data-channel=<id>]`. Until then, chat isolation stays asserted at protocol level (`real-match.spec.ts`).
 - **Kept by foundation:** `window.__moonveil` (own seat data only) for reading the view and as the protocol fallback.
+
+## Acceptance runs (strict), foundation-7
+- `npm run e2e:ui:accept` = `E2E_UI_STRICT=1`. Every intended UI action must land; any miss fails the match with seat, action, step and reason.
+  - A miss whose step changed between decision and click is labelled "step closed before the action (pacing)". It still fails.
+  - Each match logs landed/intended (and per action type), reload-to-resume time, ghost checks and ballot steps.
+  - Quick runs (`e2e:ui`, ×10) keep an 80% threshold; never use them as acceptance evidence.
+- **Pacing:** laptop and Pixel 7 at ×5; iPhone 15 WebKit at ×2. WebKit emulation clicks more slowly; at ×5 a 6 s vote could close while 7 bots were still clicking.
+- **Every match must reach a win condition within `seats + 3` days.** On failure it reports the room code and a public-log summary (dawn deaths, nominations, executions). Seeds are deterministic in tests (`MOONVEIL_TEST_SEED`, server log only; `<seed>!` reproduces one match).
+- **Paths inside each UI match:** a page reload during the first vote (open ballots re-checked including the reloaded seat), a 3 s network drop at the first night, and ghost UI for dead seats. Ghost check: `ghost-bar` visible and no ENABLED `confirm`, `vote-skip`, `vote-yes`, `vote-no`, `heal-yes` or `heal-no`; a pending Hunter is exempt.
+- Phones: no horizontal overflow on the match screen. All viewport results are browser EMULATION, not real devices.
+
+## Findings for the UI owner
+- **Dead-seat vote panel:** in moderator mode a dead seat shows the vote panel with `confirm` and `vote-skip` disabled; in automatic mode it shows none. Harmless (ghosts can't act), but inconsistent.
+- **WebKit "miss" at ×5 is pacing, not a UI fault.** Repro: `E2E_UI_STRICT=1 E2E_TIME_SCALE=5 E2E_GREP="UI match, automatic, 7 " npm run e2e -w @moonveil/e2e -- --project ui-phone-webkit`, seed `e2e:1`. P4's `vote.nominate` lands after the 6 s vote closed (`confirm disabled after selecting the seat`, step already `night.main`). At ×2: 3/3 runs, 30/30 landed.

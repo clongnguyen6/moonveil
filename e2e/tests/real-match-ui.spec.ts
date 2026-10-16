@@ -42,7 +42,7 @@ for (const mode of ['automatic', 'moderator'] as const) {
       uiStats.attempted = uiStats.done = 0;
       uiStats.misses = [];
       uiStats.byType = {};
-      const stats = { ballotSteps: 0, reloads: 0, drops: 0, ghostChecks: 0, overflowChecks: 0 };
+      const stats = { ballotSteps: 0, reloads: 0, reloadMs: 0, ballotRecheckAfterReload: '', drops: 0, ghostChecks: 0, overflowChecks: 0 };
       const report = (result: string) =>
         console.log(`UIMATCH ${JSON.stringify({ project: info.project.name, mode, seats, result, strict: STRICT, landed: uiStats.done, intended: uiStats.attempted, byType: uiStats.byType, misses: uiStats.misses, ...stats })}`);
       try {
@@ -53,13 +53,26 @@ for (const mode of ['automatic', 'moderator'] as const) {
         async (mm: BrowserMatch) => {
           const k = game(mm.driver)!.step.kind;
           const living = mm.players.filter((p) => game(p)!.me!.alive);
+          const isVote = (kind: string) => kind === 'day.vote' || kind === 'day.confirm';
+          // Open ballots first (the vote is short at low time scales), then the reload path.
+          if (isVote(k)) {
+            await expect(async () => expect(assertOpenBallotsViews(mm.players.map((p) => p.view()))).toBe(true)).toPass({ timeout: 5_000 });
+            stats.ballotSteps++;
+          }
           // Reconnect path 1: a living seat reloads its page during the first vote.
-          if ((k === 'day.vote' || k === 'day.confirm') && stats.reloads === 0 && living.length > 1) {
+          if (isVote(k) && stats.reloads === 0 && living.length > 1) {
             const p = living[living.length - 1]!;
             const seat = p.seat;
+            const t0 = Date.now();
             await p.page.reload();
             await resumed(p, seat);
+            stats.reloadMs = Date.now() - t0;
             stats.reloads++;
+            // Re-check with the reloaded seat if the vote is still open; else record that it had closed.
+            if (isVote(game(mm.driver)!.step.kind)) {
+              await expect(async () => expect(assertOpenBallotsViews(mm.players.map((x) => x.view()))).toBe(true)).toPass({ timeout: 5_000 });
+              stats.ballotRecheckAfterReload = 'checked';
+            } else stats.ballotRecheckAfterReload = 'vote closed before resume';
           }
           // Reconnect path 2: a living seat loses its network for 3 s at the first night.
           if (k === 'night.main' && stats.drops === 0 && living.length > 2) {
@@ -68,10 +81,6 @@ for (const mode of ['automatic', 'moderator'] as const) {
             await p.dropNetwork(3_000);
             await resumed(p, seat);
             stats.drops++;
-          }
-          if (k === 'day.vote' || k === 'day.confirm') {
-            await expect(async () => expect(assertOpenBallotsViews(mm.players.map((p) => p.view()))).toBe(true)).toPass({ timeout: 5_000 });
-            stats.ballotSteps++;
           }
           // Ghost path: dead seats show the ghost bar and no action controls.
           for (const p of mm.players.filter((x) => !game(x)!.me!.alive && game(x)!.step.kind !== 'hunter')) {

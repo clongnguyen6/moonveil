@@ -45,10 +45,18 @@ async function tryClick(l: ReturnType<typeof tid>): Promise<boolean> {
     return false;
   }
 }
+const stepOf = (p: Player) => {
+  const g = game(p) as GameView | null;
+  return g ? `${g.night}/${g.day}/${g.step.kind}` : '';
+};
 async function act(p: Player, action: string, fn: () => Promise<boolean>) {
   uiStats.attempted++;
   lastReason = '';
-  if (await fn()) {
+  const decidedAt = stepOf(p);
+  const ok = await fn();
+  // A step that closed between the decision and the click is pacing, not a UI fault; still a miss in strict mode.
+  if (!ok && stepOf(p) !== decidedAt) lastReason = `step closed before the action (pacing): ${lastReason}`;
+  if (ok) {
     uiStats.done++;
     const type = action.split(':')[0]!;
     uiStats.byType[type] = (uiStats.byType[type] ?? 0) + 1;

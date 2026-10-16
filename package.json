@@ -28,7 +28,7 @@
     "e2e:matches": "node scripts/env.mjs npm run e2e -w @moonveil/e2e -- --project real-matches",
     "e2e:matches:voice": "E2E_VOICE=1 node scripts/env.mjs npm run e2e -w @moonveil/e2e -- --project real-matches",
     "e2e:ui": "E2E_TIME_SCALE=${E2E_TIME_SCALE:-10} node scripts/env.mjs npm run e2e -w @moonveil/e2e -- --project ui-laptop --project ui-phone-chromium --project ui-phone-webkit",
-    "e2e:ui:accept": "E2E_UI_STRICT=1 E2E_TIME_SCALE=${E2E_TIME_SCALE:-5} node scripts/env.mjs npm run e2e -w @moonveil/e2e -- --project ui-laptop --project ui-phone-chromium --project ui-phone-webkit"
+    "e2e:ui:accept": "E2E_UI_STRICT=1 E2E_TIME_SCALE=${E2E_TIME_SCALE:-5} node scripts/env.mjs npm run e2e -w @moonveil/e2e -- --project ui-laptop --project ui-phone-chromium && E2E_UI_STRICT=1 E2E_TIME_SCALE=${E2E_WEBKIT_TIME_SCALE:-2} node scripts/env.mjs npm run e2e -w @moonveil/e2e -- --project ui-phone-webkit"
   },
   "devDependencies": {
     "typescript": "7.0.2"
