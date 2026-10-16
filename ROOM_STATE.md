@@ -6,6 +6,7 @@ Maintained by Lead (93ca0cd6-c546-456f-b97f-c3c9c4115a14). Peers: read, don't ed
 - Commit/push/PR allowed. Merges into `main` and every deployment need separate explicit Human approval. No cherry-pick/other workaround.
 - Scope work: commit + push on own branch in `.worktrees/<scope>`. No force-push, including own branches. To pick up `dev` on an already-pushed branch, merge `dev` into it (no rebase).
 - New workspace package: its owner adds only its own workspace entry + `scripts/env.mjs npm install` lockfile delta (additions only) in the creating commit, and it must pass root check there. Consumer manifests stay with their owners.
+- Root e2e: each owner sets E2E_PORT inside its own range (default 4150 = foundation) until harness uses free ports.
 - Messaging a running Peer interrupts its current tool call; batch non-urgent notes.
 - Integration into `dev` (grant c): owner Peer fast-forwards (`--ff-only`) after Lead reviews scope and ownership; owner's meaningful checks pass on the exact final SHA; entry added to Merge log.
 - Keep the main checkout clean.
@@ -20,10 +21,10 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 ## Owners (one per changing scope)
 | Scope | Owner agent | Paths | Ports |
 |---|---|---|---|
-| foundation (branch foundation-2): root tooling, server, web shell, protocol, e2e harness | 46b279f0 | root config, apps/*, packages/protocol, e2e/, docs/architecture | 4100–4199 |
-| rules: proposal + pure engine | fd99d2a9 | packages/rules, docs/rules | — |
+| foundation: root tooling, server, protocol, client.ts/main.tsx/vite.config/web manifest, e2e harness | 46b279f0 | root config, apps/*, packages/protocol, e2e/, docs/architecture | 4100–4199 |
+| rules: proposal + pure engine | fd99d2a9 | packages/rules, docs/rules | 4500–4599 (E2E_PORT for root check) |
 | visual → scene (branch visual-2) | d9e8c62b | packages/scene, docs/visual (preview/ being retired) | 4200–4299 |
-| game UI | 990963ac | apps/web/src/game/**, apps/web/src/ui/**; App.tsx, styles.css, provisional/** after handoff | 4400–4499 |
+| game UI | 990963ac | apps/web/src/game/**, apps/web/src/ui/**, App.tsx, styles.css, provisional/** (handed over), docs/ui; user-facing LAN helpers | 4400–4499 |
 | voice investigation | 87bbae25 | spikes/voice, docs/voice | 4300–4399 |
 | review (read-only, done): rules 9af74b8 | 09a95d56 (codex) | none | — |
 
@@ -32,7 +33,7 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - M1 visual preview: f07b6d5 sent to Human; merged to dev 3225999 (incl. WebKit-emulation captures). Lead conditions proposed: moonlit night, 16-seat crowding, phone label clipping, thin forest. [awaiting Human]
 - M1 rules: proposal v0.2 at rules 01fbb49 (codex review F1–F7 addressed; Lead re-ran 138/138) sent to Human. Approved so far listed under Approved rules; rest pending. Rules Peer: recording approvals + integration into dev.
 - M1 voice: LiveKit OSS selected for local implementation/verification (grant d). Room-per-channel, server sole token issuer, rotate channel on membership loss. 43/43 on a94fe73 (Peer); reconcile with head + re-run on final SHA before merge. Lead re-run pending.
-- M2 playable vertical slice: full automatic + moderator match, server-side isolation, reconnect, 7–10 browser sessions. [blocked on M1 rules decisions for final rules; engine uses provisional defaults]
+- M2 playable slice: server serves real engine (a280efe); protocol-level full matches 7–10 both modes pass (owner); game UI first screens on branch game-ui; scene package in dev; next: UI wired to real client + browser e2e full matches, voice gateway.
 - M3 production visuals/audio/animation/UI (after preview approval) + voice integration.
 - M4 acceptance: full matches both modes, isolation, ghosts, reconnect, phone/laptop emulation; exact revision + limits reported; merge/deploy request.
 
@@ -52,6 +53,8 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Voice: LiveKit OSS selected for local implementation/verification; hosting/TURN/cost/certs/deploy still unapproved. [grant d]
 - Visual preview approval (+ 7 visual questions).
 - Remaining rules: Q01, Q02, Q04, Q05, Q08, Q12, Q13, Q17, Q18, Q19, Q21, Q23; other phase durations; moderator powers beyond Yes count + listen (removal, act-for, set wolf target, speech, ballot visibility); reveal.historyAtEnd.
+- Clarified by Human: disconnection gives no immunity from nomination/execution; eliminated offline → reconnect restores ghost state (Hunter pending mechanics apply), never resurrects. Regression tests: rules + foundation.
+- Pending to Human: UI language default (browser vi/en), in-person = voice fully off + wolves text, night private notes vs plain panel; rules interpretations (no-Witch second step runs; nobody/player tie → player; who-voted hidden).
 - Hosting trust (server host can read secrets): (a) accept + (b) guide non-player host. [asked]
 - First playtest network path; HTTPS options with verified costs incl. zero-cost (LAN voice-off = partial only, not voice acceptance). [asked; proposal later]
 
@@ -77,6 +80,8 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Outside write by rules: /tmp/x (created+deleted 14:31). ~/.npm/_logs 07_05_55 + ~/.npm/_npx playwright 1.64.1 + _cacache = voice. 07_05_15 (npm ls --global) = visual (before boundary reminder).
 - Outside writes by voice (besides brew): Homebrew bottle in ~/Library/Caches/Homebrew; /tmp/voice-results.txt; probable Go telemetry in ~/Library/Application Support/go/telemetry; Playwright temp profiles in OS temp (normally auto-removed). Not undone.
 - Outside writes 15:07+ (2026-10-16): ~/Library/Preferences/com.google.chrome.for.testing.plist created 15:07:14 (key points at voice worktree's Chrome for Testing → likely voice; confirming). ~/Library/Application Support/Google/Chrome for Testing/Crashpad/settings.dat (pre-existing) probably rewritten by visual full-Chrome runs 14:25–14:59 (+ others; mtime 15:13:30). /tmp/dbg.ts (empty) by visual 15:07:17. Not undone. Full Chrome only if writes provably repo-local; WebKit (grant b) used for GPU captures.
+- Crashpad settings.dat also modified 15:38:24; not claimed by visual/game-ui; foreign puppeteer chrome (~/.cache/hyperframes, another project) seen on machine. Attribution open.
+- Brew autoremove removed libnghttp3 1.18.0 + libngtcp2 1.25.0 (beyond grant a). No restore approved; voice Peer doing read-only provenance + exact-restore analysis.
 - Foundation `pkill -f apps/server/src/main.ts` ~15:20:50 may have hit other worktrees' servers; now exact PIDs only.
 - Lead: aborted verification worktree (npm ci inside repo) removed; no outside writes known.
 - Outside write by Lead: /tmp/null (331 B, npm ci output) 14:31, command mistake. Not undone.
@@ -93,6 +98,10 @@ Grant c merges into `dev`, newest last. Format: date · branch · ff from → he
 
 - 2026-10-16 · rules · ff c857e21 → 9fceeb3 · Lead reviewed scope (packages/rules, docs/rules, lockfile delta own pkg). Owner root check on 9fceeb3: rules 152/152, server 10/10, e2e 8/8 (incl. WebKit emu).
 - 2026-10-16 · foundation-2 · ff 9fceeb3 → a905925 · Lead reviewed scope (root tooling, apps/server, apps/web/src/client.ts, e2e, docs/architecture). Owner check: rules 152/152, server 20/20, e2e 13/13 (Pixel 7 + iPhone 15 WebKit emulation). Silent-network reconnect bug fixed.
+
+- 2026-10-16 · rules-5 · ff 1e4a300 → 013206a · scope packages/rules, docs/rules. Owner root check: rules 183/183, server 20/20, e2e 13/13. Known flake (Q20 vs foundation assertion) fixed in foundation-3.
+- 2026-10-16 · foundation-3 · ff 013206a → 3663e63 · scope apps/server, packages/protocol, e2e, docs/architecture, lockfile 1 line. Owner: rules 183/183, server 49 + 1 todo (moderator speech), e2e 13/13.
+- 2026-10-16 · visual-2 · ff 3663e63 → a280efe · scope packages/scene, preview/ removed, docs/visual, workspace line + lockfile additions. Owner: rules 183/183, scene 12/12, server 49, e2e 13/13.
 
 ## Acceptance evidence
 - foundation b3d9ece: Lead re-ran `node scripts/env.mjs npm run check` 14:31 → typecheck ok, server 10/10, e2e 7/7 (8-browser auto isolation, 7+mod isolation, lobby, reconnect, 2nd tab, Pixel 7 emu). Chromium only. No new ~/.npm logs. Superseded by the merged revision (see Merge log).
