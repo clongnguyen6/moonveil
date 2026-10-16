@@ -1,6 +1,7 @@
 // Client/server wire protocol. One WebSocket per tab at /ws, JSON text frames.
 // Client->server messages are validated with zod on the server. Server->client types are trusted.
 // Server sends each connection a full per-seat snapshot (`state`); nothing else carries game data.
+import type { Command, HostView } from '@moonveil/rules';
 import { z } from 'zod';
 
 export const PROTOCOL_VERSION = 1;
@@ -39,6 +40,21 @@ export const Profile = z.strictObject({ name: Name, appearance: Appearance });
 export type Profile = z.infer<typeof Profile>;
 
 const Ref = z.string().max(32).optional();
+
+export const CHAT_MAX = 280;
+// Chat text: NFC, no control/format chars except newline, collapsed spaces, 1..CHAT_MAX.
+export function normalizeChat(raw: string): string {
+  return raw
+    .normalize('NFC')
+    .replace(/[\p{Cf}]|(?![\n])\p{Cc}/gu, '')
+    .replace(/[^\S\n]+/gu, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+const ChatText = z.string().max(2000).transform(normalizeChat).pipe(z.string().min(1).max(CHAT_MAX));
+const ChannelId = z.string().min(1).max(64);
+// Poses: normalized map coords (PROVISIONAL until packages/scene exports walkable bounds).
+const Coord = z.number().min(0).max(1);
 const Token = z.string().regex(/^[A-Za-z0-9_-]{20,64}$/);
 
 export const ClientMessage = z.discriminatedUnion('t', [
@@ -53,6 +69,10 @@ export const ClientMessage = z.discriminatedUnion('t', [
   // Moderator mode only: close the current phase.
   z.strictObject({ t: z.literal('advance'), ref: Ref }),
   z.strictObject({ t: z.literal('leave'), ref: Ref }),
+  // Text on a channel. Server accepts only with a current `speak` grant on that channel.
+  z.strictObject({ t: z.literal('say'), ref: Ref, channel: ChannelId, text: ChatText }),
+  // Free movement (lobby; ghosts during play). <= 10 Hz. Server silently drops moves a seat may not make. No ack.
+  z.strictObject({ t: z.literal('move'), x: Coord, y: Coord, facing: z.number().min(-4).max(4), moving: z.boolean() }),
 ]);
 export type ClientMessage = z.infer<typeof ClientMessage>;
 export type ClientMessageInput = z.input<typeof ClientMessage>;
@@ -79,6 +99,8 @@ export interface VoiceGrant {
 
 export interface SeatView {
   code: string;
+  // Rules engine id: 'moonveil-werewolf' (real) or 'fixture' (tests). Selects how to read `game`.
+  engine: string;
   mode: Mode;
   status: RoomStatus;
   me: { seat: SeatId; kind: SeatKind; host: boolean };
@@ -105,8 +127,35 @@ export const ERROR_CODES = [
   'not-allowed',
   'cannot-start',
   'invalid-action',
+  'rate-limited',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
+
+// Real-engine game view (`SeatView.game` when engine === 'moonveil-werewolf'). Types only.
+export type GameView = HostView;
+// Player commands: the rules Command minus `seat` (the server supplies the actor).
+type SeatCommand = Extract<Command, { seat: number }>;
+export type PlayerAction = SeatCommand extends infer C ? (C extends SeatCommand ? Omit<C, 'seat'> : never) : never;
+// Moderator commands (moderator mode): any rules Command; the engine authorizes.
+export type ModeratorCommand = Command;
+export function gameView(v: SeatView): GameView | null {
+  return v.engine === 'moonveil-werewolf' && v.game ? (v.game as GameView) : null;
+}
+
+// `id` is random per message (never a room counter: gaps would leak hidden-channel activity).
+export interface ChatMessage {
+  id: string;
+  from: SeatId;
+  text: string;
+  at: number;
+}
+export interface Pose {
+  seat: SeatId;
+  x: number;
+  y: number;
+  facing: number;
+  moving: boolean;
+}
 
 export type ServerMessage =
   | { t: 'welcome'; code: string; seat: SeatId; kind: SeatKind; host: boolean; token?: string }
@@ -115,7 +164,16 @@ export type ServerMessage =
   | { t: 'ack'; ref: string }
   | { t: 'error'; ref?: string; code: ErrorCode; message: string }
   | { t: 'hb' }
-  | { t: 'bye'; reason: 'replaced' | 'left' | 'closed' };
+  | { t: 'bye'; reason: 'replaced' | 'left' | 'closed' }
+  // Live chat on a channel this seat may listen to now.
+  | { t: 'chat'; channel: string; msg: ChatMessage }
+  // Full history of a channel, sent when the seat gains listen on it (incl. on connect). Replaces the client's log.
+  // Clients show only channels with a current `listen` grant in view.voice.
+  | { t: 'chatlog'; channel: string; messages: ChatMessage[] }
+  // Poses of seats this seat may see moving (lobby: all; play: ghosts to ghost-listeners and moderator).
+  | { t: 'poses'; poses: Pose[] }
+  // Seats currently speaking on channels this seat may listen to.
+  | { t: 'speaking'; seats: SeatId[] };
 
 export const CLOSE = { protocol: 4000, replaced: 4001, left: 4002, badToken: 4003 } as const;
 export const HEARTBEAT_MS = 10_000;

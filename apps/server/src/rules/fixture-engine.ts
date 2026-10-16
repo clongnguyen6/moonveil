@@ -14,6 +14,9 @@ export interface FixtureState {
   round: number;
   marks: { by: SeatId; target: SeatId }[];
   done: SeatId[];
+  // Increments on every new phase; the clock belongs to one stepSeq (same semantics as rules PhaseClock).
+  stepSeq: number;
+  clock: { stepSeq: number; durationMs: number; remainingMs: number; runningSince: number | null } | null;
 }
 
 export interface FixtureOptions {
@@ -69,6 +72,8 @@ export function createFixtureEngine(opts: FixtureOptions = {}): RulesEngine<Fixt
         round: 1,
         marks: [],
         done: [],
+        stepSeq: 1,
+        clock: null,
       };
     },
 
@@ -108,11 +113,54 @@ export function createFixtureEngine(opts: FixtureOptions = {}): RulesEngine<Fixt
     },
 
     advance(s) {
-      if (s.phase === 'hidden') return { ...s, phase: 'open', marks: [], done: [] };
+      const next = s.stepSeq + 1;
+      if (s.phase === 'hidden') return { ...s, phase: 'open', marks: [], done: [], stepSeq: next };
       if (s.phase === 'open') {
-        return s.round >= rounds ? { ...s, phase: 'ended' } : { ...s, phase: 'hidden', round: s.round + 1 };
+        return s.round >= rounds
+          ? { ...s, phase: 'ended', stepSeq: next }
+          : { ...s, phase: 'hidden', round: s.round + 1, stepSeq: next };
       }
       return s;
+    },
+
+    sync(s, now) {
+      if (s.phase === 'ended') return s.clock === null ? s : { ...s, clock: null };
+      if (s.clock && s.clock.stepSeq === s.stepSeq) return s;
+      const durationMs = s.phase === 'hidden' ? hiddenMs : openMs;
+      const paused = s.clock !== null && s.clock.runningSince === null;
+      return { ...s, clock: { stepSeq: s.stepSeq, durationMs, remainingMs: durationMs, runningSince: paused ? null : now } };
+    },
+
+    tick(s, now) {
+      const t = this.sync(s, now);
+      const c = t.clock;
+      if (!c || c.runningSince === null || now - c.runningSince < c.remainingMs) return t;
+      return this.sync(this.advance(t), now);
+    },
+
+    pause(s, now) {
+      const t = this.sync(s, now);
+      const c = t.clock;
+      if (!c || c.runningSince === null) return t;
+      return { ...t, clock: { ...c, remainingMs: Math.max(0, c.remainingMs - (now - c.runningSince)), runningSince: null } };
+    },
+
+    resume(s, now) {
+      const t = this.sync(s, now);
+      const c = t.clock;
+      return c && c.runningSince === null ? { ...t, clock: { ...c, runningSince: now } } : t;
+    },
+
+    timer(s, now) {
+      const c = s.clock;
+      if (!c || c.stepSeq !== s.stepSeq) return null;
+      const remainingMs = c.runningSince === null ? c.remainingMs : Math.max(0, c.remainingMs - (now - c.runningSince));
+      return {
+        durationMs: c.durationMs,
+        remainingMs,
+        deadline: c.runningSince === null ? null : c.runningSince + c.remainingMs,
+        paused: c.runningSince === null,
+      };
     },
 
     view(s, viewer: Viewer) {

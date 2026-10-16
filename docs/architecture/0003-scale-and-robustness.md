@@ -41,7 +41,7 @@ Movement must be a separate per-viewer-filtered position channel: ghost position
 - **Idle rooms:**
   - Closed when no connection for `MOONVEIL_ROOM_IDLE_MS` (default 30 min), checked each heartbeat (10 s). A reconnect resets the clock.
   - After the sweep, resume → "no such room"; the client clears the token and shows the join form.
-  - **Automatic matches keep advancing with nobody connected** and can end unattended. Needs a policy, e.g. pause timers when all players are offline, or `player.remove` for long absence. That's gameplay/rules (rules API: disconnects are server policy).
+  - Automatic matches used to keep advancing with nobody connected. Superseded by the approved pause rule (foundation-3): timers pause while all player seats are disconnected.
 - **Server restart (SIGTERM and SIGKILL):**
   - Players see "Reconnecting…" over the stale game view (own secret still on screen, nothing new).
   - About 0.3–0.4 s after the server is back: "no such room", token cleared, join form. The match is lost.
