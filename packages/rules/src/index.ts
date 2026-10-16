@@ -16,7 +16,7 @@ export {
   validateDeck,
 } from './policies.ts';
 export * from './types.ts';
-export { channelsFor, type ChannelGrant, type ChannelId, type ChannelViewer } from './channels.ts';
+export { channelsFor, isPendingHunter, type ChannelGrant, type ChannelId, type ChannelViewer } from './channels.ts';
 export {
   createRulesEngine,
   parseCommand,

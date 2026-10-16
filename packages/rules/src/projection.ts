@@ -12,7 +12,7 @@ export interface SeatView {
   alive: boolean;
   /** Known role, or null if the viewer is not entitled to it. */
   role: Role | null;
-  /** Public death cause; bite/poison/pin are shown as 'night' unless config.reveal.causeAtDawn. */
+  /** Public death cause; bite/poison are shown as 'night' unless config.reveal.causeAtDawn. */
   death: { cause: DeathCause | 'night'; night: number; day: number } | null;
 }
 
@@ -29,7 +29,6 @@ export type AvailableAction =
   | { type: 'wolf.pick'; targets: Seat[]; canPass: boolean; current: Pick | null }
   | { type: 'seer.inspect'; targets: Seat[] }
   | { type: 'guard.protect'; targets: Seat[]; current: Pick | null }
-  | { type: 'hunter.pin'; targets: Seat[]; current: Pick | null }
   | { type: 'witch.heal'; canUse: boolean; current: boolean | null }
   | { type: 'witch.poison'; targets: Seat[]; current: Pick | null }
   | { type: 'vote.nominate'; targets: Seat[]; current: Seat | 'skip' | null }
@@ -121,7 +120,7 @@ export function project(state: MatchState, viewer: Viewer): Projection {
 
 function publicCause(c: DeathCause, state: MatchState, full: boolean): DeathCause | 'night' {
   if (full || state.config.reveal.causeAtDawn) return c;
-  return c === 'bite' || c === 'poison' || c === 'pin' ? 'night' : c;
+  return c === 'bite' || c === 'poison' ? 'night' : c;
 }
 
 function stepView(state: MatchState): StepView {
@@ -196,9 +195,6 @@ export function availableActions(state: MatchState, me: SeatState): AvailableAct
     }
     if (me.role === 'guard') {
       out.push({ type: 'guard.protect', targets: targets((x) => ({ type: 'guard.protect', seat: me.seat, target: x })), current: rec.guards[me.seat] ?? null });
-    }
-    if (me.role === 'hunter' && state.config.hunter.mode === 'pinNightOnly') {
-      out.push({ type: 'hunter.pin', targets: targets((x) => ({ type: 'hunter.pin', seat: me.seat, target: x })), current: rec.pins[me.seat] ?? null });
     }
   }
   if (step.kind === 'night.witch' && rec && me.role === 'witch') {

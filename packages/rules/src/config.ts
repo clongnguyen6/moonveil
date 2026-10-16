@@ -1,5 +1,6 @@
 // Rules configuration. Every key is PROVISIONAL (see docs/rules/PROPOSAL.md, Qxx) until Human approves it.
-// Approved rules (six roles, parity/no-wolves victory, resolve-before-victory) are not configurable.
+// Approved rules (not configurable): six roles, parity/no-wolves victory, resolve-before-victory, Yes/No execution
+// threshold, Q06 Hunter, Q14 zero survivors = draw, Q20 no reveal on death, Q24 ghost knowledge.
 import { clone } from './clone.ts';
 import type { Role } from './types.ts';
 
@@ -16,9 +17,8 @@ export interface RulesConfig {
   };
   firstNightKill: boolean; // Q23
   reveal: {
-    roleOnDeath: boolean; // Q20
     causeAtDawn: boolean; // Q21
-    historyAtEnd: boolean; // Q24
+    historyAtEnd: boolean; // Q24 end-of-match history (not covered by the Q24 approval)
   };
   wolves: {
     resolve: 'plurality' | 'unanimous' | 'random'; // Q07
@@ -41,21 +41,14 @@ export interface RulesConfig {
     guardBlocksPoison: boolean; // Q04
     doubleProtectionKills: boolean; // Q04
   };
-  hunter: {
-    mode: 'shootOnDeath' | 'pinNightOnly'; // Q06
-    shootsWhenPoisoned: boolean; // Q06
-    shootsWhenRemoved: boolean; // Q15
-  };
   day: {
     selfVote: boolean; // Q01
     nomination: 'plurality' | 'majorityOfLiving'; // Q09
     defense: boolean; // Q10
     confirmVote: boolean; // Q10
-    confirm: 'majorityOfCastWithQuorum' | 'majorityOfCast' | 'majorityOfLiving'; // Q10 (F4)
     accusedVotesOnConfirm: boolean; // Q10
     openVotes: boolean; // Q22
   };
-  victory: { zeroSurvivors: 'draw' | 'village' | 'wolves' }; // Q14
   moderator: {
     mayBreakRules: boolean; // Q16
     canSetDayOutcome: boolean; // Q16
@@ -68,8 +61,6 @@ export interface RulesConfig {
     livingHearPublicAtNight: boolean;
     defenseOnlyAccusedSpeaks: boolean;
     moderatorHearsAll: boolean;
-    /** Q06/Q25 (F1): a dead Hunter whose shot is pending joins ghost chat before shooting. */
-    pendingHunterJoinsGhosts: boolean;
   };
   /** Seconds. Q11/Q19. */
   timing: {
@@ -110,26 +101,23 @@ export const DEFAULT_CONFIG: RulesConfig = {
   },
   limits: { maxPerSpecialRole: 1, firstDawnParityCheck: 'biteAndPoison' },
   firstNightKill: true,
-  reveal: { roleOnDeath: false, causeAtDawn: false, historyAtEnd: true },
+  reveal: { causeAtDawn: false, historyAtEnd: true },
   wolves: { resolve: 'plurality', canTargetWolf: false, mayPass: true },
   seer: { result: 'wolfOrNot' },
   guard: { canProtectSelf: true, noRepeatTarget: true, passResetsRepeat: true },
   witch: { seesVictim: 'whileHealUnused', bothPotionsSameNight: true, canHealSelf: true, canPoisonSelf: false },
   protection: { guardBlocksPoison: false, doubleProtectionKills: false },
-  hunter: { mode: 'shootOnDeath', shootsWhenPoisoned: true, shootsWhenRemoved: false },
   day: {
     selfVote: false,
     nomination: 'plurality',
     defense: true,
     confirmVote: true,
-    confirm: 'majorityOfCastWithQuorum',
     accusedVotesOnConfirm: true,
     openVotes: true,
   },
-  victory: { zeroSurvivors: 'draw' },
   moderator: { mayBreakRules: false, canSetDayOutcome: true },
   removal: { systemDuringSecret: false },
-  comms: { wolvesAtNight: true, livingHearPublicAtNight: false, defenseOnlyAccusedSpeaks: true, moderatorHearsAll: true, pendingHunterJoinsGhosts: false },
+  comms: { wolvesAtNight: true, livingHearPublicAtNight: false, defenseOnlyAccusedSpeaks: true, moderatorHearsAll: true },
   timing: {
     nightMain: 40,
     nightWitch: 20,
@@ -154,9 +142,8 @@ export const PROVISIONAL: Record<string, string> = {
   'limits.maxPerSpecialRole': 'Q17',
   'limits.firstDawnParityCheck': 'Q17',
   firstNightKill: 'Q23',
-  'reveal.roleOnDeath': 'Q20',
   'reveal.causeAtDawn': 'Q21',
-  'reveal.historyAtEnd': 'Q24',
+  'reveal.historyAtEnd': 'Q24-history',
   'wolves.resolve': 'Q07',
   'wolves.canTargetWolf': 'Q01',
   'wolves.mayPass': 'Q08',
@@ -170,17 +157,12 @@ export const PROVISIONAL: Record<string, string> = {
   'witch.canPoisonSelf': 'Q01',
   'protection.guardBlocksPoison': 'Q04',
   'protection.doubleProtectionKills': 'Q04',
-  'hunter.mode': 'Q06',
-  'hunter.shootsWhenPoisoned': 'Q06',
-  'hunter.shootsWhenRemoved': 'Q15',
   'day.selfVote': 'Q01',
   'day.nomination': 'Q09',
   'day.defense': 'Q10',
   'day.confirmVote': 'Q10',
-  'day.confirm': 'Q10',
   'day.accusedVotesOnConfirm': 'Q10',
   'day.openVotes': 'Q22',
-  'victory.zeroSurvivors': 'Q14',
   'moderator.mayBreakRules': 'Q16',
   'moderator.canSetDayOutcome': 'Q16',
   'removal.systemDuringSecret': 'Q26',
@@ -188,7 +170,6 @@ export const PROVISIONAL: Record<string, string> = {
   'comms.livingHearPublicAtNight': 'Q25',
   'comms.defenseOnlyAccusedSpeaks': 'Q25',
   'comms.moderatorHearsAll': 'Q25',
-  'comms.pendingHunterJoinsGhosts': 'Q06/Q25',
   'timing.nightMain': 'Q11',
   'timing.nightWitch': 'Q11',
   'timing.discussionBase': 'Q19',

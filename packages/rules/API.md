@@ -1,7 +1,7 @@
 # @moonveil/rules — API (v0.2)
 
 Pure, deterministic TypeScript engine. No IO, timers or network, and no runtime dependencies. The server hosts it.
-Rules: `docs/rules/PROPOSAL.md`. **Every `config` key, and so every default behaviour, is provisional** until the Human approves it (`PROVISIONAL` maps each key to its proposal item). Only the six roles, the win conditions and resolve-before-victory are approved.
+Rules: `docs/rules/PROPOSAL.md`. **Every `config` key, and so every default behaviour, is provisional** until the Human approves it (`PROVISIONAL` maps each key to its proposal item). Approved (fixed, not settings), 2026-10-16: the six roles; the win conditions; resolve-before-victory; the day execution threshold `Yes × 2 > all living players`; Q06 Hunter; Q14 zero survivors = draw; Q20 no reveal on death; Q24 ghosts keep, never gain.
 
 ## Run
 ```
@@ -34,6 +34,26 @@ const engine = createRulesEngine({ config?, deck? });   // RulesEngine<HostState
   - call `channels(s, {kind:'moderator'})` for the moderator instead of hard-coding public;
   - optionally honour `earlyClose`.
 
+## What the server must call (wiring is foundation's file; not done here)
+Replace the fixture engine with `createRulesEngine()` and keep the existing room flow:
+1. `setup({seats, seed})` on start. Use `minPlayers` and `maxPlayers` for `canStart`.
+2. `phase()` after every change. Automatic mode: a fixed timer of `durationMs`. Optionally close early when `earlyClose` is true; by default that's only the Hunter step.
+3. Player `act` → `submit(state, seatId, action)`.
+4. Moderator actions → `moderate(state, action)`. **New route.** Today `act` is player-only and `advance` is the only moderator message.
+5. A timer, or the moderator's `advance` → `advance(state)`.
+6. Host removal of a long-disconnected player → `remove(state, seatId)`. It's refused at night, so retry after the night.
+7. Per seat → `view(state, {kind:'seat', seat})`. Moderator → `view(state, {kind:'moderator'})`. A spectator → `{kind:'public'}`.
+8. Grants → `channels(state, seatId)` for players, and `channels(state, {kind:'moderator'})` for the moderator (today the moderator is hard-coded to public).
+
+### Host enforcement for the approved Hunter pending window (Q06/Q24)
+While `phase().name === 'hunter'`, a dead Hunter whose shot is pending gets `channels() = [{public, listen, no speak}]`. `isPendingHunter(state, seat)` is exported. The server and voice adapter must:
+- **Voice:** apply the grant change. The Hunter is not in the `ghosts` voice room while pending. When the shot resolves, grants change again to add `ghosts`, so recompute grants after every state change (the room already diffs them in `flush`).
+- **Live text and emotes on `ghosts`:** deliver only to seats whose *current* grant has `ghosts.listen`, and accept only from `ghosts.speak`.
+- **History:** filter ghost-chat history by the grant **at read time** (on open, reconnect or scroll-back), not only live messages. A pending Hunter who reconnects gets no ghost history; after the shot they may read it.
+- **Indicators and rosters:** don't show `ghosts` speaking indicators or membership to a seat without `ghosts.listen`.
+- The engine adds no ghost-only knowledge to the Hunter's `view()`; the Hunter's facts stay frozen at death.
+Engine tests cover the grants and views. Whether voice and text actually obey them needs server and voice integration tests.
+
 ## Core calls
 ```ts
 createMatch({ seed, playerCount } | { seed, roles: Role[] } | { seed, playerCount, deck }, config?) -> {ok, state} | {ok:false, error}
@@ -50,7 +70,7 @@ stepTiming(state) -> {seconds, earlyCloseReady}   // for the automatic orchestra
 - Errors: `forbidden | wrong_step | bad_seat | bad_target | rule | locked | ended`. Return only the code and message to the caller; never broadcast them.
 
 ## Steps (state.step.kind)
-`night.main` (wolves `wolf.pick`, seer `seer.inspect`, guard `guard.protect`, [`hunter.pin` in pin mode])
+`night.main` (wolves `wolf.pick`, seer `seer.inspect`, guard `guard.protect`)
 → `night.witch` (`witch.heal {use}`, `witch.poison {target|'pass'}`; runs whenever the deck has a Witch, alive or dead)
 → [`hunter` (`hunter.shoot`) if a Hunter died] → victory check → `day.discussion` → `day.vote` (`vote.nominate {target|'skip'|null}`)
 → `day.defense` → `day.confirm` (`vote.confirm {choice|null}`) → execution → [`hunter`] → victory check → `night.main` … → `ended`.

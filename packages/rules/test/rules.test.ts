@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { createMatch, DEFAULT_CONFIG, defaultDeck, evaluateVictory, stepTiming, validateDeck, type Role } from '../src/index.ts';
+import { createMatch, DEFAULT_CONFIG, defaultDeck, evaluateVictory, stepTiming, tallyConfirm, validateDeck, type Role } from '../src/index.ts';
 import { alive, close, day, lastLog, match, MOD, night, ok, rejects, ROLES7, S, SYS } from './helpers.ts';
 
 describe('setup', () => {
@@ -222,22 +222,80 @@ describe('day', () => {
     assert.equal(stepTiming(h).earlyCloseReady, true);
   });
 
-  it('confirm quorum (F4): Yes > No but fewer than half of voters voted -> no execution', () => {
-    let s = close(close(day0vote(morning())));
-    s = ok(s, S(2), { type: 'vote.confirm', seat: 2, choice: 'yes' });
-    s = close(s);
-    assert.equal(s.seats[0]?.alive, true);
-    let t = close(close(day0vote(morning())));
-    for (const v of [2, 3, 4]) t = ok(t, S(v), { type: 'vote.confirm', seat: v, choice: 'yes' });
-    t = ok(t, S(5), { type: 'vote.confirm', seat: 5, choice: 'no' });
-    assert.equal(close(t).seats[0]?.alive, false);
-  });
-
   function day0vote(s: ReturnType<typeof match>) {
     let t = close(s);
     for (const v of [1, 2, 3]) t = ok(t, S(v), { type: 'vote.nominate', seat: v, target: 0 });
     return t;
   }
+});
+
+describe('APPROVED 2026-10-16: execution needs Yes * 2 > all living players', () => {
+  const R10: Role[] = ['wolf', 'wolf', 'wolf', 'seer', 'guard', 'witch', 'hunter', 'villager', 'villager', 'villager'];
+  /** Day 1 at the Yes/No step, nobody dead, seat 0 accused. */
+  const atConfirm = (roles: Role[] = ROLES7, accused = 0) => {
+    let s = close(night(match(roles), { bite: 'pass' }));
+    for (const v of alive(s).filter((x) => x !== accused).slice(0, 3)) s = ok(s, S(v), { type: 'vote.nominate', seat: v, target: accused });
+    s = close(close(s));
+    assert.deepEqual(s.step.kind === 'day.confirm' && s.step.accused, accused);
+    return s;
+  };
+  const vote = (s: ReturnType<typeof match>, yes: number[], no: number[] = []) => {
+    for (const v of yes) s = ok(s, S(v), { type: 'vote.confirm', seat: v, choice: 'yes' });
+    for (const v of no) s = ok(s, S(v), { type: 'vote.confirm', seat: v, choice: 'no' });
+    return close(s);
+  };
+
+  it('pure function boundaries (odd and even living counts)', () => {
+    const v = (y: number, n: number, total: number) => [...Array(y).fill('yes'), ...Array(n).fill('no'), ...Array(total - y - n).fill(null)];
+    assert.equal(tallyConfirm(v(4, 0, 7), 7).executed, true);
+    assert.equal(tallyConfirm(v(3, 0, 7), 7).executed, false);
+    assert.equal(tallyConfirm(v(6, 0, 10), 10).executed, true);
+    assert.equal(tallyConfirm(v(5, 0, 10), 10).executed, false);
+    assert.equal(tallyConfirm(v(5, 5, 10), 10).executed, false);
+    assert.equal(tallyConfirm(v(3, 2, 10), 10).executed, false);
+  });
+
+  it('7 living: 4 Yes executes, 3 Yes does not (even with 0 No)', () => {
+    assert.equal(vote(atConfirm(), [1, 2, 3, 4]).seats[0]?.alive, false);
+    assert.equal(vote(atConfirm(), [1, 2, 3]).seats[0]?.alive, true);
+  });
+
+  it('10 living: 6 Yes executes; 5 Yes does not; 3 Yes + 2 No does not', () => {
+    assert.equal(vote(atConfirm(R10), [1, 2, 3, 4, 5, 6]).seats[0]?.alive, false);
+    assert.equal(vote(atConfirm(R10), [1, 2, 3, 4, 5], [6, 7, 8, 9, 0]).seats[0]?.alive, true);
+    const s = vote(atConfirm(R10), [1, 2, 3], [4, 5]);
+    assert.equal(s.seats[0]?.alive, true);
+    assert.deepEqual(lastLog(s, 'confirm'), { t: 'confirm', day: 1, accused: 0, yes: 3, no: 2, votes: [null, 'yes', 'yes', 'yes', 'no', 'no', null, null, null, null], executed: false });
+  });
+
+  it('abstaining and disconnected (silent) seats stay in the denominator; the accused counts even if barred from voting', () => {
+    // 7 living, 3 Yes, everyone else silent (disconnected or abstaining): 3*2 = 6 <= 7.
+    assert.equal(vote(atConfirm(), [1, 2, 3]).seats[0]?.alive, true);
+    // Accused may not vote: denominator is still all 7 living, so 3 Yes is not enough.
+    let s = close(night(match(undefined, { day: { accusedVotesOnConfirm: false } }), { bite: 'pass' }));
+    for (const v of [1, 2, 3]) s = ok(s, S(v), { type: 'vote.nominate', seat: v, target: 0 });
+    s = vote(close(close(s)), [1, 2, 3]);
+    assert.equal(s.seats[0]?.alive, true);
+  });
+
+  it('removed seats are dead and leave the denominator (6 living -> 4 Yes needed, 3 not enough)', () => {
+    let s = ok(atConfirm(), MOD, { type: 'player.remove', seat: 6 });
+    assert.equal(alive(s).length, 6);
+    assert.equal(vote(s, [1, 2, 3]).seats[0]?.alive, true);
+    assert.equal(vote(s, [1, 2, 3, 4]).seats[0]?.alive, false);
+  });
+
+  it('an executed Hunter shoots before victory is checked; a spared Hunter does not', () => {
+    let s = vote(atConfirm(ROLES7, 5), [0, 1, 2, 3]);
+    assert.equal(s.seats[5]?.alive, false);
+    assert.equal(s.step.kind, 'hunter');
+    s = close(ok(s, S(5), { type: 'hunter.shoot', seat: 5, target: 0 }));
+    assert.equal(s.seats[0]?.alive, false);
+    assert.equal(s.step.kind, 'night.main');
+    const spared = vote(atConfirm(ROLES7, 5), [0, 1, 2]);
+    assert.equal(spared.seats[5]?.alive, true);
+    assert.equal(spared.step.kind, 'night.main');
+  });
 });
 
 describe('hunter (Q06 shootOnDeath)', () => {
@@ -289,10 +347,10 @@ describe('victory', () => {
   it('approved rule: parity and no-wolves', () => {
     const seats = (spec: [Role, boolean][]) =>
       spec.map(([role, a], seat) => ({ seat, role, alive: a, death: null, heal: true, poison: true, guardLast: null }));
-    assert.deepEqual(evaluateVictory(seats([['wolf', true], ['villager', true], ['seer', true]]), 'draw'), null);
-    assert.deepEqual(evaluateVictory(seats([['wolf', true], ['hunter', true]]), 'draw'), { winner: 'wolves', reason: 'parity' });
-    assert.deepEqual(evaluateVictory(seats([['wolf', false], ['villager', true]]), 'draw'), { winner: 'village', reason: 'noWolves' });
-    assert.deepEqual(evaluateVictory(seats([['wolf', false], ['villager', false]]), 'draw'), { winner: 'draw', reason: 'zeroSurvivors' });
+    assert.deepEqual(evaluateVictory(seats([['wolf', true], ['villager', true], ['seer', true]])), null);
+    assert.deepEqual(evaluateVictory(seats([['wolf', true], ['hunter', true]])), { winner: 'wolves', reason: 'parity' });
+    assert.deepEqual(evaluateVictory(seats([['wolf', false], ['villager', true]])), { winner: 'village', reason: 'noWolves' });
+    assert.deepEqual(evaluateVictory(seats([['wolf', false], ['villager', false]])), { winner: 'draw', reason: 'zeroSurvivors' });
   });
 
   it('zero survivors via chain is a draw (Q14 example)', () => {

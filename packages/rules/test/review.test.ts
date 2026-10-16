@@ -16,7 +16,7 @@ describe('F2: seats removed mid-night', () => {
     assert.equal(s.seats[5]?.death?.cause, 'removed');
   });
 
-  it('poison and pins on a removed seat are void; history lists only newly dead', () => {
+  it('poison on a removed seat is void; history lists only newly dead', () => {
     let s = close(ok(match(), S(0), { type: 'wolf.pick', seat: 0, target: 6 }));
     s = ok(s, S(4), { type: 'witch.poison', seat: 4, target: 3 });
     s = ok(s, MOD, { type: 'player.remove', seat: 3 });

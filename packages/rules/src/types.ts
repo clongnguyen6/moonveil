@@ -9,7 +9,7 @@ export const factionOf = (r: Role): Faction => (r === 'wolf' ? 'wolves' : 'villa
 
 export type Pass = 'pass';
 export type Pick = Seat | Pass;
-export type DeathCause = 'bite' | 'poison' | 'executed' | 'shot' | 'pin' | 'removed';
+export type DeathCause = 'bite' | 'poison' | 'executed' | 'shot' | 'removed';
 
 export interface SeatState {
   seat: Seat;
@@ -31,7 +31,6 @@ export interface NightRecord {
   wolfDecision: Pick | null;
   inspections: (Seat | null)[];
   guards: (Pick | null)[];
-  pins: (Pick | null)[];
   heals: (boolean | null)[];
   poisons: (Pick | null)[];
   /** Pack victim, fixed when night.main closes. */
@@ -66,7 +65,7 @@ export type Fact =
   | { k: 'inspect'; night: number; target: Seat; result: 'wolf' | 'notWolf' | Role }
   | { k: 'victim'; night: number; target: Seat | null }
   | { k: 'packTarget'; night: number; target: Seat | null }
-  | { k: 'own'; night: number; act: 'protect' | 'heal' | 'poison' | 'pin'; target: Seat | null };
+  | { k: 'own'; night: number; act: 'protect' | 'heal' | 'poison'; target: Seat | null };
 
 export type PublicEvent =
   | { t: 'nightStart'; night: number }
@@ -110,7 +109,6 @@ export type Command =
   | { type: 'wolf.decide'; target: Pick }
   | { type: 'seer.inspect'; seat: Seat; target: Seat }
   | { type: 'guard.protect'; seat: Seat; target: Pick }
-  | { type: 'hunter.pin'; seat: Seat; target: Pick }
   | { type: 'witch.heal'; seat: Seat; use: boolean }
   | { type: 'witch.poison'; seat: Seat; target: Pick }
   | { type: 'vote.nominate'; seat: Seat; target: Seat | 'skip' | null }

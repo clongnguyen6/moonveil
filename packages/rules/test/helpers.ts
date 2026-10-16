@@ -34,7 +34,6 @@ export interface NightPlan {
   bite?: Seat | 'pass';
   inspect?: Seat;
   protect?: Seat | 'pass';
-  pin?: Seat | 'pass';
   heal?: boolean;
   poison?: Seat | 'pass';
 }
@@ -47,7 +46,6 @@ export function night(state: MatchState, plan: NightPlan): MatchState {
   if (plan.bite !== undefined) for (const w of living('wolf')) s = ok(s, S(w), { type: 'wolf.pick', seat: w, target: plan.bite });
   if (plan.inspect !== undefined) for (const x of living('seer')) s = ok(s, S(x), { type: 'seer.inspect', seat: x, target: plan.inspect });
   if (plan.protect !== undefined) for (const x of living('guard')) s = ok(s, S(x), { type: 'guard.protect', seat: x, target: plan.protect });
-  if (plan.pin !== undefined) for (const x of living('hunter')) s = ok(s, S(x), { type: 'hunter.pin', seat: x, target: plan.pin });
   s = close(s);
   if (s.step.kind === 'night.witch') {
     if (plan.heal !== undefined) for (const x of living('witch')) s = ok(s, S(x), { type: 'witch.heal', seat: x, use: plan.heal });

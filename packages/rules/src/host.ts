@@ -126,7 +126,6 @@ export function parseCommand(input: unknown, n: number): Command | null {
   switch (input.type) {
     case 'wolf.pick':
     case 'guard.protect':
-    case 'hunter.pin':
     case 'witch.poison':
     case 'hunter.shoot':
       return keys('seat', 'target') && seat(x.seat) && pick(x.target) ? (input as unknown as Command) : null;

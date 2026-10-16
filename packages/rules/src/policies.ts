@@ -61,27 +61,23 @@ export function tallyNomination(
   return { accused: first.target, tally: t };
 }
 
-/** Q10: Yes/No confirmation. Tie -> no execution. */
-export function tallyConfirm(
-  votes: ('yes' | 'no' | null)[],
-  eligibleVoters: number,
-  rule: RulesConfig['day']['confirm'],
-): { yes: number; no: number; executed: boolean } {
+/**
+ * APPROVED (Human, 2026-10-16): execution needs a strict majority of ALL living players: yes * 2 > livingCount.
+ * Abstentions, non-votes and disconnected (still living) seats stay in the denominator. Not configurable.
+ */
+export function tallyConfirm(votes: ('yes' | 'no' | null)[], livingCount: number): { yes: number; no: number; executed: boolean } {
   const yes = votes.filter((v) => v === 'yes').length;
   const no = votes.filter((v) => v === 'no').length;
-  // F4: 'majorityOfCastWithQuorum' also needs at least half of eligible voters to vote Yes or No.
-  const executed =
-    rule === 'majorityOfLiving' ? yes * 2 > eligibleVoters : rule === 'majorityOfCast' ? yes > no : yes > no && (yes + no) * 2 >= eligibleVoters;
-  return { yes, no, executed };
+  return { yes, no, executed: yes * 2 > livingCount };
 }
 
-/** Approved: village wins when no wolves; wolves win at parity. Q14 decides zero survivors. */
-export function evaluateVictory(seats: SeatState[], zeroSurvivors: RulesConfig['victory']['zeroSurvivors']): Outcome | null {
+/** APPROVED: village wins when no wolves; wolves win at parity; zero survivors = draw (Q14, 2026-10-16). */
+export function evaluateVictory(seats: SeatState[]): Outcome | null {
   const alive = seats.filter((s) => s.alive);
   const wolves = alive.filter((s) => s.role === 'wolf').length;
   const village = alive.length - wolves;
   if (alive.length === 0) {
-    return { winner: zeroSurvivors, reason: 'zeroSurvivors' };
+    return { winner: 'draw', reason: 'zeroSurvivors' };
   }
   if (wolves === 0) return { winner: 'village', reason: 'noWolves' };
   if (wolves >= village) return { winner: 'wolves', reason: 'parity' };
@@ -119,11 +115,9 @@ export function nightDeaths(inp: NightInputs, p: RulesConfig['protection']): { s
   return [...out.entries()].map(([seat, cause]) => ({ seat, cause })).sort((a, b) => a.seat - b.seat);
 }
 
-/** Q06: does a Hunter who died this way get an effect? */
-export function hunterTriggers(cause: DeathCause, h: RulesConfig['hunter']): boolean {
-  if (cause === 'removed') return h.shootsWhenRemoved;
-  if (cause === 'poison') return h.shootsWhenPoisoned;
-  return true;
+/** APPROVED Q06 (2026-10-16): any gameplay death (bite, poison, execution, shot) gives a shot; administrative removal does not. */
+export function hunterTriggers(cause: DeathCause): boolean {
+  return cause !== 'removed';
 }
 
 /** Q17 */
@@ -205,8 +199,6 @@ export function nightInputsComplete(state: MatchState): boolean {
           return rec.inspections[s.seat] !== null;
         case 'guard':
           return rec.guards[s.seat] !== null;
-        case 'hunter':
-          return state.config.hunter.mode !== 'pinNightOnly' || rec.pins[s.seat] !== null;
         default:
           return true;
       }

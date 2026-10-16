@@ -203,22 +203,6 @@ function handle(state: MatchState, cmd: Command, lax: boolean, dry = false, acto
       rec.guards[cmd.seat] = cmd.target;
       return null;
     }
-    case 'hunter.pin': {
-      const rec = nightStep(state, 'night.main');
-      if (!rec) return err('wrong_step', 'not night');
-      if (c.hunter.mode !== 'pinNightOnly') return err('wrong_step', 'pins are not used in this mode');
-      if (!isAliveRole(state, cmd.seat, 'hunter')) return err('bad_seat', 'not a living hunter');
-      if (cmd.target !== 'pass') {
-        if (!isAlive(state, cmd.target)) return err('bad_target', 'target not alive');
-        if (cmd.target === cmd.seat) {
-          const e = rule('hunter may not pin self');
-          if (e) return e;
-        }
-      }
-      if (dry) return null;
-      rec.pins[cmd.seat] = cmd.target;
-      return null;
-    }
     case 'witch.heal': {
       const rec = nightStep(state, 'night.witch');
       if (!rec) return err('wrong_step', 'not witch step');
@@ -369,8 +353,8 @@ function closeStep(state: MatchState): void {
       afterDefense(state, step.accused);
       return;
     case 'day.confirm': {
-      const eligible = state.seats.filter((s) => s.alive && (c.day.accusedVotesOnConfirm || s.seat !== step.accused)).length;
-      const r = tallyConfirm(step.votes, eligible, c.day.confirm);
+      // Approved: denominator = all living players (incl. the accused, abstainers, disconnected seats).
+      const r = tallyConfirm(step.votes, state.seats.filter((s) => s.alive).length);
       state.publicLog.push({
         t: 'confirm',
         day: state.day,
@@ -403,7 +387,6 @@ function afterDefense(state: MatchState, accused: Seat): void {
 function execute(state: MatchState, seat: Seat): void {
   kill(state, [{ seat, cause: 'executed' }]);
   state.publicLog.push({ t: 'executed', day: state.day, seat });
-  revealIfConfigured(state, [seat]);
   afterDeaths(state, [{ seat, cause: 'executed' }], { to: 'night' });
 }
 
@@ -417,7 +400,6 @@ function startNight(state: MatchState): void {
     wolfDecision: null,
     inspections: nulls(),
     guards: nulls(),
-    pins: nulls(),
     heals: nulls(),
     poisons: nulls(),
     victim: null,
@@ -455,10 +437,6 @@ function closeNightMain(state: MatchState): void {
     const g = rec.guards[s.seat];
     if (s.alive && s.role === 'guard' && g !== null && g !== undefined) {
       grant(state, s.seat, { k: 'own', night: rec.night, act: 'protect', target: g === 'pass' ? null : g });
-    }
-    const p = rec.pins[s.seat];
-    if (s.alive && s.role === 'hunter' && p !== null && p !== undefined) {
-      grant(state, s.seat, { k: 'own', night: rec.night, act: 'pin', target: p === 'pass' ? null : p });
     }
   }
   // Q11: the witch step runs whenever the deck has a witch, alive or not (public deck; hides witch death).
@@ -505,24 +483,6 @@ function resolveNight(state: MatchState): void {
   }
   // F2: a seat already dead (e.g. removed mid-night) cannot die again, be announced, or trigger effects.
   const deaths = nightDeaths({ victim: rec.victim, guarded, healed, poisoned }, c.protection).filter((d) => isAlive(state, d.seat));
-  if (c.hunter.mode === 'pinNightOnly') {
-    // Q06 alternative (sky2): pinned player dies with a hunter who dies at night. Chain to fixpoint.
-    let grew = true;
-    while (grew) {
-      grew = false;
-      for (const d of [...deaths]) {
-        const s = state.seats[d.seat];
-        const pin = rec.pins[d.seat];
-        if (s?.role === 'hunter' && hunterTriggers(d.cause, c.hunter) && typeof pin === 'number') {
-          if (isAlive(state, pin) && !deaths.some((x) => x.seat === pin)) {
-            deaths.push({ seat: pin, cause: 'pin' });
-            grew = true;
-          }
-        }
-      }
-    }
-    deaths.sort((a, b) => a.seat - b.seat);
-  }
   const dead = kill(state, deaths);
   state.history.push({ t: 'night', night: rec.night, record: rec, deaths: dead });
   state.nightRec = null;
@@ -532,23 +492,17 @@ function resolveNight(state: MatchState): void {
     dead: dead.map((d) => d.seat),
     causes: c.reveal.causeAtDawn ? dead.map((d) => d.cause) : null,
   });
-  revealIfConfigured(
-    state,
-    dead.map((d) => d.seat),
-  );
-  afterDeaths(state, c.hunter.mode === 'shootOnDeath' ? dead : [], { to: 'day' });
+  afterDeaths(state, dead, { to: 'day' });
 }
 
-/** Start a hunter turn for eligible newly-dead hunters, or finish the batch. */
+/** APPROVED Q06: newly dead Hunters (gameplay death) get a shot turn before victory is checked; else finish the batch. */
 function afterDeaths(state: MatchState, deaths: { seat: Seat; cause: DeathCause }[], then: Continuation): void {
-  const c = state.config;
-  const hunters =
-    c.hunter.mode === 'shootOnDeath'
-      ? deaths.filter((d) => state.seats[d.seat]?.role === 'hunter' && hunterTriggers(d.cause, c.hunter)).map((d) => d.seat)
-      : [];
+  const hunters = deaths.filter((d) => state.seats[d.seat]?.role === 'hunter' && hunterTriggers(d.cause)).map((d) => d.seat);
   if (hunters.length > 0) {
     state.step = { kind: 'hunter', pending: hunters, shots: state.seats.map(() => null), then };
     state.publicLog.push({ t: 'hunterTurn', seats: hunters });
+    // APPROVED Q20: no role is revealed on death; the Hunter is revealed by their (public) shot turn.
+    for (const h of hunters) state.publicLog.push({ t: 'roleRevealed', seat: h, role: 'hunter' });
     return;
   }
   finishBatch(state, then);
@@ -564,16 +518,12 @@ function closeHunter(state: MatchState, step: Extract<MatchState['step'], { kind
   }
   deaths.sort((a, b) => a.seat - b.seat);
   const dead = kill(state, deaths);
-  revealIfConfigured(
-    state,
-    dead.map((d) => d.seat),
-  );
   afterDeaths(state, dead, step.then);
 }
 
 /** Approved rule: victory only after the whole batch (incl. hunter chain) has resolved. */
 function finishBatch(state: MatchState, then: Continuation): void {
-  const outcome = evaluateVictory(state.seats, state.config.victory.zeroSurvivors);
+  const outcome = evaluateVictory(state.seats);
   if (outcome) return endMatch(state, outcome);
   if (then.to === 'day') return startDay(state);
   if (then.to === 'night') return startNight(state);
@@ -586,7 +536,6 @@ function removePlayer(state: MatchState, seat: Seat): void {
   const cur = state.step;
   kill(state, [{ seat, cause: 'removed' }]);
   state.publicLog.push({ t: 'removed', seat });
-  revealIfConfigured(state, [seat]);
   if (cur.kind === 'day.vote') {
     cur.votes[seat] = null;
     cur.votes = cur.votes.map((v) => (v === seat ? null : v));
@@ -594,17 +543,13 @@ function removePlayer(state: MatchState, seat: Seat): void {
   if (cur.kind === 'day.confirm') cur.votes[seat] = null;
   const rec = state.nightRec;
   if (rec) {
-    // F2: pending effects on a removed seat are void (it is no longer the victim, nor a pin/poison target).
+    // F2: pending effects on a removed seat are void (it is no longer the victim, nor a pick/protect/poison target).
     if (rec.victim === seat) rec.victim = null;
     if (rec.wolfDecision === seat) rec.wolfDecision = null;
-    for (const arr of [rec.wolfPicks, rec.guards, rec.pins, rec.poisons]) arr.forEach((v, i) => v === seat && (arr[i] = null));
+    for (const arr of [rec.wolfPicks, rec.guards, rec.poisons]) arr.forEach((v, i) => v === seat && (arr[i] = null));
   }
-  const triggers = state.seats[seat]?.role === 'hunter' && state.config.hunter.mode === 'shootOnDeath' && hunterTriggers('removed', state.config.hunter);
-  if (cur.kind === 'hunter') {
-    // Joins the running hunter turn; victory is checked when that turn closes.
-    if (triggers) cur.pending.push(seat);
-    return;
-  }
+  // APPROVED Q06: removal is administrative, not a gameplay death -> never a Hunter shot.
+  if (cur.kind === 'hunter') return; // victory is checked when the running hunter turn closes
   afterDeaths(state, [{ seat, cause: 'removed' }], { to: 'resume', step: cur });
 }
 
@@ -630,10 +575,6 @@ function kill(state: MatchState, deaths: { seat: Seat; cause: DeathCause }[]): {
   return out;
 }
 
-function revealIfConfigured(state: MatchState, seats: Seat[]): void {
-  if (!state.config.reveal.roleOnDeath) return;
-  for (const seat of seats) state.publicLog.push({ t: 'roleRevealed', seat, role: roleOf(state, seat) });
-}
 
 /** Knowledge is granted only to living seats (ghosts keep, never gain). */
 function grant(state: MatchState, seat: Seat, fact: Fact): void {

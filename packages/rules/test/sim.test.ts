@@ -11,6 +11,10 @@ const SECRET_FACT_OWNER = { inspect: 'seer', victim: 'witch', packTarget: 'wolf'
 function checkInvariants(s: MatchState, frozen: Map<number, string>): void {
   const ended = s.step.kind === 'ended';
   const revealed = new Set(s.publicLog.flatMap((e) => (e.t === 'roleRevealed' ? [e.seat] : [])));
+  // APPROVED Q20: the only public role reveals before the end are Hunters, at their shot turn.
+  for (const e of s.publicLog) if (e.t === 'roleRevealed') assert.equal(e.role, 'hunter', `non-hunter reveal of ${e.seat}`);
+  const turns = new Set(s.publicLog.flatMap((e) => (e.t === 'hunterTurn' ? e.seats : [])));
+  for (const r of revealed) assert.ok(turns.has(r), `hunter ${r} revealed without a shot turn`);
   for (const v of s.seats) {
     const p = project(s, { kind: 'seat', seat: v.seat });
     for (const sv of p.seats) {
@@ -25,7 +29,7 @@ function checkInvariants(s: MatchState, frozen: Map<number, string>): void {
     const ch = channelsFor(s, { kind: 'seat', seat: v.seat }).map((g) => g.channel);
     if (!ended) {
       assert.ok(!ch.includes('wolves') || (v.alive && v.role === 'wolf'), `seat ${v.seat} on wolf channel`);
-      const pendingHunter = s.step.kind === 'hunter' && s.step.pending.includes(v.seat) && !s.config.comms.pendingHunterJoinsGhosts;
+      const pendingHunter = s.step.kind === 'hunter' && s.step.pending.includes(v.seat);
       assert.equal(ch.includes('ghosts'), !v.alive && !pendingHunter, `ghost channel for ${v.seat}`);
     }
     const facts = s.knowledge[v.seat] ?? [];
@@ -50,7 +54,7 @@ function checkInvariants(s: MatchState, frozen: Map<number, string>): void {
   }
   const pub = project(s, { kind: 'public' });
   assert.ok(pub.seats.every((x) => x.role === null || ended || revealed.has(x.seat)));
-  const v = evaluateVictory(s.seats, s.config.victory.zeroSurvivors);
+  const v = evaluateVictory(s.seats);
   if (ended) {
     if (s.outcome?.winner !== 'aborted') assert.deepEqual(s.outcome, v);
   } else if (v !== null) {
@@ -64,7 +68,6 @@ function commandFor(a: AvailableAction, seat: number, pick: (n: number) => numbe
     case 'wolf.pick': return { type: a.type, seat, target: a.targets.length && pick(5) ? choose(a.targets) : 'pass' };
     case 'seer.inspect': return { type: a.type, seat, target: choose(a.targets) };
     case 'guard.protect': return { type: a.type, seat, target: a.targets.length && pick(4) ? choose(a.targets) : 'pass' };
-    case 'hunter.pin': return { type: a.type, seat, target: a.targets.length && pick(4) ? choose(a.targets) : 'pass' };
     case 'witch.heal': return { type: a.type, seat, use: a.canUse && pick(3) === 0 };
     case 'witch.poison': return { type: a.type, seat, target: a.targets.length && pick(4) === 0 ? choose(a.targets) : 'pass' };
     case 'vote.nominate': return { type: a.type, seat, target: a.targets.length && pick(5) ? choose(a.targets) : 'skip' };
@@ -116,7 +119,7 @@ function simulate(seed: number, players: number, config: DeepPartial<RulesConfig
 
 const VARIANTS: [string, DeepPartial<RulesConfig>][] = [
   ['defaults', {}],
-  ['pinNightOnly + roleOnDeath', { hunter: { mode: 'pinNightOnly' }, reveal: { roleOnDeath: true } }],
+  ['cause at dawn + no history at end', { reveal: { causeAtDawn: true, historyAtEnd: false } }],
   ['secret votes, no defense/confirm', { day: { openVotes: false, defense: false, confirmVote: false } }],
   ['witch always sees, one potion/night, unanimous wolves', { witch: { seesVictim: 'always', bothPotionsSameNight: false }, wolves: { resolve: 'unanimous' } }],
   ['witch never sees', { witch: { seesVictim: 'never' } }],
