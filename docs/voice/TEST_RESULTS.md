@@ -11,7 +11,8 @@ cd spikes/voice && npm run test:tls  # TLS:   browsers use https://camp.local:43
 ```
 
 ## Run on SHA
-Filled in by the docs-only commit that follows the tested revision (see the merge request message for the exact SHA and the diff summary).
+- Branch `voice`, commit `a56fd41` (merge of `origin/dev` 1e4a300 into voice): run 10 plain and run 10 TLS, 4/4 tests, 52/52 checks each, ~1.9 min each, ports 4300–4399 free afterwards. The commit adding this section is docs-only.
+- Same results on 548c985 (plain) and on 5f23e52's working tree (runs 8 plain and TLS).
 
 ## Checks (2026-10-16, runs 8 plain and 8-TLS, all PASS in both modes; ~1.9 min each)
 
