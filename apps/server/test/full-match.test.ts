@@ -47,8 +47,9 @@ for (const mode of ['automatic', 'moderator'] as const) {
   }
 }
 
-test('ballot secrecy (approved): no ballots or interim tallies reach players', { todo: 'awaiting rules batch (dev engine: day.openVotes=true)' }, () => {
+test('ballot secrecy (approved Q22): no ballots or interim tallies reach players before close', () => {
   const m = realMatch({ mode: 'automatic', seats: 8, seed: 'ballots' });
   m.run();
-  for (const p of m.players) assertBallotSecrecy(p);
+  const seen = m.players.reduce((n, p) => n + assertBallotSecrecy(p), 0);
+  assert.ok(seen > 0, 'no vote steps observed');
 });

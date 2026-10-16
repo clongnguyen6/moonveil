@@ -28,12 +28,24 @@ Server-authoritative social-deduction game. 7–10 players typical, more desirab
 5. **Modes on one core (`Room`). Mode is fixed at creation.**
    - `moderator`: the creator is a non-playing moderator seat, uses viewer `moderator` and advances phases manually.
    - `automatic`: the creator is a player with host powers in the lobby only (start). It uses viewer `seat` and gets no secrets. A server timer advances phases.
-6. **Rules hosting.** `apps/server/src/rules/engine.ts` defines `RulesEngine<S>`. It mirrors `@moonveil/rules` `src/host.ts` (rules 01fbb49), which adopted this draft. Methods: setup(seed), phase (incl. `earlyClose`), submit, moderate, remove, advance, view(viewer incl. public), channels(seat|viewer). It's pure, with no clock or IO. Rules is in `dev` (9fceeb3) and in the explicit workspace list. `apps/server/test/rules-engine.test.ts` checks at compile time that `createRulesEngine()` satisfies the contract without a cast. It also runs it through `Room` (role isolation, silent wolf pick, night never early, moderator projection). `main.ts` still serves `fixture-engine.ts` because the web shell has no real-game UI yet. Swap = pass `createRulesEngine()`. New workspace packages must be added to the explicit list (with a lockfile update) by foundation.
+6. **Rules hosting.** `apps/server/src/rules/engine.ts` defines `RulesEngine<S>`, mirroring `@moonveil/rules` `host.ts` (API v0.3).
+   - Methods: setup(seed), phase, submit, moderate, remove, advance, sync/tick/pause/resume/timer(now), view(viewer incl. public), channels(seat|viewer).
+   - Pure: time enters only as `now`; the automatic-mode clock lives in engine state.
+   - `main.ts` serves `createRulesEngine()`. `MOONVEIL_ENGINE=fixture` serves the stub, used by browser e2e until the real-game UI exists.
+   - `test/rules-engine.test.ts` checks at compile time that the real engine satisfies the contract with no cast.
+   - New workspace packages: the owner adds its entry and an add-only lockfile delta (via `scripts/env.mjs`) in the commit creating the package; it must pass root `npm run check`.
    - Server policy on top of the engine:
-     - Automatic mode never closes a secret phase early, even if the engine reports `earlyClose`.
-     - Public phases close `EARLY_CLOSE_GRACE_MS` (1.5 s) after `earlyClose`; the close is cancelled if it stops being ready.
-     - In moderator mode, the moderator's `act` goes to `moderate`.
+     - Automatic mode: after every change `sync`, then wake at `timer().deadline` and `tick`. `phaseEndsAt` = deadline (null while paused).
+     - Approved pause rule: `pause` while all player seats are disconnected, `resume` when any player is back. Automatic rooms have no moderator seat.
+     - Never close a secret phase early, even if the engine reports `earlyClose`. Public early close (engine: Hunter step only) after `EARLY_CLOSE_GRACE_MS` (1.5 s).
+     - Moderator mode: no timers. The moderator's `act` → `moderate` (incl. `day.confirmCount`, `step.close`).
      - `remove` (long-disconnect policy) is unused; policy open.
+   - Chat and movement use the same grants:
+     - Text (`say`) is accepted only with `speak` on the channel and delivered live only to current `listen`ers.
+     - A channel's history (`chatlog`) is sent when a connection gains `listen` on it, incl. on connect. This filter at read time covers the pending Hunter and reconnect.
+     - Message ids are random.
+     - Speaking indicators are re-published per viewer, filtered by `listen`, and only for speakers that still hold `speak`.
+     - Poses: lobby, everyone. Play: only seats with `listen` on `ghosts` move and see poses (ghosts, moderator). Living seats get no pose frames; nothing after the end.
 7. **Voice seam.** `apps/server/src/voice.ts` defines `VoiceGateway.setGrants(room, seat, grants)`, and the seat sees its own grants in `view.voice`. A provider adapter must:
    - mint tokens only from server grants,
    - revoke them on change,
@@ -48,7 +60,6 @@ Server-authoritative social-deduction game. 7–10 players typical, more desirab
 
 ## Open (challenge welcome)
 - **LAN phones and voice need HTTPS.** MDN: `getUserMedia` is secure-context only (`navigator.mediaDevices` is `undefined` otherwise). Only https, localhost and 127/8 count as secure, so a LAN IP over http does not. Phones on LAN need local TLS with a cert they trust. Not built. Needs a decision with the voice scope.
-- Fixed-length secret phases in automatic mode (pacing vs timing channel): needs rules/Human agreement.
 - Presence freeze during secret phases: players can't see who dropped at night.
 - Ghost, dead-player knowledge and channels: engine-defined. The shell carries whatever `view`/`channels` return.
 - Moderator ≠ creator, mode switch in lobby, moderator handoff: not supported.

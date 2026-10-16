@@ -59,7 +59,7 @@ test('votes run to their deadline even when everyone has voted; voter sees own c
   assert.equal(stepKind(m.d), 'day.vote', 'vote closed early');
 });
 
-test('ballots and interim tallies never reach players, incl. after reconnect', { todo: 'awaiting rules batch (dev: day.openVotes=true)' }, () => {
+test('ballots and interim tallies never reach players before close, incl. after reconnect', () => {
   const m = auto(8, 'ballots-reconnect');
   m.until(() => stepKind(m.d) === 'day.vote');
   const living = m.players.filter((p) => gv(p).me!.alive);
@@ -68,10 +68,10 @@ test('ballots and interim tallies never reach players, incl. after reconnect', {
   p0.drop();
   const back: FakeClient = m.h.client();
   back.send({ t: 'resume', code: m.code, token: p0.token! });
-  for (const p of [...living.slice(1), back]) assertBallotSecrecy(p);
+  for (const p of [...living.slice(1), back]) assert.ok(assertBallotSecrecy(p) > 0, 'vote step observed');
 });
 
-test('moderator enters the Yes count (day.confirmCount); no direct day-result route', { todo: 'awaiting rules batch (rules-4 6513f73)' }, () => {
+test('moderator enters the Yes count (day.confirmCount); no direct day-result route', () => {
   const h = setup({ engine: () => createRulesEngine() as RulesEngine<unknown>, seed: 'confirm-count' });
   const room = h.room('moderator', 8);
   const mod = room.moderator!;

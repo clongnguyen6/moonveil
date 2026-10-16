@@ -105,16 +105,21 @@ export function assertSeatIsolation(p: FakeClient) {
   }
 }
 
-// Approved: interim tallies and others' ballots never reach players (events, snapshots, reconnect).
-export function assertBallotSecrecy(p: FakeClient) {
+// Approved Q22: until a vote closes, no running totals or others' ballots reach a player (snapshot, event,
+// reconnect). Results at close are allowed (ballots at close = provisional day.revealBallotsAtClose).
+export function assertBallotSecrecy(p: FakeClient): number {
+  let voteFrames = 0;
   for (const g of games(p)) {
-    const st = g.step as { kind: string; votes?: unknown };
-    if ((st.kind === 'day.vote' || st.kind === 'day.confirm') && g.step.kind !== 'ended') {
-      assert.equal(st.votes ?? null, null, `seat ${g.me!.seat} saw ballots during ${st.kind}`);
-    }
-    for (const e of g.publicLog) {
-      if (e.t === 'nomination' || e.t === 'confirm') assert.equal(e.votes, null, `seat ${g.me!.seat} saw ballots in ${e.t}`);
-    }
+    const st = g.step as { kind: string; day?: number; votes?: unknown };
+    if (st.kind !== 'day.vote' && st.kind !== 'day.confirm') continue;
+    voteFrames++;
+    assert.equal(st.votes ?? null, null, `seat ${g.me!.seat} saw ballots during ${st.kind}`);
+    const open = st.kind === 'day.vote' ? 'nomination' : 'confirm';
+    assert.ok(
+      !g.publicLog.some((e) => e.t === open && (e as { day?: number }).day === st.day),
+      `seat ${g.me!.seat} saw a ${open} result before close`,
+    );
   }
+  return voteFrames;
 }
 

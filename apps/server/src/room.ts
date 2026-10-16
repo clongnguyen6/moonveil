@@ -186,6 +186,7 @@ export class Room<S = unknown> {
       host: seat.id === this.hostId,
       ...(issueToken ? { token: seat.token } : {}),
     });
+    if (this.status === 'playing') this.afterChange();
     this.flush();
   }
 
@@ -195,6 +196,7 @@ export class Room<S = unknown> {
     if (seat && seat.conn === conn) {
       seat.conn = null;
       this.lastActive = this.deps.now();
+      if (this.status === 'playing') this.afterChange();
       this.flush();
     }
   }
@@ -236,8 +238,7 @@ export class Room<S = unknown> {
         // Error goes to the actor only (Session.receive).
         if (!r.ok) throw new RoomError('invalid-action', r.code ? `${r.code}: ${r.error}` : r.error);
         this.game = r.state;
-        if (seat.kind === 'moderator') this.enterPhaseIfChanged();
-        else this.checkEarlyClose();
+        this.afterChange();
         break;
       }
       case 'advance':
@@ -280,62 +281,68 @@ export class Room<S = unknown> {
     this.status = 'playing';
     // Lobby positions end with the lobby; during play only ghosts move.
     this.poses.clear();
-    this.enterPhase();
+    this.afterChange();
   }
 
   private advance() {
     if (this.game === null) return;
     this.game = this.deps.engine.advance(this.game);
-    this.enterPhase();
+    this.afterChange();
   }
 
-  // A moderator command (e.g. step.close via act) may change the phase.
-  private enterPhaseIfChanged() {
-    if (this.phase()?.name !== this.phaseName) this.enterPhase();
+  // After ANY game change. Automatic mode: engine clock sync, presence pause, early close, wake-up.
+  private afterChange() {
+    if (this.game === null) return;
+    const eng = this.deps.engine;
+    const now = this.deps.now();
+    if (this.mode === 'automatic') {
+      this.game = eng.sync(this.game, now);
+      // Approved pause rule: pause while ALL player seats are disconnected; resume when any is back.
+      this.game = this.players.some((p) => p.conn !== null) ? eng.resume(this.game, now) : eng.pause(this.game, now);
+    }
+    const ph = eng.phase(this.game);
+    if (ph.ended) this.status = 'ended';
+    this.scheduleEarlyClose(ph);
+    this.scheduleWake();
+  }
+
+  // Automatic mode: wake at the engine clock's deadline (none while paused) and tick.
+  private scheduleWake() {
+    if (this.timer !== null) this.deps.scheduler.clear(this.timer);
+    this.timer = null;
+    this.phaseEndsAt = null;
+    if (this.mode !== 'automatic' || this.game === null || this.status !== 'playing') return;
+    const t = this.deps.engine.timer(this.game, this.deps.now());
+    if (!t || t.deadline === null) return;
+    this.phaseEndsAt = t.deadline;
+    this.timer = this.deps.scheduler.set(Math.max(0, t.deadline - this.deps.now()), () => {
+      this.timer = null;
+      if (this.closed || this.game === null) return;
+      // A stale wake is harmless: tick closes only an expired, running phase.
+      this.game = this.deps.engine.tick(this.game, this.deps.now());
+      this.afterChange();
+      this.flush();
+    });
   }
 
   // Automatic mode, public phases only: when the engine reports everyone eligible has acted,
   // close after EARLY_CLOSE_GRACE_MS (lets a last change land). Cancelled if it stops being ready.
-  private checkEarlyClose() {
-    if (this.mode !== 'automatic') return;
-    const ph = this.phase();
-    const ready = ph !== null && ph.earlyClose && !ph.secret && !ph.ended;
-    if (!ready && this.earlyTimer !== null) {
-      this.deps.scheduler.clear(this.earlyTimer);
+  // Server guard: never in a secret phase, whatever the engine says.
+  private scheduleEarlyClose(ph: PhaseInfo) {
+    const ready = this.mode === 'automatic' && ph.earlyClose && !ph.secret && !ph.ended;
+    if (!ready || this.phaseName !== ph.name) {
+      if (this.earlyTimer !== null) this.deps.scheduler.clear(this.earlyTimer);
       this.earlyTimer = null;
-    } else if (ready && this.earlyTimer === null) {
-      this.earlyTimer = this.deps.scheduler.set(EARLY_CLOSE_GRACE_MS, () => {
-        this.earlyTimer = null;
-        const p = this.phase();
-        if (this.closed || !p || !p.earlyClose || p.secret) return;
-        this.advance();
-        this.flush();
-      });
     }
-  }
-
-  private enterPhase() {
-    if (this.timer !== null) this.deps.scheduler.clear(this.timer);
-    if (this.earlyTimer !== null) this.deps.scheduler.clear(this.earlyTimer);
-    this.timer = this.earlyTimer = null;
-    this.phaseEndsAt = null;
-    const ph = this.phase();
-    this.phaseName = ph?.name ?? null;
-    if (!ph) return;
-    if (ph.ended) {
-      this.status = 'ended';
-      return;
-    }
-    if (this.mode === 'automatic') {
-      // Fixed deadline, no early close: phase length must not depend on hidden actions.
-      this.phaseEndsAt = this.deps.now() + ph.durationMs;
-      this.timer = this.deps.scheduler.set(ph.durationMs, () => {
-        this.timer = null;
-        if (this.closed) return;
-        this.advance();
-        this.flush();
-      });
-    }
+    this.phaseName = ph.name;
+    if (!ready || this.earlyTimer !== null) return;
+    this.earlyTimer = this.deps.scheduler.set(EARLY_CLOSE_GRACE_MS, () => {
+      this.earlyTimer = null;
+      const p = this.phase();
+      if (this.closed || !p || !p.earlyClose || p.secret) return;
+      this.advance();
+      this.flush();
+    });
   }
 
   // --- chat ---

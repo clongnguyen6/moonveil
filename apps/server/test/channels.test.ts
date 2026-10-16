@@ -183,7 +183,7 @@ test('moderator: hears every channel during play', () => {
   assert.ok(s.moderator!.view.voice.every((x) => x.listen));
 });
 
-test('moderator: listen-only on every channel during play (approved)', { todo: 'awaiting rules batch (dev channels.ts: moderator public speak)' }, () => {
+test('moderator: listen-only on every channel during play (approved)', { todo: 'records conflict: ROOM_STATE Q25 says listen-only; rules API v0.3 keeps moderator.speaksInPublic provisional (default true)' }, () => {
   const s = scenario('moderator');
   s.moderator!.send({ t: 'start' });
   assert.ok(s.moderator!.view.voice.every((x) => x.listen && !x.speak), JSON.stringify(s.moderator!.view.voice));
