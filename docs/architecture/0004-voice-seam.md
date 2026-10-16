@@ -65,3 +65,16 @@ Accepted from the recommendation: self-hosted LiveKit OSS (grant d), room per ch
   - Pure `visible = speak` makes the public room rotate twice per defense (start and end), and everyone reconnects both times.
   - The sticky variant keeps already-visible living listeners visible within a room generation. Defense then costs two `UpdateParticipant` calls (`canPublish` off/on) and no rotation.
 - **Accepted:** nothing leaks either way. The living listeners in a defense were already visible in that room, and everyone knows the defense rule. Ghosts and the moderator join hidden. A death rotates the room anyway, so a newly dead seat never stays visible.
+
+## Wiring status (foundation-6)
+- **Server:** `VoiceGateway` = `sync` / `sessionsFor` / `closeRoom`.
+  - `Room` syncs once per flush when the grant map changed; in-person rooms sync `[]`.
+  - Each seat gets only its own sessions in `{t:'voice', gen, sessions}`; `gen` counts per connection.
+  - Stale async results are dropped; failures are retried on the next flush; `sessionsFor` runs on (re)connect; `closeRoom` on room close.
+  - `main.ts` builds `LiveKitVoiceGateway` + `LiveKitBackend` from `LIVEKIT_URL`, `LIVEKIT_PUBLIC_WS`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` (all four or none; partial = startup error).
+- **Client:** `client.ts` owns the `VoiceClient` (lazy import; created on the first non-empty `voice` message) and applies every `voice` message. Exposed as `client.voice` and `globalThis.__moonveil.voice`. The UI calls `unlockAudio()` / `setMuted()` and reads `subscribe/getSnapshot`.
+- **Evidence:**
+  - `apps/server/test/voice.test.ts` (recording gateway + the real `LiveKitVoiceGateway` on `FakeBackend`);
+  - `npm run e2e:matches:voice`: real LiveKit 1.13.10 built in-repo; 8 browser matches; every `voice` frame only for granted channels; tokens bound to the seat and room; never in `state`.
+  - Audio itself (who hears whom) is the voice owner's suite (`packages/voice/e2e`).
+- **Not used:** a `MOONVEIL_RULES_CONFIG` phase override. `MOONVEIL_TEST_TIME_SCALE` (or `E2E_TIME_SCALE` for the matches) shortens wall time without touching approved durations. Pick ×5 if audio checks need about 12 s nights.

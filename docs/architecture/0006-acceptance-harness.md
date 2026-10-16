@@ -13,6 +13,8 @@ Status: foundation, 2026-10-16. The harness is ready now; the UI-driven layer wa
   - the moderator gets moderator data.
 - **Time** (TEST ONLY): `MOONVEIL_TEST_TIME_SCALE=20` on the real-engine server. Server clock and timers run 20× faster; the engine still sees 60 s nights and all approved timings. Server tests verify real durations.
 - **Ports:** `scripts/e2e-run.mjs` gives OS-assigned free ports (`E2E_PORT` fixture server, `E2E_REAL_PORT` real server, `E2E_RESTART_PORT`).
+- **Voice:** `npm run e2e:matches:voice` (`E2E_VOICE=1`) also starts the pinned LiveKit (voice tooling; writes only under `.cache/livekit`; UDP 4160–4199) and asserts the `voice` frames on every browser. The harness captures only the game socket (`/ws`), never LiveKit's.
+- **Filters:** `E2E_GREP="…"` selects tests; `E2E_TIME_SCALE` sets the real server's time scale (default 20).
 - **Not in `npm run check`:** about 4 min and up to 10 browser contexts at once on a shared machine. Becomes part of acceptance runs.
 
 ## UI-driven layer: adopts docs/ui/SELECTORS.md (game-ui 1bff25f)

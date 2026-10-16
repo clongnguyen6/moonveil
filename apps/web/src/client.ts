@@ -13,8 +13,10 @@ import {
   type SeatView,
   type ServerMessage,
   type VoiceMode,
+  type VoiceSession,
   WS_PATH,
 } from '@moonveil/protocol';
+import type { VoiceClient } from '@moonveil/voice/client';
 
 export type ConnStatus = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'replaced' | 'ended';
 
@@ -31,6 +33,8 @@ export interface ClientState {
   voiceMode: VoiceMode;
   // serverNow ≈ Date.now() + serverOffsetMs (from `now` in state/hb frames).
   serverOffsetMs: number;
+  // This seat's voice sessions from the server (ADR 0004); applied to `client.voice` automatically.
+  voiceSessions: VoiceSession[];
 }
 
 type Intent =
@@ -70,7 +74,12 @@ const BACKOFF = [250, 500, 1000, 2000, 4000];
 const WATCHDOG_MS = HEARTBEAT_MS * 2.5;
 
 export class Client {
-  state: ClientState = { status: 'idle', code: null, view: null, error: null, chat: {}, speaking: [], voiceMode: 'remote', serverOffsetMs: 0 };
+  state: ClientState = { status: 'idle', code: null, view: null, error: null, chat: {}, speaking: [], voiceMode: 'remote', serverOffsetMs: 0, voiceSessions: [] };
+  // LiveKit voice client (@moonveil/voice), created on the first non-empty `voice` message (lazy import: in-person
+  // and text-only sessions never load livekit-client). UI: unlockAudio() from a tap, setMuted(), subscribe/getSnapshot.
+  // Also reachable as globalThis.__moonveil.voice for e2e.
+  voice: VoiceClient | null = null;
+  private voiceApply: Promise<void> = Promise.resolve();
   private poseListeners = new Set<(poses: Pose[]) => void>();
   private ws: WebSocket | null = null;
   private intent: Intent | null = null;
@@ -198,6 +207,21 @@ export class Client {
     };
   }
 
+  // Serialized so sessions are applied in arrival order (each message replaces all sessions).
+  private applyVoice(sessions: VoiceSession[]) {
+    this.voiceApply = this.voiceApply
+      .then(async () => {
+        if (!this.voice && sessions.length === 0) return;
+        if (!this.voice) {
+          const { VoiceClient } = await import('@moonveil/voice/client');
+          this.voice = new VoiceClient();
+          this.set({});
+        }
+        await this.voice.applySessions(sessions);
+      })
+      .catch((e) => console.error('voice:', e));
+  }
+
   // Watchdog: a frozen/half-open socket shows no close event; server sends `hb` every HEARTBEAT_MS.
   private kick() {
     if (this.watchdog) clearTimeout(this.watchdog);
@@ -236,6 +260,10 @@ export class Client {
       case 'poses':
         for (const fn of this.poseListeners) fn(m.poses);
         return;
+      case 'voice':
+        this.set({ voiceSessions: m.sessions });
+        this.applyVoice(m.sessions);
+        return;
       case 'error':
         this.set({ error: { code: m.code, message: m.message } });
         if (this.state.status !== 'open') {
@@ -252,7 +280,8 @@ export class Client {
         if (m.reason !== 'replaced' && this.state.code) localStorage.removeItem(tokenKey(this.state.code));
         if (m.reason !== 'replaced') {
           this.intent = null;
-          this.set({ status: 'ended', view: null });
+          this.set({ status: 'ended', view: null, voiceSessions: [] });
+          this.applyVoice([]);
         }
         return;
       case 'hb':

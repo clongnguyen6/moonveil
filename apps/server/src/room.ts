@@ -19,6 +19,7 @@ import {
   type SeatView,
   type ServerMessage,
   type VoiceGrant,
+  type VoiceSession,
 } from '@moonveil/protocol';
 import { createMap, inWorld, isWalkable, type MapLayout } from '@moonveil/scene/map';
 import type { PhaseInfo, RulesEngine, Viewer } from './rules/engine.ts';
@@ -57,6 +58,9 @@ interface Outbox {
   listening: Set<string>;
   speaking: string;
   poses: string;
+  // Voice: last sessions JSON sent on this connection + per-connection message counter.
+  voice: string;
+  voiceGen: number;
 }
 
 // Channel convention: listeners of GHOST_CHANNEL see free movement during play; its listening players may move.
@@ -102,6 +106,7 @@ interface StoredRoom {
   published: [SeatId, boolean][];
   chat: [string, ChatMessage[]][];
   lastActive: number;
+  customDeck?: Record<string, number> | null;
 }
 
 export class Room<S = unknown> {
@@ -123,7 +128,10 @@ export class Room<S = unknown> {
   private phaseName: string | null = null;
   private published = new Map<SeatId, boolean>();
   private outbox = new Map<Conn, Outbox>();
-  private grants = new Map<SeatId, string>();
+  // Voice: JSON of the last grant map synced successfully, and a counter to drop stale async results.
+  private customDeck: Record<string, number> | null = null;
+  private voiceSynced = '';
+  private voiceSyncSeq = 0;
   private chat = new Map<string, ChatMessage[]>();
   private sayTimes = new Map<SeatId, number[]>();
   private poses = new Map<SeatId, Pose>();
@@ -198,7 +206,7 @@ export class Room<S = unknown> {
       old.send({ t: 'bye', reason: 'replaced' });
       old.close(CLOSE.replaced, 'replaced');
     }
-    this.outbox.set(conn, { json: '', seq: 0, listening: new Set(), speaking: '[]', poses: '' });
+    this.outbox.set(conn, { json: '', seq: 0, listening: new Set(), speaking: '[]', poses: '', voice: '', voiceGen: 0 });
     this.lastActive = this.deps.now();
     conn.send({
       t: 'welcome',
@@ -210,6 +218,7 @@ export class Room<S = unknown> {
     });
     if (this.status === 'playing') this.afterChange();
     this.flush();
+    this.voiceForNewConnection(seat, conn);
   }
 
   detach(seatId: SeatId, conn: Conn) {
@@ -272,6 +281,16 @@ export class Room<S = unknown> {
       case 'leave':
         this.leave(seat);
         return;
+      case 'deck': {
+        const decks = this.deps.engine.decks;
+        if (!decks || this.status !== 'lobby' || seat.id !== this.hostId) throw new RoomError('not-allowed', 'host, lobby only');
+        if (msg.counts) {
+          const err = decks.validate(msg.counts, this.players.length);
+          if (err) throw new RoomError('invalid-action', err);
+        }
+        this.customDeck = msg.counts;
+        break;
+      }
       case 'say':
         this.say(seat, msg.channel, msg.text);
         return;
@@ -292,6 +311,7 @@ export class Room<S = unknown> {
       n >= minPlayers &&
       n <= maxPlayers &&
       this.players.every((p) => p.ready && p.conn !== null) &&
+      this.deckError() === null &&
       (this.moderator === null || this.moderator.conn !== null)
     );
   }
@@ -299,7 +319,11 @@ export class Room<S = unknown> {
   private start(by: Seat) {
     if (by.id !== this.hostId) throw new RoomError('not-allowed', 'host only');
     if (!this.canStart()) throw new RoomError('cannot-start', 'need enough connected, ready players');
-    this.game = this.deps.engine.setup({ seats: this.players.map((p) => p.id), seed: this.deps.seed() });
+    this.game = this.deps.engine.setup({
+      seats: this.players.map((p) => p.id),
+      seed: this.deps.seed(),
+      ...(this.customDeck ? { deck: this.customDeck } : {}),
+    });
     this.status = 'playing';
     // Lobby positions end with the lobby; during play only ghosts move.
     this.poses.clear();
@@ -487,8 +511,7 @@ export class Room<S = unknown> {
     this.players = this.players.filter((p) => p !== seat);
     this.published.delete(seat.id);
     this.poses.delete(seat.id);
-    this.grants.delete(seat.id);
-    this.deps.voice.setGrants(this.code, seat.id, []);
+    // Voice: the seat is gone from the next sync's grant map, so the gateway revokes it.
     if (conn) {
       this.outbox.delete(conn);
       conn.send({ t: 'bye', reason: 'left' });
@@ -521,8 +544,21 @@ export class Room<S = unknown> {
       }
     }
     this.outbox.clear();
-    this.deps.voice.closeRoom(this.code);
+    this.deps.voice.closeRoom(this.code).catch((e) => console.error(`voice closeRoom ${this.code}:`, e));
     this.deps.store?.remove(this.code);
+  }
+
+  // --- deck (host customization, engine-validated) ---
+
+  private deckError(): string | null {
+    const decks = this.deps.engine.decks;
+    return decks && this.customDeck ? decks.validate(this.customDeck, this.players.length) : null;
+  }
+
+  private deckView(): SeatView['deck'] {
+    const decks = this.deps.engine.decks;
+    if (!decks || this.status !== 'lobby') return null;
+    return { default: decks.default(this.players.length), custom: this.customDeck, error: this.deckError() };
   }
 
   // --- persistence (restart recovery) ---
@@ -540,6 +576,7 @@ export class Room<S = unknown> {
       published: [...this.published],
       chat: [...this.chat],
       lastActive: this.lastActive,
+      customDeck: this.customDeck,
     };
   }
 
@@ -569,6 +606,7 @@ export class Room<S = unknown> {
     room.published = new Map(r.published);
     room.chat = new Map(r.chat);
     room.lastActive = r.lastActive;
+    room.customDeck = r.customDeck ?? null;
     room.savedJson = JSON.stringify(r);
     if (room.game !== null && room.mode === 'automatic' && room.status === 'playing') {
       room.game = deps.engine.pause(room.game, snap.savedAt);
@@ -605,6 +643,7 @@ export class Room<S = unknown> {
       moderator: this.moderator ? { name: this.moderator.name, connected: this.moderator.conn !== null } : null,
       limits: { minPlayers: engine.minPlayers, maxPlayers: engine.maxPlayers },
       canStart: isHost && this.canStart(),
+      deck: this.deckView(),
       phaseEndsAt: this.phaseEndsAt,
       phaseDurationMs: this.phaseDurationMs,
       game: this.game === null ? null : engine.view(this.game, this.viewerOf(seat)),
@@ -617,6 +656,44 @@ export class Room<S = unknown> {
     return this.deps.engine.channels(this.game, seat.kind === 'moderator' ? { kind: 'moderator' } : seat.id);
   }
 
+  // --- voice (ADR 0004) ---
+
+  // One gateway sync per flush whose grant map changed. Results of an older sync are dropped; a failed sync is
+  // retried on the next flush. Each seat gets only its own sessions.
+  private syncVoice(grants: Map<SeatId, VoiceGrant[]>) {
+    const json = JSON.stringify([...grants]);
+    if (json === this.voiceSynced) return;
+    const n = ++this.voiceSyncSeq;
+    this.deps.voice
+      .sync(this.code, grants)
+      .then((sessions) => {
+        if (this.closed || n !== this.voiceSyncSeq) return;
+        this.voiceSynced = json;
+        for (const s of this.allSeats()) if (s.conn) this.sendVoice(s.conn, [...(sessions.get(s.id) ?? [])]);
+      })
+      .catch((e) => console.error(`voice sync ${this.code}:`, e));
+  }
+
+  private sendVoice(conn: Conn, sessions: VoiceSession[]) {
+    const box = this.outbox.get(conn);
+    if (!box) return;
+    const json = JSON.stringify(sessions);
+    if (json === box.voice) return;
+    box.voice = json;
+    box.voiceGen += 1;
+    conn.send({ t: 'voice', gen: box.voiceGen, sessions });
+  }
+
+  // (Re)connect: fresh sessions for this seat only, on this connection only.
+  private voiceForNewConnection(seat: Seat, conn: Conn) {
+    this.deps.voice
+      .sessionsFor(this.code, seat.id)
+      .then((sessions) => {
+        if (!this.closed && seat.conn === conn) this.sendVoice(conn, [...sessions]);
+      })
+      .catch((e) => console.error(`voice sessionsFor ${this.code}:`, e));
+  }
+
   // Recompute and send. Call after every mutation.
   flush() {
     if (this.closed) return;
@@ -624,15 +701,11 @@ export class Room<S = unknown> {
     const masked = ph !== null && ph.secret && !ph.ended;
     if (!masked) for (const p of this.players) this.published.set(p.id, p.conn !== null);
 
+    const voiceGrants = new Map<SeatId, VoiceGrant[]>();
     for (const s of this.allSeats()) {
       const g = this.grantsFor(s);
       // Voice follows the same grants, except in-person rooms: no voice at all.
-      const vg = this.voiceMode === 'inPerson' ? [] : g;
-      const vj = JSON.stringify(vg);
-      if (this.grants.get(s.id) !== vj) {
-        this.grants.set(s.id, vj);
-        this.deps.voice.setGrants(this.code, s.id, vg);
-      }
+      voiceGrants.set(s.id, this.voiceMode === 'inPerson' ? [] : g);
       if (!s.conn) continue;
       const box = this.outbox.get(s.conn);
       if (!box) continue;
@@ -655,6 +728,7 @@ export class Room<S = unknown> {
         s.conn.send({ t: 'speaking', seats: JSON.parse(speaking) as SeatId[] });
       }
     }
+    this.syncVoice(voiceGrants);
     this.persist();
   }
 }

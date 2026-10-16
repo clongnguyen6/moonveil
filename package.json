@@ -25,7 +25,8 @@
     "check": "npm run typecheck && npm test && npm run e2e",
     "e2e:scale": "node scripts/env.mjs npm run e2e -w @moonveil/e2e -- scale --project desktop-chromium",
     "bench": "node scripts/env.mjs node apps/server/bench/fanout.ts",
-    "e2e:matches": "node scripts/env.mjs npm run e2e -w @moonveil/e2e -- --project real-matches"
+    "e2e:matches": "node scripts/env.mjs npm run e2e -w @moonveil/e2e -- --project real-matches",
+    "e2e:matches:voice": "E2E_VOICE=1 node scripts/env.mjs npm run e2e -w @moonveil/e2e -- --project real-matches"
   },
   "devDependencies": {
     "typescript": "7.0.2"

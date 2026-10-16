@@ -12,6 +12,7 @@ All caches/tmp/browsers go to `.cache/` (gitignored) via `scripts/env.mjs`. Neve
     npm run check            # typecheck + all workspace tests + e2e (OS-assigned free ports)
     E2E_SCALE=10,16 npm run e2e:scale   # opt-in N-browser runs; npm run bench = server fan-out cost
     npm run e2e:matches      # opt-in acceptance: 8 full real-engine matches, 7-10 browsers, both modes (docs/architecture/0006)
+    npm run e2e:matches:voice   # same + real LiveKit (built in .cache/livekit) + voice wire assertions
 
 Layout: `packages/protocol` (wire types), `apps/server` (authoritative rooms; rules engine STUB in `src/rules/`), `apps/web` (shell), `e2e/` (multi-session harness: `e2e/harness`).
 Ports: 4100–4199 only.

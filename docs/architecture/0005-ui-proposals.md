@@ -38,3 +38,13 @@ Foundation's position (2026-10-16). "Done" = on branch foundation-4, with tests 
   - map recreated when the lobby count changes; rates unchanged.
 - **Counter:** no speed/teleport plausibility check. It protects no secret (positions are public in the lobby, ghost-only during play), and bunched packets after network jitter would make it drop legitimate moves. Add it only if cosmetic cheating becomes a real problem.
 - **Moderator poses:** the moderator follows the ghost listen grant, so ghost poses during play (approved: listen-only on every channel), plus everyone in the lobby.
+
+## P12 host deck: agreed and built (foundation-6)
+- `SeatView.deck` (lobby only, public): `{ default, custom, error }`, roles as string keys.
+  - `default` = the engine's deck for the current player count; `error` = why `custom` is invalid for that count.
+  - `null` outside the lobby or with an engine without decks (fixture). Optional until the UI stub sets it.
+- `{ t: 'deck', ref?, counts | null }`: host only, lobby only.
+  - Validated by the engine (`validateDeck`); rejection → `invalid-action` to the host only, nothing to others.
+  - `null` resets to the default.
+- Start is blocked while the custom deck is invalid for the current count (e.g. after a join). Start deals the custom deck.
+- Persisted with the room (restart recovery). Server glue: `apps/server/src/rules/decks.ts` (rules' public functions, no rules logic). Tests: `apps/server/test/deck.test.ts`.

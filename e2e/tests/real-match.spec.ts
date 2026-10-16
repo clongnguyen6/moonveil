@@ -8,6 +8,31 @@ import { game, runRealMatch, seatRealMatch, send } from '../harness/match.ts';
 
 const REAL_PORT = Number(process.env.E2E_REAL_PORT ?? 4152);
 const states = (p: Player): SeatView[] => p.frames.flatMap((f) => (f.msg.t === 'state' ? [f.msg.view] : []));
+const VOICE = Boolean(process.env.LIVEKIT_PUBLIC_WS);
+
+// Voice wire (E2E_VOICE=1): every `voice` frame carries only sessions for channels the seat may listen to
+// (per its latest state before that frame), each token is bound to this seat and that session's room,
+// and no token ever appears in a `state` frame. Returns the number of sessions checked.
+function assertVoiceWire(p: Player): number {
+  let latest: SeatView | null = null;
+  let checked = 0;
+  const tokens: string[] = [];
+  for (const f of p.frames) {
+    if (f.msg.t === 'state') latest = f.msg.view;
+    if (f.msg.t !== 'voice') continue;
+    const listen = new Set((latest?.voice ?? []).filter((g) => g.listen).map((g) => g.channel));
+    for (const s of f.msg.sessions) {
+      expect(listen.has(s.channel), `${p.name}: session for ungranted channel ${s.channel}`).toBe(true);
+      const claims = JSON.parse(Buffer.from(s.token.split('.')[1]!, 'base64url').toString('utf8')) as { sub: string; video?: { room?: string } };
+      expect(claims.sub).toBe(latest!.me.seat);
+      expect(claims.video?.room).toBe(s.room);
+      tokens.push(s.token);
+      checked++;
+    }
+  }
+  for (const f of p.frames) if (f.msg.t === 'state') for (const t of tokens) expect(f.raw.includes(t), 'token inside a state frame').toBe(false);
+  return checked;
+}
 
 for (const mode of ['automatic', 'moderator'] as const) {
   for (const seats of [7, 8, 9, 10]) {
@@ -42,6 +67,10 @@ for (const mode of ['automatic', 'moderator'] as const) {
         if (game(p)!.me!.role !== 'wolf') expect(p.frames.some((f) => f.raw.includes(`pack-${mode}-${seats}`))).toBe(false);
       }
       if (m.moderator) expect(game(m.moderator)!.moderator).not.toBeNull();
+      if (VOICE) {
+        const sessions = [...m.players, ...(m.moderator ? [m.moderator] : [])].reduce((n, p) => n + assertVoiceWire(p), 0);
+        expect(sessions, 'voice sessions observed').toBeGreaterThan(0);
+      }
       console.log(`MATCH ${JSON.stringify({ mode, seats, steps: m.steps, ballotSteps, wolfChat, outcome: finals[0]!.outcome })}`);
       expect(ballotSteps).toBeGreaterThan(0);
     });
