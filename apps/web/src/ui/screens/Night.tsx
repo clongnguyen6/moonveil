@@ -16,7 +16,7 @@ import { useSession } from '../session-context.ts';
 
 export interface PanelProps { view: SeatView; g: GameView; phaseTotalMs?: number }
 
-function Frame({ title, task, info, children, buttons, status, view, testId }: { title: string; task: string; info?: React.ReactNode; children: React.ReactNode; buttons: React.ReactNode; status?: string; view: SeatView; testId: string }) {
+function Frame({ title, task, info, children, buttons, status, view, testId, done }: { title: string; task: string; info?: React.ReactNode; children: React.ReactNode; buttons: React.ReactNode; status?: string; view: SeatView; testId: string; done?: boolean }) {
   return (
     <section className="card panel rise-in" data-testid={testId}>
       <div className="panel-head">
@@ -27,7 +27,7 @@ function Frame({ title, task, info, children, buttons, status, view, testId }: {
       <div className="info-slot" style={{ minHeight: 44 }}>{info}</div>
       {children}
       <div className="btn-row">{buttons}</div>
-      <p className="muted" style={{ fontSize: 'var(--fs-0)', minHeight: 20 }} aria-live="polite">{status}</p>
+      <p className="muted status-line" style={{ fontSize: 'var(--fs-0)', minHeight: 20 }} aria-live="polite" data-testid="status">{done && <span className="check" aria-hidden="true">✓</span>}{status}</p>
     </section>
   );
 }
@@ -83,11 +83,11 @@ function WolfPanel({ view, g, title }: PanelProps & { title: string }) {
   );
   const submitted = a.current;
   return (
-    <Frame view={view} testId="night-wolf" title={title} task={t('nightWolfTask')} info={info} status={submitted === null ? t('nightChangeHint') : t('nightDone')}
+    <Frame view={view} testId="night-wolf" title={title} task={t('nightWolfTask')} info={info} status={submitted === null ? t('nightChangeHint') : t('nightDoneChange')} done={submitted !== null}
       buttons={
         <>
           <Button kind="quiet" disabled={!a.canPass || submitted === 'pass'} onClick={() => session.send({ t: 'act', action: act.wolfPick('pass') })}>{t('nightNoTarget')}</Button>
-          <Button testId="confirm" disabled={sel === null || sel === submitted} onClick={() => sel !== null && session.send({ t: 'act', action: act.wolfPick(sel) })}>{t('confirm')}</Button>
+          <Button testId="confirm" kind={sel !== null && sel === submitted ? 'done' : 'primary'} haptic disabled={sel === null || sel === submitted} onClick={() => sel !== null && session.send({ t: 'act', action: act.wolfPick(sel) })}>{sel !== null && sel === submitted ? t('chosen') : t('confirm')}</Button>
         </>
       }
     >
@@ -106,11 +106,11 @@ function SeerPanel({ view, g, title }: PanelProps & { title: string }) {
     <p data-testid="seer-result"><strong>{t('nightSeerResult', { name: nameAt(view, g, result.target) })} {result.result === 'wolf' ? t('resultWolf') : result.result === 'notWolf' ? t('resultNotWolf') : t.role(result.result)}</strong></p>
   ) : null;
   return (
-    <Frame view={view} testId="night-seer" title={title} task={a ? t('nightSeerTask') : t('nightSeerDone')} info={info} status={a ? '' : t('nightDone')}
+    <Frame view={view} testId="night-seer" title={title} task={a ? t('nightSeerTask') : t('nightSeerDone')} info={info} status={a ? '' : t('nightDone')} done={!a}
       buttons={
         <>
           <Button kind="quiet" disabled>{t('pass')}</Button>
-          <Button testId="confirm" disabled={!a || sel === null} onClick={() => sel !== null && session.send({ t: 'act', action: act.seerInspect(sel) })}>{t('confirm')}</Button>
+          <Button testId="confirm" kind={a ? 'primary' : 'done'} haptic disabled={!a || sel === null} onClick={() => sel !== null && session.send({ t: 'act', action: act.seerInspect(sel) })}>{a ? t('confirm') : t('chosen')}</Button>
         </>
       }
     >
@@ -127,11 +127,11 @@ function GuardPanel({ view, g, title }: PanelProps & { title: string }) {
   const last = g.me!.guardLast;
   return (
     <Frame view={view} testId="night-guard" title={title} task={t('nightGuardTask')} info={last !== null ? <span className="pill">{t('nightGuardLast', { name: nameAt(view, g, last) })}</span> : null}
-      status={a.current === null ? t('nightChangeHint') : t('nightDone')}
+      status={a.current === null ? t('nightChangeHint') : t('nightDoneChange')} done={a.current !== null}
       buttons={
         <>
           <Button kind="quiet" disabled={a.current === 'pass'} onClick={() => session.send({ t: 'act', action: act.guardProtect('pass') })}>{t('pass')}</Button>
-          <Button testId="confirm" disabled={sel === null || sel === a.current} onClick={() => sel !== null && session.send({ t: 'act', action: act.guardProtect(sel) })}>{t('confirm')}</Button>
+          <Button testId="confirm" kind={sel !== null && sel === a.current ? 'done' : 'primary'} haptic disabled={sel === null || sel === a.current} onClick={() => sel !== null && session.send({ t: 'act', action: act.guardProtect(sel) })}>{sel !== null && sel === a.current ? t('chosen') : t('confirm')}</Button>
         </>
       }
     >
@@ -169,7 +169,7 @@ export function WitchPanel({ view, g, title }: PanelProps & { title: string }) {
   );
   const status = poison ? (poison.current === null ? t('witchPoisonWho') : poison.current === 'pass' ? t('nightDone') : t('witchPoisoned', { name: nameAt(view, g, poison.current) })) : t('nightDone');
   return (
-    <Frame view={view} testId="night-witch" title={title} task={t('witchTask')} info={info} status={status}
+    <Frame view={view} testId="night-witch" title={title} task={t('witchTask')} info={info} status={status} done={!!poison && poison.current !== null}
       buttons={
         <>
           <Button kind="quiet" disabled={!poison || poison.current === 'pass'} onClick={() => session.send({ t: 'act', action: act.witchPoison('pass') })}>{t('pass')}</Button>
@@ -212,11 +212,11 @@ export function HunterPanel({ view, g }: PanelProps) {
     const locked = a.current !== null;
     return (
       <Frame view={view} testId="hunter-shoot" title={t('hunterTitle')} task={t('hunterYou')} info={<span className="pill danger">{t('hunterShootWho')}</span>}
-        status={locked ? `${t('hunterSubmitted')} ${t('hunterIso')}` : t('hunterIso')}
+        status={locked ? `${t('hunterSubmitted')} ${t('hunterIso')}` : t('hunterIso')} done={locked}
         buttons={
           <>
             <Button kind="quiet" disabled={locked} onClick={() => session.send({ t: 'act', action: act.hunterShoot('pass') })}>{t('pass')}</Button>
-            <Button kind="danger" testId="confirm" disabled={locked || sel === null} onClick={() => sel !== null && session.send({ t: 'act', action: act.hunterShoot(sel) })}>{t('confirm')}</Button>
+            <Button kind={locked ? 'done' : 'danger'} haptic testId="confirm" disabled={locked || sel === null} onClick={() => sel !== null && session.send({ t: 'act', action: act.hunterShoot(sel) })}>{locked ? t('chosen') : t('confirm')}</Button>
           </>
         }
       >

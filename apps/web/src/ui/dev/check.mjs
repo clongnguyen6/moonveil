@@ -19,7 +19,7 @@ const stub = (fn, ...args) => page.evaluate(([f, a]) => { const r = globalThis._
 await open('night-wolf');
 await page.getByTestId('seat-1').click();
 await page.getByTestId('confirm').click();
-ok('wolf pick submitted (status line)', (await page.locator('[data-testid=night-wolf] .muted').textContent()).includes('Done'));
+ok('wolf pick submitted (status line)', /Chosen|Done/.test(await page.locator('[data-testid=night-wolf] [data-testid=status]').textContent()));
 ok('wolf pack pill shows own pick', (await page.locator('[data-testid=night-wolf] .pill').allTextContents()).some((x) => /Chi: /.test(x) && !/No pick/.test(x)));
 ok('confirm disabled after submit (same selection)', await page.getByTestId('confirm').isDisabled());
 

@@ -18,7 +18,7 @@ export function Avatar({ p, size, dead, ghost, speaking }: { p: Pick<PublicSeat,
   );
 }
 
-export function Button(props: { children: ReactNode; onClick?: () => void; kind?: 'primary' | 'secondary' | 'quiet' | 'danger' | 'icon'; disabled?: boolean; wide?: boolean; pressed?: boolean; label?: string; testId?: string; type?: 'button' | 'submit' }) {
+export function Button(props: { children: ReactNode; onClick?: () => void; kind?: 'primary' | 'secondary' | 'quiet' | 'danger' | 'icon' | 'done'; disabled?: boolean; wide?: boolean; pressed?: boolean; label?: string; testId?: string; type?: 'button' | 'submit'; haptic?: boolean }) {
   const { kind = 'primary' } = props;
   return (
     <button
@@ -30,6 +30,7 @@ export function Button(props: { children: ReactNode; onClick?: () => void; kind?
       data-testid={props.testId}
       onClick={() => {
         playCue('tap');
+        if (props.haptic) navigator.vibrate?.(12);
         props.onClick?.();
       }}
     >

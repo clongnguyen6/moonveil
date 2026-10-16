@@ -143,7 +143,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
           </div>
         </div>
         {overlay && (
-          <div className="overlay-announce" role="status" data-testid="announce" key={overlay.id}>
+          <div className="overlay-announce announce-life" role="status" data-testid="announce" key={overlay.id}>
             <div className="rise-in">
               <h2>{overlay.title}</h2>
               {overlay.body && <p className="hint" style={{ fontSize: 'var(--fs-3)' }}>{overlay.body}</p>}
@@ -151,7 +151,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
           </div>
         )}
       </div>
-      <div className="dock">
+      <div className="dock" key={`${g.step.kind}:${g.night}:${g.day}`}>
         {wakeFailed && <p className="muted center" style={{ fontSize: 'var(--fs-0)', margin: '0 0 6px' }} data-testid="wake-hint">{t('wakeHint')}</p>}
         {!isMod && <GhostBar view={view} g={g} />}
         {isMod ? (

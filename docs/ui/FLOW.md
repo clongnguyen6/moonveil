@@ -66,6 +66,13 @@ Match (frame = scene host + top bar + dock)
 - Residual: a wolf's mic tap toggles the glyph; the Witch panel has heal buttons in the info slot (same slot height). In in-person rooms voice is off, which removes the mic tell where glancing is possible.
 - Not covered here: wire traffic (PROPOSALS.md P10) and voice-provider metadata (voice scope).
 
+## Layout and accessibility checks
+`node scripts/env.mjs node apps/web/src/ui/dev/layout-check.mjs --webkit` (vite on 4401): every scenario and sheet at phone portrait 390×844, phone landscape 844×390 and laptop 1440×900 in Chromium headless shell, plus iPhone 13 portrait/landscape in WebKit (all emulation). Asserts no horizontal overflow (document, dock, lobby, sheets), visible text ≥ 13 px, interactive targets ≥ 44 px (icons/swatches ≥ 40; label-wrapped checkboxes measured by their label), text contrast ≥ 4.5:1 against its composited surface (3:1 for large text; text over the scene/top bar excluded, it has shadows), bottom padding floor for safe areas, and the primary button fully inside the viewport after scrolling the dock. 170/170.
+Fixes it drove: `--fs-0` 0.85rem, 24 px checkboxes with 44 px label rows, 44 px selects, lighter muted/team/ghost tokens (ink-3, wolves, village, ghost) for contrast.
+
+## Polish (theme layer only)
+Dock panel re-enters on every step instance (keyed by step/night/day); announcements fade in and out; timer pulses under 10 s; picked chip pops; confirm turns into a green "Chosen" state with a ✓ status line; haptic tick on confirms (`navigator.vibrate` where available); all motion off under reduced motion. Microcopy: "Chosen. You can still change it until dawn.", "You have not voted yet", consistent night copy in vi/en.
+
 ## Checks (this branch)
 - `node scripts/env.mjs node apps/web/src/ui/dev/check.mjs` (vite on 4401): 30 interaction checks on the stub in Chromium headless shell: night submit/change, panel uniformity, seer result, witch heal, own-ballot-only votes, confirm→close, Hunter lock, ghost/living chat isolation in the DOM, chat send, reconnect overlay, role card hidden-until-tap, moderator close step + Yes count, full automatic match with bots to `ended`, no page errors.
 - `apps/web/src/ui/dev/capture.mjs`: screenshots (phone 390×844 @2x, landscape 844×390, laptop 1440×900; WebKit iPhone 13 emulation for three). All browser emulation.

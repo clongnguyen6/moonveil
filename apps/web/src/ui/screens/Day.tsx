@@ -80,7 +80,7 @@ export function VotePanel({ view, g, speaking }: P) {
       </ul>
       <div className="btn-row">
         <Button kind="quiet" testId="vote-skip" disabled={!a || cur === 'skip'} onClick={() => session.send({ t: 'act', action: act.nominate('skip') })}>{t('skip')}</Button>
-        <Button testId="confirm" disabled={!a || sel === null || sel === cur} onClick={() => sel !== null && session.send({ t: 'act', action: act.nominate(sel) })}>{t('confirm')}</Button>
+        <Button testId="confirm" kind={sel !== null && sel === cur ? 'done' : 'primary'} haptic disabled={!a || sel === null || sel === cur} onClick={() => sel !== null && session.send({ t: 'act', action: act.nominate(sel) })}>{sel !== null && sel === cur ? t('chosen') : t('confirm')}</Button>
       </div>
       <p className="muted" style={{ fontSize: 'var(--fs-0)' }} aria-live="polite" data-testid="my-vote">{a ? yours : t('confirmDead')} · {t('voteCloses')}</p>
     </section>
@@ -122,8 +122,8 @@ export function ConfirmPanel({ view, g }: P) {
       <p data-testid="confirm-tally"><strong>{t('confirmResult', { yes, no })}</strong></p>
       <SeatGrid view={view} g={g} tags={tags} showDead={false} />
       <div className="btn-row" style={{ minHeight: 64 }}>
-        <Button kind={cur === 'no' ? 'primary' : 'secondary'} testId="vote-no" disabled={!a} pressed={cur === 'no'} onClick={() => session.send({ t: 'act', action: act.confirm('no') })}>{t('confirmNo')}</Button>
-        <Button kind={cur === 'yes' ? 'danger' : 'secondary'} testId="vote-yes" disabled={!a} pressed={cur === 'yes'} onClick={() => session.send({ t: 'act', action: act.confirm('yes') })}>{t('confirmYes')}</Button>
+        <Button kind={cur === 'no' ? 'primary' : 'secondary'} haptic testId="vote-no" disabled={!a} pressed={cur === 'no'} onClick={() => session.send({ t: 'act', action: act.confirm('no') })}>{cur === 'no' ? '✓ ' : ''}{t('confirmNo')}</Button>
+        <Button kind={cur === 'yes' ? 'danger' : 'secondary'} haptic testId="vote-yes" disabled={!a} pressed={cur === 'yes'} onClick={() => session.send({ t: 'act', action: act.confirm('yes') })}>{cur === 'yes' ? '✓ ' : ''}{t('confirmYes')}</Button>
       </div>
       <p className="muted" style={{ fontSize: 'var(--fs-0)' }} aria-live="polite" data-testid="my-ballot">
         {a ? (cur === null ? t('confirmNone') : t('confirmYours', { choice: cur === 'yes' ? t('confirmYes') : t('confirmNo') })) : t('confirmDead')} · {t('voteCloses')}
