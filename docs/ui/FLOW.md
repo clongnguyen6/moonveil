@@ -54,6 +54,12 @@ Match (frame = scene host + top bar + dock)
 | day.confirm | Yes / No, live tally | own ballot changeable until close | live Yes/No per voter; overlay: executed |
 | ended | winner, reveal | leave | cue: victory/defeat |
 
+## Accessibility (keyboard + screen reader)
+- Names: every icon-only control carries `aria-label`; avatars are decorative; the seat grid is a labelled group ("use arrow keys, Enter to choose"); the match frame is a `main` named after the phase; the top bar is a toolbar; the phase title is the page `h1`.
+- Keyboard: Tab order follows the DOM (title → tools → panel → grid → buttons); arrow keys / Home / End move within the seat grid; Enter/Space choose; chat sends on Enter; end-match confirms on Enter once the word matches; sheets trap Tab, open on their first body control, close on Escape and return focus to the opener.
+- Focus rings: `--focus` ring on buttons, inputs, selects, seat chips, tabs, swatches, the role card.
+- Live region: one polite `role=status` (`data-testid=live`) announces phase titles and the same public announcements as the toasts/overlays; it never carries role, facts or pack data.
+
 ## Accessibility and layout
 - Touch targets ≥ 44 px (`--tap`), focus rings, `aria-pressed` on choices, `role=timer`, `aria-live` status lines, dialog semantics on sheets, Escape closes.
 - Reduced motion: system preference or setting zeroes all durations.

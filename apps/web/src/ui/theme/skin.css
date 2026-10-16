@@ -8,7 +8,8 @@
 .btn.danger { background: var(--danger); color: #2a0d08; border: 0; }
 .btn.icon { padding: 0; width: var(--tap); border-radius: var(--r-pill); background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); font-size: 1.1rem; }
 .btn.icon[aria-pressed="true"] { background: var(--accent); color: var(--ink-on-accent); }
-:is(.btn, input, select, textarea, [tabindex]):focus-visible { outline: none; box-shadow: var(--focus); }
+:is(.btn, input, select, textarea, [tabindex], .seat-chip, .tab, .swatch, .role-card, .player-row button):focus-visible { outline: none; box-shadow: var(--focus); }
+.seat-chip:focus-visible { border-color: var(--accent-2); }
 
 .input { font: inherit; font-size: var(--fs-2); color: var(--ink); background: var(--bg-2); border: 1px solid var(--line-strong); border-radius: var(--r-1); min-height: var(--tap); padding: 0 var(--sp-3); width: 100%; }
 .input::placeholder { color: var(--ink-3); }

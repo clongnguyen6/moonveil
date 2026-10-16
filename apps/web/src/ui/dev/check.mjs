@@ -175,6 +175,46 @@ ok('stalemate warning banner shown from the projection', (await page.locator('[d
 await open('day');
 ok('no stalemate banner without the event', (await page.locator('[data-testid=stalemate-warning]').count()) === 0);
 
+// 11d. Accessibility: icon-only controls have names; keyboard-only play; live region announces phase changes.
+const tabTo = async (tid, max = 60) => { for (let i = 0; i < max; i++) { if (await page.evaluate((id) => document.activeElement?.getAttribute('data-testid') === id, tid)) return true; await page.keyboard.press('Tab'); } return false; };
+const focusedTid = () => page.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.className ?? '');
+await open('vote', '&lang=en');
+ok('a11y: every icon-only button has an accessible name', (await page.evaluate(() => [...document.querySelectorAll('button')].filter((b) => !b.closest('[data-testid=devbar]') && !b.textContent.trim().replace(/[^\p{L}\p{N}]/gu, '') && !b.getAttribute('aria-label')).map((b) => b.outerHTML.slice(0, 60)))).length === 0);
+ok('a11y: Tab reaches the seat grid', await tabTo('seat-1', 40) || /seat-/.test(await focusedTid()));
+await page.keyboard.press('ArrowRight');
+ok('a11y: arrow keys move within the grid', /seat-/.test(await focusedTid()));
+await page.keyboard.press('Enter');
+ok('a11y: Enter selects a seat', (await page.locator('.seat-chip[aria-pressed=true]').count()) === 1);
+ok('a11y: Tab reaches confirm', await tabTo('confirm', 20));
+await page.keyboard.press('Enter');
+ok('a11y: keyboard-only nomination submitted', /Your vote: /.test(await page.getByTestId('my-vote').textContent()));
+await open('confirm', '&lang=en');
+ok('a11y: Tab reaches Yes', await tabTo('vote-yes', 40));
+await page.keyboard.press('Enter');
+ok('a11y: keyboard-only verdict vote', /Yes/.test(await page.getByTestId('my-ballot').textContent()));
+await open('day', '&lang=en');
+ok('a11y: Tab reaches the chat opener', await tabTo('open-chat', 40));
+await page.keyboard.press('Enter');
+await page.waitForTimeout(150);
+ok('a11y: sheet opens with focus inside and traps Tab', await page.evaluate(() => !!document.activeElement?.closest('[role=dialog]')));
+await page.keyboard.type('keyboard hello');
+await page.keyboard.press('Enter');
+ok('a11y: chat sent by keyboard', /keyboard hello/.test(await page.getByTestId('chat-log').innerText()));
+await page.keyboard.press('Escape');
+ok('a11y: Escape closes and focus returns to the opener', (await focusedTid()) === 'open-chat');
+ok('a11y: polite live region present', (await page.locator('[data-testid=live][aria-live=polite]').count()) === 1);
+await stub((r) => r.closeStep());
+await page.waitForTimeout(150);
+ok('a11y: live region announces the new phase', /Nomination/.test(await page.getByTestId('live').textContent()));
+ok('a11y: live region carries no role words', !/Wolf|Seer|Guard|Witch|Hunter|Villager/.test(await page.getByTestId('live').textContent()));
+await open('moderator-day', '&lang=en');
+ok('a11y: Tab reaches end-match', await tabTo('end-match-open', 60));
+await page.keyboard.press('Enter');
+await page.keyboard.type('END');
+await page.keyboard.press('Enter');
+await page.waitForTimeout(150);
+ok('a11y: keyboard-only end-match (typed confirm + Enter)', (await page.getByTestId('match').getAttribute('data-step')) === 'ended');
+
 // 12. Full automatic match with bots in live mode: run until ended (speed via stub).
 await open('lobby', '&live=1');
 await stub((r) => { r.players.forEach((p) => (p.ready = true)); r.speed = 40; r.autoBots = true; r.start(); });

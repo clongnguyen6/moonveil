@@ -59,11 +59,21 @@ function Root() {
     addEventListener('pointerdown', unlock, { once: true });
     return () => removeEventListener('pointerdown', unlock);
   }, []);
-  const { toasts, overlay } = useAnnouncer(view, g, t);
+  const { toasts, overlay, live } = useAnnouncer(view, g, t);
   const wake = useWakeLock(!!view && view.status === 'playing');
 
   return (
-    <div className="app" data-testid="app" data-phase={skin}>
+    <div
+      className="app"
+      data-testid="app"
+      data-phase={skin}
+      // Keys typed into a text field must not reach window listeners (the scene's WASD/Space handler walks the avatar
+      // and swallows spaces, packages/scene/src/input.ts:16; reported as P14). Escape still bubbles so sheets close.
+      onKeyDown={(e) => {
+        const el = e.target as HTMLElement;
+        if (e.key !== 'Escape' && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) e.stopPropagation();
+      }}
+    >
       {!view ? (
         <EntryScreen s={s} />
       ) : (
@@ -90,6 +100,8 @@ function Root() {
         </div>
       )}
       <Toasts items={toasts} />
+      {/* Polite live region: phase titles + public announcements only (same text as toasts/overlays, never role data). */}
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true" data-testid="live">{live}</div>
       {sheet === 'role' && g && view && <RoleCardSheet view={view} g={g} onClose={closeSheet} />}
       {sheet === 'help' && <HelpSheet g={g} onClose={closeSheet} limits={view ? { min: view.limits.minPlayers, max: view.limits.maxPlayers } : undefined} />}
       {sheet === 'chat' && view && <ChatSheet s={s} view={view} onClose={closeSheet} />}
@@ -127,12 +139,12 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
   const fam = famOf(g.step.kind);
   const topbar = useRef<HTMLDivElement>(null);
   return (
-    <div className="frame" data-testid="match" data-step={g.step.kind}>
+    <main className="frame" data-testid="match" data-step={g.step.kind} aria-label={phaseTitle(t, g)}>
       <div className="scene-host">
         {scene && <SceneMount s={s} topbarRef={topbar} micOn={mic.status === 'ok' && !mic.muted} />}
-        <div className="topbar" ref={topbar} data-ui>
+        <div className="topbar" ref={topbar} data-ui role="toolbar" aria-label={t('app')}>
           <div className="titles">
-            <div className="title" data-testid="phase-title">{phaseTitle(t, g)}</div>
+            <h1 className="title" data-testid="phase-title">{phaseTitle(t, g)}</h1>
             <div className="sub" data-testid="you">{view.code} · {isMod ? t('moderator') : nameAt(view, g, g.viewer.kind === 'seat' ? g.viewer.seat : null)}</div>
           </div>
           <div className="tools">
@@ -178,7 +190,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
         {isMod && view.phaseEndsAt !== null && <p className="center"><Timer endsAt={view.phaseEndsAt} totalMs={view.phaseDurationMs} /></p>}
         {s.error && <p className="danger center" role="alert" data-testid="error">{s.error.message}</p>}
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -188,15 +200,18 @@ interface Announcement { id: number; title: string; body?: string }
 function useAnnouncer(view: SeatView | null, g: GameView | null, t: T) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [overlay, setOverlay] = useState<Announcement | null>(null);
+  const [live, setLive] = useState('');
   const seen = useRef<{ code: string | null; log: number; step: string | null }>({ code: null, log: 0, step: null });
   const idRef = useRef(0);
   const push = useCallback((text: string, kind?: ToastItem['kind']) => {
     const id = ++idRef.current;
+    setLive(text);
     setToasts((xs) => [...xs, { id, text, kind }].slice(-3));
     setTimeout(() => setToasts((xs) => xs.filter((x) => x.id !== id)), 3500);
   }, []);
   const show = useCallback((title: string, body?: string, ms = 3200) => {
     const id = ++idRef.current;
+    setLive(body ? `${title}. ${body}` : title);
     setOverlay({ id, title, body });
     setTimeout(() => setOverlay((o) => (o?.id === id ? null : o)), ms);
   }, []);
@@ -226,6 +241,7 @@ function useAnnouncer(view: SeatView | null, g: GameView | null, t: T) {
       }
     }
     if (st.step !== g.step.kind) {
+      setLive(phaseTitle(t, g));
       if (g.step.kind === 'day.vote') { cues.push('vote'); push(t('annVote')); }
       if (g.step.kind === 'day.confirm') { cues.push('vote'); push(t('annConfirm')); }
       if (g.step.kind === 'day.defense') push(t('annDefense'));
@@ -235,5 +251,5 @@ function useAnnouncer(view: SeatView | null, g: GameView | null, t: T) {
     if (last) playCue(last);
     seen.current = { code: view.code, log: g.publicLog.length, step: g.step.kind };
   }, [view, g, t, push, show]);
-  return { toasts, overlay };
+  return { toasts, overlay, live };
 }

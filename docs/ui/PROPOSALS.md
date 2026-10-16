@@ -49,3 +49,6 @@ Batch A: decks are engine config and host customization is engine-validated. The
 - Public event `{ t: 'stalemateWarning', day }` published at the end of a day after 2 consecutive no-death cycles; the UI shows the banner until a death/execution/shot or the end.
 - `Outcome.reason = 'stalemate'` (winner `'draw'`) for the three-cycle draw.
 - Moderator end: the UI sends `match.end { confirm: 'end-match' }` (rules-12 5def39a) and renders reason `'aborted'` as "The moderator ended the match. No winner."
+
+## P14. Scene keyboard handler vs text fields (visual, `packages/scene/src/input.ts:16`)
+`window.addEventListener('keydown')` calls `preventDefault()` on Space for every target, and WASD/arrows walk the avatar while a player types in chat or the end-match box. Request: ignore events whose target is editable (`input`, `textarea`, `isContentEditable`) or inside `[data-ui]`, like the pointer handler already does (line 27). The shell now stops propagation of editable-target keys at the React root as a mitigation; the scene fix is still wanted for any future non-React inputs.

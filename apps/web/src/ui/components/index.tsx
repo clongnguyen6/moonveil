@@ -69,10 +69,25 @@ export function Sheet({ title, onClose, children, testId }: { title: string; onC
   const t = useT();
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const opener = document.activeElement as HTMLElement | null;
+    const focusables = () => [...(ref.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])') ?? [])];
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') return onClose();
+      if (e.key !== 'Tab') return;
+      const f = focusables();
+      if (f.length === 0) return;
+      const first = f[0]!, last = f[f.length - 1]!;
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      else if (!ref.current?.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    };
     addEventListener('keydown', onKey);
-    ref.current?.querySelector<HTMLElement>('button, input, textarea, [tabindex]')?.focus();
-    return () => removeEventListener('keydown', onKey);
+    // First focus: the body's first control (not the close button), so Tab reads the sheet in order.
+    (ref.current?.querySelector<HTMLElement>('.sheet-body button:not([disabled]), .sheet-body input, .sheet-body [tabindex]') ?? focusables()[0])?.focus();
+    return () => {
+      removeEventListener('keydown', onKey);
+      opener?.focus?.();
+    };
   }, [onClose]);
   return (
     <div className="scrim" onClick={onClose} data-testid={testId}>

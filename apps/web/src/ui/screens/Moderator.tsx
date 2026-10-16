@@ -62,20 +62,20 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
 
       {tab === 'flow' && !ended && (
         <section className="card end-match stack" style={{ padding: 12, marginTop: 8 }} data-testid="end-match" data-open={ending}>
-          <p className="hint"><strong>{t('endMatchTitle')}</strong> · {t('endMatchHint')}</p>
+          <p className="hint" id="end-match-hint"><strong>{t('endMatchTitle')}</strong> · {t('endMatchHint')}</p>
           {!ending ? (
             <Button kind="danger" testId="end-match-open" onClick={() => { setEnding(true); setTyped(''); }}>{t('endMatchOpen')}</Button>
           ) : (
-            <>
+            <form className="stack" onSubmit={(e) => { e.preventDefault(); if (typed.trim().toUpperCase() === t('endMatchWord').toUpperCase()) { sendMod(mod.endMatch()); setEnding(false); setTyped(''); } }}>
               <label className="field col" style={{ gap: 4 }}>
                 {t('endMatchType', { word: t('endMatchWord') })}
-                <input className="input" value={typed} autoComplete="off" onChange={(e) => setTyped(e.target.value)} data-testid="end-match-input" />
+                <input className="input" value={typed} autoComplete="off" autoFocus onChange={(e) => setTyped(e.target.value)} data-testid="end-match-input" aria-describedby="end-match-hint" />
               </label>
               <div className="btn-row">
                 <Button kind="quiet" testId="end-match-cancel" onClick={() => { setEnding(false); setTyped(''); }}>{t('cancel')}</Button>
-                <Button kind="danger" testId="end-match-confirm" disabled={typed.trim().toUpperCase() !== t('endMatchWord').toUpperCase()} onClick={() => { sendMod(mod.endMatch()); setEnding(false); setTyped(''); }}>{t('endMatchConfirm')}</Button>
+                <Button kind="danger" type="submit" testId="end-match-confirm" disabled={typed.trim().toUpperCase() !== t('endMatchWord').toUpperCase()}>{t('endMatchConfirm')}</Button>
               </div>
-            </>
+            </form>
           )}
         </section>
       )}
