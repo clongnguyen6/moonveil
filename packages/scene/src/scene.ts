@@ -16,16 +16,18 @@ import type { CameraMode, Pose, PoseFrame, SafeArea, SceneHandle, SceneInput, Sc
 const NIGHT_SPEED = 1 / 7;   // full day↔night transition in 7 s
 const MOVE_SEND_HZ = 10;
 
-type Listener = { move: ((p: Pose) => void)[]; emote: ((e: string) => void)[] };
+type Listener = { move: ((p: Pose) => void)[]; emote: ((e: string) => void)[]; tap: ((p: { x: number; y: number; seat: SeatId | null }) => void)[] };
 
 export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   let input = opts.input;
   let destroyed = false;
-  const listeners: Listener = { move: [], emote: [] };
+  const listeners: Listener = { move: [], emote: [], tap: [] };
   const poses = new PoseBuffer();
   let speakingSet = new Set<SeatId>();
   let localSpeaking = false;
-  let cameraMode: CameraMode = opts.camera ?? (window.innerHeight > window.innerWidth * 1.1 && window.innerWidth < 600 ? 'tight' : 'fit');
+  const hostW = () => host.clientWidth || window.innerWidth, hostH = () => host.clientHeight || window.innerHeight;
+  let cameraMode: CameraMode = opts.camera ?? (hostH() > hostW() * 1.1 && hostW() < 600 ? 'tight' : 'fit');
+  let ro: ResizeObserver | null = null;
   const safe: SafeArea = { top: 0, right: 0, bottom: 0, left: 0 };
   const perfOn = !!opts.perf;
   const perf = { frames: [] as number[], update: [] as number[], lightmap: [] as number[], render: [] as number[], last: 0 };
@@ -50,6 +52,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     a.canvas.style.touchAction = 'none';
     host.appendChild(a.canvas);
     build(a);
+    if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(() => a.resize()); ro.observe(host); }
   })();
 
   // ---- scene graph (built once Pixi is ready) ----
@@ -95,6 +98,14 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
 
     inputCtl = new Input(host);
     inputCtl.onSpeakKey = (down) => { localSpeaking = down; };
+    // tap-to-walk: second movement intent (phones without a joystick habit, laptops with a trackpad)
+    inputCtl.onTap = (sx, sy) => {
+      const wx = (sx - cam.x) / cam.scale, wy = (sy - cam.y) / cam.scale;
+      let seat: SeatId | null = null, best = 48;
+      for (const av of avatars.values()) { if (!av.root.visible) continue; const d = Math.hypot(av.x - wx, av.y - 40 - wy); if (d < best) { best = d; seat = av.seat; } }
+      for (const cb of listeners.tap) cb({ x: wx, y: wy, seat });
+      if (!seat && canMove(input, input.me.seat)) walkLocalReq = { x: wx, y: wy };
+    };
 
     if (perfOn) {
       let stageStart = 0;
@@ -274,7 +285,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       av.speaking = speakingSet.has(p.seat) || (local && localSpeaking);
       if (kind === 'ghost' || kind === 'free') {
         if (local) {
-          if (walkLocalReq) { av.walkTo(walkLocalReq.x, walkLocalReq.y); walkLocalReq = null; }
+          if (walkLocalReq) { if (av.mode === 'ghost' || world.walkable(walkLocalReq.x, walkLocalReq.y)) av.walkTo(walkLocalReq.x, walkLocalReq.y); walkLocalReq = null; }
           av.update(dt, labelScale, localMayMove ? inputCtl.dir : undefined, av.mode === 'ghost' ? undefined : world.walkable);
           if (av.mode === 'ghost' && !inWorld(av.x, av.y)) { av.x = clamp(av.x, -200, WORLD.w + 200); av.y = clamp(av.y, -200, WORLD.h + 200); }
         } else {
@@ -329,7 +340,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     setInput(next) { if (!app) { input = next; snap = true; } else pendingInput = next; },
     setPoses(frame: PoseFrame) { poses.push(frame, performance.now()); },
     setSpeaking(seats) { speakingSet = new Set(seats); },
-    on(event: 'move' | 'emote', cb: ((p: Pose) => void) | ((e: string) => void)) {
+    on(event: 'move' | 'emote' | 'tap', cb: ((p: Pose) => void) | ((e: string) => void) | ((p: { x: number; y: number; seat: SeatId | null }) => void)) {
       const arr = listeners[event] as unknown[]; arr.push(cb);
       return () => { const i = arr.indexOf(cb); if (i >= 0) arr.splice(i, 1); };
     },
@@ -338,6 +349,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     async setAudio(on) { if (on) await ambience.enable(); else ambience.disable(); },
     setCamera(mode) { cameraMode = mode; },
     setSafeArea(insets) { Object.assign(safe, insets); },
+    resize() { app?.resize(); },
     time: () => t,
     perf: (): PerfStats | null => perfOn ? { n: perf.frames.length, frame: stat(perf.frames), update: stat(perf.update), lightmap: stat(perf.lightmap), render: stat(perf.render) } : null,
     perfReset() { perf.frames.length = perf.update.length = perf.lightmap.length = perf.render.length = 0; },
@@ -346,6 +358,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     destroy() {
       destroyed = true;
       ambience.disable();
+      ro?.disconnect(); ro = null;
       if (app) { inputCtl?.detach(); for (const av of avatars.values()) av.destroy(); app.destroy(true, { children: true }); app = null; }
     },
   };
