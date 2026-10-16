@@ -1,5 +1,6 @@
 // Entry. Env: PORT (default 4100), HOST (default 127.0.0.1; 0.0.0.0 for LAN phones),
-// STATIC_DIR (default apps/web/dist), MOONVEIL_FIXTURE_MS (fixture phase length, ms).
+// STATIC_DIR (default apps/web/dist), MOONVEIL_FIXTURE_MS (fixture phase length, ms),
+// MOONVEIL_ROOM_IDLE_MS (close rooms with no connection for this long; default 30 min).
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createFixtureEngine } from './rules/fixture-engine.ts';
@@ -15,6 +16,7 @@ const { http, stop } = createMoonveilServer({
   // STUB until packages/rules publishes its API.
   engine: () => createFixtureEngine({ hiddenMs: phaseMs, openMs: phaseMs }),
   staticDir: process.env.STATIC_DIR ?? join(here, '../../web/dist'),
+  ...(process.env.MOONVEIL_ROOM_IDLE_MS ? { idleMs: Number(process.env.MOONVEIL_ROOM_IDLE_MS) } : {}),
 });
 
 http.listen(port, host, () => console.log(`moonveil server http://${host}:${port}`));
