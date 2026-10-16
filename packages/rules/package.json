@@ -1,0 +1,22 @@
+{
+  "name": "@moonveil/rules",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure, deterministic Moonveil Werewolf rules engine. No IO.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json",
+    "check": "npm run typecheck && npm test"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3"
+  }
+}
