@@ -6,6 +6,8 @@ export class Input {
   private joy = { active: false, id: -1, ox: 0, oy: 0, x: 0, y: 0 };
   private base: HTMLElement; private knob: HTMLElement;
   onSpeakKey: ((down: boolean) => void) | null = null;
+  onTap: ((x: number, y: number) => void) | null = null;   // screen px, relative to the surface
+  private downAt: { x: number; y: number; t: number } | null = null;
   detach: () => void = () => {};
 
   constructor(surface: HTMLElement) {
@@ -22,8 +24,9 @@ export class Input {
     this.restJoystick();
 
     const down = (e: PointerEvent) => {
-      if (e.pointerType === 'mouse' && !this.touch) return;
       if ((e.target as HTMLElement).closest('[data-ui]')) return;
+      this.downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
+      if (e.pointerType === 'mouse' && !this.touch) return;
       this.joy.active = true; this.joy.id = e.pointerId; this.joy.ox = e.clientX; this.joy.oy = e.clientY; this.joy.x = 0; this.joy.y = 0;
       this.base.style.left = `${e.clientX}px`; this.base.style.top = `${e.clientY}px`; this.base.classList.add('active', 'show');
       this.knob.style.transform = 'translate(0px,0px)';
@@ -38,6 +41,11 @@ export class Input {
       this.knob.style.transform = `translate(${dx}px,${dy}px)`;
     };
     const up = (e: PointerEvent) => {
+      const d = this.downAt; this.downAt = null;
+      if (d && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 8 && performance.now() - d.t < 350) {
+        const r = surface.getBoundingClientRect();
+        this.onTap?.(e.clientX - r.left, e.clientY - r.top);
+      }
       if (e.pointerId !== this.joy.id) return;
       this.joy.active = false; this.joy.x = this.joy.y = 0; this.restJoystick();
     };

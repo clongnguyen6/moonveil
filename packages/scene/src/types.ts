@@ -61,16 +61,19 @@ export interface SceneHandle {
   setSpeaking(seats: SeatId[]): void;
   on(event: 'move', cb: (pose: Pose) => void): () => void;
   on(event: 'emote', cb: (emote: string) => void): () => void;
+  on(event: 'tap', cb: (hit: { x: number; y: number; seat: SeatId | null }) => void): () => void;   // tap: world units + seat if an avatar was hit; a tap on empty ground also walks there when allowed
   emote(emote: string): void;
   setSpeakingLocal(on: boolean): void;   // local mic state, shown immediately (server list follows)
   setAudio(on: boolean): Promise<void>;
   setCamera(mode: CameraMode): void;
-  setSafeArea(insets: Partial<SafeArea>): void;
+  setSafeArea(insets: Partial<SafeArea>): void;   // HUD overlap in CSS px; the camera frames the remaining area
+  resize(): void;                                 // optional: the scene also observes the host with ResizeObserver
   // dev/test helpers
   time(): number;
   perf(): PerfStats | null;
   perfReset(): void;
   walkLocal(x: number, y: number): void;
+  localPose(): Pose | null;
   night(): number;
   destroy(): void;
 }

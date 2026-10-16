@@ -1,0 +1,287 @@
+// End reveal, role card, help, chat, ghost bar, voice bar, connection overlay.
+import type { Role } from '@moonveil/rules';
+import { useEffect, useRef, useState } from 'react';
+import type { ConnStatus, SessionState } from '../../game/session.ts';
+import { canListen, canSpeak, nameAt, nameOf, playerAt, rolesInPlay } from '../../game/select.ts';
+import type { ChannelId, GameView, SeatView } from '../../game/types.ts';
+import { Avatar, Button, Sheet, Tabs } from '../components/index.tsx';
+import { SeatGrid } from '../components/SeatGrid.tsx';
+import { type T, useT } from '../i18n/index.ts';
+import { useSession } from '../session-context.ts';
+import type { Mic } from '../voice/mic.ts';
+
+const roleDesc = (t: T, r: Role) => t(`roleDesc${r[0]!.toUpperCase()}${r.slice(1)}` as 'roleDescWolf');
+const teamOf = (r: Role) => (r === 'wolf' ? 'wolves' : 'village');
+
+export function EndPanel({ view, g }: { view: SeatView; g: GameView }) {
+  const t = useT();
+  const session = useSession();
+  const o = g.outcome;
+  const title = o?.winner === 'village' ? t('endVillage') : o?.winner === 'wolves' ? t('endWolves') : o?.winner === 'draw' ? t('endDraw') : t('endAborted');
+  const reason = o?.reason === 'noWolves' ? t('endReasonNoWolves') : o?.reason === 'parity' ? t('endReasonParity') : o?.reason === 'zeroSurvivors' ? t('endReasonZero') : t('endReasonAborted');
+  const [showHistory, setShowHistory] = useState(false);
+  return (
+    <section className="card panel rise-in" data-testid="ended">
+      <div className="panel-head">
+        <h2 className={`panel-title team-${o?.winner === 'wolves' ? 'wolves' : 'village'}`}>{title}</h2>
+        <span className="pill">{t('phaseEnded')}</span>
+      </div>
+      <p className="hint">{reason}</p>
+      <h3 className="hint" style={{ fontWeight: 700 }}>{t('endReveal')}</h3>
+      <SeatGrid view={view} g={g} testPrefix="reveal" />
+      {g.reveal?.history && (
+        <>
+          <Button kind="quiet" onClick={() => setShowHistory(!showHistory)}>{t('endHistory')}</Button>
+          {showHistory && (
+            <ul className="log" data-testid="history">
+              {g.reveal.history.map((h, i) => {
+                if (h.t === 'night') {
+                  const r = h.record;
+                  return (
+                    <li key={i}>
+                      <strong>{t('phaseNight', { n: h.night })}</strong>: {t('modVictim')} {r.victim === null ? '—' : nameAt(view, g, r.victim)}
+                      {r.heals.some((x) => x === true) ? ` · ${t('modHeal')}` : ''}
+                      {r.poisons.map((p, s) => (typeof p === 'number' ? ` · ${t('modPoison')} ${nameAt(view, g, p)} (${nameAt(view, g, s)})` : '')).join('')}
+                      {r.guards.map((p, s) => (typeof p === 'number' ? ` · ${t('modGuard')} ${nameAt(view, g, p)} (${nameAt(view, g, s)})` : '')).join('')}
+                      {h.deaths.length ? ` · ${h.deaths.map((d) => `${nameAt(view, g, d.seat)} (${d.cause})`).join(', ')}` : ''}
+                    </li>
+                  );
+                }
+                if (h.t === 'seerResult') return <li key={i}>{t('phaseNight', { n: h.night })}: {t('modInspect')} {nameAt(view, g, h.target)} → {h.result === 'wolf' ? t('resultWolf') : h.result === 'notWolf' ? t('resultNotWolf') : t.role(h.result)}</li>;
+                return <li key={i} className="muted">{t('moderator')}: {h.command.type}</li>;
+              })}
+            </ul>
+          )}
+        </>
+      )}
+      <Button wide kind="secondary" testId="leave" onClick={() => session.leave()}>{t('leave')}</Button>
+    </section>
+  );
+}
+
+export function RoleCardSheet({ view, g, onClose }: { view: SeatView; g: GameView; onClose: () => void }) {
+  const t = useT();
+  const [shown, setShown] = useState(false);
+  const me = g.me;
+  return (
+    <Sheet title={t('roleCard')} onClose={onClose} testId="role-sheet">
+      {me ? (
+        <div className="stack">
+          <button type="button" className={`role-card ${shown ? '' : 'hidden-face'}`} onClick={() => setShown(!shown)} aria-pressed={shown} data-testid="role-card" data-shown={shown}>
+            {shown ? (
+              <>
+                <span className="hint">{t('roleYouAre')}</span>
+                <span className={`role-name team-${teamOf(me.role)}`} data-testid="my-role">{t.role(me.role)}</span>
+                <span className={`pill`}>{t('roleTeam')}: {teamOf(me.role) === 'wolves' ? t('teamWolves') : t('teamVillage')}</span>
+                <p className="hint">{roleDesc(t, me.role)}</p>
+                <span className="muted" style={{ fontSize: 'var(--fs-0)' }}>{t('roleKeepSecret')}</span>
+              </>
+            ) : (
+              <span className="hint">{t('roleTapReveal')}</span>
+            )}
+          </button>
+          {shown && g.pack && (
+            <div>
+              <h3 className="hint" style={{ fontWeight: 700 }}>{t('rolePack')}</h3>
+              <div className="row wrap">
+                {g.pack.seats.map((w) => {
+                  const p = playerAt(view, g, w);
+                  return p ? <span key={w} className="row pill"><Avatar p={p} /> {p.name}</span> : null;
+                })}
+              </div>
+            </div>
+          )}
+          {shown && (
+            <div>
+              <h3 className="hint" style={{ fontWeight: 700 }}>{t('roleFacts')}</h3>
+              <ul className="facts" data-testid="facts">
+                {me.facts.filter((f) => f.k !== 'role').length === 0 && <li className="muted">{t('roleNoFacts')}</li>}
+                {me.facts.map((f, i) => {
+                  if (f.k === 'inspect') return <li key={i}>{t('phaseNight', { n: f.night })}: {nameAt(view, g, f.target)} — {f.result === 'wolf' ? t('resultWolf') : f.result === 'notWolf' ? t('resultNotWolf') : t.role(f.result)}</li>;
+                  if (f.k === 'victim') return <li key={i}>{t('phaseNight', { n: f.night })}: {f.target === null ? t('witchNoVictim') : t('witchVictim', { name: nameAt(view, g, f.target) })}</li>;
+                  if (f.k === 'packTarget') return <li key={i}>{t('phaseNight', { n: f.night })}: {t('modVictim')} {f.target === null ? '—' : nameAt(view, g, f.target)}</li>;
+                  if (f.k === 'own') return <li key={i}>{t('phaseNight', { n: f.night })}: {f.act === 'protect' ? t('modGuard') : f.act === 'heal' ? t('modHeal') : t('modPoison')} {f.target === null ? '—' : nameAt(view, g, f.target)}</li>;
+                  return null;
+                })}
+              </ul>
+              {me.potions && (
+                <div className="potions" style={{ marginTop: 8 }}>
+                  <span className={`pill ${me.potions.heal ? 'ok' : ''}`}>{t('potionHeal')}{me.potions.heal ? '' : ` · ${t('potionUsed')}`}</span>
+                  <span className={`pill ${me.potions.poison ? 'danger' : ''}`}>{t('potionPoison')}{me.potions.poison ? '' : ` · ${t('potionUsed')}`}</span>
+                </div>
+              )}
+            </div>
+          )}
+          <RolesInPlay g={g} />
+        </div>
+      ) : (
+        <RolesInPlay g={g} />
+      )}
+    </Sheet>
+  );
+}
+
+export function RolesInPlay({ g }: { g: GameView }) {
+  const t = useT();
+  return (
+    <div>
+      <h3 className="hint" style={{ fontWeight: 700 }}>{t('roleInPlay')}</h3>
+      <div className="row wrap" data-testid="roles-in-play">
+        {rolesInPlay(g).map((r) => (
+          <span key={r} className={`pill team-${teamOf(r)}`}>{t.role(r)} × {g.roleCounts[r]}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function HelpSheet({ g, onClose }: { g: GameView | null; onClose: () => void }) {
+  const t = useT();
+  return (
+    <Sheet title={t('helpTitle')} onClose={onClose} testId="help-sheet">
+      <div className="stack">
+        <p>{t('helpFlow')}</p>
+        <p>{t('helpWin')}</p>
+        <h3 className="hint" style={{ fontWeight: 700 }}>{t('helpRoles')}</h3>
+        <ul className="facts">
+          {(g ? rolesInPlay(g) : (['wolf', 'villager', 'seer', 'guard', 'witch', 'hunter'] as Role[])).map((r) => (
+            <li key={r}><strong className={`team-${teamOf(r)}`}>{t.role(r)}</strong> — {roleDesc(t, r)}</li>
+          ))}
+        </ul>
+        <h3 className="hint" style={{ fontWeight: 700 }}>{t('helpRulesApproved')}</h3>
+        <ul className="facts">
+          <li>{t('helpRuleVote')}</li>
+          <li>{t('helpRuleExec')}</li>
+          <li>{t('helpRuleNight')}</li>
+          <li>{t('helpWitch')}</li>
+          <li>{t('helpRuleHunter')}</li>
+          <li>{t('helpRuleReveal')}</li>
+          <li>{t('helpRuleGhost')}</li>
+          <li className="muted">{t('helpProvisional')}</li>
+        </ul>
+      </div>
+    </Sheet>
+  );
+}
+
+const CHANNEL_LABEL: Record<ChannelId, 'chatPublic' | 'chatWolves' | 'chatGhosts'> = { public: 'chatPublic', wolves: 'chatWolves', ghosts: 'chatGhosts' };
+
+/** Channels come ONLY from the seat's grants. A channel without a grant is not rendered at all. */
+export function ChatSheet({ s, view, onClose }: { s: SessionState; view: SeatView; onClose: () => void }) {
+  const t = useT();
+  const session = useSession();
+  const channels = view.voice.filter((v) => v.listen).map((v) => v.channel as ChannelId);
+  const [tab, setTab] = useState<ChannelId>(channels[0] ?? 'public');
+  const active = channels.includes(tab) ? tab : (channels[0] ?? 'public');
+  const [text, setText] = useState('');
+  const log = useRef<HTMLDivElement>(null);
+  const msgs = s.chat.filter((m) => m.channel === active);
+  useEffect(() => {
+    log.current?.scrollTo({ top: log.current.scrollHeight });
+  }, [msgs.length, active]);
+  const speak = canSpeak(view, active);
+  if (channels.length === 0) {
+    // No listen grant on any channel (e.g. a living non-wolf at night). Same button, same sheet; no channel named.
+    return (
+      <Sheet title={t('chatTitle')} onClose={onClose} testId="chat-sheet">
+        <p className="muted" data-testid="chat-quiet">{t('chatQuiet')}</p>
+      </Sheet>
+    );
+  }
+  const submit = () => {
+    const v = text.trim();
+    if (!v || !speak) return;
+    session.send({ t: 'say', channel: active, text: v });
+    setText('');
+  };
+  return (
+    <Sheet title={t('chatTitle')} onClose={onClose} testId="chat-sheet">
+      <div className="chat">
+        {channels.length > 1 && <Tabs tabs={channels.map((c) => ({ key: c, label: t(CHANNEL_LABEL[c]) }))} value={active} onChange={setTab} />}
+        <div className="chat-log" ref={log} data-testid="chat-log" data-channel={active}>
+          {msgs.length === 0 && <p className="muted">{t('chatNone')}</p>}
+          {msgs.map(({ msg: m }) => (
+            <div key={m.id} className={`chat-msg ${m.from === view.me.seat ? 'mine' : ''}`}>
+              <span className="from">{nameOf(view, m.from)}</span> {m.text}
+            </div>
+          ))}
+        </div>
+        {speak ? (
+          <form className="chat-form" onSubmit={(e) => { e.preventDefault(); submit(); }}>
+            <input className="input" value={text} maxLength={500} placeholder={t('chatPh')} onChange={(e) => setText(e.target.value)} data-testid="chat-input" />
+            <Button type="submit" testId="chat-send" disabled={!text.trim()}>{t('send')}</Button>
+          </form>
+        ) : (
+          <p className="muted" data-testid="chat-listen-only">{t('chatListenOnly')}</p>
+        )}
+      </div>
+    </Sheet>
+  );
+}
+
+export function GhostBar({ view, g }: { view: SeatView; g: GameView }) {
+  const t = useT();
+  const me = g.me;
+  if (!me || me.alive) return null;
+  const d = g.seats[me.seat]?.death;
+  const why = d?.cause === 'executed' ? t('ghostExecuted') : d?.cause === 'shot' ? t('ghostShot') : d?.cause === 'removed' ? t('ghostRemoved') : t('ghostDiedNight');
+  const pending = g.step.kind === 'hunter' && g.step.pending.includes(me.seat);
+  return (
+    <div className="card ghost-bar fade-in" data-testid="ghost-bar">
+      <span className="pill ghost">👻 {t('ghostTitle')}</span>
+      <span className="hint grow">{why} {pending ? t('hunterIso') : canListen(view, 'ghosts') ? t('ghostHint') : ''}</span>
+    </div>
+  );
+}
+
+/** Mic button + channel label strictly from grants. No grant for a channel = no trace of it. */
+export function VoiceBar({ s, view, mic, night }: { s: SessionState; view: SeatView; mic: Mic; night?: boolean }) {
+  const t = useT();
+  const speakOn = view.voice.filter((v) => v.speak).map((v) => v.channel as ChannelId);
+  const off = s.voiceMode === 'inPerson';
+  const listenOnly = speakOn.length === 0;
+  const label = off ? t('voiceOff') : listenOnly ? t('voiceListen') : mic.muted ? t('voiceMuted') : t(CHANNEL_LABEL[speakOn[0]!]);
+  // Night: one neutral button for every seat, no channel label, so the top bar gives no role tell at a glance.
+  // A wolf's tap still toggles mute (grant-driven); the label is in the aria text only.
+  if (night) {
+    return (
+      <div className="mic-bar" data-testid="voice" data-speak={speakOn.join(',')}>
+        {/* never `disabled` here: a dimmed button would mark the seats that cannot speak */}
+        <Button kind="icon" label={label} onClick={() => !off && !listenOnly && mic.setMuted(!mic.muted)}>🎙️</Button>
+      </div>
+    );
+  }
+  return (
+    <div className="mic-bar" data-testid="voice" data-speak={speakOn.join(',')}>
+      <Button kind="icon" label={mic.muted ? t('voiceUnmute') : t('voiceMute')} pressed={!off && !listenOnly && !mic.muted} disabled={off || listenOnly} onClick={() => mic.setMuted(!mic.muted)}>
+        {off || listenOnly || mic.muted ? '🔇' : '🎙️'}
+      </Button>
+      <span className="pill voice-label">{label}</span>
+    </div>
+  );
+}
+
+export function ConnOverlay({ status }: { status: ConnStatus }) {
+  const t = useT();
+  const session = useSession();
+  if (status === 'open' || status === 'idle' || status === 'connecting') return null;
+  return (
+    <div className="conn-overlay" role="status" data-testid="conn-overlay" data-status={status}>
+      <div className="card raised stack">
+        {status === 'reconnecting' && (
+          <>
+            <p className="panel-title pulse">{t('connReconnecting')}</p>
+            <p className="hint">{t('connReconnectHint')}</p>
+          </>
+        )}
+        {status === 'replaced' && (
+          <>
+            <p className="panel-title">{t('connReplaced')}</p>
+            <Button onClick={() => session.reclaim()}>{t('connUseHere')}</Button>
+          </>
+        )}
+        {status === 'ended' && <p className="panel-title">{t('connEnded')}</p>}
+      </div>
+    </div>
+  );
+}
