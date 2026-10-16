@@ -18,6 +18,7 @@ export interface FixtureOptions {
   rounds?: number;
   hiddenMs?: number;
   openMs?: number;
+  maxPlayers?: number;
 }
 
 function rng(seed: string): () => number {
@@ -45,7 +46,7 @@ export function createFixtureEngine(opts: FixtureOptions = {}): RulesEngine<Fixt
   return {
     id: 'fixture',
     minPlayers: 3,
-    maxPlayers: 20,
+    maxPlayers: opts.maxPlayers ?? 20,
 
     setup({ seats, seed }) {
       const r = rng(seed);
