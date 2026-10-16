@@ -105,13 +105,28 @@ export async function seatRealMatch(table: Table, opts: { mode: Mode; seats: num
 
 // Run to the end. Each step: every bot acts once, `onStep` runs (assertions), then the step closes
 // (moderator: step.close; automatic: the server's accelerated timers).
-export async function runRealMatch(m: BrowserMatch, seed: string, onStep?: (m: BrowserMatch) => Promise<void>, maxSteps = 200) {
+export interface Actor {
+  act(p: Player, r: () => number): Promise<number>;
+  close(mod: Player): Promise<void>;
+}
+export const protocolActor: Actor = {
+  act: botAct,
+  close: (mod) => send(mod, { t: 'act', action: { type: 'step.close' } }),
+};
+
+export async function runRealMatch(
+  m: BrowserMatch,
+  seed: string,
+  onStep?: (m: BrowserMatch) => Promise<void>,
+  maxSteps = 200,
+  actor: Actor = protocolActor,
+) {
   const r = rng(seed);
   for (; m.steps < maxSteps && m.driver.view().status === 'playing'; m.steps++) {
     const key = stepKey(m.driver.view());
-    for (const p of m.players) await botAct(p, r);
+    for (const p of m.players) await actor.act(p, r);
     await onStep?.(m);
-    if (m.moderator) await send(m.moderator, { t: 'act', action: { type: 'step.close' } });
+    if (m.moderator) await actor.close(m.moderator);
     await expect.poll(() => m.driver.view().status !== 'playing' || stepKey(m.driver.view()) !== key, { timeout: 30_000 }).toBe(true);
     // Every seat agrees on the current step before anyone acts (steps may pass quickly at x20).
     await expect.poll(() => new Set([m.driver, ...m.players].map((p) => stepKey(p.view()))).size, { timeout: 10_000 }).toBe(1);

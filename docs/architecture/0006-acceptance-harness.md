@@ -15,14 +15,17 @@ Status: foundation, 2026-10-16. The harness is ready now; the UI-driven layer wa
 - **Ports:** `scripts/e2e-run.mjs` gives OS-assigned free ports (`E2E_PORT` fixture server, `E2E_REAL_PORT` real server, `E2E_RESTART_PORT`).
 - **Not in `npm run check`:** about 4 min and up to 10 browser contexts at once on a shared machine. Becomes part of acceptance runs.
 
-## When the UI's real-client wiring lands: UI-driven layer (proposal for the UI owner, via Lead)
-The same matches, played through the UI, with the same wire assertions.
-- **Hook kept by foundation:** `window.__moonveil` (the Client; own seat data only) stays as the protocol-level fallback and for reading `view`.
-- **Stable `data-testid`s requested** (names negotiable):
-  - entry: `name`, `create-automatic`, `create-moderator`, `code`, `join`, `error`, `conn` (`data-status=open|reconnecting|replaced`);
-  - lobby: `seat` (`data-seat`, `data-ready`, `data-connected`), `ready`, `start`, `leave`;
-  - game: `phase` (text = `step.kind`), `action-<type>` (one per `me.actions` entry) with targets `target-<seatIndex>` or choices `choice-<value>`, `ballot` (own choice), `ballots` (open tally, `data-seat`/`data-choice` rows);
-  - chat: `chat-tab-<channel>`, `chat-input`, `chat-send`, `chat-msg` (`data-channel`);
-  - moderator: `mod-close`, `mod-confirm-count` + `mod-confirm-submit`;
-  - end: `reveal`, `outcome`.
-- **No test-only behaviour in the UI**: the hooks are attributes only.
+## UI-driven layer: adopts docs/ui/SELECTORS.md (game-ui 1bff25f)
+- **Owner:** the UI owns the DOM, and its `SELECTORS.md` is the contract. Foundation's earlier name proposals are withdrawn.
+- **`e2e/harness/ui.ts`** performs each bot choice through the documented hooks:
+  - targets: `seat-<index>` + `confirm`;
+  - nomination and verdict: `vote-skip`, `vote-yes` / `vote-no`;
+  - Witch: `heal-yes` / `heal-no`;
+  - moderator: `close-step` + the dialog confirm;
+  - entry and lobby: `name`, `create-<mode>`, `code`, `join`, `ready`, `start`;
+  - state: `room[data-status]`.
+  - Runs use the documented quiet settings (`scene:false, sound:false, reducedMotion:'on'`).
+- **Choices come from the seat's own wire view;** assertions stay on the wire. So the harness doesn't need `step-seq` or any extra DOM state.
+- **`e2e/tests/real-match-ui.spec.ts`:** 7–10 browsers in both modes. It skips itself until `[data-testid=entry]` exists in the served build, so it can't pass vacuously. Run with `npm run e2e:matches`.
+- **Counter-proposal (one gap):** chat tabs are only `.tabs .tab` by order. Selecting a channel reliably (e.g. wolves at night) needs `[data-testid=chat-tab][data-channel=<id>]`. Until then, chat isolation stays asserted at protocol level (`real-match.spec.ts`).
+- **Kept by foundation:** `window.__moonveil` (own seat data only) for reading the view and as the protocol fallback.
