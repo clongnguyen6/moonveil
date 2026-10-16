@@ -1,6 +1,6 @@
 # Moonveil rules proposal
 
-Status: **proposal, v0.4, 2026-10-16** (v0.2: revised after independent review of 9af74b8; v0.3–v0.4: Q10 execution threshold, Q06, Q14, Q20 and Q24 approved). Owner: rules scope (`packages/rules`, `docs/rules`).
+Status: **proposal, v0.5, 2026-10-16** (v0.2: revised after independent review of 9af74b8; v0.3–v0.5: Q10 execution threshold, Q06, Q14, Q20 (incl. Hunter exception), Q24 and the Q16 moderator Yes count approved). Owner: rules scope (`packages/rules`, `docs/rules`).
 Nothing below is an accepted rule unless it is listed under "Approved rules". Every other item is
 **provisional** until the Human approves it. The engine implements each provisional recommendation as a named
 setting (`config.*`) or one isolated function, so a decision changes a setting, not the engine. Approved rules are
@@ -20,7 +20,7 @@ Plain-language summary. "Recommend" is my suggestion only; every open line stays
 | Q25 | Voice and text | Day: everyone talks. Night: only living wolves, on their own channel. Defense: only the accused talks. Ghosts: their own channel, and they hear the day talk. Moderator hears everything |
 | Q26 | Someone drops during the night | What they already chose stands; anything missing counts as "do nothing". Nobody is told. Removing them waits until morning (except by the moderator) |
 | Q15 | Disconnected players | They stay in the game. Only the moderator, or the host after a long disconnect, can remove them |
-| Q16 | Moderator powers | Runs the pace, can act for a player, can set the day result after a show of hands, can remove a player or stop the match. Cannot break the rules, bring anyone back or undo |
+| Q16 (rest) | Moderator powers | Runs the pace, can act for a player, can set the wolves' target, can remove a player or stop the match. Cannot break the rules, bring anyone back or undo. (Entering the Yes count is decided.) |
 | Q17 ★ | Roles per player count | About one Wolf per three players (table in Q17). At 6 players, Hunter instead of Witch, and the app refuses custom setups that the Wolves could win on the very first night |
 | Q18 | Number of players | 6 to 16 (16 still to be checked with the real screens and voice) |
 
@@ -32,6 +32,8 @@ Low-stakes defaults you could accept as a group: Q01, Q02, Q04, Q05, Q08, Q12, Q
 - Q14: zero survivors is a draw.
 - Q20: no role reveal on death.
 - Q24: ghost knowledge.
+- Q20 Hunter exception: the Hunter is revealed when the shot turn opens.
+- Q16: the moderator's Yes count.
 
 ## Approved rules (binding)
 
@@ -47,7 +49,10 @@ Low-stakes defaults you could accept as a group: Q01, Q02, Q04, Q05, Q08, Q12, Q
   - While the shot is pending, the Hunter gets no ghost voice or text (including ghost-chat history) and no new ghost-only knowledge.
   - Administrative removal (by the moderator, or by the host for a disconnected player) is not a gameplay death and gives no shot.
 - **Q14 Zero survivors (approved 2026-10-16).** If nobody survives after all pending Hunter shots and death chains have resolved, the match is a draw.
-- **Q20 Role reveal (approved 2026-10-16).** No role is revealed on death. All roles are revealed at match end. A Hunter is revealed by their shot. In practice the shot turn is public, so the Hunter is identified when it opens, even if they then let the time run out.
+- **Q20 Role reveal (approved 2026-10-16).** No role is revealed on death, and all roles are revealed at match end.
+  - **Hunter exception (approved 2026-10-16, replaces the earlier "revealed by shooting" wording):** the Hunter's identity and role are revealed when the 20 s shot turn opens, even if it then times out with no shot. Ordinary deaths still reveal no role.
+  - Rejected alternative: a uniform post-death window after every death, so that waiting would not reveal the Hunter. It would have cost about 20 s per death batch, roughly 2–3 min per match.
+- **Q16 Moderator Yes count (approved 2026-10-16).** For an in-person show of hands, the moderator may enter the Yes count, and the engine applies `Yes × 2 > living`. The moderator cannot override the threshold, and there is no command that sets the day result directly. The count must be a whole number from 0 to the number of living players at the moment it's entered.
 - **Q24 Ghost knowledge (approved 2026-10-16).** Ghosts keep what they legitimately learned while alive. They gain no additional secret roles, actions or wolf-channel access. Public events and ghost conversation are allowed, subject to the Hunter's pending-shot isolation (Q06). Not covered by this approval: whether the full night history is also shown at match end (`reveal.historyAtEnd`, still provisional).
 - **Day execution threshold (approved 2026-10-16).** In the Yes/No round, the accused is executed only if `Yes × 2 > number of living players`: a strict majority of *all* living players. Abstaining or not voting does not shrink the count, and disconnected players still count as living. (Players removed from the match are dead and no longer count.) Examples: 10 living, 6 Yes executes; 5 Yes doesn't; 3 Yes + 2 No doesn't. 7 living needs 4 Yes. The approval covers only this threshold. Nomination (Q09), vote visibility (Q22) and the rest of Q10 stay provisional.
 
@@ -179,10 +184,11 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 - **Alternatives**: automatic removal after N missed phases; a bot takes over the seat.
 - **Engine**: command `player.remove`; the authority check belongs to the server.
 
-## Q16 Moderator powers — product decision needed
-- **Interaction with the approved Q10 threshold**: "set the day result after a show of hands" lets the moderator decide an execution the engine can't count. Options: (a) the moderator enters the Yes count and the engine applies `Yes × 2 > living`; (b) the moderator applies the rule by hand (as now). I recommend (a); it isn't built yet.
+## Q16 Moderator powers — partly decided
+- **DECIDED part (2026-10-16)**: for a show of hands, the moderator enters the Yes count (`day.confirmCount`) and the engine applies the approved threshold. The direct "set the day result" power has been removed.
+- **Still open — how the trial itself is chosen in person**: today the moderator can only enter each player's nomination vote on their behalf (act for a seat). Options: (a) keep that; (b) add a moderator "nominee by show of hands" entry. I recommend (a) for now; (b) would be a new power and needs your decision.
 - **sky2 code**: in moderator mode the moderator enters every night action (MSC:136-140) and can eliminate anyone by day with no checks (MSC:142-146, MSS:707-734). In automatic mode the admin shows or hides boards and forces submission (AV1:186-237, 383-403).
-- **Recommend**: the moderator is a separate seat with no role and sees everything. They may: close any step at any time; submit or change any seat's action (for in-room play by gesture); set the wolves' target; set the day result directly (for example after a show of hands); remove a player; abort the match. Every moderator action is validated by the same rules and logged in the moderator view. No reviving, no undo, no changing roles in this version.
+- **Recommend**: the moderator is a separate seat with no role and sees everything. They may: close any step at any time; submit or change any seat's action (for in-room play by gesture); set the wolves' target; remove a player; abort the match. (Entering the Yes count is approved, see above.) Every moderator action is validated by the same rules and logged in the moderator view. No reviving, no undo, no changing roles in this version.
 - **Alternatives**: the moderator may break rules (free override); add undo of the last step.
 - **Engine**: actor `moderator`; `moderator.mayBreakRules=false`; `moderator.canSetDayOutcome=true`.
 
@@ -229,7 +235,7 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 - **Engine**: `timing.*`, `stepTiming()`.
 
 ## Q20 Reveal a role on death? — DECIDED 2026-10-16
-- **Decision**: no reveal on death; all roles at match end; the Hunter is revealed by their shot. The engine publishes `roleRevealed` for the Hunter when the public shot turn opens.
+- **Decision**: no reveal on death; all roles at match end. Hunter exception: the Hunter is revealed when the shot turn opens, even on timeout (approved 2026-10-16). The engine publishes `roleRevealed` for the Hunter at that moment. The uniform post-death window was the rejected alternative (about 20 s per death batch).
 - **Context**: the sky2 public history shows names only (MSS:686, 720), but its dead players could read every role (AV1C:73), which Q24 rules out.
 - **Engine**: fixed (the `reveal.roleOnDeath` setting was removed); tests in `test/approved.test.ts` and in the randomized invariants.
 

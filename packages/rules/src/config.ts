@@ -51,7 +51,6 @@ export interface RulesConfig {
   };
   moderator: {
     mayBreakRules: boolean; // Q16
-    canSetDayOutcome: boolean; // Q16
   };
   /** Q26: may the system/host remove a seat during a secret (night) step? Moderator always may. */
   removal: { systemDuringSecret: boolean };
@@ -115,7 +114,7 @@ export const DEFAULT_CONFIG: RulesConfig = {
     accusedVotesOnConfirm: true,
     openVotes: true,
   },
-  moderator: { mayBreakRules: false, canSetDayOutcome: true },
+  moderator: { mayBreakRules: false },
   removal: { systemDuringSecret: false },
   comms: { wolvesAtNight: true, livingHearPublicAtNight: false, defenseOnlyAccusedSpeaks: true, moderatorHearsAll: true },
   timing: {
@@ -164,7 +163,6 @@ export const PROVISIONAL: Record<string, string> = {
   'day.accusedVotesOnConfirm': 'Q10',
   'day.openVotes': 'Q22',
   'moderator.mayBreakRules': 'Q16',
-  'moderator.canSetDayOutcome': 'Q16',
   'removal.systemDuringSecret': 'Q26',
   'comms.wolvesAtNight': 'Q25',
   'comms.livingHearPublicAtNight': 'Q25',

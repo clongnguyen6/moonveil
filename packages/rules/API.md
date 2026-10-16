@@ -1,7 +1,7 @@
 # @moonveil/rules — API (v0.2)
 
 Pure, deterministic TypeScript engine. No IO, timers or network, and no runtime dependencies. The server hosts it.
-Rules: `docs/rules/PROPOSAL.md`. **Every `config` key, and so every default behaviour, is provisional** until the Human approves it (`PROVISIONAL` maps each key to its proposal item). Approved (fixed, not settings), 2026-10-16: the six roles; the win conditions; resolve-before-victory; the day execution threshold `Yes × 2 > all living players`; Q06 Hunter; Q14 zero survivors = draw; Q20 no reveal on death; Q24 ghosts keep, never gain.
+Rules: `docs/rules/PROPOSAL.md`. **Every `config` key, and so every default behaviour, is provisional** until the Human approves it (`PROVISIONAL` maps each key to its proposal item). Approved (fixed, not settings), 2026-10-16: the six roles; the win conditions; resolve-before-victory; the day execution threshold `Yes × 2 > all living players`; Q06 Hunter; Q14 zero survivors = draw; Q20 no reveal on death (Hunter revealed when the shot turn opens); Q24 ghosts keep, never gain; Q16 moderator Yes count (`day.confirmCount`).
 
 ## Run
 ```
@@ -22,7 +22,7 @@ const engine = createRulesEngine({ config?, deck? });   // RulesEngine<HostState
 | `setup({seats, seed})` | same | seeded role assignment; throws only on an invalid player count/deck |
 | `phase(s) -> {name, secret, durationMs, earlyClose, ended}` | **+earlyClose** | `secret` = night steps, always `earlyClose=false` (Q11). By default only the Hunter step reports `earlyClose` (once the shot is in); votes run to their deadline (`timing.publicEarlyClose=false`, Q11/Q22) |
 | `submit(s, seatId, action)` | same, `error` +`code` | `action` = Command without `seat` (the engine injects the actor). Strictly parsed |
-| `moderate(s, action)` | **new** | any Command with seat indices: act for a seat, `wolf.decide`, `day.setOutcome`, `player.remove`, `match.abort`, `step.close` (Q16) |
+| `moderate(s, action)` | **new** | any Command with seat indices: act for a seat, `wolf.decide`, `day.confirmCount {yes}` (approved: engine applies `yes*2 > living`; `yes` must be an integer from 0 to the living count at apply time, else `bad_value`), `player.remove`, `match.abort`, `step.close`. There is no direct day-result command |
 | `remove(s, seatId)` | **new** | system/host removal; refused during secret steps (Q26). Pending night effects on a removed seat are void |
 | `advance(s)` | same | `step.close` as system |
 | `view(s, viewer)` | **+`{kind:'public'}`** | the Projection below, plus `seatIds` (index → SeatId) |
@@ -66,8 +66,8 @@ stepTiming(state) -> {seconds, earlyCloseReady}   // for the automatic orchestra
 - Actors: `{kind:'seat', seat}`, `{kind:'moderator'}`, `{kind:'system'}`. The server authenticates; the engine authorizes:
   - A seat may only issue its own seat commands.
   - The moderator may issue any command, including acting for any seat (`moderator.mayBreakRules=false`: still validated).
-  - `step.close`, `player.remove` and `match.abort` are moderator or system only. `wolf.decide` and `day.setOutcome` are moderator only.
-- Errors: `forbidden | wrong_step | bad_seat | bad_target | rule | locked | ended`. Return only the code and message to the caller; never broadcast them.
+  - `step.close`, `player.remove` and `match.abort` are moderator or system only. `wolf.decide` and `day.confirmCount` are moderator only. Unknown command types are rejected (`bad_value`).
+- Errors: `forbidden | wrong_step | bad_seat | bad_target | bad_value | rule | locked | ended`. Return only the code and message to the caller; never broadcast them.
 
 ## Steps (state.step.kind)
 `night.main` (wolves `wolf.pick`, seer `seer.inspect`, guard `guard.protect`)
@@ -78,7 +78,7 @@ Every step advances only on `step.close`. Anything not submitted counts as a pas
 
 ## Orchestration
 - **Automatic**: on entering a step, start a timer of `stepTiming(state).seconds`. After every accepted command, if `earlyCloseReady` is true, you may close the step. When the timer fires, send `step.close` as `system`. Night steps never report early-ready (Q11), so the engine adds no timing signal. Server timers, moderator pacing and traffic are outside these tests.
-- **Moderator**: the moderator sends `step.close` when ready. They may also act for seats, set the pack target (`wolf.decide`), set the day result (`day.setOutcome {execute: seat|null}`), remove players or abort.
+- **Moderator**: the moderator sends `step.close` when ready. They may also act for seats, set the pack target (`wolf.decide`), enter a show-of-hands Yes count during `day.confirm` (`day.confirmCount {yes}`, which resolves the round immediately), remove players or abort.
 - **Disconnects** (Q26): the engine has no notion of presence. A disconnected seat simply misses its inputs, which count as passes. `player.remove` is a death with cause `removed`, and victory is checked right after. A system removal is refused during night steps; the moderator may remove at any time.
 
 ## Projection (secrecy contract)

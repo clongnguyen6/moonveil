@@ -101,11 +101,7 @@ const SWAPS: Record<string, [Cfg, (cfg: Cfg) => unknown]> = {
     (c) => apply(close(close(day1Voted(c))), S(0), { type: 'vote.confirm', seat: 0, choice: 'no' }).ok,
   ],
   'day.openVotes': [{ day: { openVotes: false } }, (c) => project(day1Voted(c), { kind: 'public' }).step],
-  'moderator.mayBreakRules': [{ moderator: { mayBreakRules: true, canSetDayOutcome: true } }, (c) => apply(match(undefined, c), MOD, { type: 'seer.inspect', seat: 2, target: 2 }).ok],
-  'moderator.canSetDayOutcome': [
-    { moderator: { mayBreakRules: false, canSetDayOutcome: false } },
-    (c) => apply(night(match(undefined, c), { bite: 'pass' }), MOD, { type: 'day.setOutcome', execute: 6 }).ok,
-  ],
+  'moderator.mayBreakRules': [{ moderator: { mayBreakRules: true } }, (c) => apply(match(undefined, c), MOD, { type: 'seer.inspect', seat: 2, target: 2 }).ok],
   'removal.systemDuringSecret': [{ removal: { systemDuringSecret: true } }, (c) => apply(match(undefined, c), SYS, { type: 'player.remove', seat: 6 }).ok],
   'comms.wolvesAtNight': [{ comms: { wolvesAtNight: false } }, (c) => channelsFor(match(undefined, c), { kind: 'seat', seat: 0 })],
   'comms.livingHearPublicAtNight': [{ comms: { livingHearPublicAtNight: true } }, (c) => channelsFor(match(undefined, c), { kind: 'seat', seat: 6 })],

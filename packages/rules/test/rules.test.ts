@@ -265,7 +265,7 @@ describe('APPROVED 2026-10-16: execution needs Yes * 2 > all living players', ()
     assert.equal(vote(atConfirm(R10), [1, 2, 3, 4, 5], [6, 7, 8, 9, 0]).seats[0]?.alive, true);
     const s = vote(atConfirm(R10), [1, 2, 3], [4, 5]);
     assert.equal(s.seats[0]?.alive, true);
-    assert.deepEqual(lastLog(s, 'confirm'), { t: 'confirm', day: 1, accused: 0, yes: 3, no: 2, votes: [null, 'yes', 'yes', 'yes', 'no', 'no', null, null, null, null], executed: false });
+    assert.deepEqual(lastLog(s, 'confirm'), { t: 'confirm', day: 1, accused: 0, counted: 'votes', yes: 3, no: 2, votes: [null, 'yes', 'yes', 'yes', 'no', 'no', null, null, null, null], executed: false });
   });
 
   it('abstaining and disconnected (silent) seats stay in the denominator; the accused counts even if barred from voting', () => {

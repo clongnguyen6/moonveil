@@ -112,7 +112,7 @@ export function check(state: MatchState, actor: Actor, cmd: Command): EngineErro
 
 // ---------- authorization ----------
 
-const MOD_ONLY = new Set<Command['type']>(['wolf.decide', 'day.setOutcome']);
+const MOD_ONLY = new Set<Command['type']>(['wolf.decide', 'day.confirmCount']);
 const MOD_OR_SYSTEM = new Set<Command['type']>(['step.close', 'player.remove', 'match.abort']);
 
 function authorize(actor: Actor, cmd: Command): EngineError | null {
@@ -288,15 +288,17 @@ function handle(state: MatchState, cmd: Command, lax: boolean, dry = false, acto
       step.shots[cmd.seat] = cmd.target;
       return null;
     }
-    case 'day.setOutcome': {
+    case 'day.confirmCount': {
+      // APPROVED Q16: validated against the authoritative living count now; never bypassable (not a 'rule' error).
       const step = state.step;
-      if (!c.moderator.canSetDayOutcome) return err('forbidden', 'day outcome override disabled');
-      if (!step.kind.startsWith('day.')) return err('wrong_step', 'not day');
-      if (cmd.execute !== null && !isAlive(state, cmd.execute)) return err('bad_target', 'target not alive');
+      if (step.kind !== 'day.confirm') return err('wrong_step', 'not the Yes/No round');
+      const living = state.seats.filter((s) => s.alive).length;
+      if (typeof cmd.yes !== 'number' || !Number.isInteger(cmd.yes) || cmd.yes < 0 || cmd.yes > living) {
+        return err('bad_value', `yes count must be an integer from 0 to ${living}`);
+      }
       if (dry) return null;
-      state.publicLog.push({ t: 'dayOutcomeSet', day: state.day, execute: cmd.execute });
-      if (cmd.execute === null) startNight(state);
-      else execute(state, cmd.execute);
+      const r = tallyConfirm(Array<'yes'>(cmd.yes).fill('yes'), living);
+      resolveConfirm(state, step.accused, 'moderator', r.yes, null, null, r.executed);
       return null;
     }
     case 'player.remove': {
@@ -316,6 +318,9 @@ function handle(state: MatchState, cmd: Command, lax: boolean, dry = false, acto
       if (dry) return null;
       closeStep(state);
       return null;
+    default:
+      // Runtime guard: callers bypassing parseCommand must not get a silent success.
+      return err('bad_value', `unknown command ${(cmd as { type?: unknown }).type}`);
   }
 }
 
@@ -355,17 +360,7 @@ function closeStep(state: MatchState): void {
     case 'day.confirm': {
       // Approved: denominator = all living players (incl. the accused, abstainers, disconnected seats).
       const r = tallyConfirm(step.votes, state.seats.filter((s) => s.alive).length);
-      state.publicLog.push({
-        t: 'confirm',
-        day: state.day,
-        accused: step.accused,
-        yes: r.yes,
-        no: r.no,
-        votes: c.day.openVotes ? [...step.votes] : null,
-        executed: r.executed,
-      });
-      if (r.executed) execute(state, step.accused);
-      else startNight(state);
+      resolveConfirm(state, step.accused, 'votes', r.yes, r.no, c.day.openVotes ? [...step.votes] : null, r.executed);
       return;
     }
     case 'hunter':
@@ -374,6 +369,20 @@ function closeStep(state: MatchState): void {
     case 'ended':
       return;
   }
+}
+
+function resolveConfirm(
+  state: MatchState,
+  accused: Seat,
+  counted: 'votes' | 'moderator',
+  yes: number,
+  no: number | null,
+  votes: ('yes' | 'no' | null)[] | null,
+  executed: boolean,
+): void {
+  state.publicLog.push({ t: 'confirm', day: state.day, accused, counted, yes, no, votes, executed });
+  if (executed) execute(state, accused);
+  else startNight(state);
 }
 
 function afterDefense(state: MatchState, accused: Seat): void {
@@ -501,7 +510,7 @@ function afterDeaths(state: MatchState, deaths: { seat: Seat; cause: DeathCause 
   if (hunters.length > 0) {
     state.step = { kind: 'hunter', pending: hunters, shots: state.seats.map(() => null), then };
     state.publicLog.push({ t: 'hunterTurn', seats: hunters });
-    // APPROVED Q20: no role is revealed on death; the Hunter is revealed by their (public) shot turn.
+    // APPROVED Q20 (2026-10-16): no role is revealed on death, except the Hunter, revealed when the shot turn opens (even on timeout).
     for (const h of hunters) state.publicLog.push({ t: 'roleRevealed', seat: h, role: 'hunter' });
     return;
   }
