@@ -31,12 +31,13 @@ Maintained by Lead (93ca0cd6-c546-456f-b97f-c3c9c4115a14). Peers: read, don't ed
 - Unresolved gameplay may be explored only as clearly provisional, isolated prototypes; never accepted production rules without Human approval.
 
 ## Pending Human decisions
-- Standing permission to ff-merge scope branches into `dev` (not main) after owner checks + Lead diff review? [raised to Supervisor]
+- Standing permission to ff-merge scope branches into `dev` (not main) after owner checks + Lead diff review? [pending, NOT approved]
+- Rollback of Homebrew livekit-server install. [pending Peer report, then Human]
 - Coming: rules proposal, preview approval, voice provider/cost.
 
 ## Risks / notes
 - Some web doc fetches are being rejected by the permission system; Peers source claims locally and label provenance; don't retry denied calls.
-- Voice Peer installed livekit-server via Homebrew (outside Moonveil, before the rule was stated). No further global installs; tools stay inside Moonveil. Record for later removal.
+- INCIDENT: Voice Peer installed livekit-server system-wide via Homebrew. Outside existing authorization (WORKSPACE_PROTOCOL already limited writes to Moonveil). Pending: Peer's exact report (command/time, packages, running services, rollback + shared-machine impact) in docs/voice/INSTALL_INCIDENT.md. No uninstall, service stop or other outside-repo change without Human approval. Tools stay inside Moonveil.
 
 ## Acceptance evidence
 - (none yet)
