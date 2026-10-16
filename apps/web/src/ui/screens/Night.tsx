@@ -174,7 +174,7 @@ export function WitchPanel({ view, g, title }: PanelProps & { title: string }) {
       buttons={
         <>
           <Button kind="quiet" disabled={!poison || poison.current === 'pass'} onClick={() => session.send({ t: 'act', action: act.witchPoison('pass') })}>{t('pass')}</Button>
-          <Button testId="confirm" disabled={!poison || sel === null || sel === poison.current} onClick={() => sel !== null && session.send({ t: 'act', action: act.witchPoison(sel) })}>{t('witchPoisonQ')}</Button>
+          <Button testId="confirm" disabled={!poison || sel === null || sel === poison.current} onClick={() => sel !== null && session.send({ t: 'act', action: act.witchPoison(sel) })}>{t('potionPoison')}</Button>
         </>
       }
     >

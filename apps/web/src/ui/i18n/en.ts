@@ -75,9 +75,15 @@ export const en = {
   modYesCount: 'Yes votes counted at the table', modYesHint: 'Enter the Yes count from the show of hands. The app applies Yes×2 > living.', modApply: 'Apply',
   modPendingApi: 'Waiting for the rules update; not sent yet.', modSecretWarn: 'Secret info. Keep the screen to yourself.', modNoBallots: 'Ballots are not shown.',
   modNoTimer: 'No timer. You set the pace.', modVictim: 'Pack victim', modPicks: 'Wolf picks', modInspect: 'Seer looks at', modGuard: 'Guard protects', modHeal: 'Heal', modPoison: 'Poison',
+  modSubmitted: 'Night inputs in: {n} of {total}', modSay: 'Say',
+  sayNightMain: 'Everyone, eyes closed. Wolves, open your eyes and choose. Seer, look. Guard, protect.',
+  sayNightWitch: 'Wolves, eyes closed. Witch, open your eyes.', sayHunter: '{name} is the Hunter. Hunter, take your shot.',
+  sayDawnDead: 'Morning. Last night we lost {names}.', sayDawnNobody: 'Morning. Nobody died last night.', sayVote: 'Nominate someone, or Skip. Votes close at the deadline.',
+  sayDefense: '{name}, your defense. Everyone else listens.', sayConfirm: 'Hands up to execute {name}. Count the Yes votes and enter the number.', sayEnded: 'The match is over. Roles are revealed.',
+  confirmYesOnly: 'Yes {yes} (counted by the moderator)',
   modAlive: 'alive', modDead: 'dead', modDisconnected: 'disconnected', modInPerson: 'In-person room',
 
-  chatTitle: 'Chat', chatPh: 'Message…', chatNone: 'No messages yet.', chatListenOnly: 'You can read, not write, here now.', chatPublic: 'Camp', chatWolves: 'Wolves', chatGhosts: 'Ghosts',
+  chatTitle: 'Chat', chatPh: 'Message…', chatNone: 'No messages yet.', chatQuiet: 'Quiet for now. Chat opens when you may talk.', chatListenOnly: 'You can read, not write, here now.', chatPublic: 'Camp', chatWolves: 'Wolves', chatGhosts: 'Ghosts',
   voiceMic: 'Mic', voiceMute: 'Mute', voiceUnmute: 'Unmute', voiceMuted: 'Muted', voiceListen: 'Listen only', voiceOff: 'Voice off', voiceTalking: 'Talking', voiceChannel: 'Channel',
 
   helpTitle: 'How to play', helpFlow: 'Each night the wolves pick a victim and special roles act. At dawn the dead are announced. By day everyone talks, nominates one player, hears their defense and votes Yes or No.',

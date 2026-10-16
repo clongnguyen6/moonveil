@@ -19,11 +19,16 @@ export interface SeatGridProps {
   speaking?: SeatId[];
   showDead?: boolean;
   testPrefix?: string;
+  /** 'public' (default): tag roles only when publicly revealed or at match end. 'all': every role the view knows (moderator, end). */
+  roles?: 'public' | 'all';
 }
 
-export function SeatGrid({ view, g, enabled, selected, onSelect, seats, tags, speaking, showDead = true, testPrefix = 'seat' }: SeatGridProps) {
+export function SeatGrid({ view, g, enabled, selected, onSelect, seats, tags, speaking, showDead = true, testPrefix = 'seat', roles = 'public' }: SeatGridProps) {
   const t = useT();
   const me = g.viewer.kind === 'seat' ? g.viewer.seat : null;
+  const ended = g.step.kind === 'ended';
+  const revealed = new Set(g.publicLog.filter((e) => e.t === 'roleRevealed').map((e) => (e as { seat: Seat }).seat));
+  const showRole = (i: Seat) => roles === 'all' || ended || revealed.has(i);
   const list = seats ?? g.seats.map((s) => s.seat);
   const en = enabled ? new Set(enabled) : null;
   return (
@@ -51,7 +56,7 @@ export function SeatGrid({ view, g, enabled, selected, onSelect, seats, tags, sp
             <Avatar p={p} dead={!sv.alive} speaking={isSpeaking} />
             <span className="meta">
               <span className="nm">{p.name}{i === me ? ` (${t('you')})` : ''}</span>
-              {sv.role && <span className="tag accent">{t.role(sv.role)}</span>}
+              {sv.role && showRole(i) && <span className={`tag team-${sv.role === 'wolf' ? 'wolves' : 'village'}`}>{t.role(sv.role)}</span>}
             </span>
             <span className="right">
               {tag && <span className={`tag ${tag.accent ? 'accent' : ''}`}>{tag.text}</span>}

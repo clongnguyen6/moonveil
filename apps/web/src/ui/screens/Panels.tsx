@@ -180,6 +180,14 @@ export function ChatSheet({ s, view, onClose }: { s: SessionState; view: SeatVie
     log.current?.scrollTo({ top: log.current.scrollHeight });
   }, [msgs.length, active]);
   const speak = canSpeak(view, active);
+  if (channels.length === 0) {
+    // No listen grant on any channel (e.g. a living non-wolf at night). Same button, same sheet; no channel named.
+    return (
+      <Sheet title={t('chatTitle')} onClose={onClose} testId="chat-sheet">
+        <p className="muted" data-testid="chat-quiet">{t('chatQuiet')}</p>
+      </Sheet>
+    );
+  }
   const submit = () => {
     const v = text.trim();
     if (!v || !speak) return;
@@ -227,18 +235,28 @@ export function GhostBar({ view, g }: { view: SeatView; g: GameView }) {
 }
 
 /** Mic button + channel label strictly from grants. No grant for a channel = no trace of it. */
-export function VoiceBar({ s, view, mic }: { s: SessionState; view: SeatView; mic: Mic }) {
+export function VoiceBar({ s, view, mic, night }: { s: SessionState; view: SeatView; mic: Mic; night?: boolean }) {
   const t = useT();
   const speakOn = view.voice.filter((v) => v.speak).map((v) => v.channel as ChannelId);
   const off = s.voiceMode === 'inPerson';
   const listenOnly = speakOn.length === 0;
   const label = off ? t('voiceOff') : listenOnly ? t('voiceListen') : mic.muted ? t('voiceMuted') : t(CHANNEL_LABEL[speakOn[0]!]);
+  // Night: one neutral button for every seat, no channel label, so the top bar gives no role tell at a glance.
+  // A wolf's tap still toggles mute (grant-driven); the label is in the aria text only.
+  if (night) {
+    return (
+      <div className="mic-bar" data-testid="voice" data-speak={speakOn.join(',')}>
+        {/* never `disabled` here: a dimmed button would mark the seats that cannot speak */}
+        <Button kind="icon" label={label} onClick={() => !off && !listenOnly && mic.setMuted(!mic.muted)}>🎙️</Button>
+      </div>
+    );
+  }
   return (
     <div className="mic-bar" data-testid="voice" data-speak={speakOn.join(',')}>
       <Button kind="icon" label={mic.muted ? t('voiceUnmute') : t('voiceMute')} pressed={!off && !listenOnly && !mic.muted} disabled={off || listenOnly} onClick={() => mic.setMuted(!mic.muted)}>
         {off || listenOnly || mic.muted ? '🔇' : '🎙️'}
       </Button>
-      <span className="pill">{label}</span>
+      <span className="pill voice-label">{label}</span>
     </div>
   );
 }

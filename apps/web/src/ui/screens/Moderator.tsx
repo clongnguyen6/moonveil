@@ -35,6 +35,8 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
         <div className="stack">
           <p><strong data-testid="mod-step">{stepName}</strong> · {g.step.kind.startsWith('night') ? t('phaseNight', { n: g.night }) : t('phaseDiscuss', { d: g.day }).split(' ·')[0]} · {t('livingCount', { n: living })}</p>
           <p className="hint">{view.phaseEndsAt === null ? t('modNoTimer') : ''}</p>
+          <p className="card" style={{ padding: 10 }} data-testid="mod-say">🗣 {narration(t, g, view)}</p>
+          {m?.nightRec && g.step.kind.startsWith('night') && <p className="hint">{t('modSubmitted', { n: submittedCount(g), total: expectedCount(g) })}</p>}
           {g.step.kind === 'hunter' && <p className="hint">{t('hunterOthers', { name: g.step.pending.map((p) => nameAt(view, g, p)).join(', ') })}</p>}
           {g.step.kind === 'day.confirm' && (
             <div className="card stack" style={{ padding: 12 }}>
@@ -44,7 +46,7 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
               </label>
               <p className="hint">{t('modYesHint')}</p>
               <Button kind="secondary" testId="yes-apply" onClick={() => sendMod(mod.yesCount(yes))}>{t('modApply')}</Button>
-              <p className="muted" style={{ fontSize: 'var(--fs-0)' }}>{t('modPendingApi')} · {t('modNoBallots')}</p>
+              <p className="muted" style={{ fontSize: 'var(--fs-0)' }}>{t('modNoBallots')}</p>
             </div>
           )}
           {(g.step.kind === 'day.vote') && <p className="muted">{t('modNoBallots')}</p>}
@@ -55,7 +57,7 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
 
       {tab === 'seats' && (
         <div className="stack">
-          <SeatGrid view={view} g={g} testPrefix="mod-seat" />
+          <SeatGrid view={view} g={g} testPrefix="mod-seat" roles="all" />
           <div className="row wrap">
             {g.seats.filter((s) => s.alive).map((s) => (
               <Button key={s.seat} kind="quiet" disabled={ended} onClick={() => setAsk({ text: t('modRemoveConfirm', { name: nameAt(view, g, s.seat) }), yes: t('modRemove'), danger: true, run: () => sendMod(mod.remove(s.seat)) })}>
@@ -90,6 +92,32 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
   );
 }
 
+function narration(t: ReturnType<typeof useT>, g: GameView, view: SeatView): string {
+  const s = g.step;
+  switch (s.kind) {
+    case 'night.main': return t('sayNightMain');
+    case 'night.witch': return t('sayNightWitch');
+    case 'hunter': return t('sayHunter', { name: s.pending.map((p) => nameAt(view, g, p)).join(', ') });
+    case 'day.discussion': { const d = g.publicLog.filter((e) => e.t === 'dawn').at(-1); const dead = d && d.t === 'dawn' ? d.dead.map((x) => nameAt(view, g, x)).join(', ') : ''; return dead ? t('sayDawnDead', { names: dead }) : t('sayDawnNobody'); }
+    case 'day.vote': return t('sayVote');
+    case 'day.defense': return t('sayDefense', { name: nameAt(view, g, s.accused) });
+    case 'day.confirm': return t('sayConfirm', { name: nameAt(view, g, s.accused) });
+    case 'ended': return t('sayEnded');
+  }
+}
+/** Moderator-only: how many night inputs are in (from the moderator projection's night record). */
+function submittedCount(g: GameView): number {
+  const r = g.moderator?.nightRec;
+  if (!r) return 0;
+  if (g.step.kind === 'night.witch') return (r.heals.filter((x) => x !== null).length > 0 ? 1 : 0) + (r.poisons.filter((x) => x !== null).length > 0 ? 1 : 0);
+  return r.wolfPicks.filter((x) => x !== null).length + r.inspections.filter((x) => x !== null).length + r.guards.filter((x) => x !== null).length;
+}
+function expectedCount(g: GameView): number {
+  const seats = g.moderator?.seats ?? [];
+  if (g.step.kind === 'night.witch') return seats.filter((s) => s.alive && s.role === 'witch').length * 2;
+  return seats.filter((s) => s.alive && (s.role === 'wolf' || s.role === 'seer' || s.role === 'guard')).length;
+}
+
 export function PublicLog({ view, g }: { view: SeatView; g: GameView }) {
   const t = useT();
   const n = (s: number | null) => (s === null ? '—' : nameAt(view, g, s));
@@ -101,13 +129,12 @@ export function PublicLog({ view, g }: { view: SeatView; g: GameView }) {
           case 'dawn': return <li key={i}>{t('dawnTitle')}: {e.dead.length ? t('dawnDied', { names: e.dead.map(n).join(', ') }) : t('dawnNobody')}</li>;
           case 'dayStart': return <li key={i}><strong>{t('phaseDiscuss', { d: e.day }).split(' ·')[0]}</strong></li>;
           case 'nomination': return <li key={i}>{e.accused === null ? t('voteNoTrialTie') : t('voteTrial', { name: n(e.accused) })} ({e.tally.map((x) => `${x.target === 'skip' ? t('skip') : n(x.target)} ${x.count}`).join(', ')})</li>;
-          case 'confirm': return <li key={i}>{t('confirmResult', { yes: e.yes, no: e.no })} → {e.executed ? t('confirmExecuted', { name: n(e.accused) }) : t('confirmSpared', { name: n(e.accused) })}</li>;
+          case 'confirm': return <li key={i}>{e.counted === 'moderator' ? t('confirmYesOnly', { yes: e.yes }) : t('confirmResult', { yes: e.yes, no: e.no ?? 0 })} → {e.executed ? t('confirmExecuted', { name: n(e.accused) }) : t('confirmSpared', { name: n(e.accused) })}</li>;
           case 'executed': return <li key={i} className="danger">{t('annExecuted', { name: n(e.seat) })}</li>;
           case 'hunterTurn': return <li key={i}>{t('annHunter', { name: e.seats.map(n).join(', ') })}</li>;
           case 'shot': return <li key={i}>{e.target === null ? t('hunterNoShot', { by: n(e.by) }) : t('hunterShot', { by: n(e.by), target: n(e.target) })}</li>;
           case 'roleRevealed': return <li key={i}>{n(e.seat)}: {t.role(e.role)}</li>;
           case 'removed': return <li key={i}>{t('modRemove')}: {n(e.seat)}</li>;
-          case 'dayOutcomeSet': return <li key={i}>{t('moderator')}: {e.execute === null ? t('voteNoTrial') : t('annExecuted', { name: n(e.execute) })}</li>;
           case 'ended': return <li key={i}><strong>{t('annOver')}</strong></li>;
         }
       })}

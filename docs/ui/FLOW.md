@@ -57,6 +57,21 @@ Match (frame = scene host + top bar + dock)
 - Phone portrait: scene top, dock bottom (≤ 62 % height, scrolls). Phone landscape / laptop (≥ 700 px, landscape): scene left, dock right (420–440 px).
 - Contrast: ink on surfaces ≥ 7:1 in both skins (tokens chosen for it; verify after theme decision).
 
+## Uniformity guards (night) and residual tells
+- Same panel structure for every role (checked: `panel-head>hint>info-slot>seat-grid>btn-row>muted` on villager, seer, guard, wolf).
+- Top bar: same button count for every seat at night; mic button neutral and label-less at night; chat button always present (a seat with no listen grant gets an empty "quiet" sheet, no channel named).
+- Seat grid tags roles only when publicly revealed (Hunter turn) or at match end; own role and pack live in the role card (tap to reveal).
+- Residual: a wolf's mic tap toggles the glyph; the Witch panel has heal buttons in the info slot (same slot height). In in-person rooms voice is off, which removes the mic tell where glancing is possible.
+- Not covered here: wire traffic (PROPOSALS.md P10) and voice-provider metadata (voice scope).
+
+## Checks (this branch)
+- `node scripts/env.mjs node apps/web/src/ui/dev/check.mjs` (vite on 4401): 29 interaction checks on the stub in Chromium headless shell: night submit/change, panel uniformity, seer result, witch heal, own-ballot-only votes, confirm→close, Hunter lock, ghost/living chat isolation in the DOM, chat send, reconnect overlay, role card hidden-until-tap, moderator close step + Yes count, full automatic match with bots to `ended`, no page errors.
+- `apps/web/src/ui/dev/capture.mjs`: screenshots (phone 390×844 @2x, landscape 844×390, laptop 1440×900; WebKit iPhone 13 emulation for three). All browser emulation.
+- Root `npm run typecheck`, `npm test` pass on the branch (rules 183/183, server 20/20).
+
+## Language
+Default proposal: UI follows the browser language (`vi` → Tiếng Việt, else English), switchable in Entry/Lobby/Settings and remembered on the device. Both tables are complete (`ui/i18n/en.ts`, `vi.ts`).
+
 ## Not in this increment
 - Scene canvas mount (`scene-slot` is reserved; `packages/scene` lands via INTEGRATION.md).
 - Real voice (mic hook proves capture; LiveKit adapter is voice scope).

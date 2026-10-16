@@ -20,7 +20,6 @@ export const mod = {
   closeStep: () => ({ type: 'step.close' }),
   remove: (seat: Seat) => ({ type: 'player.remove', seat }),
   abort: () => ({ type: 'match.abort' }),
-  /** APPROVED (Human, 2026-10-16): in-person mode the moderator enters the Yes count and the engine applies
-   *  Yes*2 > living. Command name pending the rules owner's API; `day.setOutcome` is not used by the UI. */
-  yesCount: (yes: number) => ({ type: 'day.setYesCount', yes }),
+  /** APPROVED Q16 (2026-10-16): the moderator enters the Yes count of a show of hands; the engine applies Yes*2 > living. */
+  yesCount: (yes: number) => ({ type: 'day.confirmCount', yes }),
 };

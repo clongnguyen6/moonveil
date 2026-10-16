@@ -76,9 +76,15 @@ export const vi: Strings = {
   modYesCount: 'Số phiếu Có đếm tại bàn', modYesHint: 'Nhập số phiếu Có từ giơ tay. Ứng dụng áp dụng Có×2 > còn sống.', modApply: 'Áp dụng',
   modPendingApi: 'Chờ cập nhật luật; chưa gửi.', modSecretWarn: 'Thông tin mật. Giữ màn hình cho riêng bạn.', modNoBallots: 'Không hiển thị lá phiếu.',
   modNoTimer: 'Không có đồng hồ. Bạn giữ nhịp.', modVictim: 'Nạn nhân của bầy', modPicks: 'Sói chọn', modInspect: 'Tiên tri soi', modGuard: 'Bảo vệ che', modHeal: 'Cứu', modPoison: 'Độc',
+  modSubmitted: 'Đã nhận hành động đêm: {n}/{total}', modSay: 'Nói',
+  sayNightMain: 'Mọi người nhắm mắt. Sói mở mắt và chọn. Tiên tri soi. Bảo vệ che.',
+  sayNightWitch: 'Sói nhắm mắt. Phù thủy mở mắt.', sayHunter: '{name} là Thợ săn. Thợ săn, hãy bắn.',
+  sayDawnDead: 'Trời sáng. Đêm qua {names} đã chết.', sayDawnNobody: 'Trời sáng. Đêm qua không ai chết.', sayVote: 'Đề cử một người, hoặc Không ai. Hết giờ sẽ chốt phiếu.',
+  sayDefense: '{name} biện hộ. Mọi người lắng nghe.', sayConfirm: 'Giơ tay nếu muốn treo cổ {name}. Đếm số phiếu Có và nhập vào.', sayEnded: 'Ván kết thúc. Lộ vai.',
+  confirmYesOnly: 'Có {yes} (quản trò đếm)',
   modAlive: 'sống', modDead: 'chết', modDisconnected: 'mất kết nối', modInPerson: 'Phòng chơi trực tiếp',
 
-  chatTitle: 'Chat', chatPh: 'Nhắn gì đó…', chatNone: 'Chưa có tin nhắn.', chatListenOnly: 'Lúc này bạn chỉ đọc, không viết được.', chatPublic: 'Trại', chatWolves: 'Sói', chatGhosts: 'Ma',
+  chatTitle: 'Chat', chatPh: 'Nhắn gì đó…', chatNone: 'Chưa có tin nhắn.', chatQuiet: 'Đang yên lặng. Chat mở khi bạn được nói.', chatListenOnly: 'Lúc này bạn chỉ đọc, không viết được.', chatPublic: 'Trại', chatWolves: 'Sói', chatGhosts: 'Ma',
   voiceMic: 'Mic', voiceMute: 'Tắt mic', voiceUnmute: 'Bật mic', voiceMuted: 'Đã tắt mic', voiceListen: 'Chỉ nghe', voiceOff: 'Tắt thoại', voiceTalking: 'Đang nói', voiceChannel: 'Kênh',
 
   helpTitle: 'Cách chơi', helpFlow: 'Mỗi đêm sói chọn nạn nhân và các vai đặc biệt hành động. Sáng ra công bố người chết. Ban ngày mọi người thảo luận, đề cử một người, nghe biện hộ rồi bỏ phiếu Có hoặc Không.',

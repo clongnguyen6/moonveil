@@ -101,19 +101,18 @@ function Match({ s, view, g, mic, open, overlay }: { s: SessionState; view: Seat
   const t = useT();
   const isMod = view.me.kind === 'moderator';
   const fam = famOf(g.step.kind);
-  const hasChat = view.voice.some((v) => v.listen);
   return (
     <div className="frame" data-testid="match" data-step={g.step.kind}>
       <div className="scene-host">
         <div className="scene-slot" data-testid="scene-slot" aria-hidden="true" /> {/* packages/scene mounts here (INTEGRATION.md) */}
         <div className="topbar">
-          <div>
+          <div className="titles">
             <div className="title" data-testid="phase-title">{phaseTitle(t, g)}</div>
             <div className="sub">{view.code} · {isMod ? t('moderator') : nameAt(view, g, g.viewer.kind === 'seat' ? g.viewer.seat : null)}</div>
           </div>
           <div className="tools">
-            {!isMod && <VoiceBar s={s} view={view} mic={mic} />}
-            {hasChat && <Button kind="icon" label={t('chat')} testId="open-chat" onClick={() => open('chat')}>💬</Button>}
+            {!isMod && <VoiceBar s={s} view={view} mic={mic} night={fam === 'night'} />}
+            <Button kind="icon" label={t('chat')} testId="open-chat" onClick={() => open('chat')}>💬</Button>
             {!isMod && <Button kind="icon" label={t('roleCard')} testId="open-role" onClick={() => open('role')}>🎭</Button>}
             <Button kind="icon" label={t('help')} testId="open-help" onClick={() => open('help')}>?</Button>
             <Button kind="icon" label={t('settings')} onClick={() => open('settings')}>⚙</Button>
@@ -188,7 +187,7 @@ function useAnnouncer(view: SeatView | null, g: GameView | null, t: T) {
         case 'nightStart': cues.push('night'); show(t('annNight')); break;
         case 'dawn': cues.push(e.dead.length ? 'death' : 'dawn'); show(t('dawnTitle'), e.dead.length ? t('dawnDied', { names: e.dead.map(n).join(', ') }) : t('dawnNobody')); break;
         case 'nomination': push(e.accused === null ? t('voteNoTrialTie') : t('voteTrial', { name: n(e.accused) })); break;
-        case 'confirm': push(`${t('confirmResult', { yes: e.yes, no: e.no })}`); break;
+        case 'confirm': push(e.counted === 'moderator' ? t('confirmYesOnly', { yes: e.yes }) : t('confirmResult', { yes: e.yes, no: e.no ?? 0 })); break;
         case 'executed': cues.push('death'); show(t('annExecuted', { name: n(e.seat) })); break;
         case 'hunterTurn': cues.push('attention'); push(t('annHunter', { name: e.seats.map(n).join(', ') }), 'warn'); break;
         case 'shot': if (e.target !== null) { cues.push('death'); show(t('annShot', { by: n(e.by), target: n(e.target) })); } else push(t('hunterNoShot', { by: n(e.by) })); break;

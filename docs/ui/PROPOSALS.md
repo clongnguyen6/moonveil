@@ -24,15 +24,14 @@ Meanwhile: `SessionState.voiceMode` defaults to `remote`.
 ## P5. Phase start time (foundation, protocol) — nice to have
 `SeatView.phaseStartedAt: number | null` next to `phaseEndsAt`, so the timer ring is exact after reconnect. Meanwhile the ring starts from the moment the deadline was first seen; the number is always exact.
 
-## P6. Moderator enters the Yes count (rules) — approved behaviour, command missing
-Approved: in-person mode the moderator enters the Yes count and the engine applies Yes×2 > living; no direct "set result". Engine today has `day.setOutcome` (moderator may execute anyone) and no Yes-count command. Request: `{ type: 'day.setYesCount', yes: number }` in `day.confirm` (counts the accused's own vote per `day.accusedVotesOnConfirm`), publishing `confirm` with `votes: null`; and remove/disable `day.setOutcome`. UI already sends `day.setYesCount` from `src/game/commands.ts` (one constant); labelled "pending" in the console until the API lands.
+## P6. Moderator enters the Yes count (rules) — DONE in dev 58abc9e
+`day.confirmCount { yes }`; `confirm` log entry has `counted: 'moderator'`. UI sends it from `src/game/commands.ts`.
 
-## P7. Ballots out of the projection (rules) — approved "own ballot only"
-`StepView` for `day.vote`/`day.confirm` carries `votes` (when `day.openVotes`) and `voted: boolean[]`. Approved: a voter sees only their own choice until close; the moderator doesn't see ballots either. Request: drop `votes` and `voted` from seat and moderator projections (keep `me.actions[].current`), publish tallies only in the `nomination`/`confirm` log entries. UI never reads `votes`/`voted`.
+## P7. Ballots out of the projection (rules) — DONE in dev 58abc9e
+Players get `votes: null` mid-vote and `me.ballot`; UI reads `me.ballot` only. Still open (provisional, rules): `moderator.seesLiveBallots` and `day.showWhoVoted`. The UI never renders `votes`/`voted`, so either decision needs no UI change.
 
 ## P8. Workspace + typing (foundation)
-- Keep `packages/rules` in root `workspaces` (foundation-2 `cc560dd` lists workspaces explicitly without it; the web UI imports `@moonveil/rules` for types and the dev stub).
-- `apps/web/package.json`: add `"@moonveil/rules": "*"`.
+- `packages/rules` is in root `workspaces` on dev (done). `apps/web/package.json` still needs `"@moonveil/rules": "*"` so the dependency is declared, not just hoisted.
 - `SeatView.game` typed as `HostView | null` once wired (INTEGRATION.md item 3).
 
 ## P9. Shell handoff (foundation → game-ui)
