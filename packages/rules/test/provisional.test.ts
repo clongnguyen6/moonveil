@@ -83,7 +83,7 @@ const SWAPS: Record<string, [Cfg, (cfg: Cfg) => unknown]> = {
   'moderator.canActForSeats': [{ moderator: { canActForSeats: false } }, (c) => apply(match(undefined, c), MOD, { type: 'guard.protect', seat: 3, target: 6 }).ok],
   'moderator.canSetWolfTarget': [{ moderator: { canSetWolfTarget: false } }, (c) => apply(match(undefined, c), MOD, { type: 'wolf.decide', target: 6 }).ok],
   'moderator.seesLiveBallots': [{ moderator: { seesLiveBallots: false } }, (c) => project(day1Voted(c), { kind: 'moderator' }).step],
-  'moderator.speaksInPublic': [{ moderator: { speaksInPublic: false } }, (c) => channelsFor(match(undefined, c), { kind: 'moderator' })],
+  'moderator.speaksInPublic': [{ moderator: { speaksInPublic: true } }, (c) => channelsFor(match(undefined, c), { kind: 'moderator' })],
   'timing.discussionBase': [{ timing: { discussionBase: 30 } }, (c) => stepTiming(night(match(undefined, c), { bite: 'pass' })).seconds],
   'timing.discussionPerAlive': [{ timing: { discussionPerAlive: 20 } }, (c) => stepTiming(night(match(undefined, c), { bite: 'pass' })).seconds],
   'timing.discussionMin': [{ timing: { discussionMin: 200 } }, (c) => stepTiming(night(match(undefined, c), { bite: 'pass' })).seconds],
