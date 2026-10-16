@@ -66,6 +66,11 @@ Low-stakes defaults you could accept as a group: Q01, Q02, Q04, Q05, Q12, Q13, Q
   - Choices already submitted stay; a missing choice becomes a pass at the deadline.
   - Disconnected players stay alive and count in the execution threshold.
   - Reconnecting restores the same identity, role and state, with no extra knowledge.
+  - **No immunity for being offline (binding clarification):**
+    - A disconnected player can still be nominated and executed, and bitten or poisoned at night.
+    - Reconnecting never resurrects: a player eliminated while offline returns as a ghost.
+    - A Hunter eliminated while offline still gets the 20 s shot turn. If they reconnect in time they may shoot, with no ghost access until the turn resolves; otherwise it times out with no shot.
+    - Tests: `test/offline.test.ts`.
 - **Pause in automatic mode.**
   - Game timers pause while *all* player seats are disconnected, and resume when any player reconnects. A connected moderator or spectator doesn't prevent the pause.
   - Time spent paused never expires a phase; on resume the phase has exactly the time left that it had when it paused.
