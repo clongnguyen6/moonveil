@@ -8,9 +8,11 @@ Machine: macOS arm64, 11 cores. Wall time 1.3 min. Command:
 cd spikes/voice && npm test
 ```
 
-Verified revision: see "Run on SHA" below (the commit containing this file cannot name itself; the docs-only follow-up commit records it).
+## Run on SHA
+- Branch `voice`, commit `a94fe73d9860f43fb9f7251b1d64d634ad47866a` (rebased on `dev` b210c4d): run 6, 43/43 pass, 1.3 min, no spike processes left afterwards.
+- The same suite passed 43/43 on the pre-rebase commits 1c073be and 4ea8622 (runs 4 and 5). The commit that adds this section is docs-only.
 
-## Run 3 (2026-10-16, all 43 checks pass)
+## Checks (2026-10-16, identical list in runs 3–6, all PASS)
 
 ```
 PASS  lobby: wolf hears everyone

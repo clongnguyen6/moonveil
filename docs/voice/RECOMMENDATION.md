@@ -82,7 +82,7 @@ Fix adopted and verified: **rotate a channel whenever anyone must leave it**. Ne
 
 ## What the test proves (spikes/voice)
 
-Command: `cd spikes/voice && npm test` (starts LiveKit 1.13.10 + spike server if needed, 10 Chromium contexts, fake mic = 440 Hz tone, "hears" = inbound `totalAudioEnergy` grows over 2 s). Results, SHA and run log: see `docs/voice/TEST_RESULTS.md`.
+Command: `cd spikes/voice && npm test` (starts LiveKit 1.13.10 + spike server if needed, 10 Chromium contexts, fake mic = 440 Hz tone, "hears" = inbound `totalAudioEnergy` grows over 2 s). Results and the verified SHA: `docs/voice/TEST_RESULTS.md`.
 
 Checked by test: every channel rule in the table above, no participant-list/track/speaker leak to a villager at night, uniform event signatures at day→night, forced publish rejected server-side (villager at night, ghost in public), forged token rejected, stale tokens rejected after rotation, ghost never gets a wolves token, reconnect keeps identity and entitlements, in-person mode leaves LiveKit rooms empty, mic-denied player still hears.
 
