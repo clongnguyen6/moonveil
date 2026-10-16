@@ -1,6 +1,6 @@
 # Scene integration plan (proposal, visual scope)
 
-How the camp renderer will be driven by real game state from `apps/web` and the protocol in `dev` (foundation b3d9ece…3225999) and the rules projection (`rules` branch, `packages/rules/src/projection.ts`). Foundation code is not edited here; the interface below is what visual asks foundation to add.
+How the camp renderer will be driven by real game state from `apps/web` and the protocol in `dev` (foundation b3d9ece…3225999) and the rules projection (`rules` branch, `packages/rules/src/projection.ts`). Foundation code is not edited here; the interface below is what visual asks foundation to add. Status: principle accepted by Human (2026-10-16); living seats get no pose stream during play; moderator sees everything until the Q25 decision.
 
 ## Principle
 
@@ -8,7 +8,7 @@ The renderer is a pure function of three inputs: the seat's `SeatView` snapshot,
 
 ## Where code lives
 
-- `packages/scene` (visual): PixiJS scene, moved from `preview/src`. Exports `mountScene(host, opts): SceneHandle` with `setInput(SceneInput)`, `setPoses(PoseFrame)`, `setSpeaking(SeatId[])`, `on('move' | 'emote', cb)`, `resize()`, `destroy()`. No sockets, no React, no protocol imports beyond types.
+- `packages/scene` (visual): PixiJS scene (the former `preview/` renderer, now extracted). Exports `mountScene(host, opts): SceneHandle` with `setInput(SceneInput)`, `setPoses(PoseFrame)`, `setSpeaking(SeatId[])`, `on('move' | 'emote', cb)`, `setSafeArea()`, `destroy()`; `@moonveil/scene/map` is the DOM-free layout + `isWalkable` for the server; `@moonveil/scene/fixtures` is the stub server used by the dev harness and tests. No sockets, no React, no protocol imports.
 - `apps/web` (foundation): mounts the scene inside `Room` when `view` exists, maps `SeatView` to `SceneInput` (`toSceneInput`, type published by the scene package), forwards `move` events to the client, and keeps all HUD and game panels (ready, vote, night actions, moderator controls) in React over the canvas.
 - Rules (`packages/rules`): unchanged. The shell reads only public fields of `Projection`.
 
