@@ -125,9 +125,9 @@ const VARIANTS: [string, DeepPartial<RulesConfig>][] = [
 
 describe('randomized matches', () => {
   for (const [name, cfg] of VARIANTS) {
-    it(`${name}: 6-16 players x 4 seeds terminate with invariants intact`, () => {
+    it(`${name}: 7-15 players x 4 seeds terminate with invariants intact`, () => {
       const winners: Record<string, number> = {};
-      for (let n = 6; n <= 16; n++) {
+      for (let n = 7; n <= 15; n++) {
         for (let k = 0; k < 4; k++) {
           const s = simulate(n * 1000 + k, n, cfg);
           const w = s.outcome?.winner ?? 'none';

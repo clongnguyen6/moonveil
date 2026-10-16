@@ -1,7 +1,7 @@
 // Host contract for the server (adopted from foundation's draft apps/server/src/rules/engine.ts, with additions).
 // Seats inside the game are indices 0..n-1; `view().seatIds[i]` maps index -> server SeatId.
 import { type ChannelGrant, channelsFor } from './channels.ts';
-import { type DeepPartial, type DeckCounts, type RulesConfig, resolveConfig } from './config.ts';
+import { type DeepPartial, type DeckCounts, PLAYERS_MAX, PLAYERS_MIN, type RulesConfig, resolveConfig } from './config.ts';
 import { apply, createMatch, isSecretStep } from './engine.ts';
 import { stepTiming } from './policies.ts';
 import { deadlineOf, isExpired, type PhaseClock, pauseClock, remainingMs, resumeClock, startClock } from './clock.ts';
@@ -73,7 +73,7 @@ export interface RulesEngine<S> {
 
 export interface HostOptions {
   config?: DeepPartial<RulesConfig>;
-  /** Host-customized deck (Q17); default from config.distribution. */
+  /** Host-customized deck (approved Batch A, validated); default DEFAULT_DECKS. */
   deck?: (playerCount: number) => DeckCounts | undefined;
 }
 
@@ -91,8 +91,8 @@ export function createRulesEngine(opts: HostOptions = {}): RulesEngine<HostState
   };
   const eng: RulesEngine<HostState> = {
     id: 'moonveil-werewolf',
-    minPlayers: config.players.min,
-    maxPlayers: config.players.max,
+    minPlayers: PLAYERS_MIN,
+    maxPlayers: PLAYERS_MAX,
     setup({ seats, seed }) {
       const r = createMatch({ seed, playerCount: seats.length, config: opts.config, deck: opts.deck?.(seats.length) });
       if (!r.ok) throw new Error(r.error.message);

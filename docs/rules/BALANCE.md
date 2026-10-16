@@ -1,6 +1,6 @@
 # Moonveil balance screening — PROVISIONAL (Q17/Q18)
 
-Status: 2026-10-16. **Bots are not players.** This screens for obviously broken setups only; it does not set the role table. Real playtesting decides balance.
+Status: 2026-10-16. **Decided since:** Batch A (7–15 players; 2 Wolves at 7–12, 3 at 13–15). The 6- and 16-player rows below are historical. **Bots are not players.** This screens for obviously broken setups only; it does not set the role table. Real playtesting decides balance.
 Reproduce with `node packages/rules/sim/balance.ts 1000` (deterministic seeds). Rules: `rules-8` (f6d0836): approved rules including **open day ballots**, plus provisional defaults. Earlier hidden-ballot results are superseded.
 
 ## Method
