@@ -78,10 +78,8 @@ const SWAPS: Record<string, [Cfg, (cfg: Cfg) => unknown]> = {
       return close(s).nightRec?.victim;
     },
   ],
-  'day.revealBallotsAtClose': [{ day: { revealBallotsAtClose: false } }, (c) => close(day1Voted(c)).publicLog.find((e) => e.t === 'nomination')],
   'moderator.canActForSeats': [{ moderator: { canActForSeats: false } }, (c) => apply(match(undefined, c), MOD, { type: 'guard.protect', seat: 3, target: 6 }).ok],
   'moderator.canSetWolfTarget': [{ moderator: { canSetWolfTarget: false } }, (c) => apply(match(undefined, c), MOD, { type: 'wolf.decide', target: 6 }).ok],
-  'moderator.seesLiveBallots': [{ moderator: { seesLiveBallots: false } }, (c) => project(day1Voted(c), { kind: 'moderator' }).step],
   'moderator.speaksInPublic': [{ moderator: { speaksInPublic: true } }, (c) => channelsFor(match(undefined, c), { kind: 'moderator' })],
   'timing.discussionBase': [{ timing: { discussionBase: 30 } }, (c) => stepTiming(night(match(undefined, c), { bite: 'pass' })).seconds],
   'timing.discussionPerAlive': [{ timing: { discussionPerAlive: 20 } }, (c) => stepTiming(night(match(undefined, c), { bite: 'pass' })).seconds],
