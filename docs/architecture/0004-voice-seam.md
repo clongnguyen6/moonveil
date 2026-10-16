@@ -59,3 +59,9 @@ Accepted from the recommendation: self-hosted LiveKit OSS (grant d), room per ch
 - **Foundation:** seam types, `Room` wiring (generation, `voice` message, reconnect re-issue, in-person `[]`), fake-gateway tests.
 - **Voice owner:** `LiveKitVoiceGateway` (rooms, rotation, tokens), and the client voice module that consumes `voice` messages and SDK speaking state.
 - **UI owner:** mic button, the "join campfire" tap as the audio unlock, rings from the voice module.
+
+## Update 2026-10-16: visibility, accepted as sticky per room generation (voice owner)
+- **Evidence:** `packages/voice/test/gateway.test.ts` "defense (evidence)" (branch `voice`, a0c6be6).
+  - Pure `visible = speak` makes the public room rotate twice per defense (start and end), and everyone reconnects both times.
+  - The sticky variant keeps already-visible living listeners visible within a room generation. Defense then costs two `UpdateParticipant` calls (`canPublish` off/on) and no rotation.
+- **Accepted:** nothing leaks either way. The living listeners in a defense were already visible in that room, and everyone knows the defense rule. Ghosts and the moderator join hidden. A death rotates the room anyway, so a newly dead seat never stays visible.
