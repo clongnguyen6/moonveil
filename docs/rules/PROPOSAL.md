@@ -4,6 +4,7 @@ Status: **proposal, v0.8, 2026-10-16**. v0.2 was revised after an independent re
 Only what is listed under "Approved rules" is accepted. Everything else is **provisional** until you approve it.
 The engine implements each provisional recommendation as a named setting (`config.*`) or one isolated function.
 Approved rules are fixed engine behaviour, no longer settings.
+Related drafts (all provisional): `BALANCE.md` (bot screening), `NARRATION.md` (phase text, EN/VI), `QUICK_REFERENCE.md` (player help).
 
 ## Still open (summary)
 
@@ -244,8 +245,10 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
     - **i (recommend)**: 2 Wolves, Seer, Guard, Hunter, Villager (no Witch).
     - **ii**: raise the minimum to 7.
     - **iii**: keep the Witch, but no attack on night 1 at 6 players (Q23).
-  - Every preset for 7–16 passes check A. At 7 players the margin is still thin: one wrong execution plus one bite reaches parity at the second dawn, unless the Guard or Witch saves someone. Balance screening by bots will follow in a later update.
+  - Every preset for 7–16 passes check A. At 7 players the margin is still thin: one wrong execution plus one bite reaches parity at the second dawn, unless the Guard or Witch saves someone. See the balance screen below.
 - **Engine**: `distribution` table, `limits.maxPerSpecialRole`, `limits.firstDawnParityCheck` (`biteAndPoison` = A | `biteOnly` = B | `off` = C); `validateDeck()`.
+
+- **Balance screen (bots, provisional; see `BALANCE.md`; open ballots)**: 7–9 players with 2 wolves screen as playable (Village 42–50%). 6 players is lopsided with either 1 or 2 wolves. 10–16 players with the recommended counts screen as strongly wolf-favoured (Village 22–27% at 10–12, 3–10% at 13–16), partly a bot artifact. Candidates for playtesting: 2 wolves at 10–12, 3 at 13–15, 4 at 16 (likely still needs help).
 
 ## Q18 Minimum and maximum players — product decision needed
 - **sky2 code**: only checks that the total is above 0 (MSS:126). No maximum.
@@ -255,6 +258,7 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 ## Q19 Expected match duration — low-stakes default (numbers are tunable)
 - **sky2 code**: about 4.5 min per cycle with its defaults (AV1:60-77).
 - **Recommend timers**: night main 40 s, Witch 20 s, discussion 60 s + 15 s per living player (90–240 s), nomination 30 s, defense 30 s, Yes/No 15 s, Hunter 20 s. One cycle is about 5–6 min with 8 alive. Expected matches are 15–30 min for 7–10 players and 30–45 min for 12–16.
+- **Measured by bots (`BALANCE.md`, upper bound; votes and nights always run their full time)**: median 11–16 min at 7–9 players, 20–26 min at 10–12, 24–30 min at 13–16.
 - **Engine**: `timing.*`, `stepTiming()`.
 
 ## Q20 Reveal a role on death? — DECIDED 2026-10-16
