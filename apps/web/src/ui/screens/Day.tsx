@@ -69,20 +69,45 @@ export function VotePanel({ view, g, speaking }: P) {
       <Head title={t('voteTitle')} view={view} right={<span className="pill" data-testid="voted-count">{t('votedCount', { n: votedCount, total: aliveSeats(g).length })}</span>} />
       <p className="hint">{t('voteHint')}</p>
       <SeatGrid view={view} g={g} enabled={a?.targets ?? []} selected={sel} onSelect={a ? setSel : undefined} speaking={speaking} tags={targetTags} showDead={false} />
-      <ul className="ballots" data-testid="ballots">
-        {votes.map((v, voter) => {
-          const sv = g.seats[voter];
-          if (!sv?.alive) return null;
-          const text = v === null ? '…' : v === 'skip' ? t('skip') : nameAt(view, g, v);
-          return <li key={voter} className={v === null ? 'muted' : ''}><span>{nameAt(view, g, voter)}</span><span>{text}</span></li>;
-        })}
-        {tally.has('skip') && <li><span>{t('skip')}</span><span>{tally.get('skip')}</span></li>}
-      </ul>
+      <Ballots view={view} g={g} />
       <div className="btn-row">
         <Button kind="quiet" testId="vote-skip" disabled={!a || cur === 'skip'} onClick={() => session.send({ t: 'act', action: act.nominate('skip') })}>{t('skip')}</Button>
-        <Button testId="confirm" disabled={!a || sel === null || sel === cur} onClick={() => sel !== null && session.send({ t: 'act', action: act.nominate(sel) })}>{t('confirm')}</Button>
+        <Button testId="confirm" kind={sel !== null && sel === cur ? 'done' : 'primary'} haptic disabled={!a || sel === null || sel === cur} onClick={() => sel !== null && session.send({ t: 'act', action: act.nominate(sel) })}>{sel !== null && sel === cur ? t('chosen') : t('confirm')}</Button>
       </div>
       <p className="muted" style={{ fontSize: 'var(--fs-0)' }} aria-live="polite" data-testid="my-vote">{a ? yours : t('confirmDead')} · {t('voteCloses')}</p>
+    </section>
+  );
+}
+
+/** Live open ballots (public): nomination voter → target/Skip, or verdict voter → Yes/No. Read-only. */
+export function Ballots({ view, g }: { view: SeatView; g: GameView }) {
+  const t = useT();
+  const s = g.step;
+  if (s.kind !== 'day.vote' && s.kind !== 'day.confirm') return null;
+  const votes = s.votes as (Seat | 'skip' | 'yes' | 'no' | null)[];
+  const skips = votes.filter((v) => v === 'skip').length;
+  const label = (v: Seat | 'skip' | 'yes' | 'no' | null) => (v === null ? '…' : v === 'skip' ? t('skip') : v === 'yes' ? t('confirmYes') : v === 'no' ? t('confirmNo') : nameAt(view, g, v));
+  return (
+    <ul className="ballots" data-testid="ballots">
+      {votes.map((v, voter) => {
+        if (!g.seats[voter]?.alive) return null;
+        return <li key={voter} className={v === null ? 'muted' : ''}><span>{nameAt(view, g, voter)}</span><span>{label(v)}</span></li>;
+      })}
+      {skips > 0 && <li><span>{t('skip')}</span><span>{skips}</span></li>}
+    </ul>
+  );
+}
+
+/** Dead seats (both modes): no action panel, ever. Public view only: seats, live ballots, timer. A pending Hunter is routed to HunterPanel instead. */
+export function GhostPanel({ view, g, speaking, title }: P & { title: string }) {
+  const t = useT();
+  const living = aliveSeats(g).length;
+  return (
+    <section className="card panel rise-in" data-testid="ghost-panel" data-step={g.step.kind}>
+      <Head title={title} view={view} right={<span className="pill">{t('livingCount', { n: living })}</span>} />
+      <p className="hint">{t('ghostWatch')}</p>
+      <SeatGrid view={view} g={g} speaking={speaking} />
+      <Ballots view={view} g={g} />
     </section>
   );
 }
@@ -122,8 +147,8 @@ export function ConfirmPanel({ view, g }: P) {
       <p data-testid="confirm-tally"><strong>{t('confirmResult', { yes, no })}</strong></p>
       <SeatGrid view={view} g={g} tags={tags} showDead={false} />
       <div className="btn-row" style={{ minHeight: 64 }}>
-        <Button kind={cur === 'no' ? 'primary' : 'secondary'} testId="vote-no" disabled={!a} pressed={cur === 'no'} onClick={() => session.send({ t: 'act', action: act.confirm('no') })}>{t('confirmNo')}</Button>
-        <Button kind={cur === 'yes' ? 'danger' : 'secondary'} testId="vote-yes" disabled={!a} pressed={cur === 'yes'} onClick={() => session.send({ t: 'act', action: act.confirm('yes') })}>{t('confirmYes')}</Button>
+        <Button kind={cur === 'no' ? 'primary' : 'secondary'} haptic testId="vote-no" disabled={!a} pressed={cur === 'no'} onClick={() => session.send({ t: 'act', action: act.confirm('no') })}>{cur === 'no' ? '✓ ' : ''}{t('confirmNo')}</Button>
+        <Button kind={cur === 'yes' ? 'danger' : 'secondary'} haptic testId="vote-yes" disabled={!a} pressed={cur === 'yes'} onClick={() => session.send({ t: 'act', action: act.confirm('yes') })}>{cur === 'yes' ? '✓ ' : ''}{t('confirmYes')}</Button>
       </div>
       <p className="muted" style={{ fontSize: 'var(--fs-0)' }} aria-live="polite" data-testid="my-ballot">
         {a ? (cur === null ? t('confirmNone') : t('confirmYours', { choice: cur === 'yes' ? t('confirmYes') : t('confirmNo') })) : t('confirmDead')} · {t('voteCloses')}

@@ -6,12 +6,13 @@ import { SceneMount } from './SceneMount.tsx';
 import { useWakeLock } from './lan.ts';
 import { useSettings } from '../game/local-store.ts';
 import { nameAt, projection } from '../game/select.ts';
+import { stalemateWarning } from '../game/approved.ts';
 import type { Session, SessionState } from '../game/session.ts';
 import { type GameView, type SeatView, stepFamily as famOf } from '../game/types.ts';
 import { type Cue, playCue, unlockAudio } from './audio/cues.ts';
 import { Button, Timer, type ToastItem, Toasts } from './components/index.tsx';
 import { type T, useT } from './i18n/index.ts';
-import { ConfirmPanel, DefensePanel, DiscussionPanel, VotePanel } from './screens/Day.tsx';
+import { ConfirmPanel, DefensePanel, DiscussionPanel, GhostPanel, VotePanel } from './screens/Day.tsx';
 import { EntryScreen } from './screens/Entry.tsx';
 import { LobbyScreen } from './screens/Lobby.tsx';
 import { ModeratorConsole } from './screens/Moderator.tsx';
@@ -58,7 +59,7 @@ function Root() {
     addEventListener('pointerdown', unlock, { once: true });
     return () => removeEventListener('pointerdown', unlock);
   }, []);
-  const { toasts, overlay } = useAnnouncer(view, g, t);
+  const { toasts, overlay, live } = useAnnouncer(view, g, t);
   const wake = useWakeLock(!!view && view.status === 'playing');
 
   return (
@@ -89,6 +90,8 @@ function Root() {
         </div>
       )}
       <Toasts items={toasts} />
+      {/* Polite live region: phase titles + public announcements only (same text as toasts/overlays, never role data). */}
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true" data-testid="live">{live}</div>
       {sheet === 'role' && g && view && <RoleCardSheet view={view} g={g} onClose={closeSheet} />}
       {sheet === 'help' && <HelpSheet g={g} onClose={closeSheet} limits={view ? { min: view.limits.minPlayers, max: view.limits.maxPlayers } : undefined} />}
       {sheet === 'chat' && view && <ChatSheet s={s} view={view} onClose={closeSheet} />}
@@ -126,12 +129,12 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
   const fam = famOf(g.step.kind);
   const topbar = useRef<HTMLDivElement>(null);
   return (
-    <div className="frame" data-testid="match" data-step={g.step.kind}>
+    <main className="frame" data-testid="match" data-step={g.step.kind} aria-label={phaseTitle(t, g)}>
       <div className="scene-host">
         {scene && <SceneMount s={s} topbarRef={topbar} micOn={mic.status === 'ok' && !mic.muted} />}
-        <div className="topbar" ref={topbar} data-ui>
+        <div className="topbar" ref={topbar} data-ui role="toolbar" aria-label={t('app')}>
           <div className="titles">
-            <div className="title" data-testid="phase-title">{phaseTitle(t, g)}</div>
+            <h1 className="title" data-testid="phase-title">{phaseTitle(t, g)}</h1>
             <div className="sub" data-testid="you">{view.code} · {isMod ? t('moderator') : nameAt(view, g, g.viewer.kind === 'seat' ? g.viewer.seat : null)}</div>
           </div>
           <div className="tools">
@@ -143,7 +146,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
           </div>
         </div>
         {overlay && (
-          <div className="overlay-announce" role="status" data-testid="announce" key={overlay.id}>
+          <div className="overlay-announce announce-life" role="status" data-testid="announce" key={overlay.id}>
             <div className="rise-in">
               <h2>{overlay.title}</h2>
               {overlay.body && <p className="hint" style={{ fontSize: 'var(--fs-3)' }}>{overlay.body}</p>}
@@ -151,13 +154,16 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
           </div>
         )}
       </div>
-      <div className="dock">
+      <div className="dock" key={`${g.step.kind}:${g.night}:${g.day}`}>
         {wakeFailed && <p className="muted center" style={{ fontSize: 'var(--fs-0)', margin: '0 0 6px' }} data-testid="wake-hint">{t('wakeHint')}</p>}
+        {stalemateWarning(g) && g.step.kind !== 'ended' && <p className="card warn-banner" role="status" data-testid="stalemate-warning">⚠ {t('stalemateWarning')}</p>}
         {!isMod && <GhostBar view={view} g={g} />}
         {isMod ? (
           <ModeratorConsole view={view} g={g} />
         ) : g.step.kind === 'ended' ? (
           <EndPanel view={view} g={g} />
+        ) : g.me && !g.me.alive && !(g.step.kind === 'hunter' && g.step.pending.includes(g.me.seat)) ? (
+          <GhostPanel view={view} g={g} speaking={s.speaking} title={phaseTitle(t, g)} />
         ) : fam === 'night' ? (
           <NightPanel view={view} g={g} />
         ) : fam === 'hunter' ? (
@@ -174,7 +180,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
         {isMod && view.phaseEndsAt !== null && <p className="center"><Timer endsAt={view.phaseEndsAt} totalMs={view.phaseDurationMs} /></p>}
         {s.error && <p className="danger center" role="alert" data-testid="error">{s.error.message}</p>}
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -184,15 +190,18 @@ interface Announcement { id: number; title: string; body?: string }
 function useAnnouncer(view: SeatView | null, g: GameView | null, t: T) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [overlay, setOverlay] = useState<Announcement | null>(null);
+  const [live, setLive] = useState('');
   const seen = useRef<{ code: string | null; log: number; step: string | null }>({ code: null, log: 0, step: null });
   const idRef = useRef(0);
   const push = useCallback((text: string, kind?: ToastItem['kind']) => {
     const id = ++idRef.current;
+    setLive(text);
     setToasts((xs) => [...xs, { id, text, kind }].slice(-3));
     setTimeout(() => setToasts((xs) => xs.filter((x) => x.id !== id)), 3500);
   }, []);
   const show = useCallback((title: string, body?: string, ms = 3200) => {
     const id = ++idRef.current;
+    setLive(body ? `${title}. ${body}` : title);
     setOverlay({ id, title, body });
     setTimeout(() => setOverlay((o) => (o?.id === id ? null : o)), ms);
   }, []);
@@ -215,12 +224,14 @@ function useAnnouncer(view: SeatView | null, g: GameView | null, t: T) {
         case 'confirm': push(e.counted === 'moderator' ? t('confirmYesOnly', { yes: e.yes }) : t('confirmResult', { yes: e.yes, no: e.no ?? 0 })); break;
         case 'executed': cues.push('death'); show(t('annExecuted', { name: n(e.seat) })); break;
         case 'hunterTurn': cues.push('attention'); push(t('annHunter', { name: e.seats.map(n).join(', ') }), 'warn'); break;
+        case 'stalemateWarning': cues.push('attention'); push(t('stalemateWarning'), 'warn'); break;
         case 'shot': if (e.target !== null) { cues.push('death'); show(t('annShot', { by: n(e.by), target: n(e.target) })); } else push(t('hunterNoShot', { by: n(e.by) })); break;
         case 'ended': cues.push(g.outcome?.winner === 'wolves' ? (g.me?.role === 'wolf' ? 'victory' : 'defeat') : g.outcome?.winner === 'village' ? (g.me?.role === 'wolf' ? 'defeat' : 'victory') : 'dawn'); break;
         default: break;
       }
     }
     if (st.step !== g.step.kind) {
+      setLive(phaseTitle(t, g));
       if (g.step.kind === 'day.vote') { cues.push('vote'); push(t('annVote')); }
       if (g.step.kind === 'day.confirm') { cues.push('vote'); push(t('annConfirm')); }
       if (g.step.kind === 'day.defense') push(t('annDefense'));
@@ -230,5 +241,5 @@ function useAnnouncer(view: SeatView | null, g: GameView | null, t: T) {
     if (last) playCue(last);
     seen.current = { code: view.code, log: g.publicLog.length, step: g.step.kind };
   }, [view, g, t, push, show]);
-  return { toasts, overlay };
+  return { toasts, overlay, live };
 }

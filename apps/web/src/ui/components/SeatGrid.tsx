@@ -31,8 +31,18 @@ export function SeatGrid({ view, g, enabled, selected, onSelect, seats, tags, sp
   const showRole = (i: Seat) => roles === 'all' || ended || revealed.has(i);
   const list = seats ?? g.seats.map((s) => s.seat);
   const en = enabled ? new Set(enabled) : null;
+  const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
+    const cells = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('button.seat-chip')];
+    const i = cells.indexOf(document.activeElement as HTMLButtonElement);
+    if (i < 0) return;
+    e.preventDefault();
+    const cols = Math.max(1, Math.round(e.currentTarget.clientWidth / (cells[0]?.offsetWidth ?? 1)));
+    const next = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : e.key === 'ArrowDown' ? i + cols : e.key === 'ArrowUp' ? i - cols : e.key === 'Home' ? 0 : cells.length - 1;
+    cells[Math.max(0, Math.min(cells.length - 1, next))]?.focus();
+  };
   return (
-    <div className="seat-grid" role={onSelect ? 'group' : undefined}>
+    <div className="seat-grid" role={onSelect ? 'group' : undefined} aria-label={onSelect ? t('a11yGrid') : undefined} onKeyDown={onKey}>
       {list.map((i) => {
         const sv = g.seats[i]!;
         if (!sv.alive && !showDead) return null;

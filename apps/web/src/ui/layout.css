@@ -29,6 +29,7 @@ ul { padding: 0; list-style: none; }
   padding: max(var(--sp-2), env(safe-area-inset-top)) var(--sp-3) var(--sp-2); pointer-events: none; }
 .topbar > * { pointer-events: auto; }
 .topbar .titles { flex: 1 1 auto; min-width: 0; }
+.topbar h1.title { margin: 0; }
 .topbar .title { font-weight: 700; font-size: var(--fs-3); text-shadow: 0 1px 3px rgba(0,0,0,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar .sub { font-size: var(--fs-0); color: var(--ink-2); text-shadow: 0 1px 3px rgba(0,0,0,.6); }
 .topbar .tools { margin-left: auto; display: flex; gap: 6px; flex-shrink: 0; align-items: center; }

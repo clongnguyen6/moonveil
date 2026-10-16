@@ -3,6 +3,7 @@ import type { Role } from '@moonveil/rules';
 import { useEffect, useRef, useState } from 'react';
 import type { ConnStatus, SessionState } from '../../game/session.ts';
 import { canListen, canSpeak, nameAt, nameOf, playerAt, rolesInPlay } from '../../game/select.ts';
+import { endReason } from '../../game/approved.ts';
 import type { ChannelId, GameView, SeatView } from '../../game/types.ts';
 import { Avatar, Button, Sheet, Tabs } from '../components/index.tsx';
 import { SeatGrid } from '../components/SeatGrid.tsx';
@@ -18,13 +19,14 @@ export function EndPanel({ view, g }: { view: SeatView; g: GameView }) {
   const t = useT();
   const session = useSession();
   const o = g.outcome;
-  const title = o?.winner === 'village' ? t('endVillage') : o?.winner === 'wolves' ? t('endWolves') : o?.winner === 'draw' ? t('endDraw') : t('endAborted');
-  const reason = o?.reason === 'noWolves' ? t('endReasonNoWolves') : o?.reason === 'parity' ? t('endReasonParity') : o?.reason === 'zeroSurvivors' ? t('endReasonZero') : t('endReasonAborted');
+  const why = endReason(g);
+  const title = o?.winner === 'village' ? t('endVillage') : o?.winner === 'wolves' ? t('endWolves') : why === 'stalemate' ? t('endStalemate') : o?.winner === 'draw' ? t('endDraw') : t('endByModerator');
+  const reason = why === 'noWolves' ? t('endReasonNoWolves') : why === 'parity' ? t('endReasonParity') : why === 'zeroSurvivors' ? t('endReasonZero') : why === 'stalemate' ? t('endReasonStalemate') : t('endReasonByModerator');
   const [showHistory, setShowHistory] = useState(false);
   return (
-    <section className="card panel rise-in" data-testid="ended">
+    <section className="card panel rise-in" data-testid="ended" data-winner={o?.winner ?? ''} data-reason={why ?? ''}>
       <div className="panel-head">
-        <h2 className={`panel-title team-${o?.winner === 'wolves' ? 'wolves' : 'village'}`}>{title}</h2>
+        <h2 className={`panel-title ${o?.winner === 'wolves' ? 'team-wolves' : o?.winner === 'village' ? 'team-village' : ''}`} data-testid="end-title">{title}</h2>
         <span className="pill">{t('phaseEnded')}</span>
       </div>
       <p className="hint">{reason}</p>

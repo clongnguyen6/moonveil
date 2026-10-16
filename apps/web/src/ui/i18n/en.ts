@@ -5,12 +5,12 @@ export const en = {
   send: 'Send', copy: 'Copy', copied: 'Copied', you: 'you', host: 'host', moderator: 'Moderator', online: 'online', offline: 'offline',
   ready: 'Ready', notReady: 'Not ready', leave: 'Leave room', help: 'Help', settings: 'Settings', chat: 'Chat', roleCard: 'My role',
   language: 'Language', sound: 'Sound cues', on: 'On', off: 'Off', motion: 'Motion', motionSystem: 'Follow device', motionReduce: 'Reduce', motionFull: 'Full',
-  change: 'Change', waiting: 'Waiting…', seconds: '{s} s',
+  change: 'Change', waiting: 'Waiting…', seconds: '{s} s', chosen: 'Chosen', nightDoneChange: 'Chosen. You can still change it until dawn.',
 
   connConnected: 'Connected', connReconnecting: 'Reconnecting…', connReconnectHint: 'Your seat is kept. The game continues.',
   connReplaced: 'Opened in another tab.', connUseHere: 'Use here', connEnded: 'You left the room.', connOffline: 'Offline',
 
-  entryTagline: 'Werewolf by the campfire. One phone each, voices in the game.',
+  entryTagline: 'Werewolf by the campfire. One phone each, your voices in the game.',
   entryName: 'Your name', entryNamePh: 'e.g. Linh', entryLook: 'Your look', entryColour: 'Colour', entryHat: 'Hat',
   entryCode: 'Room code', entryJoin: 'Join room', entryOr: 'or start a new room', entryCreateAuto: 'Create & play', entryCreateAutoHint: 'The app runs the night and day.',
   entryCreateMod: 'Create & moderate', entryCreateModHint: "You narrate and run the match. You don't play.",
@@ -40,7 +40,7 @@ export const en = {
   phaseNight: 'Night {n}', phaseNightWitch: 'Night {n}', phaseHunter: "Hunter's turn", phaseDiscuss: 'Day {d} · Discussion', phaseVote: 'Day {d} · Nomination',
   phaseDefense: 'Day {d} · Defense', phaseConfirm: 'Day {d} · Verdict', phaseEnded: 'Match over', phaseLobby: 'Lobby',
 
-  nightTitle: 'Night falls', nightWait: 'Stay in your tent until dawn.', nightDone: 'Done. Wait for dawn.', nightChangeHint: 'You can change your choice until the night ends.',
+  nightTitle: 'Night falls', nightWait: 'Stay in your tent until dawn.', nightDone: 'Done for tonight. Wait for dawn.', nightChangeHint: 'You can change your choice until the night ends.',
   nightWolfTask: 'Choose tonight\'s victim with your pack', nightPackPicks: 'Pack picks', nightPackNone: 'No pick yet', nightPackPass: 'passes',
   nightSeerTask: 'Who do you want to see?', nightSeerResult: '{name} is', resultWolf: 'a Wolf', resultNotWolf: 'not a Wolf', nightSeerDone: 'Seen. One look per night.',
   nightGuardTask: 'Who do you protect tonight?', nightGuardLast: 'Last night you protected {name}.',
@@ -56,19 +56,22 @@ export const en = {
 
   dawnTitle: 'Dawn', dawnNobody: 'Everyone wakes up. Nobody died.', dawnDied: 'Did not wake up: {names}', dawnMourn: 'The camp falls silent.',
 
-  discussTitle: 'Discussion', discussHint: 'Talk it out. Who seems off?', discussCountdown: 'Nomination opens when time is up.',
-  voteTitle: 'Who goes on trial?', voteHint: 'Pick one player, or Skip. Votes are open: everyone sees who voted for whom.', voteYours: 'Your vote: {name}', voteYoursSkip: 'Your vote: Skip', voteNone: 'No vote yet',
+  discussTitle: 'Discussion', discussHint: 'Talk it out. Who seems off tonight?', discussCountdown: 'Nomination opens when time is up.',
+  voteTitle: 'Who goes on trial?', voteHint: 'Pick one player, or Skip. Votes are open: everyone sees who voted for whom.', voteYours: 'Your vote: {name}', voteYoursSkip: 'Your vote: Skip', voteNone: 'You have not voted yet',
   voteCloses: 'You can change your vote until time is up.', voteNoTrial: 'No trial today.', voteNoTrialTie: 'No trial today (tie or Skip).', voteTrial: '{name} goes on trial.', voteTally: 'Nomination results',
   defenseTitle: '{name} speaks', defenseAccused: 'Your defense. Only you may speak.', defenseOthers: 'Listen. Only {name} may speak now.', defenseNext: 'Then everyone votes Yes or No.',
-  confirmTitle: 'Execute {name}?', confirmHint: 'Yes needs more than half of all living players.', confirmYes: 'Yes', confirmNo: 'No', confirmYours: 'Your ballot: {choice}', confirmNone: 'No ballot yet',
+  confirmTitle: 'Execute {name}?', confirmHint: 'Yes needs more than half of all living players.', confirmYes: 'Yes', confirmNo: 'No', confirmYours: 'Your ballot: {choice}', confirmNone: 'You have not voted yet',
   confirmExecuted: '{name} was executed.', confirmSpared: '{name} is spared.', confirmResult: 'Yes {yes} · No {no}', confirmDead: 'You are dead and cannot vote.',
   livingCount: '{n} living', votesCloseAt: 'Closes in',
 
   ghostTitle: 'You are a ghost', ghostHint: 'Drift around camp. Hear everything public, talk with other ghosts. The living cannot see you.',
+  ghostWatch: 'Watch and listen. Ghosts cannot act or vote.',
   ghostDiedNight: 'You died in the night.', ghostExecuted: 'The village executed you.', ghostShot: 'The Hunter shot you.', ghostRemoved: 'You were removed from the match.',
 
-  endTitle: 'Match over', endVillage: 'The village wins', endWolves: 'The wolves win', endDraw: 'Nobody survives. A draw.', endAborted: 'Match aborted',
-  endReasonNoWolves: 'All wolves are gone.', endReasonParity: 'The wolves are at least as many as everyone else alive.', endReasonZero: 'Everyone is dead.', endReasonAborted: 'The moderator ended the match.',
+  endTitle: 'Match over', endVillage: 'The village wins', endWolves: 'The wolves win', endDraw: 'Nobody survives. A draw.', endAborted: 'Match aborted', endByModerator: 'Ended by the moderator', endStalemate: 'Three full days and nights without a death. It\'s a draw.',
+  endReasonNoWolves: 'All wolves are gone.', endReasonParity: 'The wolves are at least as many as everyone else alive.', endReasonZero: 'Everyone is dead.', endReasonAborted: 'The moderator ended the match.', endReasonByModerator: 'The moderator ended the match. No winner.', endReasonStalemate: 'Draw: no one died for three cycles.',
+  stalemateWarning: 'If nobody dies before the end of the next day, the match ends in a draw.',
+  endMatchTitle: 'End the match', endMatchHint: 'No winner; all roles are revealed. Cannot be undone.', endMatchOpen: 'End match…', endMatchType: 'Type {word} to confirm', endMatchWord: 'END', endMatchConfirm: 'End the match now',
   endReveal: 'Everyone\'s roles', endHistory: 'Night history', endSurvived: 'survived', endDied: 'died',
 
   modConsole: 'Moderator', modStep: 'Step', modCloseStep: 'Close step', modCloseConfirm: 'Close "{step}" now?', modSeats: 'Seats', modNight: 'Night', modLog: 'Log', modDanger: 'Controls',
@@ -101,6 +104,7 @@ export const en = {
   annDied: '{name} died', annExecuted: '{name} executed', annShot: '{by} shot {target}', annHunter: '{name} is the Hunter',
 
   provisional: 'provisional', ambience: 'Camp ambience', sceneSetting: 'Camp scene', wakeHint: 'Keep your screen on during the match.', copyManual: 'Copy not available here. Long-press the link to copy it.', youLabel: 'You', modNarrationSetting: 'Narration cues (provisional)', 
+  a11yGrid: 'Players: use arrow keys to move, Enter to choose',
   a11yTimer: '{s} seconds left', a11ySeat: '{name}, {state}', a11yDead: 'dead', a11yAlive: 'alive', a11ySpeaking: 'speaking', a11yYou: 'you', a11yTarget: 'choose {name}',
   stepDisplay: { 'night.main': 'Night', 'night.witch': 'Witch', hunter: 'Hunter', 'day.discussion': 'Discussion', 'day.vote': 'Nomination', 'day.defense': 'Defense', 'day.confirm': 'Verdict', ended: 'Ended' } as Record<string, string>,
 };
