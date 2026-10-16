@@ -71,9 +71,13 @@ Fix adopted and verified: **rotate a channel whenever anyone must leave it**. Ne
 - Capacity: 10 players ≈ 10 publishers at ~32 kbps Opus and ≤90 forwarded streams; trivial for one core. Tested with 10 browsers on one laptop; >10 not tested **[unverified]**.
 - Use `room.auto_create: false` and create rooms from the server (needed for the rotation guard).
 
-## Fit with Foundation's `VoiceGateway` seam (branch `foundation`, b3d9ece)
+## Fit with Foundation's `VoiceGateway` seam (as merged on `dev` a905925; unchanged since `foundation` b3d9ece)
 
-Seam as read: `VoiceGateway.setGrants(room, seat, grants: VoiceGrant[])` (sync, per seat, full set, `[]` = revoke all) and `closeRoom(room)`; `VoiceGrant = {channel, listen, speak}`; the seat sees its grants in `view.voice`; `Room.flush()` calls `setGrants` for each seat whose grant JSON changed, then sends each seat its view. ADR 0001 §7 asks adapters to mint tokens only from grants, revoke on change, expose no cross-channel rosters, and re-publish speaking indicators per seat through the server.
+Seam as read: `VoiceGateway.setGrants(room, seat, grants: VoiceGrant[])` (sync, per seat, full set, `[]` = revoke all) and `closeRoom(room)`; `VoiceGrant = {channel, listen, speak}`; the seat sees its grants in `view.voice`; `Room.flush()` calls `setGrants` for each seat whose grant JSON changed, then sends each seat its view. Grants come from `engine.channels(game, seat | {kind:'moderator'})`, implemented by `packages/rules/src/channels.ts channelsFor()` (`ChannelGrant`, structurally identical to `VoiceGrant`). ADR 0001 §7 asks adapters to mint tokens only from grants, revoke on change, expose no cross-channel rosters, and re-publish speaking indicators per seat through the server.
+
+Two differences between `channelsFor()` on `dev` and the approved policy of 2026-10-16, for the rules owner and Lead (not edited here):
+- the moderator gets `public: speak: true`; the policy says moderator publishing is not approved yet, off by default;
+- `config.comms.livingHearPublicAtNight` can give living players a listen grant on public at night; the policy table gives them no grant. Either is enforceable by the adapter; the spike follows the policy literally (no grant = not connected).
 
 What maps directly (adapter = a `LiveKitVoiceGateway` inside the server; `spikes/voice/server.mjs` is the reference):
 - channel → LiveKit room `${code}-${channel}-g${gen}`; seat id → LiveKit identity; `speak` → `canPublish` (+`canPublishData`); `listen` → `canSubscribe`.
