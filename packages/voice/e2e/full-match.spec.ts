@@ -21,6 +21,7 @@ function summarize(reports: MatrixReport[]) {
   const steps = done.map((r) => r.step);
   const skipped = reports.filter((r) => r.skipped);
   console.log(`hear-matrix: ${checked} pair-channel checks over ${done.length} steps [${steps.join(' → ')}], ${failures.length} failures; skipped windows: ${skipped.length}`);
+  console.log(`  per step: ${done.map((r) => `${r.step}=${r.checked}${r.failures.length ? `(${r.failures.length} fail)` : ''}`).join(', ')}`);
   for (const r of skipped) {
     const changed = Object.keys(r.skipped!.after).filter((k) => r.skipped!.after[k] !== r.skipped!.before[k]);
     console.log(`  skipped ${r.step}: ${r.skipped!.reason}; pages that differ/changed: ${changed.map((k) => `${k} ${r.skipped!.before[k]} -> ${r.skipped!.after[k]}`).join(' | ') || JSON.stringify(r.skipped!.before)}`);
@@ -59,7 +60,9 @@ test('moderator mode, full match with voice: hear-matrix equals grants on every 
   for (let i = 0; i < 80 && players[0]!.view().status === 'playing'; i++) {
     const kind = step(players[0]!);
     await voiceSettled(all);
-    reports.push(await checkHearMatrix(all, `${kind}#${i}`));
+    const rep = await checkHearMatrix(all, `${kind}#${i}`);
+    reports.push(rep);
+    console.log(`  window ${kind}#${i}: ${rep.skipped ? `skipped (${rep.skipped.reason})` : `${rep.checked} checks, ${rep.failures.length} failures`}`);
     for (const p of players) await botAct(p, r);
     // Some steps may close on their own (fixed-length steps, Hunter early close): close only the step we measured.
     if (players[0]!.view().status === 'playing' && step(players[0]!) === kind) await moderatorClose(mod!);
@@ -89,6 +92,7 @@ test('moderator mode, full match with voice: hear-matrix equals grants on every 
 });
 
 test('automatic mode, 10 seats with voice: hear-matrix on every step within the time budget (real timers)', async ({ table }) => {
+  test.setTimeout(AUTO_BUDGET_MS + 8 * 60_000); // budget + seating, settling and the final checks
   const seats = SEATS || 10;
   const { players } = await seatTable(table, 'automatic', seats);
   await requireVoiceWiring(players[0]!);
@@ -104,7 +108,9 @@ test('automatic mode, 10 seats with voice: hear-matrix on every step within the 
     const kind = step(players[0]!);
     if (kind !== last) {
       await voiceSettled(players);
-      reports.push(await checkHearMatrix(players, kind));
+      const rep = await checkHearMatrix(players, kind);
+      reports.push(rep);
+      console.log(`  window ${kind}: ${rep.skipped ? `skipped (${rep.skipped.reason})` : `${rep.checked} checks, ${rep.failures.length} failures`} at +${((Date.now() - start) / 1000).toFixed(0)}s`);
       for (const p of players) await botAct(p, r);
       last = kind;
     }
