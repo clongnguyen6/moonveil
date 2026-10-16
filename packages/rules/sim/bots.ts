@@ -25,6 +25,8 @@ export const HEURISTIC_DEFAULTS = {
   confirmYes: 0.65,
   /** Chance a Guard protects itself when there is no Seer claim to protect. */
   guardSelf: 0.2,
+  /** Open ballots (approved): chance a villager without a claim to follow joins the current live vote leader. */
+  followLiveVotes: 0.4,
 };
 export type Knobs = typeof HEURISTIC_DEFAULTS;
 let K: Knobs = HEURISTIC_DEFAULTS;
@@ -233,6 +235,17 @@ function accuse(p: Projection, s: MatchState, table: Table, rng: Rng): Seat | nu
   return rng.weighted(pool.length ? pool : others, (x) => (s.seats[x]?.role === 'wolf' ? K.wolfSuspicionWeight : 1));
 }
 
+/** Current live nomination leader from the open ballots (optionally excluding the pack). */
+function liveLeader(p: Projection, pack: Set<Seat>, excludePack: boolean): Seat | null {
+  if (p.step.kind !== 'day.vote') return null;
+  const counts = new Map<Seat, number>();
+  for (const v of p.step.votes) if (typeof v === 'number' && !(excludePack && pack.has(v))) counts.set(v, (counts.get(v) ?? 0) + 1);
+  let best: Seat | null = null;
+  let n = 0;
+  for (const [k, c] of counts) if (c > n) [best, n] = [k, c];
+  return best;
+}
+
 function heuristicChoice(a: AvailableAction, p: Projection, s: MatchState, table: Table, rng: Rng): Command | null {
   const me = p.me;
   if (!me) return null;
@@ -270,11 +283,16 @@ function heuristicChoice(a: AvailableAction, p: Projection, s: MatchState, table
       return { type: a.type, seat, target: sus !== null && t.includes(sus) ? sus : t.length ? rng.pick(t) : 'pass' };
     }
     case 'vote.nominate': {
-      // Ballots are hidden until close (approved), so votes follow what was said aloud.
+      // Ballots are open and live (approved): voters see the current leader as well as what was said aloud.
+      const live = liveLeader(p, pack, false);
       if (me.role === 'wolf') {
-        const lead = mostAccused(table, alive, pack);
+        const wolfLive = liveLeader(p, pack, true);
+        const lead = wolfLive ?? mostAccused(table, alive, pack);
         const v = t.filter((x) => !pack.has(x));
         return { type: a.type, seat, target: lead !== null && t.includes(lead) ? lead : v.length ? rng.pick(v) : 'skip' };
+      }
+      if (claimedWolf === null && live !== null && live !== seat && t.includes(live) && rng.chance(K.followLiveVotes)) {
+        return { type: a.type, seat, target: live };
       }
       const said = table.accusations.get(seat);
       if (said !== undefined && t.includes(said) && !(claimedWolf === null && rng.chance(K.skip))) return { type: a.type, seat, target: said };

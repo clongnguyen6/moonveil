@@ -92,5 +92,6 @@ if (import.meta.main) {
       console.log(row(runCell(players, 'heuristic', deck, Math.round(n / 2), { wolfSuspicionWeight: w }, 7), `read=${w}`));
     }
     console.log(row(runCell(players, 'heuristic', deck, Math.round(n / 2), { bandwagon: 0.2 }, 7), 'bandwagon=0.2'));
+    console.log(row(runCell(players, 'heuristic', deck, Math.round(n / 2), { followLiveVotes: 0 }, 7), 'followLive=0'));
   }
 }

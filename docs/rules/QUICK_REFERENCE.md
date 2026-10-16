@@ -32,9 +32,9 @@ How many of each role: about one Wolf per three players; see the table in `PROPO
 
 ## A day ✅ (timings 🟡)
 1. **Talk** (about 1.5–4 min, depending on how many are alive). Everyone alive can speak.
-2. **Trial vote (30 s):** vote for one player or **Skip**. Votes stay hidden until time is up; you see only your own. Whoever has the most votes goes on trial. A tie, or Skip on top, means no trial today.
+2. **Trial vote (30 s):** vote for one player or **Skip**. Votes are public: everyone sees who voted for whom as it happens, and you can change yours until time is up. The vote always runs the full 30 s. Whoever has the most votes goes on trial; a tie, or Skip on top, means no trial today.
 3. **Defense (30 s):** only the accused speaks.
-4. **Yes/No vote (15 s 🟡):** the accused is executed only if **more than half of all living players vote Yes**. Not voting, or being offline, counts as not Yes. Example: with 10 alive, 6 Yes are needed.
+4. **Yes/No vote (15 s 🟡):** everyone sees each Yes and No as it's cast. The accused is executed only if **more than half of all living players vote Yes**. Not voting, or being offline, counts as not Yes. Example: with 10 alive, 6 Yes are needed.
 5. Night falls.
 
 ## When you die ✅

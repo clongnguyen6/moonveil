@@ -7,7 +7,7 @@ Vietnamese is my draft and needs a native read-through. Role names follow sky2 (
 - **Public** lines must not depend on hidden state. Every night uses the same lines in the same order, at the same times, even if a role is dead or absent.
 - Never say *how* someone died at night, or in what order the night actions happened.
 - **Private** lines appear only on that seat's own device, and only while it is entitled to them (a ghost gets no new night prompts).
-- Vote lines don't show running totals or other people's choices until the vote closes.
+- Day votes are **open ballots** (approved): who voted for whom is public and live. Night actions stay private.
 - `{name}` = seat name; `{n}` = night or day number; `{t}` = seconds.
 
 ## Match start and roles
@@ -47,8 +47,9 @@ Vietnamese is my draft and needs a native read-through. Role names follow sky2 (
 | ID | Audience | English | Tiếng Việt | Rule |
 |---|---|---|---|---|
 | Y1 | public | Day {n}. Talk it over: {mm:ss}. | Ngày {n}. Thảo luận: {mm:ss}. | 🟡 Q19 durations |
-| Y2 | public | Vote for who goes on trial, or Skip. Votes stay hidden until time is up. | Bỏ phiếu đưa ai ra xét xử, hoặc Bỏ qua. Phiếu được giữ kín đến khi hết giờ. | ✅ Q09, ✅ day votes |
-| Y3 | private (voter) | Your vote: {name}. You can change it until time is up. | Bạn đã chọn: {name}. Có thể đổi đến khi hết giờ. | ✅ day votes |
+| Y2 | public | Vote for who goes on trial, or Skip. Everyone sees each vote as it's cast. | Bỏ phiếu đưa ai ra xét xử, hoặc Bỏ qua. Mọi người đều thấy từng phiếu ngay khi bỏ. | ✅ Q09, ✅ Q22 open ballots |
+| Y3 | public (live) | {voter} → {name} / {voter} → Skip / {voter}: Yes / {voter}: No | {voter} → {name} / {voter} → Bỏ qua / {voter}: Đồng ý / {voter}: Không | ✅ Q22 open ballots |
+| Y3b | private (voter) | You can change your vote until time is up. | Bạn có thể đổi phiếu đến khi hết giờ. | ✅ day votes |
 | Y4 | public | **{name}** goes on trial ({k} votes). | **{name}** bị đưa ra xét xử ({k} phiếu). | ✅ Q09 |
 | Y5 | public | No trial today: the vote was tied. | Hôm nay không xét xử: số phiếu hòa. | ✅ Q09 |
 | Y6 | public | No trial today: Skip had the most votes. | Hôm nay không xét xử: Bỏ qua nhiều phiếu nhất. | ✅ Q09 |
@@ -58,7 +59,7 @@ Vietnamese is my draft and needs a native read-through. Role names follow sky2 (
 | Y10 | public | **{name}** is executed ({yes} Yes). | **{name}** bị xử tử ({yes} phiếu đồng ý). | ✅ Q10 |
 | Y11 | public | {name} is spared ({yes} Yes; {need} needed). | {name} được tha ({yes} phiếu đồng ý; cần {need}). | ✅ Q10 |
 | Y12 | public | The moderator counted {yes} Yes. | Quản trò đếm được {yes} phiếu đồng ý. | ✅ Q16 Yes count |
-| Y13 | public, at close | Votes: {voter → choice list} | Phiếu: {danh sách} | 🟡 Q22 (ballots shown at close) |
+| Y13 | public, at close | Final votes: {voter → choice list}. | Phiếu cuối: {danh sách}. | ✅ Q22 open ballots |
 
 `{need}` = ⌊living ÷ 2⌋ + 1.
 
