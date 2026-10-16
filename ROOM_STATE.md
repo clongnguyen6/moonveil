@@ -59,7 +59,12 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Hosting trust (server host can read secrets): (a) accept + (b) guide non-player host. [asked]
 - First playtest network path; HTTPS options with verified costs incl. zero-cost (LAN voice-off = partial only, not voice acceptance). [asked; proposal later]
 
+## Lead message queue (deliver at owner's next turn end)
+- game UI: player range text 6–16 → 7–15 (Batch A).
+- foundation: correct deployment notes (docs/architecture 0002/ADR) from current primary docs: Vercel Functions support WebSockets (beta, all plans; sockets close at max duration; reconnects may hit other instances; needs external durable state + pub/sub). Current Moonveil still not import-and-play (single-process in-memory rooms/timers, disk persistence, same-origin WS, incomplete UI/voice, LiveKit media separate). No redesign to Vercel Functions, no provisioning/deploy/cost. Then prepare single-host vs split-host options.
+
 ## Approved rules (Human, 2026-10-16) — rules owner records in docs/rules/PROPOSAL.md
+- Batch A (Q17/Q18): 7–15 players; 2 Wolves at 7–12, 3 at 13–15; one each Seer/Witch/Guard/Hunter, rest Villagers; host customization within valid limits.
 - Execution: Yes*2 > living count (abstain/disconnected stay in denominator). Only the execution threshold.
 - Q06 Hunter: any gameplay death (incl. execution, Hunter shot) → 20 s to shoot one living player; timeout no shot; shot + chains resolve before victory; pending → no ghost voice/text/history/new ghost knowledge; admin removal gives no shot.
 - Q14: zero survivors after all chains → draw.
