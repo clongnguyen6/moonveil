@@ -20,9 +20,10 @@ export type StepView =
   | { kind: 'night.main' | 'night.witch'; night: number }
   | { kind: 'hunter'; pending: Seat[]; submitted: Seat[] }
   | { kind: 'day.discussion'; day: number }
-  | { kind: 'day.vote'; day: number; votes: (Seat | 'skip' | null)[] | null; voted: boolean[] }
+  /** APPROVED: mid-vote, votes is null for every non-moderator viewer; voted is null unless day.showWhoVoted (provisional). */
+  | { kind: 'day.vote'; day: number; votes: (Seat | 'skip' | null)[] | null; voted: boolean[] | null }
   | { kind: 'day.defense'; day: number; accused: Seat }
-  | { kind: 'day.confirm'; day: number; accused: Seat; votes: ('yes' | 'no' | null)[] | null; voted: boolean[] }
+  | { kind: 'day.confirm'; day: number; accused: Seat; votes: ('yes' | 'no' | null)[] | null; voted: boolean[] | null }
   | { kind: 'ended' };
 
 export type AvailableAction =
@@ -43,6 +44,8 @@ export interface MeView {
   facts: Fact[];
   potions: { heal: boolean; poison: boolean } | null;
   guardLast: Seat | null;
+  /** Own current ballot in the open vote step (always visible to the voter); null otherwise. */
+  ballot: Seat | 'skip' | 'yes' | 'no' | null;
   actions: AvailableAction[];
 }
 
@@ -97,7 +100,7 @@ export function project(state: MatchState, viewer: Viewer): Projection {
     roleCounts,
     night: state.night,
     day: state.day,
-    step: stepView(state),
+    step: stepView(state, viewer),
     seats,
     publicLog: clone(state.publicLog),
     me: me ? meView(state, me) : null,
@@ -123,9 +126,11 @@ function publicCause(c: DeathCause, state: MatchState, full: boolean): DeathCaus
   return c === 'bite' || c === 'poison' ? 'night' : c;
 }
 
-function stepView(state: MatchState): StepView {
+function stepView(state: MatchState, viewer: Viewer): StepView {
   const s = state.step;
-  const open = state.config.day.openVotes;
+  // APPROVED: interim ballots/tallies are hidden until close. Moderator live view is provisional (seesLiveBallots).
+  const live = viewer.kind === 'moderator' && state.config.moderator.seesLiveBallots;
+  const who = live || state.config.day.showWhoVoted;
   switch (s.kind) {
     case 'night.main':
     case 'night.witch':
@@ -135,11 +140,17 @@ function stepView(state: MatchState): StepView {
     case 'day.discussion':
       return { kind: s.kind, day: s.day };
     case 'day.vote':
-      return { kind: s.kind, day: s.day, votes: open ? [...s.votes] : null, voted: s.votes.map((v) => v !== null) };
+      return { kind: s.kind, day: s.day, votes: live ? [...s.votes] : null, voted: who ? s.votes.map((v) => v !== null) : null };
     case 'day.defense':
       return { kind: s.kind, day: s.day, accused: s.accused };
     case 'day.confirm':
-      return { kind: s.kind, day: s.day, accused: s.accused, votes: open ? [...s.votes] : null, voted: s.votes.map((v) => v !== null) };
+      return {
+        kind: s.kind,
+        day: s.day,
+        accused: s.accused,
+        votes: live ? [...s.votes] : null,
+        voted: who ? s.votes.map((v) => v !== null) : null,
+      };
     case 'ended':
       return { kind: 'ended' };
   }
@@ -153,6 +164,7 @@ function meView(state: MatchState, me: SeatState): MeView {
     facts: clone(state.knowledge[me.seat] ?? []),
     potions: me.role === 'witch' ? { heal: me.heal, poison: me.poison } : null,
     guardLast: me.role === 'guard' ? me.guardLast : null,
+    ballot: state.step.kind === 'day.vote' || state.step.kind === 'day.confirm' ? (state.step.votes[me.seat] ?? null) : null,
     actions: availableActions(state, me),
   };
 }
