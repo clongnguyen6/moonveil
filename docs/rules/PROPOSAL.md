@@ -248,7 +248,7 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
   - Every preset for 7–16 passes check A. At 7 players the margin is still thin: one wrong execution plus one bite reaches parity at the second dawn, unless the Guard or Witch saves someone. See the balance screen below.
 - **Engine**: `distribution` table, `limits.maxPerSpecialRole`, `limits.firstDawnParityCheck` (`biteAndPoison` = A | `biteOnly` = B | `off` = C); `validateDeck()`.
 
-- **Balance screen (bots, provisional; see `BALANCE.md`)**: 7–9 players with 2 wolves screen as playable (Village 43–53%). 6 players is lopsided with either 1 or 2 wolves. 10–16 players with the recommended counts screen as strongly wolf-favoured (Village 25% falling to 3%), partly a bot artifact. Candidates for playtesting: 2 vs 3 wolves at 10–12, 3 at 13–15, 4 at 16.
+- **Balance screen (bots, provisional; see `BALANCE.md`; open ballots)**: 7–9 players with 2 wolves screen as playable (Village 42–50%). 6 players is lopsided with either 1 or 2 wolves. 10–16 players with the recommended counts screen as strongly wolf-favoured (Village 22–27% at 10–12, 3–10% at 13–16), partly a bot artifact. Candidates for playtesting: 2 wolves at 10–12, 3 at 13–15, 4 at 16 (likely still needs help).
 
 ## Q18 Minimum and maximum players — product decision needed
 - **sky2 code**: only checks that the total is above 0 (MSS:126). No maximum.
