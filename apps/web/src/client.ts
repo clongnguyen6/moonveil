@@ -39,14 +39,16 @@ export class Client {
   private attempt = 0;
   private retry: ReturnType<typeof setTimeout> | null = null;
   private watchdog: ReturnType<typeof setTimeout> | null = null;
+  private lastMessageAt = 0;
   private listeners = new Set<() => void>();
   private url: string;
 
   constructor(url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${WS_PATH}`) {
     this.url = url;
-    addEventListener('online', () => this.wake());
+    // A socket may look open after a network change or a frozen tab; don't trust it.
+    addEventListener('online', () => this.wake(true));
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') this.wake();
+      if (document.visibilityState === 'visible') this.wake(Date.now() - this.lastMessageAt > HEARTBEAT_MS * 1.5);
     });
   }
 
@@ -97,15 +99,31 @@ export class Client {
     this.open('connecting');
   }
 
-  private wake() {
-    if (this.intent && (this.state.status === 'reconnecting' || this.state.status === 'connecting') && !this.isOpen()) {
+  private wake(suspectOpen: boolean) {
+    if (!this.intent) return;
+    const st = this.state.status;
+    if (st === 'open' && suspectOpen) return this.abandon();
+    if (st === 'reconnecting' || st === 'connecting') {
       this.attempt = 0;
       this.open('reconnecting');
     }
   }
 
-  private isOpen() {
-    return this.ws?.readyState === WebSocket.OPEN;
+  // Drop a socket without waiting for onclose: a close handshake on a dead link can hang for a long time.
+  private abandon() {
+    const ws = this.ws;
+    if (!ws) return;
+    ws.onopen = ws.onmessage = ws.onclose = null;
+    ws.close();
+    this.ws = null;
+    this.reconnectLater();
+  }
+
+  private reconnectLater() {
+    this.clearTimers();
+    this.set({ status: 'reconnecting' });
+    const base = BACKOFF[Math.min(this.attempt++, BACKOFF.length - 1)]!;
+    this.retry = setTimeout(() => this.open('reconnecting'), base + Math.random() * base * 0.3);
   }
 
   private open(status: ConnStatus) {
@@ -130,16 +148,15 @@ export class Client {
       if (ev.code === CLOSE.replaced) return this.set({ status: 'replaced' });
       if (ev.code === CLOSE.left || this.state.status === 'ended') return this.set({ status: 'ended' });
       if (!this.intent) return this.set({ status: 'idle' });
-      this.set({ status: 'reconnecting' });
-      const base = BACKOFF[Math.min(this.attempt++, BACKOFF.length - 1)]!;
-      this.retry = setTimeout(() => this.open('reconnecting'), base + Math.random() * base * 0.3);
+      this.reconnectLater();
     };
   }
 
   // Watchdog: a frozen/half-open socket shows no close event; server sends `hb` every HEARTBEAT_MS.
   private kick() {
     if (this.watchdog) clearTimeout(this.watchdog);
-    this.watchdog = setTimeout(() => this.ws?.close(), WATCHDOG_MS);
+    this.lastMessageAt = Date.now();
+    this.watchdog = setTimeout(() => this.abandon(), WATCHDOG_MS);
   }
 
   private clearTimers() {
