@@ -1,6 +1,6 @@
 # Moonveil rules proposal
 
-Status: **proposal, v0.7, 2026-10-16**. v0.2 was revised after an independent review of 9af74b8; v0.3 to v0.6 record your decisions. Owner: rules scope (`packages/rules`, `docs/rules`).
+Status: **proposal, v0.7, 2026-10-16**. v0.2 was revised after an independent review of 9af74b8; v0.3 to v0.7 record your decisions. Owner: rules scope (`packages/rules`, `docs/rules`).
 Only what is listed under "Approved rules" is accepted. Everything else is **provisional** until you approve it.
 The engine implements each provisional recommendation as a named setting (`config.*`) or one isolated function.
 Approved rules are fixed engine behaviour, no longer settings.
