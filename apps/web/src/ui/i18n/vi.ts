@@ -71,10 +71,10 @@ export const vi: Strings = {
   endReasonNoWolves: 'Sói đã bị tiêu diệt hết.', endReasonParity: 'Số sói đã bằng số dân.', endReasonZero: 'Mọi người đều chết.', endReasonAborted: 'Quản trò đã kết thúc ván.',
   endReveal: 'Vai của mọi người', endHistory: 'Diễn biến các đêm', endSurvived: 'sống sót', endDied: 'đã chết',
 
-  modConsole: 'Bàn quản trò', modStep: 'Bước hiện tại', modCloseStep: 'Kết thúc bước', modCloseConfirm: 'Kết thúc "{step}" ngay?', modSeats: 'Ghế', modNight: 'Diễn biến đêm', modLog: 'Nhật ký', modDanger: 'Điều khiển',
+  modConsole: 'Quản trò', modStep: 'Bước', modCloseStep: 'Kết thúc bước', modCloseConfirm: 'Kết thúc "{step}" ngay?', modSeats: 'Ghế', modNight: 'Đêm', modLog: 'Nhật ký', modDanger: 'Điều khiển',
   modRemove: 'Đưa khỏi ván', modRemoveConfirm: 'Đưa {name} khỏi ván? Không có phát súng Thợ săn, không hoàn tác.', modAbort: 'Hủy ván', modAbortConfirm: 'Kết thúc ván ngay, không có bên thắng?',
   modYesCount: 'Số phiếu Có đếm tại bàn', modYesHint: 'Nhập số phiếu Có từ giơ tay. Ứng dụng áp dụng Có×2 > còn sống.', modApply: 'Áp dụng',
-  modPendingApi: 'Chờ cập nhật luật; chưa gửi.', modSecretWarn: 'Thông tin mật. Giữ màn hình cho riêng bạn.', modNoBallots: 'Không hiển thị lá phiếu.',
+  modPendingApi: 'Chờ cập nhật luật; chưa gửi.', modSecretWarn: 'Mật · chỉ bạn xem', modNoBallots: 'Không hiển thị lá phiếu.',
   modNoTimer: 'Không có đồng hồ. Bạn giữ nhịp.', modVictim: 'Nạn nhân của bầy', modPicks: 'Sói chọn', modInspect: 'Tiên tri soi', modGuard: 'Bảo vệ che', modHeal: 'Cứu', modPoison: 'Độc',
   modSubmitted: 'Đã nhận hành động đêm: {n}/{total}', modSay: 'Nói',
   sayNightMain: 'Mọi người nhắm mắt. Sói mở mắt và chọn. Tiên tri soi. Bảo vệ che.',

@@ -70,10 +70,10 @@ export const en = {
   endReasonNoWolves: 'All wolves are gone.', endReasonParity: 'The wolves are as many as the villagers.', endReasonZero: 'Everyone is dead.', endReasonAborted: 'The moderator ended the match.',
   endReveal: 'Everyone\'s roles', endHistory: 'Night history', endSurvived: 'survived', endDied: 'died',
 
-  modConsole: 'Moderator console', modStep: 'Current step', modCloseStep: 'Close step', modCloseConfirm: 'Close "{step}" now?', modSeats: 'Seats', modNight: 'Night record', modLog: 'Log', modDanger: 'Controls',
+  modConsole: 'Moderator', modStep: 'Step', modCloseStep: 'Close step', modCloseConfirm: 'Close "{step}" now?', modSeats: 'Seats', modNight: 'Night', modLog: 'Log', modDanger: 'Controls',
   modRemove: 'Remove player', modRemoveConfirm: 'Remove {name} from the match? No Hunter shot, no undo.', modAbort: 'Abort match', modAbortConfirm: 'End the match now with no winner?',
   modYesCount: 'Yes votes counted at the table', modYesHint: 'Enter the Yes count from the show of hands. The app applies Yes×2 > living.', modApply: 'Apply',
-  modPendingApi: 'Waiting for the rules update; not sent yet.', modSecretWarn: 'Secret info. Keep the screen to yourself.', modNoBallots: 'Ballots are not shown.',
+  modPendingApi: 'Waiting for the rules update; not sent yet.', modSecretWarn: 'Secret · your eyes only', modNoBallots: 'Ballots are not shown.',
   modNoTimer: 'No timer. You set the pace.', modVictim: 'Pack victim', modPicks: 'Wolf picks', modInspect: 'Seer looks at', modGuard: 'Guard protects', modHeal: 'Heal', modPoison: 'Poison',
   modSubmitted: 'Night inputs in: {n} of {total}', modSay: 'Say',
   sayNightMain: 'Everyone, eyes closed. Wolves, open your eyes and choose. Seer, look. Guard, protect.',
