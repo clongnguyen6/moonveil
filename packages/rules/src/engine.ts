@@ -92,13 +92,21 @@ export function apply(input: MatchState, actor: Actor, cmd: Command): ApplyResul
   if (auth) return { ok: false, error: auth };
   const state = structuredClone(input);
   const lax = actor.kind === 'moderator' && state.config.moderator.mayBreakRules;
-  const e = handle(state, cmd, lax);
+  const e = handle(state, cmd, lax, false, actor.kind);
   if (e) return { ok: false, error: e };
   if (actor.kind === 'moderator') state.history.push({ t: 'moderator', command: cmd });
   if (actor.kind === 'moderator' && state.nightRec && 'seat' in cmd && cmd.type !== 'player.remove') {
     if (!state.nightRec.byModerator.includes(cmd.seat)) state.nightRec.byModerator.push(cmd.seat);
   }
   return { ok: true, state };
+}
+
+/** Validate without applying (no clone, no mutation). Used for menus; same rules as apply(). */
+export function check(state: MatchState, actor: Actor, cmd: Command): EngineError | null {
+  if (state.step.kind === 'ended') return err('ended', 'match has ended');
+  const auth = authorize(actor, cmd);
+  if (auth) return auth;
+  return handle(state, cmd, actor.kind === 'moderator' && state.config.moderator.mayBreakRules, true, actor.kind);
 }
 
 // ---------- authorization ----------
@@ -117,7 +125,7 @@ function authorize(actor: Actor, cmd: Command): EngineError | null {
 
 // ---------- command handling ----------
 
-function handle(state: MatchState, cmd: Command, lax: boolean): EngineError | null {
+function handle(state: MatchState, cmd: Command, lax: boolean, dry = false, actor: Actor['kind'] = 'system'): EngineError | null {
   const c = state.config;
   const rule = (msg: string) => (lax ? null : err('rule', msg));
   switch (cmd.type) {
@@ -141,6 +149,7 @@ function handle(state: MatchState, cmd: Command, lax: boolean): EngineError | nu
           if (e) return e;
         }
       }
+      if (dry) return null;
       rec.wolfPicks[cmd.seat] = cmd.target;
       return null;
     }
@@ -152,6 +161,7 @@ function handle(state: MatchState, cmd: Command, lax: boolean): EngineError | nu
         const e = rule('wolves may not target a wolf');
         if (e) return e;
       }
+      if (dry) return null;
       rec.wolfDecision = cmd.target;
       return null;
     }
@@ -165,6 +175,7 @@ function handle(state: MatchState, cmd: Command, lax: boolean): EngineError | nu
         const e = rule('seer may not inspect self');
         if (e) return e;
       }
+      if (dry) return null;
       rec.inspections[cmd.seat] = cmd.target;
       const result = seerResult(roleOf(state, cmd.target), c.seer.result);
       grant(state, cmd.seat, { k: 'inspect', night: rec.night, target: cmd.target, result });
@@ -187,6 +198,7 @@ function handle(state: MatchState, cmd: Command, lax: boolean): EngineError | nu
           if (e) return e;
         }
       }
+      if (dry) return null;
       rec.guards[cmd.seat] = cmd.target;
       return null;
     }
@@ -202,6 +214,7 @@ function handle(state: MatchState, cmd: Command, lax: boolean): EngineError | nu
           if (e) return e;
         }
       }
+      if (dry) return null;
       rec.pins[cmd.seat] = cmd.target;
       return null;
     }
@@ -227,6 +240,7 @@ function handle(state: MatchState, cmd: Command, lax: boolean): EngineError | nu
           if (e) return e;
         }
       }
+      if (dry) return null;
       rec.heals[cmd.seat] = cmd.use;
       return null;
     }
@@ -247,6 +261,7 @@ function handle(state: MatchState, cmd: Command, lax: boolean): EngineError | nu
           if (e) return e;
         }
       }
+      if (dry) return null;
       rec.poisons[cmd.seat] = cmd.target;
       return null;
     }
@@ -261,6 +276,7 @@ function handle(state: MatchState, cmd: Command, lax: boolean): EngineError | nu
           if (e) return e;
         }
       }
+      if (dry) return null;
       step.votes[cmd.seat] = cmd.target;
       return null;
     }
@@ -272,6 +288,7 @@ function handle(state: MatchState, cmd: Command, lax: boolean): EngineError | nu
         const e = rule('accused may not vote');
         if (e) return e;
       }
+      if (dry) return null;
       step.votes[cmd.seat] = cmd.choice;
       return null;
     }
@@ -282,6 +299,7 @@ function handle(state: MatchState, cmd: Command, lax: boolean): EngineError | nu
       if (cmd.target !== 'pass') {
         if (!isAlive(state, cmd.target)) return err('bad_target', 'target not alive');
       }
+      if (dry) return null;
       step.shots[cmd.seat] = cmd.target;
       return null;
     }
@@ -290,6 +308,7 @@ function handle(state: MatchState, cmd: Command, lax: boolean): EngineError | nu
       if (!c.moderator.canSetDayOutcome) return err('forbidden', 'day outcome override disabled');
       if (!step.kind.startsWith('day.')) return err('wrong_step', 'not day');
       if (cmd.execute !== null && !isAlive(state, cmd.execute)) return err('bad_target', 'target not alive');
+      if (dry) return null;
       state.publicLog.push({ t: 'dayOutcomeSet', day: state.day, execute: cmd.execute });
       if (cmd.execute === null) startNight(state);
       else execute(state, cmd.execute);
@@ -297,13 +316,19 @@ function handle(state: MatchState, cmd: Command, lax: boolean): EngineError | nu
     }
     case 'player.remove': {
       if (!isAlive(state, cmd.seat)) return err('bad_seat', 'seat not alive');
+      if (actor === 'system' && isSecretStep(state) && !c.removal.systemDuringSecret) {
+        return err('wrong_step', 'removal waits until the night ends');
+      }
+      if (dry) return null;
       removePlayer(state, cmd.seat);
       return null;
     }
     case 'match.abort':
+      if (dry) return null;
       endMatch(state, { winner: 'aborted', reason: 'aborted' });
       return null;
     case 'step.close':
+      if (dry) return null;
       closeStep(state);
       return null;
   }
@@ -611,6 +636,8 @@ export function witchSeesVictim(state: MatchState, seat: Seat): boolean {
 function nightStep(state: MatchState, kind: 'night.main' | 'night.witch'): NightRecord | null {
   return state.step.kind === kind ? state.nightRec : null;
 }
+/** Night steps are secret: hidden actions happen; presence and timing must not leak. */
+export const isSecretStep = (state: MatchState) => state.step.kind === 'night.main' || state.step.kind === 'night.witch';
 const isAlive = (state: MatchState, seat: Seat) => state.seats[seat]?.alive === true;
 const isAliveRole = (state: MatchState, seat: Seat, role: Role) => isAlive(state, seat) && state.seats[seat]?.role === role;
 const roleOf = (state: MatchState, seat: Seat) => (state.seats[seat] as { role: Role }).role;

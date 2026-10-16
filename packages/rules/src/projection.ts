@@ -1,6 +1,6 @@
 // Per-viewer projection. The ONLY sanctioned way to expose state outside the server.
 // Rule: a seat sees public info + its own knowledge ledger + live secrets it is entitled to while alive.
-import { apply } from './engine.ts';
+import { check } from './engine.ts';
 import type { Command, DeathCause, Fact, HistoryEntry, MatchState, NightRecord, Outcome, Pick, PublicEvent, Role, Seat, SeatState } from './types.ts';
 import type { RulesConfig } from './config.ts';
 
@@ -169,13 +169,12 @@ function packView(state: MatchState, me: SeatState): PackView {
   };
 }
 
-/** Legal options for this seat now, computed by dry-running apply() so UI and engine never disagree. */
+/** Legal options for this seat now, computed with check() (same validation as apply) so UI and engine never disagree. */
 export function availableActions(state: MatchState, me: SeatState): AvailableAction[] {
   const step = state.step;
   const rec = state.nightRec;
-  const light: MatchState = { ...state, history: [], publicLog: [], knowledge: state.seats.map(() => []) };
   const actor = { kind: 'seat' as const, seat: me.seat };
-  const ok = (cmd: Command) => apply(light, actor, cmd).ok;
+  const ok = (cmd: Command) => check(state, actor, cmd) === null;
   const targets = (mk: (t: Seat) => Command) => state.seats.filter((s) => ok(mk(s.seat))).map((s) => s.seat);
   const out: AvailableAction[] = [];
 

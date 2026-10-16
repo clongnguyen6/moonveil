@@ -5,16 +5,41 @@ Rules: `docs/rules/PROPOSAL.md`. Every `config` key is **provisional** until the
 
 ## Run
 ```
-cd packages/rules && npm install && npm run check   # typecheck + tests
+cd packages/rules && npm install && npm run check   # typecheck + tests (~20 s; randomized sim is most of it)
 ```
 - Needs Node ≥ 22.18; it runs the `.ts` sources directly. `.npmrc` keeps npm's cache inside `.cache/` (the workspace write boundary).
 - `exports["."] = ./src/index.ts`. If the server needs JS, add a build when the workspace is wired up (foundation owns that).
+
+## Host contract (final; for the server)
+Adopted from foundation's draft `apps/server/src/rules/engine.ts` (branch `foundation` b3d9ece), with additions. The server should import it instead of keeping its own copy:
+```ts
+import { createRulesEngine } from '@moonveil/rules';
+const engine = createRulesEngine({ config?, deck? });   // RulesEngine<HostState>
+```
+| Member | vs draft | Notes |
+|---|---|---|
+| `id`, `minPlayers`, `maxPlayers` | same | from `config.players` (Q18) |
+| `setup({seats, seed})` | same | seeded role assignment; throws only on an invalid player count/deck |
+| `phase(s) -> {name, secret, durationMs, earlyClose, ended}` | **+earlyClose** | `secret` = night steps. Secret steps: fixed `durationMs`, `earlyClose` always false (Q11). Public steps: `earlyClose` true once everyone eligible acted; the server MAY close early |
+| `submit(s, seatId, action)` | same, `error` +`code` | `action` = Command without `seat` (the engine injects the actor). Strictly parsed |
+| `moderate(s, action)` | **new** | any Command with seat indices: act for a seat, `wolf.decide`, `day.setOutcome`, `player.remove`, `match.abort`, `step.close` (Q16) |
+| `remove(s, seatId)` | **new** | system/host removal; refused during secret steps (Q26) |
+| `advance(s)` | same | `step.close` as system |
+| `view(s, viewer)` | **+`{kind:'public'}`** | the Projection below, plus `seatIds` (index → SeatId) |
+| `channels(s, seatId \| viewer)` | **+moderator viewer** | `[{channel:'public'\|'wolves'\|'ghosts', listen, speak}]`, same shape as `VoiceGrant`; applies to voice and text (Q25) |
+
+- Seats are **indices** inside the game. `view().seatIds[i]` is the server SeatId. Clients send targets as indices.
+- Server changes this implies (foundation scope):
+  - route moderator actions to `moderate`;
+  - call `channels(s, {kind:'moderator'})` for the moderator instead of hard-coding public;
+  - optionally honour `earlyClose`.
 
 ## Core calls
 ```ts
 createMatch({ seed, playerCount } | { seed, roles: Role[] } | { seed, playerCount, deck }, config?) -> {ok, state} | {ok:false, error}
 apply(state, actor, command) -> {ok:true, state} | {ok:false, error:{code, message}}   // input is never mutated
 project(state, viewer) -> Projection        // the ONLY thing to send to a client
+check(state, actor, command) -> error|null  // validate without applying (cheap; same rules as apply)
 stepTiming(state) -> {seconds, earlyCloseReady}   // for the automatic orchestrator
 ```
 - `state` is plain JSON. Persist it as is; replaying the same commands on the same seed gives the same state.
@@ -34,18 +59,18 @@ Every step advances only on `step.close`. Anything not submitted counts as a pas
 ## Orchestration
 - **Automatic**: on entering a step, start a timer of `stepTiming(state).seconds`. After every accepted command, if `earlyCloseReady` is true, close the step (with an optional short grace). When the timer fires, send `step.close` as `system`. Night steps never report early-ready by default (Q11), so the length of the night leaks nothing.
 - **Moderator**: the moderator sends `step.close` when ready. They may also act for seats, set the pack target (`wolf.decide`), set the day result (`day.setOutcome {execute: seat|null}`), remove players or abort.
-- **Disconnects**: the engine has no notion of presence. A disconnected seat simply misses its inputs. `player.remove` (system or moderator) is a death with cause `removed`; victory is checked right after.
+- **Disconnects** (Q26): the engine has no notion of presence. A disconnected seat simply misses its inputs, which count as passes. `player.remove` is a death with cause `removed`, and victory is checked right after. A system removal is refused during night steps; the moderator may remove at any time.
 
 ## Projection (secrecy contract)
 `project(state, {kind:'seat', seat})` contains:
 - **Public**: step (live votes if `day.openVotes`), seats alive/dead, death cause masked as `'night'` for night deaths, `publicLog`, role counts.
 - **Roles**: own role; the pack for wolves; roles revealed publicly; all roles once ended.
 - `me.facts`: this seat's knowledge ledger (Seer results, the Witch's victim, the pack target, own actions). A fact is granted only while the seat is alive, so **ghosts keep but never gain**.
-- `me.actions`: legal options now, with targets, produced by dry-running `apply`. Render menus from this list.
+- `me.actions`: legal options now, with targets, produced by `check()` (the same validation `apply` uses). Render menus from this list.
 - `pack.picks`: live pack picks, only for a living wolf during `night.main`.
 
 `{kind:'public'}` gives public data only (spectators, a host without a seat). `{kind:'moderator'}` adds `moderator: {seats, nightRec, history, knowledge, config}`. At `ended`, everyone gets `reveal.roles` (+ `reveal.history` if `reveal.historyAtEnd`).
-Never send `state` itself, and never send a moderator projection to a player seat. Voice, chat and channel permissions are derived by the server from the step and projection (for example, the wolf channel = living wolves at night).
+Never send `state` itself, and never send a moderator projection to a player seat. Voice and text permissions come from `channelsFor(state, viewer)` / `engine.channels()`.
 
 ## Known public side channels (by design, see the proposal)
 - A `hunter` step and `shot` reveal the Hunter (Q06/Q20).

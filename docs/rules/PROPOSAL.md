@@ -16,13 +16,16 @@ setting (`config.*`) or one isolated function, so a decision changes a setting, 
 | Q09 | Nomination threshold and ties | Most votes wins, "Skip" counts as an option, a tie at the top means no execution |
 | Q10 | Defense and Yes/No vote | Both on: 30 s defense, then Yes/No. Execute if Yes > No among votes cast |
 | Q20 | Reveal a role on death? | **No.** Roles are revealed at match end (reading of the brief; please confirm) |
-| Q11 | Night pace vs secrecy | Night steps always run their full fixed time, even when the roles are dead. Day steps may end early |
+| Q11 | Secret-phase timing | Fixed night: 40 s for the main step plus 20 s for the Witch, every night, even when roles are dead. No adaptive end. Public steps may end early |
 | Q15 | Disconnected players | They stay in the game; missed actions count as skips. Only the moderator, or the host for a player who is disconnected, may remove them |
+| Q24 | What a ghost keeps and sees | Keeps everything they legitimately learned while alive (own role, Seer results, wolf teammates, the Witch's victims, own actions). Gains nothing new. Sees only public events plus ghost chat |
+| Q25 | Voice/text channels | Day: public. Night: living wolves only, on the wolf channel. Defense: only the nominee speaks. Ghosts: ghost channel plus listening to public. The moderator hears everything |
+| Q26 | Disconnect during the night | A submitted action stands; a missing one is a pass. The drop stays hidden until day. Removal waits for the day (moderator excepted) |
 | Q16 | Moderator powers | Run the pace, act for any seat, set the day outcome by show of hands, remove a player, abort. Cannot break the rules, revive or undo |
 | Q17 | Role distribution | Table in Q17 (2 Wolves for 6–9 players, 3 for 10–12, 4 for 13–15, 5 for 16). Host may customize within limits |
 | Q18 | Player count | Minimum 6, maximum 16 (the maximum must be confirmed by UI and voice tests) |
 
-Low-stakes defaults (sensible to accept as a batch): Q01, Q02, Q04, Q05, Q08, Q12, Q13, Q19, Q21–Q24.
+Low-stakes defaults (sensible to accept as a batch): Q01, Q02, Q04, Q05, Q08, Q12, Q13, Q19, Q21–Q23.
 
 ## Approved rules (binding)
 
@@ -124,11 +127,13 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 - **Why**: a defense gives the accused a voice, and the vote among votes cast keeps disconnected players from blocking the day.
 - **Engine**: `day.defense`, `day.confirmVote`, `day.confirm` (`majorityOfCast` | `majorityOfLiving`), `day.accusedVotesOnConfirm`.
 
-## Q11 Timeouts and ending steps early — product decision needed
+## Q11 Secret-phase timing — product decision needed
 - **sky2 code**: defaults are day 90 s, night 120 s, wolf choice 40 s and vote 45 s (AV1:60-77). When everyone has acted, the timer drops to 5 s (AV1:375-377, 453-465). When a role is dead, sky2 adds a random fake delay so that nobody can tell (AV1:761-769, 816-821, 828-831).
-- **Recommend**: anything not submitted when time runs out counts as a pass. **Night steps never end early and always run, even if the role is dead.** Otherwise the length of the night would show that the Witch is dead or has finished. Public steps (votes, Hunter) may end early once everyone eligible has acted. The discussion runs its full time unless the moderator ends it.
-- **Alternatives**: sky2's early end plus a random delay (faster, but it still leaks statistically); let night steps end early (fastest, and it leaks).
-- **Engine**: `timing.*`, `timing.nightEarlyClose=false`, `stepTiming()`.
+- **Server today (foundation, ADR 0001)**: automatic mode never closes a secret phase early, so every phase runs a fixed deadline.
+- **Recommend: fixed.** The main night step is 40 s and the Witch step 20 s, so each night lasts 60 s. That is the same every night, whatever has happened and whoever is alive. The Witch step runs whenever the match has a Witch, even if she is dead. Anything not submitted is a pass. Public steps (votes, Hunter) may end early once everyone eligible has acted. The discussion runs its full time unless the moderator ends it. In moderator mode the moderator sets the pace and accepts that their own timing is a cue (ADR 0001).
+- **Trade-off**: fixed nights cost about 20–40 s per night when everyone is quick, which over 4–6 nights is 2–4 min per match. Ending early in any form leaks information. "Night ended fast" means that every night actor is done or dead, which over a few nights reveals that the Witch or Seer is dead. Even sky2's random delay leaks statistically, because the extra time depends on hidden state.
+- **Alternatives**: (a) adaptive: end once all *living* actors are done, plus a random 5–15 s (sky2), which is faster but leaks; (b) fixed but shorter (30 s + 15 s), which is faster with more players timing out; (c) players may tap "ready", with the night still fixed.
+- **Engine**: `timing.*`, `timing.nightEarlyClose=false`, `stepTiming()`; the host contract reports `secret=true` and `earlyClose=false` for night steps.
 
 ## Q12 When victory is checked — low-stakes default (follows the approved rules)
 - **sky2 code**: victory is checked after the night (AV1:1001) and after an execution (AV1:1170). Moderator mode never checks it; the moderator ends the match by hand (MSC:130-146).
@@ -149,7 +154,7 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 
 ## Q15 Disconnected or leaving players — product decision needed
 - **sky2 code**: there is no concept of a disconnected player. Identity comes from a device cookie (MSS:224-250). Missing actions simply time out.
-- **Recommend**: a disconnected player stays in the game, keeps their seat and role, and their missed actions are passes or abstentions. Reconnecting restores the same seat (server). There is no automatic elimination. The moderator, or the host when the player has been disconnected for at least 2 minutes (a server rule), may **remove** a player. Removal is a death with cause "left": no Hunter shot (`hunter.shootsWhenRemoved=false`), and victory is checked.
+- **Recommend**: a disconnected player stays in the game, keeps their seat and role, and their missed actions are passes or abstentions. Reconnecting restores the same seat (server). There is no automatic elimination. The moderator, or the host when the player has been disconnected for at least 2 minutes (a server rule), may **remove** a player. Removal by the host or server waits until the night is over (Q26). Removal is a death with cause "left": no Hunter shot (`hunter.shootsWhenRemoved=false`), and victory is checked.
 - **Alternatives**: automatic removal after N missed phases; a bot takes over the seat.
 - **Engine**: command `player.remove`; the authority check belongs to the server.
 
@@ -214,10 +219,56 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 - **Recommend**: the match starts at night; the Wolves may attack on night 1.
 - **Engine**: `firstNightKill`.
 
-## Q24 Ghosts and end-of-match reveal — low-stakes default
-- **Brief**: ghosts keep what they legitimately knew; reconnecting grants nothing new.
-- **Recommend**: a ghost keeps their own role, their own past actions and results, and the pack list (if a Wolf). Ghosts receive no new secrets (no wolf picks, no Witch victim) and do not vote. Exception: a dead Hunter takes their shot (Q06). At match end everyone sees all roles and the full night history.
-- **Engine**: per-seat knowledge ledger; `reveal.historyAtEnd`.
+## Q24 What a ghost keeps and sees — product decision needed (resolves an ambiguity in the brief)
+- **Brief**: "Ghosts cannot inspect secret roles/actions or hear the wolf channel" (approved). "Whether eliminated players retain any knowledge they legitimately held before death needs no new reveal" can be read two ways: (a) ghosts keep what they knew, or (b) ghosts are reset to public information.
+- **sky2 code**: the opposite of both readings. Dead players get the whole history, roles included (AV1C:73).
+- **Recommend (a)**: keep, never gain.
+
+| Ghost… | Keeps / sees? |
+|---|---|
+| Own role | Yes |
+| Wolf teammates (if a Wolf) | Yes (known since the start) |
+| The pack's past targets up to their death (if a Wolf) | Yes |
+| Seer results obtained while alive | Yes, including the result from the night they died |
+| The Witch's victims seen, own potions and actions | Yes |
+| The Guard's own past protections; the Hunter's own pins | Yes |
+| Anything new after death: wolf picks, wolf chat, new results, the Witch's new victim, others' roles | **No** |
+| Public events (deaths, votes, executions, shots) | Yes, like the living |
+| Ghost chat; listening to public discussion | Yes (approved); cannot speak to the living |
+| All roles and the full night history | At match end only, like everyone |
+
+- **Why (a)**: reconnecting must never change what a seat knows, and wiping knowledge would make a ghost's screen contradict what they remember. A ghost cannot pass information to the living in the app; real-world talk can't be controlled either way.
+- **Known effect**: ghosts may share what they know on the ghost channel (a dead Seer can tell other ghosts). That affects no living player.
+- **Alternatives**: (b) reset to public only; (c) ghosts see everything, as a spectator mode. That contradicts the approved "cannot inspect secret roles" rule.
+- **Engine**: per-seat knowledge ledger; facts are granted only to living seats (tested: "ghost knowledge is frozen at death"); `reveal.historyAtEnd`.
+
+## Q25 Voice and text channels — product decision needed
+- **Brief**: ghost rules approved (see the table above). "Public communication during daytime; private wolf communication at night; ghost communication separate" is a working proposal.
+- **sky2 code**: text only. The wolf chat is for living wolves; the "all" chat is for everyone (LUAT §1). There is no voice.
+- **Recommend**:
+
+| When | Living Wolf | Other living | Ghost | Moderator |
+|---|---|---|---|---|
+| Night | Wolf channel (talk) | Silent | Ghost channel + hears public | Hears everything |
+| Day (discussion, votes) | Public (talk) | Public (talk) | Ghost channel + hears public | Public (talk) + hears all |
+| Defense | Listen; only the nominee talks | Listen; only the nominee talks | Ghost channel + hears public | Same |
+| Match end | Public (all) | Public (all) | Public (all) | Public (all) |
+
+  The same grants apply to text and emotes. In-person play keeps voice off (a server/room setting), and wolves use text at night.
+- **Alternatives**: wolves also have a private channel by day (stronger wolves); living players hear public at night (pointless, since nobody may speak); the moderator does not hear the wolves.
+- **Engine**: `channelsFor()`; `comms.wolvesAtNight`, `comms.livingHearPublicAtNight`, `comms.defenseOnlyAccusedSpeaks`, `comms.moderatorHearsAll`.
+
+## Q26 Disconnects during secret phases — product decision needed
+- **Server today (ADR 0001)**: presence shown to players is frozen during secret phases, so nobody sees who dropped at night. The moderator sees it live.
+- **sky2 code**: there is no presence concept; missing actions time out (AV1:979-1002).
+- **Recommend**:
+  - an action submitted before the drop stands, and can still be changed after reconnecting before the step closes;
+  - if nothing was submitted, it counts as a pass when the fixed step ends: no kill vote from that wolf (the other wolves' picks decide), no inspection, no protection, no potion;
+  - a disconnected wolf's earlier pick still counts toward the pack's choice;
+  - nothing is announced, and reconnecting restores the same seat and knowledge;
+  - removal by the host or server is refused during night steps, because a removal at night would publish a night-time event. It waits for the day. The moderator may still remove at any time.
+- **Alternatives**: a bot submits a random legal action (keeps balance, but surprises); hidden auto-removal at dawn.
+- **Engine**: no presence in the engine. `removal.systemDuringSecret=false` (the moderator is exempt).
 
 ## Other findings from sky2 (evidence for the projection requirement)
 

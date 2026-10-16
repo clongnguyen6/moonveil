@@ -55,6 +55,15 @@ export interface RulesConfig {
     mayBreakRules: boolean; // Q16
     canSetDayOutcome: boolean; // Q16
   };
+  /** Q26: may the system/host remove a seat during a secret (night) step? Moderator always may. */
+  removal: { systemDuringSecret: boolean };
+  /** Q25: voice/text channels. Ghost rules (ghost channel, hear public, no wolf channel) are approved, not configurable. */
+  comms: {
+    wolvesAtNight: boolean;
+    livingHearPublicAtNight: boolean;
+    defenseOnlyAccusedSpeaks: boolean;
+    moderatorHearsAll: boolean;
+  };
   /** Seconds. Q11/Q19. */
   timing: {
     nightMain: number;
@@ -110,6 +119,8 @@ export const DEFAULT_CONFIG: RulesConfig = {
   },
   victory: { zeroSurvivors: 'draw' },
   moderator: { mayBreakRules: false, canSetDayOutcome: true },
+  removal: { systemDuringSecret: false },
+  comms: { wolvesAtNight: true, livingHearPublicAtNight: false, defenseOnlyAccusedSpeaks: true, moderatorHearsAll: true },
   timing: {
     nightMain: 40,
     nightWitch: 20,
@@ -161,6 +172,11 @@ export const PROVISIONAL: Record<string, string> = {
   'victory.zeroSurvivors': 'Q14',
   'moderator.mayBreakRules': 'Q16',
   'moderator.canSetDayOutcome': 'Q16',
+  'removal.systemDuringSecret': 'Q26',
+  'comms.wolvesAtNight': 'Q25',
+  'comms.livingHearPublicAtNight': 'Q25',
+  'comms.defenseOnlyAccusedSpeaks': 'Q25',
+  'comms.moderatorHearsAll': 'Q25',
   timing: 'Q11/Q19',
 };
 
