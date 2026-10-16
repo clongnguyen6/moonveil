@@ -1,6 +1,6 @@
 # Moonveil rules proposal
 
-Status: **proposal, v0.6, 2026-10-16**. v0.2 was revised after an independent review of 9af74b8; v0.3 to v0.6 record your decisions. Owner: rules scope (`packages/rules`, `docs/rules`).
+Status: **proposal, v0.7, 2026-10-16**. v0.2 was revised after an independent review of 9af74b8; v0.3 to v0.7 record your decisions. Owner: rules scope (`packages/rules`, `docs/rules`).
 Only what is listed under "Approved rules" is accepted. Everything else is **provisional** until you approve it.
 The engine implements each provisional recommendation as a named setting (`config.*`) or one isolated function.
 Approved rules are fixed engine behaviour, no longer settings.
@@ -15,7 +15,7 @@ Plain language. "Recommend" is only my suggestion.
 | Q16 (rest) | Moderator powers beyond listening and the Yes count | Runs the pace, can act for a player, can set the wolves' target, can remove a player or stop the match, sees ballots live. Speaking in public: recommend allowing it; currently **off** until you decide. Cannot break the rules, bring anyone back or undo |
 | Q17 | Roles per player count | About one Wolf per three players (table in Q17). At 6 players a Hunter instead of a Witch, and the app refuses custom setups that the Wolves could win on the very first night |
 | Q18 | Number of players | 6 to 16 (16 still to be checked with the real screens and voice) |
-| Q22 (rest) | What a vote shows when it closes, and who-has-voted indicators | At close, show who voted for whom plus the totals. During the vote, don't show who has voted |
+| Q22 (rest) | What a vote shows when it closes | Who voted for whom, plus the totals |
 | Q11 (rest) | Durations other than night (60 s) and defense (30 s) | Main night 40 s / Witch 20 s; nomination 30 s; Yes/No 15 s; Hunter 20 s; discussion 60 s + 15 s per living player (90–240 s) |
 | Q08 | Wolves choosing "nobody" | Allowed. "Nobody" wins only if it alone has the most wolf choices |
 | Q10 (rest) | May the accused vote in their own Yes/No round? | Yes |
@@ -50,6 +50,7 @@ Low-stakes defaults you could accept as a group: Q01, Q02, Q04, Q05, Q12, Q13, Q
 - **Day votes (Q11/Q22).**
   - Nomination and the Yes/No round both run to their deadline; nothing ends early.
   - Until a vote closes, players see no running totals and no one else's ballot (nor does the public view or a reconnecting device). Each voter sees their own choice.
+  - **Voted status is shown (approved 2026-10-16, supersedes the hidden default):** during both votes everyone sees *which* players have already voted, but not what they chose.
   - Results appear when the vote closes.
   - *Not covered:* what the moderator sees mid-vote (provisional, currently everything).
 - **Hunter (Q06).**
@@ -66,6 +67,11 @@ Low-stakes defaults you could accept as a group: Q01, Q02, Q04, Q05, Q12, Q13, Q
   - Choices already submitted stay; a missing choice becomes a pass at the deadline.
   - Disconnected players stay alive and count in the execution threshold.
   - Reconnecting restores the same identity, role and state, with no extra knowledge.
+  - **No immunity for being offline (binding clarification):**
+    - A disconnected player can still be nominated and executed, and bitten or poisoned at night.
+    - Reconnecting never resurrects: a player eliminated while offline returns as a ghost.
+    - A Hunter eliminated while offline still gets the 20 s shot turn. If they reconnect in time they may shoot, with no ghost access until the turn resolves; otherwise it times out with no shot.
+    - Tests: `test/offline.test.ts`.
 - **Pause in automatic mode.**
   - Game timers pause while *all* player seats are disconnected, and resume when any player reconnects. A connected moderator or spectator doesn't prevent the pause.
   - Time spent paused never expires a phase; on resume the phase has exactly the time left that it had when it paused.
@@ -262,10 +268,9 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 
 ## Q22 Vote visibility — partly decided 2026-10-16
 - **sky2 code**: votes are live and open, showing who voted for whom (AV1:527, 665-696).
-- **DECIDED**: until a vote closes, nobody but the moderator sees running totals or other players' ballots: not in a player's view, the public view, events, or a reconnect. Each voter sees their own choice. Results appear when the vote closes.
+- **DECIDED**: until a vote closes, nobody but the moderator sees running totals or other players' ballots: not in a player's view, the public view, events, or a reconnect. Each voter sees their own choice. Results appear when the vote closes. Everyone does see *who has* voted (approved 2026-10-16), never what they chose.
 - **Still open**:
   - what is shown at close (recommend who voted for what plus totals; alternative: totals only), `day.revealBallotsAtClose`;
-  - whether players see *who has* voted mid-vote (recommend no), `day.showWhoVoted`;
   - whether the moderator sees live ballots (currently yes), `moderator.seesLiveBallots`.
 - **Engine**: `stepView()` hides ballots; `me.ballot` carries the voter's own choice; tests in `test/decisions.test.ts`.
 
