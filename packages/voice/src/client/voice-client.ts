@@ -70,8 +70,19 @@ export interface MicTrackLike {
 }
 export interface RemoteTrackLike {
   kind: string;
+  sid?: string;
   attach(): HTMLMediaElement;
   detach(): HTMLMediaElement[];
+  // livekit-client RemoteAudioTrack: inbound RTP stats; totalAudioEnergy grows while audio arrives.
+  getReceiverStats?(): Promise<{ totalAudioEnergy?: number; bytesReceived?: number } | undefined>;
+}
+// Diagnostics for tests: audio actually received per channel and remote identity.
+export interface AudioStats {
+  channel: string;
+  identity: string;
+  trackSid: string;
+  totalAudioEnergy: number | null;
+  bytesReceived: number | null;
 }
 export interface RoomLike {
   connect(url: string, token: string, opts?: unknown): Promise<unknown>;
@@ -119,6 +130,7 @@ interface Chan {
   mic: MicTrackLike | null;
   detach: (() => void)[];
   listeners: [string, (...args: any[]) => void][];
+  tracks: Map<string, { track: RemoteTrackLike; identity: string }>;
 }
 
 const noopDoc: VoiceClientOptions['document'] = null;
@@ -206,6 +218,7 @@ export class VoiceClient {
       mic: null,
       detach: [],
       listeners: [],
+      tracks: new Map(),
     };
     this.chans.set(s.channel, c);
     this.wire(c);
@@ -254,8 +267,9 @@ export class VoiceClient {
     on(EV.participantConnected, () => this.refreshParticipants(c));
     on(EV.participantDisconnected, () => this.refreshParticipants(c));
     on(EV.activeSpeakersChanged, () => this.refreshParticipants(c));
-    on(EV.trackSubscribed, (track: RemoteTrackLike) => {
+    on(EV.trackSubscribed, (track: RemoteTrackLike, _pub: unknown, participant?: { identity: string }) => {
       if (track.kind !== 'audio') return;
+      c.tracks.set(track.sid ?? `${participant?.identity ?? '?'}:${c.tracks.size}`, { track, identity: participant?.identity ?? '?' });
       const container = this.opts.audioContainer === undefined ? (typeof document !== 'undefined' ? document.body : null) : this.opts.audioContainer;
       if (!container) return;
       const el = track.attach();
@@ -264,7 +278,9 @@ export class VoiceClient {
       c.detach.push(() => track.detach().forEach((e) => e.remove()));
     });
     on(EV.trackUnsubscribed, (track: RemoteTrackLike) => {
-      if (track.kind === 'audio') track.detach().forEach((e) => e.remove());
+      if (track.kind !== 'audio') return;
+      track.detach().forEach((e) => e.remove());
+      for (const [sid, t] of c.tracks) if (t.track === track) c.tracks.delete(sid);
     });
     on(EV.audioPlaybackChanged, () => this.publish());
     on(EV.reconnecting, () => {
@@ -318,6 +334,18 @@ export class VoiceClient {
     c.view.publishing = false;
     await c.room.localParticipant.unpublishTrack(t, true).catch((err) => this.opts.onError?.(c.session.channel, err));
     this.publish();
+  }
+
+  // Diagnostics (tests): received-audio stats for every subscribed remote audio track.
+  async stats(): Promise<AudioStats[]> {
+    const out: AudioStats[] = [];
+    for (const c of this.chans.values()) {
+      for (const [sid, t] of c.tracks) {
+        const st = t.track.getReceiverStats ? await t.track.getReceiverStats().catch(() => undefined) : undefined;
+        out.push({ channel: c.session.channel, identity: t.identity, trackSid: sid, totalAudioEnergy: st?.totalAudioEnergy ?? null, bytesReceived: st?.bytesReceived ?? null });
+      }
+    }
+    return out;
   }
 
   // iOS Safari ends or mutes capture when the page is hidden; re-acquire when it comes back.

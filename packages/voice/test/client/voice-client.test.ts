@@ -244,6 +244,22 @@ test('ADR 0004 session shape (no room/visible) is accepted: room read from the t
   assert.equal(rooms[0]!.published.length, 0);
 });
 
+test('stats(): received audio energy per channel and remote identity, from subscribed tracks', async () => {
+  const { client, rooms } = make();
+  await client.applySessions([S('public', 'R-public-g1', true)]);
+  let energy = 0.1;
+  const track = { kind: 'audio', sid: 'TR1', attach: () => ({}) as HTMLMediaElement, detach: () => [], getReceiverStats: async () => ({ totalAudioEnergy: (energy += 0.05), bytesReceived: 100 }) };
+  rooms[0]!.emit(EV.trackSubscribed, track, {}, { identity: 'p2' });
+  const a = await client.stats();
+  const b = await client.stats();
+  assert.equal(a.length, 1);
+  assert.equal(a[0]!.identity, 'p2');
+  assert.equal(a[0]!.channel, 'public');
+  assert.ok(b[0]!.totalAudioEnergy! > a[0]!.totalAudioEnergy!);
+  rooms[0]!.emit(EV.trackUnsubscribed, track);
+  assert.deepEqual(await client.stats(), []);
+});
+
 test('dispose disconnects everything and stops mics', async () => {
   const { client, rooms, mics } = make();
   await client.applySessions([S('public', 'R-public-g1', true), S('ghosts', 'R-ghosts-g1', true)]);
