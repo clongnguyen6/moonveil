@@ -62,13 +62,17 @@ export function row(c: Cell, label: string, flag = ''): string {
   return `| ${c.players} | ${label} | ${c.policy} | ${pct(c.village, c.n)} [${lo}–${hi}] | ${pct(c.wolves, c.n)} | ${pct(c.draw, c.n)} | ${Math.round(c.execAccuracy * 100)} | ${c.nightsMean.toFixed(1)} | ${c.minutes.p10.toFixed(0)}/${c.minutes.p50.toFixed(0)}/${c.minutes.p90.toFixed(0)} | ${flag} |`;
 }
 
-/** `node sim/balance.ts <n> smart`: default vs smarter-village bots at 10-15 players, current table vs one wolf fewer. */
+/**
+ * `node sim/balance.ts <n> smart`: default vs smarter-village bots on the APPROVED decks at 7-15 players; at 13-15 also
+ * one wolf fewer (information only: 13-15 still screens wolf-favoured).
+ */
 function smartReport(n: number): void {
   const head = `| Players | Deck | Village bots | Village win % [95% CI] | Wolves % | Exec. hit wolf % | Nights | Minutes p50 |\n|---|---|---|---|---|---|---|---|`;
-  console.log(`### Smarter-village sensitivity (heuristic, n=${n} per row)\n\n${head}`);
-  for (let players = 10; players <= 15; players++) {
-    const base = defaultDeck(players, DEFAULT_CONFIG) as DeckCounts;
-    for (const deck of [base, variant(base, -1)!]) {
+  console.log(`### Smarter-village sensitivity on the approved decks (heuristic, n=${n} per row)\n\n${head}`);
+  for (let players = 7; players <= 15; players++) {
+    const base = defaultDeck(players) as DeckCounts;
+    const decks = players >= 13 ? [base, variant(base, -1)!] : [base];
+    for (const deck of decks) {
       for (const [label, knobs] of [['default', {}], ['smart', SMART_VILLAGE]] as const) {
         const c = runCell(players, 'heuristic', deck, n, knobs);
         const [lo, hi] = wilson(c.village, c.n);
