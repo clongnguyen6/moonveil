@@ -48,7 +48,11 @@ export default defineConfig({
   projects: [
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /mobile\.spec|real-match(-ui)?\.spec/ },
     // Opt-in: npm run e2e:matches (full real-engine matches, 7-10 browsers each).
-    { name: 'real-matches', use: { ...devices['Desktop Chrome'] }, testMatch: /real-match(-ui)?\.spec/ },
+    { name: 'real-matches', use: { ...devices['Desktop Chrome'] }, testMatch: /real-match\.spec/ },
+    // Opt-in UI-driven acceptance (npm run e2e:ui): browser EMULATION of laptop and phones, not real devices.
+    { name: 'ui-laptop', use: { ...devices['Desktop Chrome'] }, testMatch: /real-match-ui\.spec/ },
+    { name: 'ui-phone-chromium', use: { ...devices['Pixel 7'] }, testMatch: /real-match-ui\.spec/ },
+    { name: 'ui-phone-webkit', use: { ...devices['iPhone 15'] }, testMatch: /real-match-ui\.spec/ },
     { name: 'mobile-chromium', use: { ...devices['Pixel 7'] }, testMatch: /mobile\.spec/ },
     // Grant b (WORKSPACE_PROTOCOL.md): WebKit may write ONLY ~/Library/{Preferences/org.webkit.Playwright.plist,
     // WebKit/org.webkit.Playwright/, Caches/org.webkit.Playwright/}. Results = "WebKit/browser emulation", not iPhone.
