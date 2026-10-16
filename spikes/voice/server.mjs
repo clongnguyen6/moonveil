@@ -22,7 +22,8 @@ const svc = new RoomServiceClient(LK_HTTP, LK_KEY, LK_SECRET);
 const state = {
   match: 'm1',
   mode: 'remote', // 'remote' | 'in-person'
-  phase: 'lobby', // 'lobby' | 'day' | 'night'
+  phase: 'lobby', // 'lobby' | 'day' | 'defense' | 'night'
+  accused: null, // seat defending itself during 'defense'
   epoch: 0,
   // Room generation per channel. OSS LiveKit does not revoke already-issued tokens on
   // RemoveParticipant (RevokeTokenTs is ignored by the OSS server, verified in source + test),
@@ -34,25 +35,32 @@ const state = {
 const roomName = (channel) => `${state.match}-${channel}-g${state.gen[channel]}`;
 const CHANNELS = ['public', 'wolves', 'ghosts'];
 
-// Channel rules -> entitlements. This is the function Foundation's server must own.
+// Approved channel policy (2026-10-16) -> grants. In the real server this is the rules engine's
+// channels(seat) plus the moderator seat; the adapter below only maps grants onto LiveKit rooms.
+//   day:      living publish+listen on public
+//   night:    only living wolves publish+listen, on wolves
+//   defense:  only the accused publishes on public; other living listen
+//   ghosts:   publish+listen on ghosts, listen on public (hidden). Never wolves.
+//   pending Hunter (dead, shot unresolved): no ghost access; listens to public hidden (assumption)
+//   moderator (non-player): listens to every channel, hidden; publishing off by default
+//   in-person: no voice grants at all
+// A grant = {channel, listen, speak, visible}. No grant => not connected to that room at all.
 function entitlements(p) {
   if (state.mode === 'in-person') return [];
-  const out = [];
-  if (state.phase === 'lobby') {
-    out.push({ channel: 'public', canPublish: true, canSubscribe: true, hidden: false });
+  const g = (channel, speak, listen, visible = true) => ({ channel, canPublish: speak, canSubscribe: listen, hidden: !visible });
+  if (p.role === 'moderator') return CHANNELS.map((ch) => g(ch, false, true, false));
+  if (state.phase === 'lobby') return [g('public', true, true)];
+  if (!p.alive) {
+    const out = [g('public', false, true, false)];
+    if (!p.pendingShot) out.push(g('ghosts', true, true));
     return out;
   }
-  if (p.alive) {
-    // Living: public is speak+hear by day, hear-only by night (uniform for every role).
-    out.push({ channel: 'public', canPublish: state.phase === 'day', canSubscribe: true, hidden: false });
-    // Wolves stay connected to the wolf channel for the whole match; only publish at night.
-    if (p.role === 'wolf') out.push({ channel: 'wolves', canPublish: state.phase === 'night', canSubscribe: true, hidden: false });
-  } else {
-    // Ghosts: hear public invisibly, talk among ghosts. Never the wolf channel.
-    out.push({ channel: 'public', canPublish: false, canSubscribe: true, hidden: true });
-    out.push({ channel: 'ghosts', canPublish: true, canSubscribe: true, hidden: false });
+  switch (state.phase) {
+    case 'day': return [g('public', true, true)];
+    case 'defense': return [g('public', p.id === state.accused, true)];
+    case 'night': return p.role === 'wolf' ? [g('wolves', true, true)] : [];
   }
-  return out;
+  return [];
 }
 
 async function mintToken(p, e) {
@@ -69,10 +77,17 @@ async function mintToken(p, e) {
   return at.toJwt();
 }
 
-async function entitlementPayload(p) {
+// LiveKit signaling URL as seen by this client. Behind the TLS proxy (x-forwarded-proto: https)
+// the browser must use wss:// on the same origin, or the https page blocks the ws:// connection.
+function livekitUrlFor(req) {
+  if (req?.headers['x-forwarded-proto'] === 'https') return `wss://${req.headers['x-forwarded-host'] || req.headers.host}`;
+  return LK_WS;
+}
+
+async function entitlementPayload(p, req) {
   const ents = entitlements(p);
   const list = [];
-  for (const e of ents) list.push({ ...e, room: roomName(e.channel), url: LK_WS, token: await mintToken(p, e) });
+  for (const e of ents) list.push({ ...e, room: roomName(e.channel), url: livekitUrlFor(req), token: await mintToken(p, e) });
   return { epoch: state.epoch, phase: state.phase, mode: state.mode, alive: p.alive, role: p.role, entitlements: list };
 }
 
@@ -123,13 +138,12 @@ async function enforce() {
 }
 
 // ---- SSE push of entitlements to clients ----
-const sseClients = new Map(); // playerId -> Set<res>
+const sseClients = new Map(); // playerId -> Set<{res, req}>
 async function pushAll() {
   for (const [id, set] of sseClients) {
     const p = state.players.get(id);
     if (!p) continue;
-    const payload = JSON.stringify(await entitlementPayload(p));
-    for (const res of set) res.write(`event: entitlements\ndata: ${payload}\n\n`);
+    for (const { res, req } of set) res.write(`event: entitlements\ndata: ${JSON.stringify(await entitlementPayload(p, req))}\n\n`);
   }
 }
 
@@ -155,15 +169,16 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req);
       await transition(() => {
         state.match = body.match || `m${Date.now().toString(36)}`;
-        state.mode = 'remote'; state.phase = 'lobby'; state.players.clear(); state.gen = { public: 1, wolves: 1, ghosts: 1 };
-        for (const p of body.players) state.players.set(p.id, { id: p.id, role: p.role, alive: true });
+        state.mode = 'remote'; state.phase = 'lobby'; state.accused = null; state.players.clear(); state.gen = { public: 1, wolves: 1, ghosts: 1 };
+        for (const p of body.players) state.players.set(p.id, { id: p.id, role: p.role, alive: true, pendingShot: false });
       });
       return json(res, 200, { ok: true, epoch: state.epoch, match: state.match });
     }
     if (url.pathname === '/api/phase' && req.method === 'POST') {
-      const { phase } = await readBody(req);
-      if (!['lobby', 'day', 'night'].includes(phase)) return json(res, 400, { error: 'bad phase' });
-      await transition(() => { state.phase = phase; });
+      const { phase, accused } = await readBody(req);
+      if (!['lobby', 'day', 'defense', 'night'].includes(phase)) return json(res, 400, { error: 'bad phase' });
+      if (phase === 'defense' && !state.players.get(accused)?.alive) return json(res, 400, { error: 'defense needs a living accused' });
+      await transition(() => { state.phase = phase; state.accused = phase === 'defense' ? accused : null; });
       return json(res, 200, { ok: true, epoch: state.epoch });
     }
     if (url.pathname === '/api/mode' && req.method === 'POST') {
@@ -173,16 +188,24 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { ok: true, epoch: state.epoch });
     }
     if (url.pathname === '/api/kill' && req.method === 'POST') {
+      const { id, pendingShot } = await readBody(req);
+      const p = state.players.get(id);
+      if (!p) return json(res, 404, { error: 'no player' });
+      await transition(() => { p.alive = false; p.pendingShot = !!pendingShot; });
+      return json(res, 200, { ok: true, epoch: state.epoch });
+    }
+    if (url.pathname === '/api/resolve' && req.method === 'POST') {
+      // Hunter's shot resolved or timed out: the seat may now join the ghosts.
       const { id } = await readBody(req);
       const p = state.players.get(id);
       if (!p) return json(res, 404, { error: 'no player' });
-      await transition(() => { p.alive = false; });
+      await transition(() => { p.pendingShot = false; });
       return json(res, 200, { ok: true, epoch: state.epoch });
     }
     if (url.pathname === '/api/entitlements') {
       const p = state.players.get(url.searchParams.get('player'));
       if (!p) return json(res, 404, { error: 'no player' });
-      return json(res, 200, await entitlementPayload(p));
+      return json(res, 200, await entitlementPayload(p, req));
     }
     if (url.pathname === '/api/rooms') {
       // Test-only inspection: what LiveKit itself reports per room.
@@ -196,9 +219,10 @@ const server = http.createServer(async (req, res) => {
       if (!p) return json(res, 404, { error: 'no player' });
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
       if (!sseClients.has(id)) sseClients.set(id, new Set());
-      sseClients.get(id).add(res);
-      req.on('close', () => sseClients.get(id)?.delete(res));
-      res.write(`event: entitlements\ndata: ${JSON.stringify(await entitlementPayload(p))}\n\n`);
+      const entry = { res, req };
+      sseClients.get(id).add(entry);
+      req.on('close', () => sseClients.get(id)?.delete(entry));
+      res.write(`event: entitlements\ndata: ${JSON.stringify(await entitlementPayload(p, req))}\n\n`);
       return;
     }
     // static

@@ -8,7 +8,9 @@
     "livekit": "./.bin/livekit-server --config config/livekit.yaml",
     "server": "node server.mjs",
     "test": "node run.mjs",
-    "test:headed": "node run.mjs --headed"
+    "test:headed": "node run.mjs --headed",
+    "test:tls": "VOICE_TLS=1 node run.mjs",
+    "certs": "sh make-certs.sh"
   },
   "license": "UNLICENSED",
   "dependencies": {

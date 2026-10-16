@@ -32,7 +32,26 @@ From the captured install output and `INSTALL_RECEIPT.json`:
 - `launchctl list` has no entry mentioning livekit.
 - No `livekit-server` process exists (`pgrep -lf livekit-server` is empty). The binary was executed once with `--version` only; it never listened on any port.
 
-## 4. Minimal rollback proposal
+## 4. Rollback executed (Human-authorized, 2026-10-16 ~14:55)
+
+Pre-checks (read-only) matched the report: `brew list --versions livekit` → `livekit 1.13.10`; `brew uses --installed livekit` → empty; no `brew services` entry; no livekit process; `/tmp/null` was a 331-byte ASCII file of npm output (`added 37 packages…`, fsevents warning, mtime 14:31), not open by any process, and not written by this peer.
+
+Commands and output:
+```
+$ brew uninstall livekit
+Uninstalling /opt/homebrew/Cellar/livekit/1.13.10... (8 files, 53.6MB)
+==> Autoremoving 2 unneeded formulae:
+libnghttp3
+libngtcp2
+Uninstalling /opt/homebrew/Cellar/libnghttp3/1.18.0... (20 files, 600.4KB)
+Uninstalling /opt/homebrew/Cellar/libngtcp2/1.25.0... (21 files, 1.4MB)
+$ rm /tmp/null
+```
+After: `/opt/homebrew/Cellar/livekit`, `/opt/homebrew/bin/livekit-server`, `/opt/homebrew/opt/livekit` and `/tmp/null` are gone.
+
+**Deviation:** Homebrew's default autoremove also removed `libnghttp3` 1.18.0 and `libngtcp2` 1.25.0. They were not livekit dependencies (its dependency list was empty); Homebrew judged them orphaned leftovers of an earlier install. By the autoremove criterion no installed formula depended on them, so nothing installed should break. `brew install libnghttp3 libngtcp2` would restore them (needs approval). Untouched as instructed: the bottle and manifest in `~/Library/Caches/Homebrew/downloads`, npm/npx caches and logs, `/tmp/voice-results.txt`, Go telemetry. No claim is made that any cache state was restored.
+
+## 4a. Original rollback proposal (kept for the record)
 
 ```
 brew uninstall livekit
@@ -45,3 +64,23 @@ Impact: removes `/opt/homebrew/Cellar/livekit/1.13.10` and the two symlinks. No 
 ## Replacement inside Moonveil
 
 The spike now uses a LiveKit release binary downloaded to `spikes/voice/.bin/` (gitignored) and never calls the Homebrew binary. See `docs/voice/RECOMMENDATION.md`.
+
+## All writes outside Moonveil by this peer (complete list, 2026-10-16)
+
+| When | What | Where | Note |
+|---|---|---|---|
+| 14:05:55 | `npx --yes playwright --version` | `~/.npm/_npx/<hash>/` (playwright + playwright-core 1.64.1), `~/.npm/_cacache`, `~/.npm/_logs/2026-10-16T07_05_55_452Z-debug-0.log` | first tooling check, before the worktree existed |
+| 14:06 | `brew install livekit` | `/opt/homebrew/Cellar/livekit/1.13.10`, symlinks in `/opt/homebrew/bin` and `/opt/homebrew/opt`, bottle in `~/Library/Caches/Homebrew/downloads` | sections 1–4 above |
+| 14:10 | `go build` of livekit-server | `~/Library/Application Support/go/telemetry/local/` counter file(s); directory mtime 14:10 confirms | `GOCACHE`/`GOMODCACHE`/`GOPATH`/`GOTMPDIR` were in-repo; telemetry is not redirected by them |
+| 14:1x–14:3x | Playwright test runs | browser profiles in the OS temp dir (`$TMPDIR/playwright_chromiumdev_profile-*`), removed by Playwright on close | since 14:40 `TMPDIR` is `spikes/voice/.tmp`, set by `run.mjs` |
+| 14:27 | `cat > /tmp/voice-results.txt` | `/tmp/voice-results.txt` (43 lines) | left in place as instructed |
+| 14:33 | `git push -u origin voice` | GitHub remote | authorized |
+| 14:2x–15:2x | every Playwright run (full Chrome for Testing from `.browsers`, `channel: 'chromium'`) | `~/Library/Preferences/com.google.chrome.for.testing.plist` (created 15:07:14 while a TLS run was active) | macOS preferences are keyed on `HOME`; since 15:30 browser processes get `HOME=spikes/voice/.tmp/home` (`playwright.config.ts`, `secure-context.spec.ts`) |
+
+Also mine, inside the repo but worth noting: diagnostic processes started with relative paths at 15:08 (`node server.mjs`, `node tls-proxy.mjs`, `./.bin/livekit-server`) survived my process check, which matched on full paths. Found via the listening ports and stopped at 15:2x; the check now uses `lsof` on ports 4300–4399.
+
+Not mine: `~/.npm/_logs/2026-10-16T07_05_15_642Z-debug-0.log` (`npm ls --global --depth 0`) and `/tmp/null`; I never ran that command or wrote that file.
+
+Harness-side files (not written by my commands): tool results and task outputs under `/private/tmp/claude-502/…` and `~/.claude-runtime/peer/projects/…`.
+
+Rules from here on: `TMPDIR` in repo for everything; no further `go` runs (the binary is built). If a rebuild is ever needed: `HOME=$PWD/.gohome` for that invocation only, which moves Go's config/telemetry dir into the repo (`.gohome/` is gitignored).

@@ -6,3 +6,6 @@ test-results/
 playwright-report/
 *.log
 fixtures/
+.certs/
+.tmp/
+.gohome/

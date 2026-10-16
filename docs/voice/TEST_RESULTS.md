@@ -1,68 +1,81 @@
 # Voice spike: test results
 
-Suite: `spikes/voice/tests/channels.spec.ts` (Playwright 1.64.1, Chromium 156.0.8078.4 headless, 10 isolated contexts, fake mic = 440 Hz WAV).
-Server under test: LiveKit 1.13.10 built from the v1.13.10 source tarball, config `spikes/voice/config/livekit.yaml` (127.0.0.1:4300, TCP 4301, UDP 4310–4350, `auto_create: false`).
-Machine: macOS arm64, 11 cores. Wall time 1.3 min. Command:
+Suites (`spikes/voice/tests/`): `channels.spec.ts` (approved channel policy, 11 sessions: 10 players + hidden listen-only moderator, 52 checks) and `secure-context.spec.ts` (3 tests). Playwright 1.64.1 with full Chrome for Testing 156.0.8078.4 from `spikes/voice/.browsers`, headless, one isolated context per seat, fake mic = generated 440 Hz WAV. Browser `HOME` and `TMPDIR` point into `spikes/voice/.tmp`.
 
+Server under test: LiveKit 1.13.10 built from the v1.13.10 source tarball; config `spikes/voice/config/livekit.yaml` (127.0.0.1:4300, ICE/TCP 4301, UDP 4310–4350, `auto_create: false`). TLS mode adds `tls-proxy.mjs` on 4303 with a throwaway certificate trusted only by SPKI pin inside the test browser.
+
+Commands:
 ```
-cd spikes/voice && npm test
+cd spikes/voice && npm test          # plain: browsers use http://127.0.0.1:4302 and ws://127.0.0.1:4300
+cd spikes/voice && npm run test:tls  # TLS:   browsers use https://camp.local:4303 and wss://camp.local:4303
 ```
 
 ## Run on SHA
-- Branch `voice`, commit `a94fe73d9860f43fb9f7251b1d64d634ad47866a` (rebased on `dev` b210c4d): run 6, 43/43 pass, 1.3 min, no spike processes left afterwards.
-- The same suite passed 43/43 on the pre-rebase commits 1c073be and 4ea8622 (runs 4 and 5). The commit that adds this section is docs-only.
+Filled in by the docs-only commit that follows the tested revision (see the merge request message for the exact SHA and the diff summary).
 
-## Checks (2026-10-16, identical list in runs 3–6, all PASS)
+## Checks (2026-10-16, runs 8 plain and 8-TLS, all PASS in both modes; ~1.9 min each)
 
 ```
 PASS  lobby: wolf hears everyone
 PASS  lobby: villager hears everyone
 PASS  lobby: mic-denied player still hears everyone
-PASS  lobby: mic-denied player connected with a recorded mic error and no published track
-PASS  lobby: only the public channel exists
-PASS  day: living villager has only the public channel
-PASS  day: wolf is connected to wolves channel but it carries no audio
-PASS  day: villager hears all living publishers publicly
-PASS  night: wolves hear each other on the wolves channel
-PASS  night: villager has only the public channel
-PASS  night: public channel is silent for everyone
-PASS  night: villager sees no speaking indicator anywhere
-PASS  night: villager still sees all 9 others in public (no participant-list change)
-PASS  night: no public participant exposes an audio track
-PASS  night: villager saw identical event signatures for wolves and villagers
-PASS  night: all unpublish events arrived within one 1 s burst
-PASS  night: forced publish by a villager is rejected by the server
-PASS  night: LiveKit shows zero tracks in public after the attack
-PASS  night: wolf observes no track from the attacking villager
-PASS  death: public channel rotated to a new room (stale tokens die with the old room)
-PASS  death: ghost cannot rejoin public with its old living token
-PASS  ghost: p04 has public(hidden, listen) + ghosts, never wolves
-PASS  ghost: living players do not list p04 in public
-PASS  ghost: LiveKit marks p04 hidden in public
+PASS  lobby: mic-denied player has a recorded mic error and no published track
+PASS  lobby: players have only the public channel
+PASS  moderator: hears public, is hidden, publishes nothing
+PASS  moderator: players never list the moderator
+PASS  moderator: forced publish is rejected by the server
+PASS  day: living have exactly the public channel (no wolves room by day)
+PASS  day: villager hears all living publishers
+PASS  night: living villager has no voice channel at all
+PASS  night: wolves have exactly the wolves channel
+PASS  night: wolves hear each other
+PASS  night: wolves do not see the moderator in their room
+PASS  night: moderator hears the wolves
+PASS  night: LiveKit public room holds nobody but the hidden moderator
+PASS  night: villager saw only leave-type events at nightfall, one identical signature for everyone it saw
+PASS  ghost: p04 has ghosts + hidden listen-only public, never wolves
+PASS  ghost: LiveKit marks p04 hidden in public and visible in ghosts
+PASS  ghost: ghosts do not see the moderator
+PASS  moderator: listens on all three channels
 PASS  ghost: forced publish into public is rejected
 PASS  day2: ghost hears all living publishers in public
-PASS  day2: living never hears or lists the ghost
-PASS  day2: ghost sees living speaking indicators
-PASS  dead wolf: p01 now has ghosts + hidden public, no wolves channel
-PASS  dead wolf: remaining wolves no longer see p01 in wolves
-PASS  dead wolf: stale wolves token is rejected after removal
+PASS  day2: living never list or hear the ghost
+PASS  day2: living have no ghosts channel
+PASS  day2: moderator hears public
+PASS  day2: LiveKit wolves room holds nobody but the hidden moderator (wolves not connected by day)
+PASS  defense: accused publishes in public
+PASS  defense: other living hear only the accused
+PASS  defense: other living cannot publish (server rejects a forced publish)
+PASS  defense: LiveKit shows exactly one published track in public, the accused one
+PASS  defense: ghost and moderator hear the accused
+PASS  dead wolf: p01 has ghosts + hidden public, no wolves channel
 PASS  forged token (wrong secret) is rejected
-PASS  token binds the room name; client cannot pick another room
+PASS  token binds room, identity and grants (client cannot choose a room)
 PASS  night2: remaining wolves hear each other
+PASS  night2: dead wolf is gone from the wolves room
+PASS  night2: dead wolf cannot reuse its night-1 wolves token (room rotated, auto_create off)
 PASS  night2: ghosts hear each other on ghosts
-PASS  night2: ghosts have no wolves channel and hear nothing public
-PASS  night2: living hear nothing from ghosts or wolves
-PASS  night2: living wolf hears nothing from ghosts
-PASS  reconnect: wolf reloads, gets wolves again and hears the other wolf
+PASS  night2: ghosts have no wolves channel and public is silent for them
+PASS  night2: living villager has no channel; living wolf has no ghosts channel
+PASS  night2: moderator hears wolves and ghosts
+PASS  hunter pending: only hidden listen-only public, no ghosts channel
+PASS  hunter pending: ghosts do not see the hunter in the ghost room
+PASS  hunter pending: forced publish into public is rejected
+PASS  hunter resolved: joins ghosts and hears a ghost
+PASS  hunter resolved: ghosts now see the hunter
+PASS  reconnect: wolf reloads at night, gets wolves again and hears the other wolf
 PASS  reconnect: LiveKit has exactly one p03 in wolves
-PASS  in-person: every client has zero voice channels
+PASS  in-person: every seat (incl. moderator) has zero voice channels
 PASS  in-person: LiveKit rooms are empty
-PASS  in-person -> remote: voice resumes with the same entitlements
+PASS  in-person -> remote: voice resumes with the same grants
 ```
 
-## Earlier runs
-- Run 1: 32/33 pass. FAIL "stale wolves token is rejected after removal": OSS LiveKit ignores `revokeTokenTs`; the removed wolf rejoined the wolves room with its cached token. Led to channel rotation (see RECOMMENDATION.md).
-- Run 2: 42/43 pass. FAIL was a test bug (asserted the pre-rotation room name).
+Secure-context tests (both modes): insecure LAN-style origin has no `navigator.mediaDevices`; untrusted certificate is refused (`net::ERR_CERT_AUTHORITY_INVALID`); pinned certificate gives secure context, microphone, LiveKit over `wss://` and audio energy between two players.
 
 ## How "hears" is measured
 Inbound RTP `totalAudioEnergy` (via `RemoteAudioTrack.getReceiverStats()`) must grow by more than 0.004 over a 2 s window. A -12 dBFS tone yields about 0.06; silence or no track yields 0. Participant lists, speaker lists, track lists and the event log come from `livekit-client` room state in each context; LiveKit's own view comes from `ListParticipants` through the spike server (`/api/rooms`).
+
+## History
+- Runs 1–6 (first channel model, 43 checks): run 1 found that OSS LiveKit ignores `revokeTokenTs` (stale wolf token re-entered the wolves room) → channel rotation; run 2 fixed a test bug; runs 3–6 all pass; run 6 on a94fe73.
+- Run 7 (TLS): proxy told browsers the wrong `wss://` host (Host header rewritten by the proxy) → fixed with `x-forwarded-host`; LibreSSL signed the throwaway certificate with SHA-1 → `-sha256`.
+- Run 8: suite rewritten to the approved policy (no grant = not connected; defense; pending Hunter; moderator). The first attempt's nightfall uniformity check was too strict: when the public room closes, a villager may see some participants leave before its own disconnect, in LiveKit's room-close order. The check now requires leave-type events only and one identical signature for everyone seen.
