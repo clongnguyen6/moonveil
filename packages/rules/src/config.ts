@@ -2,7 +2,7 @@
 // Approved rules are fixed engine behaviour and are NOT here: six roles; victory (parity / no wolves / zero = draw);
 // resolve-before-victory; Q03 Witch; Q06 Hunter; Q07 wolf plurality; Q09/Q10 nomination, 30 s defense, Yes/No with
 // Yes*2 > living; Q11 night = fixed 60 s, never early; day votes run to deadline with hidden interim results;
-// Q16 moderator Yes count; Q20 reveal rules; Q24 ghost knowledge; Q25 channel policy (except moderator speaking).
+// Q16 moderator Yes count; voted status shown during day votes (choices hidden); Q20 reveal rules; Q24 ghost knowledge; Q25 channel policy (except moderator speaking).
 import { clone } from './clone.ts';
 import type { Role } from './types.ts';
 
@@ -48,8 +48,6 @@ export interface RulesConfig {
     accusedVotesOnConfirm: boolean; // Q10 (not covered by the approvals)
     /** Q22: at close, publish who voted for what (true) or only the totals (false). Interim results are hidden (approved). */
     revealBallotsAtClose: boolean;
-    /** Q22: mid-vote, may players see WHO has voted (not what)? */
-    showWhoVoted: boolean;
   };
   moderator: {
     mayBreakRules: boolean; // Q16
@@ -104,8 +102,9 @@ export const DEFAULT_CONFIG: RulesConfig = {
   seer: { result: 'wolfOrNot' },
   guard: { canProtectSelf: true, noRepeatTarget: true, passResetsRepeat: true },
   protection: { guardBlocksPoison: false, doubleProtectionKills: false },
-  day: { selfVote: false, accusedVotesOnConfirm: true, revealBallotsAtClose: true, showWhoVoted: false },
-  moderator: { mayBreakRules: false, canActForSeats: true, canSetWolfTarget: true, seesLiveBallots: true, speaksInPublic: true },
+  day: { selfVote: false, accusedVotesOnConfirm: true, revealBallotsAtClose: true },
+  // speaksInPublic=false: approved Q25 grants the moderator listening only; speech is not approved.
+  moderator: { mayBreakRules: false, canActForSeats: true, canSetWolfTarget: true, seesLiveBallots: true, speaksInPublic: false },
   removal: { systemDuringSecret: false },
   timing: {
     nightMain: 40,
@@ -141,7 +140,6 @@ export const PROVISIONAL: Record<string, string> = {
   'day.selfVote': 'Q01',
   'day.accusedVotesOnConfirm': 'Q10',
   'day.revealBallotsAtClose': 'Q22',
-  'day.showWhoVoted': 'Q22',
   'moderator.mayBreakRules': 'Q16',
   'moderator.canActForSeats': 'Q16',
   'moderator.canSetWolfTarget': 'Q16',
@@ -160,15 +158,46 @@ export const PROVISIONAL: Record<string, string> = {
 
 export type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
 
-/** Deep-merge overrides onto defaults. `distribution` is replaced wholesale when given. */
+/** Allowed values for string-enum settings. */
+export const ENUMS: Record<string, readonly string[]> = {
+  'limits.firstDawnParityCheck': ['biteAndPoison', 'biteOnly', 'off'],
+  'wolves.passHandling': ['counted', 'ignored'],
+  'seer.result': ['wolfOrNot', 'exactRole'],
+};
+
+/**
+ * Deep-merge overrides onto defaults. `distribution` is replaced wholesale when given.
+ * STRICT: unknown keys (including removed settings, e.g. the old comms.* keys), wrong types and invalid enum values
+ * throw, so approved behaviour cannot be configured away by a stale or mistyped option.
+ */
 export function resolveConfig(overrides: DeepPartial<RulesConfig> = {}): RulesConfig {
   const out = clone(DEFAULT_CONFIG) as unknown as Record<string, unknown>;
-  for (const [k, v] of Object.entries(overrides)) {
+  const defaults = DEFAULT_CONFIG as unknown as Record<string, unknown>;
+  const bad = (msg: string) => {
+    throw new Error(`invalid rules config: ${msg}`);
+  };
+  for (const [k, v] of Object.entries(overrides as Record<string, unknown>)) {
     if (v === undefined) continue;
-    if (k === 'distribution' || typeof v !== 'object' || v === null) {
+    if (!(k in defaults)) bad(`unknown setting '${k}'`);
+    const def = defaults[k];
+    if (k === 'distribution') {
+      if (typeof v !== 'object' || v === null) bad(`'distribution' must be an object`);
       out[k] = clone(v);
-    } else {
+    } else if (typeof def === 'object' && def !== null) {
+      if (typeof v !== 'object' || v === null) bad(`'${k}' must be an object`);
+      for (const [sk, sv] of Object.entries(v as Record<string, unknown>)) {
+        if (sv === undefined) continue;
+        const path = `${k}.${sk}`;
+        const sdef = (def as Record<string, unknown>)[sk];
+        if (!(sk in (def as object))) bad(`unknown setting '${path}'`);
+        if (typeof sv !== typeof sdef) bad(`'${path}' must be ${typeof sdef}`);
+        if (ENUMS[path] && !ENUMS[path].includes(sv as string)) bad(`'${path}' must be one of ${ENUMS[path].join(', ')}`);
+        if (typeof sv === 'number' && !Number.isFinite(sv)) bad(`'${path}' must be finite`);
+      }
       out[k] = { ...(out[k] as object), ...clone(v) };
+    } else {
+      if (typeof v !== typeof def) bad(`'${k}' must be ${typeof def}`);
+      out[k] = clone(v);
     }
   }
   return out as unknown as RulesConfig;

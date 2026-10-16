@@ -18,7 +18,8 @@ export default defineConfig({
     url: `http://127.0.0.1:${port}/healthz`,
     reuseExistingServer: false,
     timeout: 120_000,
-    env: { PORT: String(port), HOST: '127.0.0.1', MOONVEIL_FIXTURE_MS: '6000' },
+    // Browser specs drive the fixture UI until the real-game UI (UI owner) lands.
+    env: { PORT: String(port), HOST: '127.0.0.1', MOONVEIL_ENGINE: 'fixture', MOONVEIL_FIXTURE_MS: '6000' },
   },
   projects: [
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /mobile\.spec/ },

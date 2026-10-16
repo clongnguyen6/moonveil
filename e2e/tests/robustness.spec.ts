@@ -65,7 +65,7 @@ const RESTART_PORT = 4151;
 function startServer(): ChildProcess {
   return spawn(process.execPath, ['apps/server/src/main.ts'], {
     cwd: root,
-    env: { ...process.env, PORT: String(RESTART_PORT), HOST: '127.0.0.1' },
+    env: { ...process.env, PORT: String(RESTART_PORT), HOST: '127.0.0.1', MOONVEIL_ENGINE: 'fixture' },
     stdio: 'ignore',
   });
 }

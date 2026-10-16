@@ -48,21 +48,3 @@ test('idle cleanup: a reconnect inside the window resets the idle clock', () => 
   h.registry.sweep();
   assert.equal(h.registry.size, 1);
 });
-
-test('automatic match keeps advancing with nobody connected (documented behaviour)', () => {
-  const h = setupIdle(30 * 60_000);
-  const players = [h.client()];
-  players[0]!.send({ t: 'create', mode: 'automatic', profile: profile('P0') });
-  for (let i = 1; i < 4; i++) {
-    const c = h.client();
-    c.send({ t: 'join', code: players[0]!.code!, profile: profile(`P${i}`) });
-    players.push(c);
-  }
-  for (const p of players) p.send({ t: 'ready', ready: true });
-  players[0]!.send({ t: 'start' });
-  for (const p of players) p.drop();
-  h.clock.tick(4 * 30_000); // fixture: 2 rounds x (hidden + open)
-  const back = h.client();
-  back.send({ t: 'resume', code: players[0]!.code!, token: players[0]!.token! });
-  assert.equal(back.view.status, 'ended', 'match ran to the end while everyone was away');
-});

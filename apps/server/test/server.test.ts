@@ -92,3 +92,49 @@ test('ws: idle room swept by heartbeat loop; resume then fails with room-not-fou
     await idle.stop();
   }
 });
+
+test('ws + REAL engine: 7 sockets, start, wolf chat only to wolves, illegal move dropped', async () => {
+  const { createRulesEngine } = await import('@moonveil/rules');
+  const srv2 = createMoonveilServer({ engine: () => createRulesEngine() as RulesEngine<unknown>, heartbeatMs: 60_000 });
+  await new Promise<void>((r) => srv2.http.listen(PORT + 2, '127.0.0.1', r));
+  const url = `ws://127.0.0.1:${PORT + 2}/ws`;
+  const app = { color: 'moss', hat: 'none' };
+  type M = { t: string; [k: string]: unknown };
+  const clients: { ws: WsClient; msgs: M[] }[] = [];
+  const connect = async () => {
+    const ws = new WsClient(url);
+    const c = { ws, msgs: [] as M[] };
+    ws.on('message', (d) => c.msgs.push(JSON.parse(String(d))));
+    await new Promise((r) => ws.on('open', r));
+    clients.push(c);
+    return c;
+  };
+  try {
+    const host = await connect();
+    host.ws.send(JSON.stringify({ t: 'create', mode: 'automatic', profile: { name: 'P0', appearance: app } }));
+    await until(() => host.msgs.some((m) => m.t === 'welcome'));
+    const code = host.msgs.find((m) => m.t === 'welcome')!.code;
+    for (let i = 1; i < 7; i++) {
+      const c = await connect();
+      c.ws.send(JSON.stringify({ t: 'join', code, profile: { name: `P${i}`, appearance: app } }));
+    }
+    await until(() => clients.every((c) => c.msgs.some((m) => m.t === 'welcome')));
+    for (const c of clients) c.ws.send(JSON.stringify({ t: 'ready', ready: true }));
+    const lastView = (c: { msgs: M[] }) => (c.msgs.filter((m) => m.t === 'state').at(-1) as unknown as { view: { canStart: boolean; status: string; game: { me: { role: string } } } }).view;
+    await until(() => lastView(host).canStart);
+    host.ws.send(JSON.stringify({ t: 'start' }));
+    await until(() => clients.every((c) => lastView(c).status === 'playing'));
+    const wolves = clients.filter((c) => lastView(c).game.me.role === 'wolf');
+    const others = clients.filter((c) => !wolves.includes(c));
+    const before = others.map((o) => o.msgs.length);
+    others[0]!.ws.send(JSON.stringify({ t: 'move', x: 0.5, y: 0.5, facing: 0, moving: true })); // living during play: dropped
+    wolves[0]!.ws.send(JSON.stringify({ t: 'say', ref: 'w', channel: 'wolves', text: 'over the wire' }));
+    await until(() => wolves.every((w) => w.msgs.some((m) => m.t === 'chat')));
+    await new Promise((r) => setTimeout(r, 100));
+    others.forEach((o, i) => assert.equal(o.msgs.length, before[i], 'non-wolf got a frame'));
+    assert.ok(!clients.some((c) => c.msgs.some((m) => m.t === 'poses')), 'living move produced poses');
+  } finally {
+    for (const c of clients) c.ws.close();
+    await srv2.stop();
+  }
+});
