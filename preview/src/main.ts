@@ -108,6 +108,16 @@ async function boot() {
   }
   let lastW = 0, lastH = 0;
 
+  // perf probe (?perf=1): per-frame wall time and JS time split into update / lightmap / pixi render
+  const perf = { frames: [] as number[], update: [] as number[], lightmap: [] as number[], render: [] as number[], last: 0, on: q.get('perf') === '1' };
+  let stageStart = 0, lightMs = 0;
+  if (perf.on) {
+    app.ticker.add(() => { const now = performance.now(); if (perf.last) perf.frames.push(now - perf.last); perf.last = now; stageStart = now; }, undefined, 100);
+    // priorities: 100 = before the scene update (0), -1 = after it, -100 = after Pixi's render (-25)
+    app.ticker.add(() => { const now = performance.now(); perf.update.push(now - stageStart - lightMs); perf.lightmap.push(lightMs); stageStart = now; }, undefined, -1);
+    app.ticker.add(() => { perf.render.push(performance.now() - stageStart); }, undefined, -100);
+  }
+
   let t = 0;
   app.ticker.add((tk) => {
     const dt = Math.min(0.1, tk.deltaMS / 1000);
@@ -136,7 +146,7 @@ async function boot() {
     ambience.night = n; ambience.fire = fi; ambience.update(dt);
     vignette.alpha = 0.75 + 0.25 * n;
 
-    lighting.render(cam);
+    const l0 = performance.now(); lighting.render(cam); lightMs = performance.now() - l0;
     hud.setPhase(director.phaseLabel, director.scene === 'lobby' ? `· ${playerCount} campers` : director.view === 'ghost' ? '· ghost view' : `· ${playerCount - director.ghosts.size} alive`, n > 0.5);
   });
 
@@ -154,6 +164,11 @@ async function boot() {
     emote: (s: string) => avatars[director.localIndex].showEmote(s),
     night: () => director.night,
     renderer: app.renderer.name,
+    perfReset: () => { perf.frames.length = perf.update.length = perf.lightmap.length = perf.render.length = 0; },
+    perf: () => {
+      const stat = (a: number[]) => { const s = [...a].sort((x, y) => x - y); const n = s.length || 1; return { avg: +(a.reduce((x, y) => x + y, 0) / n).toFixed(2), p95: +(s[Math.floor(n * 0.95)] ?? 0).toFixed(2), max: +(s[n - 1] ?? 0).toFixed(2) }; };
+      return { n: perf.frames.length, frame: stat(perf.frames), update: stat(perf.update), lightmap: stat(perf.lightmap), render: stat(perf.render) };
+    },
     time: () => t,
     fps: () => app.ticker.FPS,
     debug: () => ({ fps: Math.round(app.ticker.FPS), t: Math.round(t * 10) / 10, scene: director.scene, night: director.night, timers: director.timerCount, av: avatars.slice(0, 3).map((a) => [Math.round(a.x), Math.round(a.y), a.mode, a.target ? 1 : 0]) }),

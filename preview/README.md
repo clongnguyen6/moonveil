@@ -29,6 +29,13 @@ npx playwright install chromium webkit
 
 WebKit itself writes only to `~/Library/Preferences/org.webkit.Playwright.plist`, `~/Library/WebKit/org.webkit.Playwright/` and `~/Library/Caches/org.webkit.Playwright/` (granted). Skip with `--no-webkit`.
 
+## Performance (emulation)
+
+```sh
+npm run build && npm run preview     # :4201
+npm run perf                          # CPU-throttled frame times, see docs/visual/PERF.md
+```
+
 ## Layout
 
 - `src/textures.ts` procedural art baked to textures; `src/avatar.ts` camper presets + animation
