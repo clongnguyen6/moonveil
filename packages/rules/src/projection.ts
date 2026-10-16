@@ -20,10 +20,10 @@ export type StepView =
   | { kind: 'night.main' | 'night.witch'; night: number }
   | { kind: 'hunter'; pending: Seat[]; submitted: Seat[] }
   | { kind: 'day.discussion'; day: number }
-  /** APPROVED: mid-vote, `votes` (choices) is null for every non-moderator viewer; `voted` (who has voted, not what) is shown to all. */
-  | { kind: 'day.vote'; day: number; votes: (Seat | 'skip' | null)[] | null; voted: boolean[] }
+  /** APPROVED (open ballots): `votes` = each seat's live choice (null = not voted); `voted` = derived has-voted flags. Shown to every viewer. */
+  | { kind: 'day.vote'; day: number; votes: (Seat | 'skip' | null)[]; voted: boolean[] }
   | { kind: 'day.defense'; day: number; accused: Seat }
-  | { kind: 'day.confirm'; day: number; accused: Seat; votes: ('yes' | 'no' | null)[] | null; voted: boolean[] }
+  | { kind: 'day.confirm'; day: number; accused: Seat; votes: ('yes' | 'no' | null)[]; voted: boolean[] }
   | { kind: 'ended' };
 
 export type AvailableAction =
@@ -100,7 +100,7 @@ export function project(state: MatchState, viewer: Viewer): Projection {
     roleCounts,
     night: state.night,
     day: state.day,
-    step: stepView(state, viewer),
+    step: stepView(state),
     seats,
     publicLog: clone(state.publicLog),
     me: me ? meView(state, me) : null,
@@ -126,10 +126,9 @@ function publicCause(c: DeathCause, state: MatchState, full: boolean): DeathCaus
   return c === 'bite' || c === 'poison' ? 'night' : c;
 }
 
-function stepView(state: MatchState, viewer: Viewer): StepView {
+function stepView(state: MatchState): StepView {
   const s = state.step;
-  // APPROVED: interim choices/tallies are hidden until close; who has voted is shown. Moderator live view is provisional (seesLiveBallots).
-  const live = viewer.kind === 'moderator' && state.config.moderator.seesLiveBallots;
+  // APPROVED (2026-10-16, supersedes ballot secrecy): day votes are open ballots, shown live to every viewer.
   switch (s.kind) {
     case 'night.main':
     case 'night.witch':
@@ -139,7 +138,7 @@ function stepView(state: MatchState, viewer: Viewer): StepView {
     case 'day.discussion':
       return { kind: s.kind, day: s.day };
     case 'day.vote':
-      return { kind: s.kind, day: s.day, votes: live ? [...s.votes] : null, voted: s.votes.map((v) => v !== null) };
+      return { kind: s.kind, day: s.day, votes: [...s.votes], voted: s.votes.map((v) => v !== null) };
     case 'day.defense':
       return { kind: s.kind, day: s.day, accused: s.accused };
     case 'day.confirm':
@@ -147,7 +146,7 @@ function stepView(state: MatchState, viewer: Viewer): StepView {
         kind: s.kind,
         day: s.day,
         accused: s.accused,
-        votes: live ? [...s.votes] : null,
+        votes: [...s.votes],
         voted: s.votes.map((v) => v !== null),
       };
     case 'ended':

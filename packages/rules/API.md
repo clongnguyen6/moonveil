@@ -7,7 +7,7 @@ Rules live in `docs/rules/PROPOSAL.md`. **Approved rules are fixed behaviour; ev
 - the six roles; victory (parity, no wolves, zero survivors = draw); resolve-before-victory;
 - Q03 Witch; Q06 Hunter; Q07 wolf plurality;
 - Q09/Q10 trial, 30 s defense and Yes/No with `Yes × 2 > all living`; Q16 moderator Yes count;
-- Q11 fixed 60 s nights, never early; day votes run to their deadline with hidden interim results;
+- Q11 fixed 60 s nights, never early; day votes run to their deadline as open ballots shown live (Q22);
 - Q20 reveals; Q24 ghosts; Q25 channels (except moderator speaking, which is provisional and **off** by default);
 - disconnected seats and the automatic-mode pause.
 
@@ -83,17 +83,17 @@ Every step closes only on `step.close`/`tick`. Anything not submitted counts as 
 ## Projection (secrecy contract)
 `project(state, {kind:'seat', seat})`:
 - **Public:** the step; who is alive or dead (night deaths show the cause `'night'`); `publicLog`; role counts.
-- **Votes (approved):** while a vote is open, `step.votes` is `null` for every non-moderator viewer, and no tally or event exists until close. `step.voted` (who has voted, never what) is shown to every viewer (approved). The voter's own choice is in `me.ballot` (and `me.actions[].current`). At close, `publicLog` gets `nomination`/`confirm` with totals, plus ballots if `day.revealBallotsAtClose` (provisional).
+- **Votes (approved, open ballots):** while a vote is open, `step.votes[seat]` is that seat's live choice (target / `'skip'` / `'yes'` / `'no'`, or `null` if not voted) for **every** viewer; `step.voted` holds the derived has-voted flags. `me.ballot` repeats the viewer's own choice. At close, `publicLog` gets `nomination`/`confirm` with totals and the full `votes` list (a moderator-entered Yes count has `votes: null`, as it comes from a show of hands).
 - **Roles:** own role; the pack for wolves; the Hunter once their shot turn opens; all roles at the end.
 - `me.facts`: the seat's knowledge ledger, granted only while alive and entitled (ghosts keep, never gain).
 - `me.actions`: legal options with targets, produced by `check()`.
 - `pack.picks`: live pack picks, only for a living wolf during `night.main`.
 
-`{kind:'public'}` gives public data only. `{kind:'moderator'}` adds `moderator: {seats, nightRec, history, knowledge, config}`, plus live ballots if `moderator.seesLiveBallots` (provisional). At `ended`, everyone gets `reveal.roles` (and `reveal.history` if `reveal.historyAtEnd`).
+`{kind:'public'}` gives public data only. `{kind:'moderator'}` adds `moderator: {seats, nightRec, history, knowledge, config}`. At `ended`, everyone gets `reveal.roles` (and `reveal.history` if `reveal.historyAtEnd`).
 
 ## What the tests prove, and what they don't
 - **Engine, tested:**
-  - entitlement under the selected settings: differential tests, randomized matches with invariants after every command, and hidden interim ballots;
+  - entitlement under the selected settings: differential tests and randomized matches with invariants after every command (night secrets private; day ballots open and matching state);
   - frozen ghost ledgers; the channel grant table across phases, deaths and reconnect;
   - the 60 s night in every role and death combination;
   - exact pause/resume in every phase type; every provisional key swappable.

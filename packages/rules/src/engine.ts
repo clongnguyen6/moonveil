@@ -336,7 +336,7 @@ function closeStep(state: MatchState): void {
         day: state.day,
         accused: r.accused,
         tally: r.tally,
-        votes: c.day.revealBallotsAtClose ? [...step.votes] : null,
+        votes: [...step.votes],
       });
       if (r.accused === null) return startNight(state);
       setStep(state, { kind: 'day.defense', day: state.day, accused: r.accused });
@@ -348,7 +348,7 @@ function closeStep(state: MatchState): void {
     case 'day.confirm': {
       // Approved: denominator = all living players (incl. the accused, abstainers, disconnected seats).
       const r = tallyConfirm(step.votes, state.seats.filter((s) => s.alive).length);
-      resolveConfirm(state, step.accused, 'votes', r.yes, r.no, c.day.revealBallotsAtClose ? [...step.votes] : null, r.executed);
+      resolveConfirm(state, step.accused, 'votes', r.yes, r.no, [...step.votes], r.executed);
       return;
     }
     case 'hunter':

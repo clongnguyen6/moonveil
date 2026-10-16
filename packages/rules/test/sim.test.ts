@@ -40,9 +40,9 @@ function checkInvariants(s: MatchState, frozen: Map<number, string>): void {
     const heal = facts.find((f) => f.k === 'own' && f.act === 'heal');
     const healNight = heal && heal.k === 'own' ? heal.night : Infinity;
     for (const f of facts) if (f.k === 'victim') assert.ok(f.night <= healNight, 'victim fact after heal used');
-    // APPROVED day votes: no non-moderator view carries other seats' ballots or interim tallies.
+    // APPROVED open ballots: every view shows each seat's current day-vote choice, exactly as in state.
     if (s.step.kind === 'day.vote' || s.step.kind === 'day.confirm') {
-      assert.equal((p.step as { votes: unknown }).votes, null, 'interim ballots leaked');
+      assert.deepEqual((p.step as { votes: unknown }).votes, s.step.votes, 'open ballots must match state');
     }
     if (!v.alive) {
       const snap = JSON.stringify(facts);
@@ -120,7 +120,7 @@ function simulate(seed: number, players: number, config: DeepPartial<RulesConfig
 const VARIANTS: [string, DeepPartial<RulesConfig>][] = [
   ['defaults', {}],
   ['cause at dawn + no history at end', { reveal: { causeAtDawn: true, historyAtEnd: false } }],
-  ['totals only at close, passes ignored', { day: { revealBallotsAtClose: false }, wolves: { passHandling: 'ignored' } }],
+  ['passes ignored', { wolves: { passHandling: 'ignored' } }],
 ];
 
 describe('randomized matches', () => {
