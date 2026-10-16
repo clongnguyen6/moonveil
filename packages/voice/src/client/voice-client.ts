@@ -114,6 +114,10 @@ export const EV = {
 } as const;
 
 export interface VoiceClientOptions {
+  // A connect that neither resolves nor rejects within this time counts as failed (default 20 s).
+  connectTimeoutMs?: number;
+  // Failed/stuck connects are retried with backoff while the session is unchanged (default 3 retries).
+  connectRetries?: number;
   createRoom?: () => RoomLike;
   createMicTrack?: () => Promise<MicTrackLike>;
   // Where remote audio elements go; null disables attaching (tests). Default: document.body.
@@ -209,7 +213,7 @@ export class VoiceClient {
     this.publish();
   }
 
-  private async join(s: VoiceSession): Promise<void> {
+  private async join(s: VoiceSession, attempt = 0): Promise<void> {
     const room = this.opts.createRoom ? this.opts.createRoom() : await defaultCreateRoom();
     const c: Chan = {
       session: s,
@@ -224,7 +228,11 @@ export class VoiceClient {
     this.wire(c);
     this.publish();
     try {
-      await room.connect(s.url, s.token, { autoSubscribe: true });
+      const timeoutMs = this.opts.connectTimeoutMs ?? 20_000;
+      await Promise.race([
+        room.connect(s.url, s.token, { autoSubscribe: true }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error(`connect timed out after ${timeoutMs} ms`)), timeoutMs)),
+      ]);
       c.view.state = 'connected';
       this.refreshParticipants(c);
       if (s.speak) await this.publishMic(c);
@@ -232,6 +240,20 @@ export class VoiceClient {
       c.view.state = 'failed';
       c.view.error = String((err as Error)?.message ?? err);
       this.opts.onError?.(s.channel, err);
+      const retries = this.opts.connectRetries ?? 3;
+      if (attempt < retries && !this.disposed) {
+        // Retry while this session is still the current one for the channel (a newer applySessions wins).
+        const delay = Math.min(8000, 1000 * 2 ** attempt);
+        setTimeout(() => {
+          const cur = this.chans.get(s.channel);
+          if (this.disposed || !cur || cur !== c || cur.session.token !== s.token) return;
+          this.chain = this.chain.then(async () => {
+            if (this.chans.get(s.channel) !== c) return;
+            await this.drop(s.channel);
+            await this.join(s, attempt + 1);
+          }).catch((e) => this.opts.onError?.(s.channel, e));
+        }, delay);
+      }
     }
     this.publish();
   }

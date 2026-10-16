@@ -176,6 +176,34 @@ test('connect failure is recorded on the channel and reported', async () => {
   assert.deepEqual(errors, ['public:invalid token']);
 });
 
+test('a stuck or failed connect is retried with backoff while the session is unchanged', async () => {
+  const rooms: FakeRoom[] = [];
+  let attempts = 0;
+  const client = new VoiceClient({
+    connectTimeoutMs: 50,
+    connectRetries: 2,
+    createRoom: () => {
+      const r = new FakeRoom();
+      attempts++;
+      if (attempts === 1) r.connect = () => new Promise(() => {}); // hangs: hit the timeout
+      if (attempts === 2) r.failConnect = 'temporary';
+      rooms.push(r);
+      return r;
+    },
+    createMicTrack: async () => new FakeMic(),
+    audioContainer: null,
+    document: null,
+  });
+  await client.applySessions([S('public', 'R-public-g1', true)]);
+  assert.equal(client.getSnapshot().channels.public?.state, 'failed');
+  assert.match(client.getSnapshot().channels.public?.error ?? '', /timed out/);
+  await new Promise((r) => setTimeout(r, 1100)); // first retry after 1 s fails, second after 2 s succeeds
+  await new Promise((r) => setTimeout(r, 2200));
+  assert.equal(attempts, 3);
+  assert.equal(client.getSnapshot().channels.public?.state, 'connected');
+  assert.equal(rooms[2]!.connected?.token, 'tok-R-public-g1');
+});
+
 test('participants and speaking follow room events; audioBlocked and unlockAudio', async () => {
   const { client, rooms } = make();
   const changes: number[] = [];

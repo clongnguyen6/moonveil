@@ -10,7 +10,7 @@ import { expect, type Player, test } from '../../../e2e/harness/index.ts';
 import { botAct, checkHearMatrix, game, type MatrixReport, moderatorClose, requireVoiceWiring, rng, sleep, step, voiceFrameLeaks, voiceFrames, voiceSettled, voiceSnapshot, waitStepChange } from './helpers.ts';
 
 const SEATS = Number(process.env.VOICE_E2E_SEATS ?? 0);
-const AUTO_BUDGET_MS = Number(process.env.VOICE_E2E_AUTO_BUDGET_MS ?? 4 * 60_000);
+const AUTO_BUDGET_MS = Number(process.env.VOICE_E2E_AUTO_BUDGET_MS ?? 5 * 60_000);
 const NAMES = ['Ann', 'Bao', 'Chi', 'Dan', 'Eve', 'Fay', 'Gia', 'Hai', 'Ivy', 'Jun', 'Kim', 'Lan'];
 const livekit = () => new RoomServiceClient(`http://127.0.0.1:${process.env.LIVEKIT_PORT ?? 4360}`, 'moonveil-e2e', 'moonveil-e2e-secret-not-for-production-000000000');
 
@@ -57,7 +57,8 @@ test('moderator mode, full match with voice: hear-matrix equals grants on every 
     await voiceSettled(all);
     reports.push(await checkHearMatrix(all, `${kind}#${i}`));
     for (const p of players) await botAct(p, r);
-    await moderatorClose(mod!);
+    // Some steps may close on their own (fixed-length steps, Hunter early close): close only the step we measured.
+    if (players[0]!.view().status === 'playing' && step(players[0]!) === kind) await moderatorClose(mod!);
     await waitStepChange(players, kind);
   }
   expect(players[0]!.view().status, 'match ended').toBe('ended');

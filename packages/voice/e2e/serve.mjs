@@ -2,7 +2,7 @@
 // Web server command for the voice e2e suite: builds the web shell once, starts the pinned LiveKit
 // (voice ports 4300–4399) and the real-engine game server wired to it, and stops both on SIGTERM.
 // Env in:  PORT (game server, default 4350), LIVEKIT_PORT (default 4360; TCP = +1; UDP = 4370–4399),
-//          MOONVEIL_TEST_TIME_SCALE (default 3: server clock/timers 3x faster, approved timings unchanged)
+//          MOONVEIL_TEST_TIME_SCALE (default 2: server clock/timers 2x faster, approved timings unchanged)
 // Env out to the server (names proposed for foundation's wiring; see packages/voice/README.md):
 //   LIVEKIT_URL, LIVEKIT_PUBLIC_WS, LIVEKIT_API_KEY, LIVEKIT_API_SECRET
 import { spawn, spawnSync } from 'node:child_process';
@@ -34,7 +34,7 @@ const server = spawn(process.execPath, [path.join(root, 'apps/server/src/main.ts
     PORT: String(port),
     HOST: '127.0.0.1',
     MOONVEIL_ENGINE: 'rules',
-    MOONVEIL_TEST_TIME_SCALE: process.env.MOONVEIL_TEST_TIME_SCALE ?? '3',
+    MOONVEIL_TEST_TIME_SCALE: process.env.MOONVEIL_TEST_TIME_SCALE ?? '2',
     MOONVEIL_PERSIST: '0',
     MOONVEIL_DATA_DIR: path.join(root, '.cache', 'voice-e2e', 'data'),
     LIVEKIT_URL: lk.url,

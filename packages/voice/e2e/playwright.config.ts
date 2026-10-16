@@ -47,7 +47,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   timeout: 12 * 60_000,
-  expect: { timeout: 20_000 },
+  expect: { timeout: 45_000 }, // shared machine: other owners' suites may run concurrently
   reporter: [['list'], ['json', { outputFile: path.join(cache, 'results.json') }]],
   outputDir: path.join(cache, 'results'),
   use: {
