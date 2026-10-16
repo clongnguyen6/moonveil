@@ -59,7 +59,7 @@ test('votes run to their deadline even when everyone has voted; voter sees own c
   assert.equal(stepKind(m.d), 'day.vote', 'vote closed early');
 });
 
-test('open ballots arrive to every seat live and on reconnect (approved)', { todo: 'awaiting rules projection change (dev: votes hidden, voted shown)' }, () => {
+test('open ballots arrive to every seat live and on reconnect; no early close when all voted (approved)', () => {
   const m = auto(8, 'ballots-reconnect');
   m.until(() => stepKind(m.d) === 'day.vote');
   const living = m.players.filter((p) => gv(p).me!.alive);
@@ -71,9 +71,15 @@ test('open ballots arrive to every seat live and on reconnect (approved)', { tod
   back.send({ t: 'resume', code: m.code, token: p0.token! });
   const others = m.players.filter((p) => p !== p0);
   assert.ok(assertOpenBallots([...others, back]), 'reconnect snapshot carries the same open ballots');
-  // A change is visible to everyone at once.
+  // A change is visible to everyone at once, with the voter's choice in the right slot.
   living[1]!.send({ t: 'act', action: { type: 'vote.nominate', target: idx(living[2]!) } });
   assertOpenBallots([...others, back]);
+  const votes = (gv(back).step as { votes: unknown[] }).votes;
+  assert.equal(votes[idx(living[1]!)], idx(living[2]!));
+  // Everyone has voted: the vote still runs to its deadline.
+  back.send({ t: 'act', action: { type: 'vote.nominate', target: 'skip' } });
+  m.h.clock.tick(m.d.view.phaseEndsAt! - m.h.clock.now() - 1);
+  assert.equal(stepKind(m.d), 'day.vote', 'closed early once everyone voted');
 });
 
 test('moderator enters the Yes count (day.confirmCount); no direct day-result route', () => {

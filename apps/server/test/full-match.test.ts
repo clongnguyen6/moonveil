@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { GameView } from '@moonveil/protocol';
-import { assertOpenBallots, assertSeatIsolation, realMatch } from './match-driver.ts';
+import { assertOpenBallots, assertSeatIsolation, gv, realMatch } from './match-driver.ts';
 
 function assertOutcome(final: GameView) {
   assert.ok(final.outcome, 'outcome set');
@@ -47,11 +47,27 @@ for (const mode of ['automatic', 'moderator'] as const) {
   }
 }
 
-test('open day ballots (approved): every seat sees each choice live, all seats agree', { todo: 'awaiting rules projection change (dev: votes hidden, voted shown)' }, () => {
-  const m = realMatch({ mode: 'automatic', seats: 8, seed: 'open-ballots' });
-  let checked = 0;
-  m.run(400, () => {
-    if (assertOpenBallots(m.players)) checked++;
-  });
-  assert.ok(checked > 0, 'no vote steps observed');
+test('open day ballots (approved): every seat sees each voter\'s choice live, incl. after a reconnect; night stays private', () => {
+  for (const mode of ['automatic', 'moderator'] as const) {
+    const m = realMatch({ mode, seats: 8, seed: `open-ballots-${mode}` });
+    let checked = 0;
+    let reconnected = false;
+    m.run(400, () => {
+      if (!assertOpenBallots(m.players)) return;
+      checked++;
+      if (!reconnected) {
+        // Mid-vote reconnect: the snapshot carries the same live ballots.
+        const i = m.players.findIndex((p) => gv(p).me!.alive);
+        const old = m.players[i]!;
+        old.drop();
+        const back = m.h.client();
+        back.send({ t: 'resume', code: m.code, token: old.token! });
+        m.players[i] = back;
+        assert.ok(assertOpenBallots(m.players), 'reconnect snapshot');
+        reconnected = true;
+      }
+    });
+    assert.ok(checked > 0 && reconnected, `${mode}: vote steps observed`);
+    for (const p of m.players) assertSeatIsolation(p); // roles, pack and night inputs stay private
+  }
 });
