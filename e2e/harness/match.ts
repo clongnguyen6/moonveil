@@ -3,20 +3,9 @@
 // Bots read only their own wire view (me.actions) and send `act` over the page's real socket.
 // When the UI lands, acceptance specs drive the same matches through UI selectors agreed with the UI owner.
 import type { GameView, Mode, Profile, SeatView } from '@moonveil/protocol';
+import { planActions, rng, toAction } from '../../apps/server/test/bot-policy.ts';
 import { expect, type Player, type Table } from './index.ts';
 import { quietUi } from './ui.ts';
-
-export function rng(seed: string) {
-  let h = 2166136261;
-  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
-  return () => {
-    h = Math.imul(h ^ (h >>> 15), 2246822507);
-    h = Math.imul(h ^ (h >>> 13), 3266489909);
-    h ^= h >>> 16;
-    return (h >>> 0) / 4294967296;
-  };
-}
-const pick = <T>(r: () => number, xs: readonly T[]): T => xs[Math.floor(r() * xs.length)]!;
 
 export const game = (p: Player) => p.view().game as GameView | null;
 export const stepKey = (v: SeatView) => {
@@ -36,41 +25,12 @@ async function clientCall(p: Player, method: 'create' | 'join', args: unknown[])
 }
 const profile = (name: string): Profile => ({ name, appearance: { color: 'moss', hat: 'none' } });
 
-// One random legal choice per available action, from this seat's own view.
+// Shared bot policy (apps/server/test/bot-policy.ts) over the page's real socket.
 export async function botAct(p: Player, r: () => number): Promise<number> {
-  const me = game(p)?.me;
-  if (!me || p.view().status !== 'playing') return 0;
-  let n = 0;
-  for (const a of me.actions) {
-    let action: Record<string, unknown> | null = null;
-    switch (a.type) {
-      case 'wolf.pick':
-      case 'guard.protect':
-      case 'hunter.shoot':
-        action = { type: a.type, target: a.targets.length && r() < 0.85 ? pick(r, a.targets) : 'pass' };
-        break;
-      case 'seer.inspect':
-        if (a.targets.length) action = { type: a.type, target: pick(r, a.targets) };
-        break;
-      case 'witch.heal':
-        if (a.canUse) action = { type: a.type, use: r() < 0.5 };
-        break;
-      case 'witch.poison':
-        action = { type: a.type, target: a.targets.length && r() < 0.3 ? pick(r, a.targets) : 'pass' };
-        break;
-      case 'vote.nominate':
-        action = { type: a.type, target: a.targets.length && r() < 0.8 ? pick(r, a.targets) : 'skip' };
-        break;
-      case 'vote.confirm':
-        action = { type: a.type, choice: r() < 0.6 ? 'yes' : 'no' };
-        break;
-    }
-    if (action) {
-      await send(p, { t: 'act', action });
-      n++;
-    }
-  }
-  return n;
+  if (p.view().status !== 'playing') return 0;
+  const plans = planActions(game(p), r);
+  for (const plan of plans) await send(p, { t: 'act', action: toAction(plan) });
+  return plans.length;
 }
 
 export interface BrowserMatch {
@@ -82,9 +42,10 @@ export interface BrowserMatch {
 }
 
 // Create, join, ready, start: all via the client handle. `baseURL` = real-engine server.
-export async function seatRealMatch(table: Table, opts: { mode: Mode; seats: number; baseURL: string }): Promise<BrowserMatch> {
+// hostName: with MOONVEIL_TEST_SEED the server's match seed is `<base>:<host name>` (acceptance seeds).
+export async function seatRealMatch(table: Table, opts: { mode: Mode; seats: number; baseURL: string; hostName?: string }): Promise<BrowserMatch> {
   const ctx = { baseURL: opts.baseURL };
-  const host = await table.player(opts.mode === 'moderator' ? 'Mod' : 'P0', ctx);
+  const host = await table.player(opts.hostName ?? (opts.mode === 'moderator' ? 'Mod' : 'P0'), ctx);
   // Game UI is mounted on every page: use its documented quiet settings for many-context runs (SELECTORS.md).
   await quietUi(host);
   await host.page.goto('/');

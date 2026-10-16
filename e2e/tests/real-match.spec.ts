@@ -3,6 +3,7 @@
 // Asserts on the wire of every browser: isolation, open day ballots, wolf chat isolation, outcome.
 import type { GameView, SeatView } from '@moonveil/protocol';
 import { assertOpenBallotsViews, assertOutcome, assertSeatIsolationViews } from '../../apps/server/test/assertions.ts';
+import { seedFor } from '../../apps/server/test/acceptance-seeds.ts';
 import { expect, type Player, test } from '../harness/index.ts';
 import { game, protocolActor, runRealMatch, seatRealMatch, send } from '../harness/match.ts';
 
@@ -38,10 +39,11 @@ for (const mode of ['automatic', 'moderator'] as const) {
   for (const seats of [7, 8, 9, 10]) {
     test(`real match, ${mode}, ${seats} browsers: isolation, open ballots, wolf chat, outcome`, async ({ table }) => {
       test.setTimeout(240_000);
-      const m = await seatRealMatch(table, { mode, seats, baseURL: `http://127.0.0.1:${REAL_PORT}` });
+      const seed = seedFor(mode, seats); // fixed acceptance seed: roles + bot choices, expected end path
+      const m = await seatRealMatch(table, { mode, seats, baseURL: `http://127.0.0.1:${REAL_PORT}`, hostName: seed.S });
       let ballotSteps = 0;
       let wolfChat = false;
-      await runRealMatch(m, `${mode}-${seats}`, async (mm) => {
+      await runRealMatch(m, seed.S, async (mm) => {
         const g = game(mm.driver)!;
         if (g.step.kind === 'day.vote' || g.step.kind === 'day.confirm') {
           // Open ballots: every seat sees the same voter->choice map, own slot = own ballot.
@@ -61,6 +63,7 @@ for (const mode of ['automatic', 'moderator'] as const) {
       expect(m.driver.view().status).toBe('ended');
       const finals = m.players.map((p) => game(p) as GameView);
       assertOutcome(finals[0]!);
+      expect(finals[0]!.outcome, `acceptance seed ${seed.S}`).toEqual(seed.expect);
       for (const f of finals) expect(f.outcome).toEqual(finals[0]!.outcome);
       for (const p of m.players) {
         assertSeatIsolationViews(states(p));
@@ -71,7 +74,7 @@ for (const mode of ['automatic', 'moderator'] as const) {
         const sessions = [...m.players, ...(m.moderator ? [m.moderator] : [])].reduce((n, p) => n + assertVoiceWire(p), 0);
         expect(sessions, 'voice sessions observed').toBeGreaterThan(0);
       }
-      console.log(`MATCH ${JSON.stringify({ mode, seats, steps: m.steps, ballotSteps, wolfChat, outcome: finals[0]!.outcome })}`);
+      console.log(`MATCH ${JSON.stringify({ mode, seats, seed: seed.S, expected: seed.expect, steps: m.steps, ballotSteps, wolfChat, outcome: finals[0]!.outcome })}`);
       expect(ballotSteps).toBeGreaterThan(0);
     });
   }

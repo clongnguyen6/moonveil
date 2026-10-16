@@ -41,12 +41,16 @@ export class FakeClient {
   token: string | undefined;
   seat: string | undefined;
   code: string | undefined;
-  constructor(registry: Registry) {
+  // lean: keep only the latest state frame (long simulations, e.g. seed search); full history otherwise.
+  private readonly lean: boolean;
+  constructor(registry: Registry, lean = false) {
+    this.lean = lean;
     const conn: Conn = {
       send: (m) => {
         // Round-trip through JSON like the wire does.
         const msg = JSON.parse(JSON.stringify(m)) as ServerMessage;
-        this.frames.push(msg);
+        if (this.lean && msg.t === 'state') this.frames = [msg];
+        else if (!this.lean) this.frames.push(msg);
         if (msg.t === 'welcome') {
           this.seat = msg.seat;
           this.code = msg.code;
@@ -89,7 +93,7 @@ export const profile = (name: string, color: Profile['appearance']['color'] = 'm
   appearance: { color, hat: 'none' },
 });
 
-export function setup(opts: { fixture?: FixtureOptions; engine?: () => RulesEngine<unknown>; seed?: string } = {}) {
+export function setup(opts: { fixture?: FixtureOptions; engine?: () => RulesEngine<unknown>; seed?: string; lean?: boolean } = {}) {
   const clock = new ManualClock();
   const voice = recordingVoiceGateway();
   const registry = new Registry({
@@ -99,7 +103,7 @@ export function setup(opts: { fixture?: FixtureOptions; engine?: () => RulesEngi
     now: clock.now,
     ...(opts.seed !== undefined ? { seed: () => opts.seed! } : {}),
   });
-  const client = () => new FakeClient(registry);
+  const client = () => new FakeClient(registry, opts.lean ?? false);
 
   // Creator + n-1 joiners (automatic) or moderator + n players (moderator mode), all ready.
   function room(mode: 'automatic' | 'moderator', players: number) {

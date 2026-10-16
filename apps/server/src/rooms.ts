@@ -21,8 +21,9 @@ export interface RegistryOptions {
   now?: () => number;
   // Rooms with no connection for this long are closed.
   idleMs?: number;
-  // Match seed source (tests pass a deterministic one). Default: 128 random bits.
-  seed?: () => string;
+  // Match seed source, called at start (tests pass a deterministic one; ctx lets tests key it per match).
+  // Default: 128 random bits. Seeds decide roles: never sent to clients.
+  seed?: (ctx: { hostName: string; players: number }) => string;
   // Restart recovery: rooms are saved here and restored by restoreAll().
   store?: RoomStore;
 }

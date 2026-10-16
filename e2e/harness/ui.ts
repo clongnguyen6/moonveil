@@ -2,6 +2,7 @@
 // Choices come from the seat's own wire view (me.actions), as the protocol bot does; execution goes through the DOM.
 // Wire assertions are unchanged. Not exercised until the UI's real-client wiring lands in dev.
 import type { GameView, Mode } from '@moonveil/protocol';
+import { planActions } from '../../apps/server/test/bot-policy.ts';
 import { expect, type Player, type Table } from './index.ts';
 import { type BrowserMatch, game } from './match.ts';
 
@@ -18,7 +19,6 @@ export async function uiPresent(p: Player): Promise<boolean> {
 }
 
 const tid = (p: Player, id: string) => p.page.getByTestId(id);
-const pick = <T>(r: () => number, xs: readonly T[]): T => xs[Math.floor(r() * xs.length)]!;
 
 // UI action accounting: a step can close while a bot is still clicking (a missed action = pass, per rules).
 // Reported by the spec so a run where UI actions mostly fail can't pass unnoticed.
@@ -116,48 +116,31 @@ async function chooseSeat(p: Player, seat: number): Promise<boolean> {
   return tryClick(confirm);
 }
 
-// One random legal choice per available action, performed through the UI.
+// Shared bot policy (apps/server/test/bot-policy.ts), performed through the UI hooks of docs/ui/SELECTORS.md.
 export async function uiBotAct(p: Player, r: () => number): Promise<number> {
-  const me = (game(p) as GameView | null)?.me;
-  if (!me || p.view().status !== 'playing') return 0;
-  let n = 0;
-  for (const a of me.actions) {
-    switch (a.type) {
-      case 'wolf.pick':
-      case 'guard.protect':
-      case 'seer.inspect':
-      case 'hunter.shoot':
-      case 'witch.poison':
-        if (a.targets.length && r() < (a.type === 'witch.poison' ? 0.3 : 0.85)) {
-          const t = pick(r, a.targets);
-          await act(p, `${a.type}:${t}`, () => chooseSeat(p, t));
-          n++;
-        }
+  if (p.view().status !== 'playing') return 0;
+  const plans = planActions(game(p) as GameView | null, r);
+  for (const plan of plans) {
+    switch (plan.type) {
+      case 'witch.heal': {
+        const id = plan.value ? 'heal-yes' : 'heal-no';
+        await act(p, `${plan.type}:${id}`, () => tryClick(tid(p, id)));
         break;
-      case 'witch.heal':
-        if (a.canUse) {
-          const id = r() < 0.5 ? 'heal-yes' : 'heal-no';
-          await act(p, `${a.type}:${id}`, () => tryClick(tid(p, id)));
-          n++;
-        }
+      }
+      case 'vote.confirm': {
+        const id = plan.value === 'yes' ? 'vote-yes' : 'vote-no';
+        await act(p, `${plan.type}:${id}`, () => tryClick(tid(p, id)));
         break;
+      }
       case 'vote.nominate':
-        if (a.targets.length && r() < 0.8) {
-          const t = pick(r, a.targets);
-          await act(p, `${a.type}:${t}`, () => chooseSeat(p, t));
-        } else await act(p, 'vote.nominate:skip', () => tryClick(tid(p, 'vote-skip')));
-        n++;
+        if (plan.value === 'skip') await act(p, 'vote.nominate:skip', () => tryClick(tid(p, 'vote-skip')));
+        else await act(p, `${plan.type}:${plan.value}`, () => chooseSeat(p, plan.value as number));
         break;
-      case 'vote.confirm':
-        {
-          const id = r() < 0.6 ? 'vote-yes' : 'vote-no';
-          await act(p, `${a.type}:${id}`, () => tryClick(tid(p, id)));
-        }
-        n++;
-        break;
+      default:
+        await act(p, `${plan.type}:${plan.value}`, () => chooseSeat(p, plan.value as number));
     }
   }
-  return n;
+  return plans.length;
 }
 
 // Moderator closes the step through the console (2nd button of the confirm dialog = confirm).
@@ -168,9 +151,9 @@ export async function uiCloseStep(mod: Player) {
   uiStats.done++;
 }
 
-export async function seatRealMatchUi(table: Table, opts: { mode: Mode; seats: number; baseURL: string }): Promise<BrowserMatch> {
+export async function seatRealMatchUi(table: Table, opts: { mode: Mode; seats: number; baseURL: string; hostName?: string }): Promise<BrowserMatch> {
   const ctx = { baseURL: opts.baseURL };
-  const host = await table.player(opts.mode === 'moderator' ? 'Mod' : 'P0', ctx);
+  const host = await table.player(opts.hostName ?? (opts.mode === 'moderator' ? 'Mod' : 'P0'), ctx);
   await quietUi(host);
   await host.page.goto('/');
   await tid(host, 'name').fill(host.name);
