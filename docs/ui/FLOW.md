@@ -69,12 +69,13 @@ Match (frame = scene host + top bar + dock)
 ## Checks (this branch)
 - `node scripts/env.mjs node apps/web/src/ui/dev/check.mjs` (vite on 4401): 30 interaction checks on the stub in Chromium headless shell: night submit/change, panel uniformity, seer result, witch heal, own-ballot-only votes, confirm→close, Hunter lock, ghost/living chat isolation in the DOM, chat send, reconnect overlay, role card hidden-until-tap, moderator close step + Yes count, full automatic match with bots to `ended`, no page errors.
 - `apps/web/src/ui/dev/capture.mjs`: screenshots (phone 390×844 @2x, landscape 844×390, laptop 1440×900; WebKit iPhone 13 emulation for three). All browser emulation.
-- Root `npm run typecheck`, `npm test` pass on the branch (rules 183/183, server 20/20).
+- `apps/web/src/ui/dev/real-check.mjs` (real engine on 4460, scene off): 75 checks incl. a deterministic night-1 death (all wolves pick one target, guard protects another, witch declines) so the ghost path (ghost bar, ghost skin, ghosts channel, living seats get no ghost frames/DOM) is proven every run.
 
 ## Approved product decisions (2026-10-16)
 - Language: follows the browser (`vi` → Tiếng Việt, else English), switchable in Entry/Lobby/Settings, remembered on the device.
 - In-person rooms: in-game voice off, wolves use private text at night. UI follows the server `voiceMode` flag (PROPOSALS.md P3; until it ships the stub default is `remote`).
 - Night roles without an action: plain waiting panel, same shape for every role. No suspect-notes feature.
+- Batch A: players 7–15 (lobby range and help read `view.limits` from the engine); decks come from the engine config (2 Wolves at 7–12, 3 at 13–15, one Seer/Witch/Guard/Hunter); the UI shows the dealt deck from `roleCounts` after start and never hard-codes counts.
 
 ## Provisional, behind settings / config (pending Human decisions)
 - Moderator narration cues: Settings → "Narration cues", default off.

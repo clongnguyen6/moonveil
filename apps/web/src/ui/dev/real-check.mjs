@@ -65,9 +65,18 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   }
   function g0(p) { return p.game(); }
   // act through the UI
+  // Deterministic death: every wolf picks the same legal target (first enabled in wolf #1's grid); the guard protects
+  // someone else; the witch does not heal. So the victim dies at dawn whatever the dealt roles.
+  const victimTid = await wolves[0].page.locator('.seat-grid button[aria-pressed]:not([disabled])').first().getAttribute('data-testid');
   let acted = 0;
-  for (const p of ps) if (await p.pickFirst()) acted++;
+  for (const p of ps) {
+    const role = roles.get(p.seat);
+    if (role === 'wolf') { await p.page.getByTestId(victimTid).click(); await p.page.getByTestId('confirm').click(); acted++; }
+    else if (role === 'guard') { const alt = p.page.locator(`.seat-grid button[aria-pressed]:not([disabled]):not([data-testid="${victimTid}"])`).first(); await alt.click(); await p.page.getByTestId('confirm').click(); acted++; }
+    else if (await p.pickFirst()) acted++;
+  }
   ok('automatic: wolves/seer/guard submitted via the UI', acted >= 3, String(acted));
+  const victimSeat = ps[0].game().seatIds[Number(victimTid.replace('seat-', ''))];
   // seer sees the result inline
   const seer = ps.find((p) => roles.get(p.seat) === 'seer');
   if (seer) { const shown = await seer.page.locator('[data-testid=seer-result]').waitFor({ timeout: 5000 }).then(() => true, () => false); ok('seer: result shown from facts after the server round trip', shown); }
@@ -93,17 +102,33 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   // wait for night.witch (fixed 40 s) then dawn (20 s)
   for (const p of ps) await p.waitStep('night.witch', 60_000);
   const witch = ps.find((p) => roles.get(p.seat) === 'witch');
-  if (witch) { await witch.page.getByTestId('heal-no').click().catch(() => {}); ok('witch: panel rendered with heal controls', (await witch.page.locator('[data-testid=night-witch]').count()) === 1); }
+  if (witch) { await witch.page.getByTestId('heal-no').click().catch(() => {}); await witch.page.waitForTimeout(300); ok('witch: panel rendered with heal controls', (await witch.page.locator('[data-testid=night-witch]').count()) === 1); }
   for (const p of ps) await p.page.waitForSelector('[data-testid=room][data-step^="day."], [data-testid=room][data-step="hunter"], [data-testid=room][data-step="ended"]', { timeout: 60_000 });
   const nightMs = Date.now() - t0;
   ok(`night lasted the fixed length (~60 s, measured ${Math.round(nightMs / 1000)} s)`, nightMs > 55_000 && nightMs < 75_000);
   const dead = ps.filter((p) => !p.game().me.alive);
   ok('dawn: public log has a dawn entry on every client', ps.every((p) => p.game().publicLog.some((e) => e.t === 'dawn')));
-  if (dead.length) {
-    ok('dead seat shows the ghost bar', (await dead[0].page.locator('[data-testid=ghost-bar]').count()) === 1);
-    const alive = ps.find((p) => p.game().me.alive);
-    ok('living seat sees no ghosts chat frames', !alive.frames.some((f) => (f.t === 'chat' || f.t === 'chatlog') && f.channel === 'ghosts'));
-  } else console.log('INFO  nobody died on night 1 (guard/witch), ghost checks skipped');
+  ok('dawn: the chosen victim died (deterministic ghost path)', dead.some((p) => p.seat === victimSeat), dead.map((p) => p.name).join(',') || 'nobody');
+  const ghost = dead.find((p) => p.seat === victimSeat) ?? dead[0];
+  if (ghost) {
+    if ((await ghost.step()) === 'hunter') { await ghost.pickFirst().catch(() => {}); for (const p of ps) await p.page.waitForSelector('[data-testid=room][data-step^="day."], [data-testid=room][data-step="ended"]', { timeout: 30_000 }); }
+    ok('ghost: dead seat shows the ghost bar', (await ghost.page.locator('[data-testid=ghost-bar]').count()) === 1);
+    ok('ghost: skin switched to ghost', (await ghost.page.locator('[data-testid=app]').getAttribute('data-phase')) === 'ghost');
+    await ghost.page.getByTestId('open-chat').click();
+    const ghostTabs = await ghost.page.locator('.tabs .tab').allInnerTexts();
+    ok('ghost: chat offers the Ghosts channel (listen+speak) and public (listen)', ghostTabs.some((x) => /Ghosts|Ma/.test(x)));
+    await ghost.page.locator('.tabs .tab').filter({ hasText: /Ghosts|Ma/ }).click();
+    await ghost.page.getByTestId('chat-input').fill('boo');
+    await ghost.page.getByTestId('chat-send').click();
+    await ghost.page.waitForTimeout(500);
+    ok('ghost: own ghost-chat message shown', /boo/.test(await ghost.page.getByTestId('chat-log').innerText()));
+    await ghost.page.keyboard.press('Escape');
+    for (const p of ps.filter((x) => x.game().me.alive)) {
+      ok(`${p.name} (living): no ghosts chat/chatlog frame on the wire`, !p.frames.some((f) => (f.t === 'chat' || f.t === 'chatlog') && f.channel === 'ghosts'));
+      ok(`${p.name} (living): 'boo' never reaches the DOM`, !/boo/.test(await p.page.content()));
+    }
+    ok('ghost: no night action offered (no actions in projection)', ghost.game().me.actions.length === 0);
+  }
   // reconnect: reload keeps the seat and the step
   const r = ps[3];
   const stepBefore = await r.step();

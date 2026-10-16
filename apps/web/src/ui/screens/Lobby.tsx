@@ -35,7 +35,7 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
       <header className="row between">
         <div>
           <h1 className="panel-title">{t('lobbyTitle')}</h1>
-          <p className="hint">{view.mode === 'moderator' ? t('lobbyModeMod') : t('lobbyModeAuto')} · {t('lobbyPlayers', { n: view.players.length, min: view.limits.minPlayers, max: view.limits.maxPlayers })} <span className="pill warn">{t('provisional')}</span></p>
+          <p className="hint">{view.mode === 'moderator' ? t('lobbyModeMod') : t('lobbyModeAuto')} · {t('lobbyPlayers', { n: view.players.length, min: view.limits.minPlayers, max: view.limits.maxPlayers })}</p>
           <p className="hint" data-testid="you">{t('youLabel')}: {view.me.kind === 'moderator' ? `${view.moderator?.name ?? ''} (${t('moderator')})` : me?.name}{view.me.host ? ` · ${t('host')}` : ''}</p>
         </div>
         <div className="row">

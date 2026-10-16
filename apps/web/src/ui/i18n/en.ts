@@ -93,7 +93,7 @@ export const en = {
   helpRuleHunter: 'A Hunter who dies gets 20 s to shoot. The turn is public.', helpRuleReveal: 'No role is revealed on an ordinary death. The Hunter is revealed when their shot turn opens. All roles are revealed at the end.',
   helpRuleGhost: 'Ghosts keep what they knew, learn no secrets, and talk only with ghosts.', helpRuleTimer: 'Nights are a fixed 60 s and the defense a fixed 30 s. Other durations come from the match settings.',
   helpWitch: 'Witch: one heal, one poison, both usable in one night. Self-heal yes, self-poison no. She sees the victim only while her heal is unused.',
-  helpProvisional: 'Provisional (not yet decided; follows the current match settings):', helpProvSeer: 'What the Seer learns: wolf or not a wolf.', helpProvGuard: 'Guard: may protect themselves, not the same player two nights in a row; does not block poison.', helpProvWolfPass: 'Wolves may choose nobody.', helpProvPlayers: '{min}–{max} players.',
+  helpProvisional: 'Provisional (not yet decided; follows the current match settings):', helpProvSeer: 'What the Seer learns: wolf or not a wolf.', helpProvGuard: 'Guard: may protect themselves, not the same player two nights in a row; does not block poison.', helpProvWolfPass: 'Wolves may choose nobody.', helpRulePlayers: '{min}–{max} players. Roles per match: see "Roles in this match" (the host\'s deck is validated by the engine).',
 
   annNight: 'Night falls', annDawn: 'Dawn', annVote: 'Nomination open', annDefense: 'Defense', annConfirm: 'Verdict', annYourTurn: 'Your turn', annOver: 'Match over',
   annDied: '{name} died', annExecuted: '{name} executed', annShot: '{by} shot {target}', annHunter: '{name} is the Hunter',

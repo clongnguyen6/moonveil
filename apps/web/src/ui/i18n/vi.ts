@@ -94,7 +94,7 @@ export const vi: Strings = {
   helpRuleHunter: 'Thợ săn chết có 20 giây để bắn. Lượt này công khai.', helpRuleReveal: 'Chết bình thường không lộ vai. Thợ săn lộ vai khi lượt bắn mở. Cuối ván lộ hết.',
   helpRuleGhost: 'Ma giữ điều đã biết, không biết thêm bí mật, chỉ nói chuyện với ma.', helpRuleTimer: 'Đêm cố định 60 giây, biện hộ cố định 30 giây. Các khoảng thời gian khác theo cài đặt ván.',
   helpWitch: 'Phù thủy: một bình cứu, một bình độc, dùng chung một đêm được. Tự cứu được, tự đầu độc không. Chỉ biết nạn nhân khi chưa dùng bình cứu.',
-  helpProvisional: 'Tạm thời (chưa quyết; theo cài đặt hiện tại của ván):', helpProvSeer: 'Tiên tri biết: là sói hay không phải sói.', helpProvGuard: 'Bảo vệ: được tự bảo vệ, không che cùng một người hai đêm liền; không chặn độc.', helpProvWolfPass: 'Sói có thể chọn không ai.', helpProvPlayers: '{min}–{max} người chơi.',
+  helpProvisional: 'Tạm thời (chưa quyết; theo cài đặt hiện tại của ván):', helpProvSeer: 'Tiên tri biết: là sói hay không phải sói.', helpProvGuard: 'Bảo vệ: được tự bảo vệ, không che cùng một người hai đêm liền; không chặn độc.', helpProvWolfPass: 'Sói có thể chọn không ai.', helpRulePlayers: '{min}–{max} người chơi. Vai mỗi ván: xem "Các vai trong ván này" (bộ vai do chủ phòng chọn được engine kiểm tra).',
 
   annNight: 'Đêm xuống', annDawn: 'Bình minh', annVote: 'Mở đề cử', annDefense: 'Biện hộ', annConfirm: 'Phán quyết', annYourTurn: 'Đến lượt bạn', annOver: 'Kết thúc',
   annDied: '{name} đã chết', annExecuted: '{name} bị treo cổ', annShot: '{by} bắn {target}', annHunter: '{name} là Thợ săn',

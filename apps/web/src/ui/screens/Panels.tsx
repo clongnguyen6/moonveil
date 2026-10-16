@@ -157,13 +157,13 @@ export function HelpSheet({ g, onClose, limits }: { g: GameView | null; onClose:
           <li>{t('helpRuleHunter')}</li>
           <li>{t('helpRuleReveal')}</li>
           <li>{t('helpRuleGhost')}</li>
+          {limits && <li>{t('helpRulePlayers', limits)}</li>}
         </ul>
         <h3 className="hint" style={{ fontWeight: 700 }}>{t('helpProvisional')} <span className="pill warn">{t('provisional')}</span></h3>
         <ul className="facts" data-testid="help-provisional">
           <li>{t('helpProvSeer')}</li>
           <li>{t('helpProvGuard')}</li>
           <li>{t('helpProvWolfPass')}</li>
-          {limits && <li>{t('helpProvPlayers', limits)}</li>}
         </ul>
       </div>
     </Sheet>

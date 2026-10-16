@@ -41,3 +41,6 @@ Night actions produce frames only from acting seats. Option: clients send a `noo
 
 ## P11. `@moonveil/scene` in the web manifest — DONE in foundation-4
 `apps/web/package.json` needs `"@moonveil/scene": "*"` (the shell imports it for the mount; resolves today only by hoisting).
+
+## P12. Deck preview + host customization in the lobby (foundation + rules)
+Batch A: decks are engine config and host customization is engine-validated. The lobby has no deck data before start (`SeatView` carries only `limits`). Request: `SeatView.deck: { default: Record<Role, number>; custom: Record<Role, number> | null }` for the current player count, and a host message `{ t: 'deck', counts }` validated by `validateDeck()` (error → `invalid-action`). UI then shows the deck in the lobby and a host editor; until then only the dealt deck (`roleCounts`) is shown after start.
