@@ -78,3 +78,10 @@ Accepted from the recommendation: self-hosted LiveKit OSS (grant d), room per ch
   - `npm run e2e:matches:voice`: real LiveKit 1.13.10 built in-repo; 8 browser matches; every `voice` frame only for granted channels; tokens bound to the seat and room; never in `state`.
   - Audio itself (who hears whom) is the voice owner's suite (`packages/voice/e2e`).
 - **Not used:** a `MOONVEIL_RULES_CONFIG` phase override. `MOONVEIL_TEST_TIME_SCALE` (or `E2E_TIME_SCALE` for the matches) shortens wall time without touching approved durations. Pick ×5 if audio checks need about 12 s nights.
+
+## Reversal 2026-10-16: sticky visibility withdrawn; `visible = speak` as first written
+- **Evidence** (voice owner's measured-audio suite on foundation's wiring; `docs/voice/RECOMMENDATION.md` on `voice`): with sticky visibility, players who died mid-room stayed visible as listen-only participants in the public roster, and living players could see them. Roster hits: 315 and 297 across the two matches. That is a leak (who is dead).
+- **Now:** a seat is visible in a room only while it may `speak` there, decided per grant change. A trial costs two short public-room reconnects (start and end of defense); that is the accepted cost.
+- **Foundation wiring:** no change needed (grants in, sessions out).
+- **Hear-matrix:** 0 failures across 3,175 pair-channel checks (7-seat moderator to the end; 10-seat automatic).
+- My earlier acceptance of sticky visibility (update above) was wrong. The test that should have caught it is the roster check across a death, which the measured suite now covers.

@@ -31,6 +31,7 @@ export default defineConfig({
       cwd: '..',
       url: `http://127.0.0.1:${REAL_PORT}/healthz`,
       reuseExistingServer: false,
+      stdout: 'pipe',
       timeout: 120_000,
       env: {
         PORT: String(REAL_PORT),
@@ -38,6 +39,8 @@ export default defineConfig({
         MOONVEIL_ENGINE: 'rules',
         MOONVEIL_TEST_TIME_SCALE: process.env.E2E_TIME_SCALE ?? '20',
         MOONVEIL_PERSIST: '0',
+        // Deterministic seeds (server log only) so a failing match can be reproduced.
+        MOONVEIL_TEST_SEED: process.env.E2E_SEED ?? 'e2e',
         // Voice only when scripts/e2e-run.mjs started LiveKit (E2E_VOICE=1).
         ...Object.fromEntries(
           ['LIVEKIT_URL', 'LIVEKIT_PUBLIC_WS', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET'].flatMap((k) => (process.env[k] ? [[k, process.env[k]!]] : [])),

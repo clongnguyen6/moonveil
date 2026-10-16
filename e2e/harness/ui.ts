@@ -23,7 +23,13 @@ const pick = <T>(r: () => number, xs: readonly T[]): T => xs[Math.floor(r() * xs
 // UI action accounting: a step can close while a bot is still clicking (a missed action = pass, per rules).
 // Reported by the spec so a run where UI actions mostly fail can't pass unnoticed.
 // Acceptance runs (E2E_UI_STRICT=1) fail on any miss; every miss carries seat, action, step and reason.
-export const uiStats = { attempted: 0, done: 0, misses: [] as { seat: string; action: string; step: string; reason: string }[] };
+export const uiStats = {
+  attempted: 0,
+  done: 0,
+  misses: [] as { seat: string; action: string; step: string; reason: string }[],
+  // Landed actions per type (e.g. wolf.pick) for failure reports.
+  byType: {} as Record<string, number>,
+};
 const CLICK_MS = 1_500;
 let lastReason = '';
 async function tryClick(l: ReturnType<typeof tid>): Promise<boolean> {
@@ -42,7 +48,11 @@ async function tryClick(l: ReturnType<typeof tid>): Promise<boolean> {
 async function act(p: Player, action: string, fn: () => Promise<boolean>) {
   uiStats.attempted++;
   lastReason = '';
-  if (await fn()) uiStats.done++;
+  if (await fn()) {
+    uiStats.done++;
+    const type = action.split(':')[0]!;
+    uiStats.byType[type] = (uiStats.byType[type] ?? 0) + 1;
+  }
   else uiStats.misses.push({ seat: `${p.name}/${(game(p) as GameView | null)?.me?.seat}`, action, step: (game(p) as GameView | null)?.step.kind ?? '?', reason: lastReason || 'unknown' });
 }
 

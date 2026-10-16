@@ -41,9 +41,10 @@ for (const mode of ['automatic', 'moderator'] as const) {
 
       uiStats.attempted = uiStats.done = 0;
       uiStats.misses = [];
+      uiStats.byType = {};
       const stats = { ballotSteps: 0, reloads: 0, drops: 0, ghostChecks: 0, overflowChecks: 0 };
       const report = (result: string) =>
-        console.log(`UIMATCH ${JSON.stringify({ project: info.project.name, mode, seats, result, strict: STRICT, landed: uiStats.done, intended: uiStats.attempted, misses: uiStats.misses, ...stats })}`);
+        console.log(`UIMATCH ${JSON.stringify({ project: info.project.name, mode, seats, result, strict: STRICT, landed: uiStats.done, intended: uiStats.attempted, byType: uiStats.byType, misses: uiStats.misses, ...stats })}`);
       try {
       const m = await seatRealMatchUi(table, { mode, seats, baseURL: `http://127.0.0.1:${REAL_PORT}` });
       await runRealMatch(
@@ -94,6 +95,7 @@ for (const mode of ['automatic', 'moderator'] as const) {
         },
         200,
         { act: uiBotAct, close: uiCloseStep },
+        seats + 3, // acceptance: win condition within seats + 3 days
       );
       expect(m.driver.view().status).toBe('ended');
       assertOutcome(game(m.players[0]!) as GameView);
