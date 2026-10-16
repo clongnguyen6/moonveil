@@ -1,11 +1,11 @@
 # Camp visual preview (M1) — for direction approval
 
-Branch `visual`, revision: see report. Run: `cd preview && npm install && npm run dev` → http://127.0.0.1:4200.
-All captures are browser emulation (Playwright Chromium, GPU headless; three extra shots from Playwright WebKit, the Safari engine); no real device was used. WebKit shots are "WebKit/browser emulation", not iPhone validation.
+Run: `npm install` at the root, then `node scripts/env.mjs npm run dev -w @moonveil/scene` → http://127.0.0.1:4200 (dev harness on the fixture stub server; the renderer lives in `packages/scene`, see `packages/scene/README.md`).
+All captures are WebKit/browser emulation (Playwright WebKit, the Safari engine, GPU-backed); no real device was used. An earlier round used GPU headless Chromium; the look is the same.
 
 ## What it shows
 
-- 2.5D angled camp beside a stream, fixed camera: 10 tents in two rows, campfire with stump/log seats, bridge, lantern posts, forest edge, flowing water.
+- 2.5D angled camp beside a stream, fixed camera: one tent per player in two rows (three above 10 players), campfire with stump/log seats that widen with the player count, bridge, lantern posts, forest edge, flowing water.
 - Lobby: free movement, keyboard (WASD/arrows) on laptop, floating virtual joystick on touch; 10 campers wander with distinct looks (skin, hair, hat, top, scarf/backpack). Up to 16 via `?n=16`.
 - Match seating: walk to seats around the fire, seated pose with breathing idle; speaking indicator = pulsing ring at the feet + sound arcs + gold name.
 - Night: shared transition (day → dusk → blue/purple night over ~7 s), campers walk to their tents, tent lanterns flare and settle, fireflies, fog, moon glints on the water, embers-level fire. Dawn reverses it.
@@ -22,10 +22,10 @@ All captures are browser emulation (Playwright Chromium, GPU headless; three ext
 | laptop-night.jpg | 1440×900 | Settled night, everyone in tents |
 | laptop-dawn.jpg | 1440×900 | Dawn, leaving tents |
 | laptop-ghost-view.jpg / laptop-living-view-same-moment.jpg | 1440×900 | Two ghosts as seen by a ghost; same scene as the living see it |
-| laptop-16-players-seating.jpg | 1440×900 | Density check at 16 |
-| phone-portrait-*.jpg | 390×844 @2x, iPhone 13 emulation, touch | lobby (fit + tight framing), seating, night, ghost view |
+| laptop-ended-reveal.jpg | 1440×900 | Match over: roles appended to names |
+| laptop-16-players-seating.jpg / laptop-16-players-night.jpg | 1440×900 | Density check at 16: wider seat ring, three tent rows |
+| phone-portrait-*.jpg | 390×844 @2x, iPhone 13 emulation in WebKit, touch | lobby (fit + tight framing), seating, night, ghost view |
 | phone-landscape-*.jpg | 844×390 @2x | lobby, night |
-| webkit-phone-portrait-*.jpg | 390×844 @2x, iPhone 13 emulation in Playwright WebKit | lobby, seating, night (WebKit/browser emulation) |
 | motion.mp4 | 960×540, ~40 s | lobby walk + emote + talk → seating → night → dawn → ghost drifting |
 
 ## Rendering choice: PixiJS v8 (WebGL, WebGPU-capable)

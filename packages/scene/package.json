@@ -1,0 +1,28 @@
+{
+  "name": "@moonveil/scene",
+  "private": true,
+  "type": "module",
+  "description": "Camp scene renderer (PixiJS). Pure function of seat-entitled SceneInput + server-filtered poses. `./map` is DOM-free for the server.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./map": "./src/map.ts",
+    "./fixtures": "./fixtures/index.ts"
+  },
+  "scripts": {
+    "dev": "vite --port 4200 --strictPort --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --port 4201 --strictPort --host 127.0.0.1",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test 'test/**/*.test.ts'",
+    "capture": "node scripts/capture.mjs",
+    "perf": "node scripts/perf.mjs"
+  },
+  "dependencies": {
+    "pixi.js": "8.22.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "26.6.5",
+    "vite": "8.3.4"
+  }
+}

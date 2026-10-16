@@ -8,6 +8,7 @@
   "workspaces": [
     "packages/protocol",
     "packages/rules",
+    "packages/scene",
     "apps/server",
     "apps/web",
     "e2e"
