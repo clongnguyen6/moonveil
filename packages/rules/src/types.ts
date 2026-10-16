@@ -56,7 +56,8 @@ export type StepKind = Step['kind'];
 export type Winner = 'wolves' | 'village' | 'draw' | 'aborted';
 export interface Outcome {
   winner: Winner;
-  reason: 'noWolves' | 'parity' | 'zeroSurvivors' | 'aborted';
+  /** 'aborted' = ended by the moderator (match.end), no winner. 'stalemate' = 3 no-death cycles (approved F1-A). */
+  reason: 'noWolves' | 'parity' | 'zeroSurvivors' | 'stalemate' | 'aborted';
 }
 
 /** Private knowledge, granted only to living seats; ghosts keep what they had. */
@@ -79,6 +80,8 @@ export type PublicEvent =
   | { t: 'hunterTurn'; seats: Seat[] }
   | { t: 'shot'; by: Seat; target: Seat | null }
   | { t: 'removed'; seat: Seat }
+  /** Emitted at the end of the 2nd consecutive no-death day: a draw follows if nobody dies before the end of the next day. */
+  | { t: 'stalemateWarning'; day: number }
   | { t: 'ended'; outcome: Outcome };
 
 /** Full secret record, for the moderator and end-of-match reveal. */
@@ -97,6 +100,10 @@ export interface MatchState {
   step: Step;
   /** Increments on every new step instance (not on resume after removal). Hosts key phase clocks on it. */
   stepSeq: number;
+  /** APPROVED F1-A stalemate: consecutive full cycles (night + day) without a gameplay death. */
+  quietCycles: number;
+  /** A gameplay death (not removal) happened since the last end-of-day boundary. */
+  cycleHadDeath: boolean;
   nightRec: NightRecord | null;
   publicLog: PublicEvent[];
   knowledge: Fact[][];
@@ -120,7 +127,8 @@ export type Command =
   /** APPROVED Q16 (2026-10-16): moderator enters the Yes count of a show of hands; engine applies Yes*2 > living. */
   | { type: 'day.confirmCount'; yes: number }
   | { type: 'player.remove'; seat: Seat }
-  | { type: 'match.abort' };
+  /** APPROVED (2026-10-16): moderator-only proactive end, no winner. The literal confirm guards against accidental sends. */
+  | { type: 'match.end'; confirm: 'end-match' };
 
 export type ErrorCode =
   | 'forbidden' // actor may not issue this command

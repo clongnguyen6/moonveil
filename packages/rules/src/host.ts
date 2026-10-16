@@ -49,7 +49,7 @@ export interface RulesEngine<S> {
   phase(state: S): PhaseInfo;
   /** Player action. `action` is a Command without `seat` (the server supplies the actor). */
   submit(state: S, seat: SeatId, action: unknown): HostResult<S>;
-  /** ADDED: moderator command (any Command incl. acting for a seat, wolf.decide, day.confirmCount, player.remove, match.abort, step.close). */
+  /** ADDED: moderator command (any Command incl. acting for a seat, wolf.decide, day.confirmCount, player.remove, match.end, step.close). */
   moderate(state: S, action: unknown): HostResult<S>;
   /** ADDED: system removal (host/server policy, e.g. long disconnect). Rejected during secret steps by default (Q26). */
   remove(state: S, seat: SeatId): HostResult<S>;
@@ -190,7 +190,9 @@ export function parseCommand(input: unknown, n: number): Command | null {
       return keys('yes') && typeof x.yes === 'number' ? (input as unknown as Command) : null;
     case 'player.remove':
       return keys('seat') && seat(x.seat) ? (input as unknown as Command) : null;
-    case 'match.abort':
+    case 'match.end':
+      // Shape only; the engine also requires the exact confirm literal.
+      return keys('confirm') && x.confirm === 'end-match' ? (input as unknown as Command) : null;
     case 'step.close':
       return keys() ? (input as unknown as Command) : null;
     default:

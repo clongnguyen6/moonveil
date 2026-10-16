@@ -55,7 +55,7 @@ describe('moderator powers (Q16)', () => {
   });
 
   it('abort ends with winner aborted', () => {
-    const s = ok(match(), MOD, { type: 'match.abort' });
+    const s = ok(match(), MOD, { type: 'match.end', confirm: 'end-match' });
     assert.deepEqual(s.outcome, { winner: 'aborted', reason: 'aborted' });
   });
 });
