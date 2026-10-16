@@ -45,3 +45,17 @@ Status: foundation, 2026-10-16. The harness is ready now; the UI-driven layer wa
 ## Findings for the UI owner
 - **Dead-seat vote panel:** in moderator mode a dead seat shows the vote panel with `confirm` and `vote-skip` disabled; in automatic mode it shows none. Harmless (ghosts can't act), but inconsistent.
 - **WebKit "miss" at ×5 is pacing, not a UI fault.** Repro: `E2E_UI_STRICT=1 E2E_TIME_SCALE=5 E2E_GREP="UI match, automatic, 7 " npm run e2e -w @moonveil/e2e -- --project ui-phone-webkit`, seed `e2e:1`. P4's `vote.nominate` lands after the 6 s vote closed (`confirm disabled after selecting the seat`, step already `night.main`). At ×2: 3/3 runs, 30/30 landed.
+
+## Deterministic end paths (foundation-8)
+- **One bot policy for every driver** (`apps/server/test/bot-policy.ts`): server-level scripted clients, the browser protocol actor and the UI actor make identical choices. A strict browser match (every intended action lands) therefore plays out exactly like its in-process simulation.
+- **Seeds (test-only):** `MOONVEIL_TEST_SEED=<base>` → match seed `<base>:<host name>`. Each acceptance match names its host after its seed `S` and uses `S` for the bots. Order and filters don't matter.
+- **Fixed table** (`apps/server/test/acceptance-seeds.ts`), chosen with `seed-search.ts`. Per mode across 7–10 seats it covers wolves/parity, village/noWolves and draw/stalemate (rules-12):
+
+  | Mode | 7 | 8 | 9 | 10 |
+  |---|---|---|---|---|
+  | automatic | a7-0 wolves | a8-6 village | a9-3 wolves | a10-16 stalemate |
+  | moderator | m7-2 village | m8-3 wolves | m9-54 stalemate | m10-39 village |
+
+  Phones reuse the 7-seat seeds. Every browser suite asserts each match's expected outcome. `acceptance-seeds.test.ts` re-simulates the table in-process, so a rules change that shifts an outcome fails a light test, not only the heavy suites.
+- **Q14 zero survivors:** no seed found for automatic 7 or 8 in 2,000 seeds each (bot policy as above); the remaining shapes are being searched. Reachability under this policy is not shown; if a seed turns up, it's added as an extra match.
+- **Search scripts must yield to the event loop between simulated matches.** Otherwise pending voice-sync callbacks hold every room and memory grows about 0.5 MB per match. Measured: flat at 10–14 MB over 400 matches with yields. Not a server leak.
