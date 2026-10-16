@@ -1,6 +1,6 @@
 # Rules still to decide — one page
 
-Status: 2026-10-16, for the decision-maker. Batch A is decided; everything else below is **provisional**. The app already runs on the "Recommend" column, except rows marked ⚠, where a "yes" changes a setting. Details and sky2 evidence: `PROPOSAL.md` (Qxx). Bot results: `BALANCE.md`. Bots are not players.
+Status: 2026-10-16, for the decision-maker. Batch A is decided; everything else below (Batches B–F) is **provisional**. The app already runs on the "Recommend" column, except rows marked ⚠, where a "yes" changes a setting. Details and sky2 evidence: `PROPOSAL.md` (Qxx). Bot results: `BALANCE.md`. Bots are not players.
 
 **Reply format:** "Batch A yes", or "Batch A yes except A3: alternative".
 **Blocks first playtest** = needs an answer before colleagues play; everything else can wait for playtest feedback.
@@ -51,3 +51,22 @@ Now fixed in the engine (`PROPOSAL.md` Q17/Q18). **Batches B–E below are still
 | E3 | Second night step when the setup has no Witch | Keep it (the night is always 2 steps, 60 s) | One 60 s step | The setup is public, so either way leaks nothing; two steps keeps one screen flow |
 | E4 (Q24 history) | End-of-match recap | Show all roles **and** the full night history | Roles only | Roles at the end are approved; the history is the open part |
 | E5 (Q12/Q13) | Death-chain mechanics | Deaths in a batch happen together; Hunters who die together shoot together; victory is checked once the chain ends (and after a removal) | — (follows the approved rules) | Already tested |
+
+## Batch F — A match that can't end (blocks first *automatic* playtest)
+**Problem.** Today a match can go on forever when nobody dies. Approved rules alone allow it: a missing choice is a pass, and no ballots, a tie or Skip leading means no trial. A no-death cycle at 7 players lasts about 4¼ min. Pausing doesn't help, because it only triggers when *every* player is offline.
+
+**Evidence** (the engine on `dev` at 6c9c000, 7 players, run to 100 days):
+
+| Scenario | Allowed by | Result |
+|---|---|---|
+| Everyone connected but idle | Approved: missing choice = pass; no ballots = no trial | Day 100, nobody dead, no result |
+| Wolves pick "nobody", village votes Skip | Provisional D5 ("nobody") + approved Skip rule | Day 100, nobody dead |
+| Wolves always bite whoever the Guard protects | Wolves acting against their own interest | Day 100, nobody dead (not a realistic loop) |
+
+The Guard and Witch can't sustain a loop on their own: the heal works once, and the Guard can't protect the same player twice in a row.
+
+| # | Question | Recommend | Alternative | Evidence |
+|---|---|---|---|---|
+| F1 | How does a match that can't progress end? | **A: Stalemate draw.** If 3 full nights and days in a row pass with no death of any kind (bite, poison, execution, Hunter shot), the match ends in a **draw**. After 2 such cycles, everyone is warned at dawn: "If nobody dies by the next dawn, the match ends in a draw." | **B: Hard day cap**: a draw at a fixed day (e.g. day 10); simplest, but can cut off a real slow game. **C: Wolves must attack**: with no valid Wolf pick, the pack attacks a random living non-Wolf; always progresses, but changes the approved "missing choice = pass" for Wolves, removes the "nobody" option (D5), and doesn't address an idle village | A caps an idle match at about 13 min at 7 players, changes no approved rule, and the warning lets real players avoid it. It adds a third way to draw (besides zero survivors) |
+
+*Note: A and C can be combined; A alone is enough to bound match length. Nothing is implemented until you decide.*
