@@ -1,7 +1,7 @@
 // Balance screen (PROVISIONAL tooling): node sim/balance.ts [matchesPerCell=1000] > out.md
 // Bots are not players. This only screens for obviously broken setups (Q17/Q18).
 import { DEFAULT_CONFIG, defaultDeck, validateDeck, type DeckCounts } from '../src/index.ts';
-import { type Knobs, playMatch, type PolicyName } from './bots.ts';
+import { type Knobs, playMatch, type PolicyName, SMART_VILLAGE } from './bots.ts';
 
 export interface Cell {
   players: number;
@@ -62,7 +62,29 @@ export function row(c: Cell, label: string, flag = ''): string {
   return `| ${c.players} | ${label} | ${c.policy} | ${pct(c.village, c.n)} [${lo}–${hi}] | ${pct(c.wolves, c.n)} | ${pct(c.draw, c.n)} | ${Math.round(c.execAccuracy * 100)} | ${c.nightsMean.toFixed(1)} | ${c.minutes.p10.toFixed(0)}/${c.minutes.p50.toFixed(0)}/${c.minutes.p90.toFixed(0)} | ${flag} |`;
 }
 
-if (import.meta.main) {
+/**
+ * `node sim/balance.ts <n> smart`: default vs smarter-village bots on the APPROVED decks at 7-15 players; at 13-15 also
+ * one wolf fewer (information only: 13-15 still screens wolf-favoured).
+ */
+function smartReport(n: number): void {
+  const head = `| Players | Deck | Village bots | Village win % [95% CI] | Wolves % | Exec. hit wolf % | Nights | Minutes p50 |\n|---|---|---|---|---|---|---|---|`;
+  console.log(`### Smarter-village sensitivity on the approved decks (heuristic, n=${n} per row)\n\n${head}`);
+  for (let players = 7; players <= 15; players++) {
+    const base = defaultDeck(players) as DeckCounts;
+    const decks = players >= 13 ? [base, variant(base, -1)!] : [base];
+    for (const deck of decks) {
+      for (const [label, knobs] of [['default', {}], ['smart', SMART_VILLAGE]] as const) {
+        const c = runCell(players, 'heuristic', deck, n, knobs);
+        const [lo, hi] = wilson(c.village, c.n);
+        console.log(`| ${players} | ${deckStr(deck)} | ${label} | ${pct(c.village, c.n)} [${lo}–${hi}] | ${pct(c.wolves, c.n)} | ${Math.round(c.execAccuracy * 100)} | ${c.nightsMean.toFixed(1)} | ${c.minutes.p50.toFixed(0)} |`);
+      }
+    }
+  }
+}
+
+if (import.meta.main && process.argv[3] === 'smart') {
+  smartReport(Number(process.argv[2] ?? 1000));
+} else if (import.meta.main) {
   const n = Number(process.argv[2] ?? 1000);
   const cfg = DEFAULT_CONFIG;
   const head = `| Players | Deck | Policy | Village win % [95% CI] | Wolves % | Draw % | Exec. hit wolf % | Nights | Minutes p10/p50/p90 | Flag |\n|---|---|---|---|---|---|---|---|---|---|`;
