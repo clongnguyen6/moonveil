@@ -1,0 +1,67 @@
+import assert from 'node:assert/strict';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { after, before, test } from 'node:test';
+import { WebSocket as WsClient } from 'ws';
+import type { RulesEngine } from '../src/rules/engine.ts';
+import { createFixtureEngine } from '../src/rules/fixture-engine.ts';
+import { createMoonveilServer } from '../src/server.ts';
+
+const PORT = 4120;
+const base = `http://127.0.0.1:${PORT}`;
+let srv: ReturnType<typeof createMoonveilServer>;
+
+before(async () => {
+  // tmpdir() is redirected into the repo by scripts/env.mjs.
+  const dir = mkdtempSync(join(tmpdir(), 'mv-static-'));
+  mkdirSync(join(dir, 'assets'));
+  writeFileSync(join(dir, 'index.html'), '<!doctype html>INDEX');
+  writeFileSync(join(dir, 'assets', 'a.js'), 'x');
+  srv = createMoonveilServer({ engine: () => createFixtureEngine() as RulesEngine<unknown>, staticDir: dir, heartbeatMs: 200 });
+  await new Promise<void>((r) => srv.http.listen(PORT, '127.0.0.1', r));
+});
+after(() => srv.stop());
+
+test('static: assets, SPA fallback, traversal, missing asset', async () => {
+  assert.equal(await (await fetch(`${base}/assets/a.js`)).text(), 'x');
+  assert.match(await (await fetch(`${base}/r/ABCDEF`)).text(), /INDEX/);
+  assert.equal((await fetch(`${base}/assets/missing.js`)).status, 404);
+  assert.notEqual((await fetch(`${base}/..%2f..%2fetc%2fpasswd`)).status, 200);
+  assert.equal((await fetch(`${base}/%E0%A4%A`)).status, 400);
+});
+
+function open(headers: Record<string, string> = {}) {
+  const ws = new WsClient(`ws://127.0.0.1:${PORT}/ws`, { headers });
+  const msgs: { t: string; [k: string]: unknown }[] = [];
+  ws.on('message', (d) => msgs.push(JSON.parse(String(d))));
+  return { ws, msgs };
+}
+const until = async (f: () => boolean) => {
+  for (let i = 0; i < 100 && !f(); i++) await new Promise((r) => setTimeout(r, 20));
+  assert.ok(f());
+};
+
+test('ws: cross-origin upgrade rejected, same-origin accepted', async () => {
+  const bad = open({ origin: 'http://evil.example' });
+  const err = await new Promise<Error>((r) => bad.ws.on('error', r));
+  assert.match(err.message, /403/);
+  const good = open({ origin: base });
+  await new Promise((r) => good.ws.on('open', r));
+  good.ws.close();
+});
+
+test('ws: malformed frames get bad-message; create works; app heartbeat arrives', async () => {
+  const c = open();
+  await new Promise((r) => c.ws.on('open', r));
+  c.ws.send('not json');
+  c.ws.send(JSON.stringify({ t: 'create', mode: 'automatic', profile: { name: '', appearance: { color: 'moss', hat: 'none' } } }));
+  c.ws.send(JSON.stringify({ t: 'start' }));
+  await until(() => c.msgs.length >= 3);
+  assert.deepEqual(c.msgs.slice(0, 2).map((m) => m.code), ['bad-message', 'bad-message']);
+  assert.equal(c.msgs[2]!.code, 'not-joined');
+  c.ws.send(JSON.stringify({ t: 'create', mode: 'automatic', profile: { name: 'Ann', appearance: { color: 'moss', hat: 'none' } } }));
+  await until(() => c.msgs.some((m) => m.t === 'state'));
+  await until(() => c.msgs.some((m) => m.t === 'hb'));
+  c.ws.close();
+});
