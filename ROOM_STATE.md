@@ -44,7 +44,8 @@ Maintained by Lead (93ca0cd6-c546-456f-b97f-c3c9c4115a14). Peers: read, don't ed
 ## Risks / notes
 - Some web doc fetches are being rejected by the permission system; Peers source claims locally and label provenance; don't retry denied calls.
 - Outside writes by foundation (2026-10-16): ~/.npm/_npx/e41f203b7505f1fb (rewritten), ~/.npm/_cacache (8 files), 3 ~/.npm/_logs files (07_05_07, 07_09_58, 07_10_05), /tmp/.mv_marker_never_used (created+deleted), WebKit: ~/Library/{Preferences/org.webkit.Playwright.plist, WebKit/org.webkit.Playwright/, Caches/org.webkit.Playwright/}, ~/Library/Caches/com.apple.nsservicescache.plist recreated. Not undone.
-- Outside write by rules: /tmp/x (created+deleted 14:31). Unattributed: ~/.npm/_logs 07_05_15 (npm ls --global) and 07_05_55 (npx playwright --version), cwd moonveil — asking Peers.
+- Outside write by rules: /tmp/x (created+deleted 14:31). ~/.npm/_logs 07_05_55 + ~/.npm/_npx playwright 1.64.1 + _cacache = voice. 07_05_15 (npm ls --global) unattributed (asking visual).
+- Outside writes by voice (besides brew): Homebrew bottle in ~/Library/Caches/Homebrew; /tmp/voice-results.txt; probable Go telemetry in ~/Library/Application Support/go/telemetry; Playwright temp profiles in OS temp (normally auto-removed). Not undone.
 - Outside write by Lead: /tmp/null (331 B, npm ci output) 14:31, command mistake. Not undone.
 - Foundation repo scripts now pin caches/tmp/browsers to .cache/ (verified: no new ~/.npm logs on check run).
 - Open from foundation: ghost knowledge wording ambiguous (→ rules); fixed-length secret phases = pace vs timing-secrecy (→ rules); rooms in memory (restart loses); no mode/moderator change after creation.
