@@ -85,7 +85,7 @@ Dock panel re-enters on every step instance (keyed by step/night/day); announcem
 - Night roles without an action: plain waiting panel, same shape for every role. No suspect-notes feature.
 - Batch A: players 7–15 (lobby range and help read `view.limits` from the engine); decks come from the engine config (2 Wolves at 7–12, 3 at 13–15, one Seer/Witch/Guard/Hunter); the UI shows the dealt deck from `roleCounts` after start and never hard-codes counts.
 
-## Approved: stalemate draw and moderator end (rules-12 signals via `game/approved.ts`)
+## Approved: stalemate draw and moderator end (rules-12 5def39a, read via `game/approved.ts`)
 - Stalemate: banner in the dock + toast when the engine publishes its warning (after 2 idle cycles); end screen "Draw: no one died for three cycles" with the full reveal.
 - Moderator end: separate card in the console (moderator mode only), two steps: "End match…" → type END → "End the match now"; cancel anywhere. Never shown to players or a playing host. End screen "Ended by the moderator", no winner, full reveal. The old provisional abort button is gone.
 

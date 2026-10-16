@@ -22,9 +22,6 @@ export const mod = {
   remove: (seat: Seat) => ({ type: 'player.remove', seat }),
   /** APPROVED: the separate moderator ends the match (no winner, full reveal). rules-12: match.end { confirm }. */
   endMatch: () => ({ type: 'match.end', confirm: 'end-match' }),
-  /** INTERIM until rules-12 is in dev: the pre-rules-12 engine rejects match.end as malformed; the console then
-   *  sends this once. Remove together with the fallback in Moderator.tsx when rules-12 lands. */
-  endMatchLegacy: () => ({ type: 'match.abort' }),
   /** APPROVED Q16 (2026-10-16): the moderator enters the Yes count of a show of hands; the engine applies Yes*2 > living. */
   yesCount: (yes: number) => ({ type: 'day.confirmCount', yes }),
 };

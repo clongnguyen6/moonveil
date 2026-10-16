@@ -2,7 +2,7 @@
 // Day ballots are open to every viewer (approved), so the moderator sees them like anyone else (Log tab + public log).
 // APPROVED: the separate moderator may end the match (typed confirmation; no winner; full reveal).
 // Speaking, acting for seats and removal are provisional: hidden unless the engine config enables them.
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useSettings } from '../../game/local-store.ts';
 import { mod } from '../../game/commands.ts';
 import { nameAt } from '../../game/select.ts';
@@ -10,7 +10,7 @@ import type { GameView, SeatView } from '../../game/types.ts';
 import { Button, Confirm, Tabs } from '../components/index.tsx';
 import { SeatGrid } from '../components/SeatGrid.tsx';
 import { useT } from '../i18n/index.ts';
-import { useSession, useSessionState } from '../session-context.ts';
+import { useSession } from '../session-context.ts';
 
 type Tab = 'flow' | 'seats' | 'night' | 'log';
 
@@ -29,17 +29,6 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
   const canRemove = cfg['canRemove'] === true;
   const [ending, setEnding] = useState(false);
   const [typed, setTyped] = useState('');
-  // INTERIM fallback (pre-rules-12 engine): if the approved match.end comes back "malformed", send match.abort once.
-  const endSentAt = useRef(0);
-  const sessionState = useSessionState();
-  useEffect(() => {
-    const e = sessionState.error;
-    if (!e || endSentAt.current === 0 || Date.now() - endSentAt.current > 2000) return;
-    if (e.code === 'invalid-action' && /malformed/.test(e.message)) {
-      endSentAt.current = 0;
-      session.send({ t: 'act', action: mod.endMatchLegacy() });
-    }
-  }, [sessionState.error, session]);
   const narration = useSettings().modNarration;
   const ended = g.step.kind === 'ended';
   return (
@@ -84,7 +73,7 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
               </label>
               <div className="btn-row">
                 <Button kind="quiet" testId="end-match-cancel" onClick={() => { setEnding(false); setTyped(''); }}>{t('cancel')}</Button>
-                <Button kind="danger" testId="end-match-confirm" disabled={typed.trim().toUpperCase() !== t('endMatchWord').toUpperCase()} onClick={() => { endSentAt.current = Date.now(); sendMod(mod.endMatch()); setEnding(false); setTyped(''); }}>{t('endMatchConfirm')}</Button>
+                <Button kind="danger" testId="end-match-confirm" disabled={typed.trim().toUpperCase() !== t('endMatchWord').toUpperCase()} onClick={() => { sendMod(mod.endMatch()); setEnding(false); setTyped(''); }}>{t('endMatchConfirm')}</Button>
               </div>
             </>
           )}

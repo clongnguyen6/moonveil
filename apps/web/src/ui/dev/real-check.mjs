@@ -195,10 +195,24 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   let idleClosed = 0, warned = false, stalemate = false;
   for (let i = 0; i < 40 && (await mod.step()) !== 'ended'; i++) { await closeStep(); idleClosed++; if ((await ps[0].page.locator('[data-testid=stalemate-warning]').count()) > 0) warned = true; }
   stalemate = (await mod.step()) === 'ended';
+  ok(`stalemate: three idle cycles end the match (closes: ${idleClosed})`, stalemate);
+  ok('stalemate: warning banner appeared on a player before the draw', warned);
+  ok('stalemate: end screen shows the distinct draw reason (draw / stalemate) with full reveal', stalemate && (await ps[0].page.locator('[data-testid=ended][data-winner=draw][data-reason=stalemate]').count()) === 1 && (await ps[0].page.locator('[data-testid=ended] .seat-chip .tag').count()) === 7);
   if (stalemate) {
-    ok('stalemate: warning banner appeared before the draw', warned);
-    ok('stalemate: end screen shows the distinct draw reason with full reveal', (await ps[0].page.locator('[data-testid=ended][data-reason=stalemate]').count()) === 1 && (await ps[0].page.locator('[data-testid=ended] .seat-chip .tag').count()) === 7);
-  } else console.log(`INFO  engine did not end an idle match after ${idleClosed} closes (rules-12 stalemate pending); continuing with a normal match`);
+    // Second moderator room for the approved end-match control (needs a running match).
+    for (const p of [mod, ...ps]) await p.ctx.close();
+    const mod2 = await mk('Mod2', { viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false });
+    const code2 = await mod2.create('moderator');
+    const ps2 = [];
+    for (const n of NAMES.slice(0, 7)) { const p = await mk(n + '2'); await p.join(code2); await p.ready(); ps2.push(p); }
+    await mod2.page.getByTestId('start').click();
+    await mod2.page.waitForSelector('[data-testid=mod-console]', { timeout: 15_000 });
+    await mod2.page.getByTestId('end-match-open').click(); await mod2.page.getByTestId('end-match-input').fill('END'); await mod2.page.getByTestId('end-match-confirm').click(); await mod2.page.waitForTimeout(400);
+    ok('moderator end-match (match.end): ended by the moderator, no winner, full reveal on a player', (await ps2[0].page.locator('[data-testid=ended][data-reason=aborted]').count()) === 1 && (await ps2[0].page.locator('[data-testid=ended] .seat-chip .tag').count()) === 7 && !/village|wolves/.test(await ps2[0].page.locator('[data-testid=ended]').getAttribute('data-winner')));
+    for (const p of [mod2, ...ps2]) await p.ctx.close();
+    await browser.close(); server.kill('SIGTERM');
+    console.log(fails ? `${fails} FAILED` : 'ALL PASS'); process.exit(fails ? 1 : 0);
+  }
   let guard = 0;
   while (guard++ < 60) {
     const step = await mod.step();
