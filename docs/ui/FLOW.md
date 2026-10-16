@@ -9,7 +9,7 @@ Captures: `docs/ui/screens/` (browser emulation only; `apps/web/src/ui/dev/captu
 - Render only `SeatView` + the seat's `Projection`. No inference, caching or client filtering of secrets. Facts shown = `me.facts`; menus = `me.actions`.
 - Approved rules are copy only (help text). Everything else (timers, targets, potions, who may vote) comes from the projection/actions, so a rules change needs no UI change.
 - Night: one panel layout for every role (head · task · info slot · seat grid · two buttons · status line). Roles without an action get a private note task of the same shape. The panel never ends a step; the timer is the server deadline.
-- Votes: own ballot only. No tallies, no "x of y voted". Results come from the public log at close.
+- Votes (APPROVED 2026-10-16, supersedes "own ballot only"): open ballots, live, rendered from `step.votes` (per voter: target / Skip / Yes / No) and `step.voted`; counts derive from them. Until the rules projection ships `votes` to players, the UI shows who voted (`voted`) and the own ballot. Deadlines fixed; nothing closes early. Night stays private; wolf picks wolf-only.
 - Channels (voice + text + indicators) come only from `view.voice` grants. No grant → no trace of the channel.
 - Every screen is a pure function of the latest snapshot → reconnect = re-render. Reconnecting shows an overlay over the last view; history is never replayed as new announcements.
 - Theme = `ui/theme/tokens.css` + `ui/theme/skin.css` only. Phase skins via `html[data-phase=day|night|ghost|ended]`. Structure in `ui/layout.css`.
@@ -23,13 +23,13 @@ Match (frame = scene host + top bar + dock)
   top bar: phase title, room code, voice bar (grant-driven), chat, role card, help, settings
   dock (by step and seat):
     night.main   wolf → WolfPanel (pack picks live)   seer → SeerPanel (result inline)   guard → GuardPanel
-                 others / dead → NotePanel (same frame)
-    night.witch  witch → WitchPanel (victim line, heal yes/no, poison grid)   others → NotePanel
+                 others / dead → waiting panel (same frame, grid shown, buttons blank)
+    night.witch  witch → WitchPanel (victim line, heal yes/no, poison grid)   others → waiting panel
     hunter       pending hunter → HunterPanel (shoot/pass)   others → wait panel (hunter named)
-    day.discussion → DiscussionPanel (seats, speaking rings, private note tags)
-    day.vote       → VotePanel (grid + Skip/Confirm, own vote line)
+    day.discussion → DiscussionPanel (seats, speaking rings)
+    day.vote       → VotePanel (grid with live vote counts per target, ballot list per voter, Skip/Confirm, own vote line)
     day.defense    → DefensePanel (accused; speak rights by grant)
-    day.confirm    → ConfirmPanel (Yes/No, own ballot line, living count)
+    day.confirm    → ConfirmPanel (live Yes/No tally + per-voter tags, Yes/No, own ballot line, living count)
     ended          → EndPanel (winner, reason, all roles, history if provided, leave)
   ghost bar (dead seat): cause, ghost hint or Hunter-pending isolation note; skin → ghost
   moderator (kind=moderator): ModeratorConsole replaces the dock: Step (close step, Yes-count entry on day.confirm) · Seats (roles) · Night record · Log
@@ -48,9 +48,9 @@ Match (frame = scene host + top bar + dock)
 | hunter | Hunter's turn (public) | pending hunter: seat → Confirm / Pass | "shot locked"; others see waiting panel |
 | dawn (enter day) | overlay: dead names or nobody | — | cue: dawn/death |
 | day.discussion | seats, speaking, notes, timer | talk (voice by grant) | — |
-| day.vote | grid, Skip, Confirm | own vote changeable until close | toast at close: trial / no trial |
+| day.vote | grid, Skip, Confirm, live ballots | own vote changeable until close | live per-voter list + counts; toast at close: trial / no trial |
 | day.defense | accused card | accused speaks (grant) | — |
-| day.confirm | Yes / No | own ballot changeable until close | toast: Yes/No counts; overlay: executed |
+| day.confirm | Yes / No, live tally | own ballot changeable until close | live Yes/No per voter; overlay: executed |
 | ended | winner, reveal | leave | cue: victory/defeat |
 
 ## Accessibility and layout
@@ -71,14 +71,17 @@ Match (frame = scene host + top bar + dock)
 - `apps/web/src/ui/dev/capture.mjs`: screenshots (phone 390×844 @2x, landscape 844×390, laptop 1440×900; WebKit iPhone 13 emulation for three). All browser emulation.
 - Root `npm run typecheck`, `npm test` pass on the branch (rules 183/183, server 20/20).
 
-## Provisional, behind settings (pending Human decisions)
-- Private suspect notes on action-less night panels: Settings → "Private suspect notes", default on; off = plain waiting panel, identical frame.
+## Approved product decisions (2026-10-16)
+- Language: follows the browser (`vi` → Tiếng Việt, else English), switchable in Entry/Lobby/Settings, remembered on the device.
+- In-person rooms: in-game voice off, wolves use private text at night. UI follows the server `voiceMode` flag (PROPOSALS.md P3; until it ships the stub default is `remote`).
+- Night roles without an action: plain waiting panel, same shape for every role. No suspect-notes feature.
+
+## Provisional, behind settings / config (pending Human decisions)
 - Moderator narration cues: Settings → "Narration cues", default off.
 - Remove / abort: hidden; appear only when the rules config carries `moderator.canRemove` / `moderator.canAbort`.
-- In-person voice-off: follows the server `voiceMode` flag (P3); stub default `remote`.
 
-## Language
-Default proposal: UI follows the browser language (`vi` → Tiếng Việt, else English), switchable in Entry/Lobby/Settings and remembered on the device. Both tables are complete (`ui/i18n/en.ts`, `vi.ts`).
+## Scene mount (docs/visual/MOUNT.md, adopted)
+`ui/SceneMount.tsx` mounts `@moonveil/scene` into `.scene-slot` in lobby and match: `toSceneInput(view, gameView)` on every snapshot, `setSpeaking` from the `speaking` frame, `setPoses(fromWirePoses(.., 'normalized'))` from `poses` frames, `on('move')` → `{t:'move'}`, `setSafeArea({top})` from the measured top bar, `setAudio` from Settings → "Camp ambience" (default off; starts after a gesture). Decisions for visual: (1) poses/speaking live in `SessionState` (client adapter taps the socket until foundation adds a hook, P2); (2) top bar height measured; (3) avatar taps ignored in v1; (4) ambience toggle in Settings, default off.
 
 ## Not in this increment
 - Scene canvas mount (`scene-slot` is reserved; `packages/scene` lands via INTEGRATION.md).

@@ -29,12 +29,12 @@ export function SettingsRow() {
         </select>
       </label>
       <label className="field row">
-        {t('ambience')}
-        <input type="checkbox" checked={s.ambience} onChange={(e) => settingsStore.set({ ambience: e.target.checked })} />
+        {t('sceneSetting')}
+        <input type="checkbox" checked={s.scene} onChange={(e) => settingsStore.set({ scene: e.target.checked })} />
       </label>
       <label className="field row">
-        {t('nightNotesSetting')}
-        <input type="checkbox" checked={s.nightNotes} onChange={(e) => settingsStore.set({ nightNotes: e.target.checked })} />
+        {t('ambience')}
+        <input type="checkbox" checked={s.ambience} onChange={(e) => settingsStore.set({ ambience: e.target.checked })} />
       </label>
       <label className="field row">
         {t('modNarrationSetting')}

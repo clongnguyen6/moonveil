@@ -70,7 +70,7 @@ function Root() {
           {view.status === 'lobby' || !g ? (
             <>
               <div className="scene-host">
-                {view.engine !== 'fixture' && <SceneMount s={s} topbarRef={{ current: null }} micOn={mic.status === 'ok' && !mic.muted} />}
+                {view.engine !== 'fixture' && settings.scene && <SceneMount s={s} topbarRef={{ current: null }} micOn={mic.status === 'ok' && !mic.muted} />}
               </div>
               <div className="dock">
                 {view.status === 'lobby' ? (
@@ -84,7 +84,7 @@ function Root() {
               </div>
             </>
           ) : (
-            <Match s={s} view={view} g={g} mic={mic} open={setSheet} overlay={overlay} wakeFailed={wake === 'failed' || wake === 'unsupported'} />
+            <Match s={s} view={view} g={g} mic={mic} open={setSheet} overlay={overlay} wakeFailed={wake === 'failed' || wake === 'unsupported'} scene={settings.scene} />
           )}
         </div>
       )}
@@ -120,7 +120,7 @@ function phaseTitle(t: T, g: GameView): string {
   }
 }
 
-function Match({ s, view, g, mic, open, overlay, wakeFailed }: { s: SessionState; view: SeatView; g: GameView; mic: ReturnType<typeof useMic>; open: (x: 'role' | 'help' | 'chat' | 'settings') => void; overlay: Announcement | null; wakeFailed: boolean }) {
+function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: SessionState; view: SeatView; g: GameView; mic: ReturnType<typeof useMic>; open: (x: 'role' | 'help' | 'chat' | 'settings') => void; overlay: Announcement | null; wakeFailed: boolean; scene: boolean }) {
   const t = useT();
   const isMod = view.me.kind === 'moderator';
   const fam = famOf(g.step.kind);
@@ -128,7 +128,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed }: { s: SessionState
   return (
     <div className="frame" data-testid="match" data-step={g.step.kind}>
       <div className="scene-host">
-        <SceneMount s={s} topbarRef={topbar} micOn={mic.status === 'ok' && !mic.muted} />
+        {scene && <SceneMount s={s} topbarRef={topbar} micOn={mic.status === 'ok' && !mic.muted} />}
         <div className="topbar" ref={topbar} data-ui>
           <div className="titles">
             <div className="title" data-testid="phase-title">{phaseTitle(t, g)}</div>

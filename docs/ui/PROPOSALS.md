@@ -10,7 +10,7 @@ Still missing on the client side (foundation owns `client.ts`): the `Client` dro
 (b) a `client.onFrame(fn)` listener so the UI adapter keeps that state itself.
 Meanwhile the UI adapter (`src/game/client-session.ts`) taps the socket's message events; labelled interim.
 
-## P3. Voice mode flag (foundation, protocol) — in-person play
+## P3. Voice mode flag (foundation, protocol) — in-person play (APPROVED product rule; flag still needed)
 `SeatView.voiceMode: 'remote' | 'inPerson'` (room setting at creation, creator's choice). UI: hides the mic, shows "voice off, talk at the table", keeps chat. Voice scope: issue no tokens when `inPerson` (RECOMMENDATION.md §6).
 Meanwhile: `SessionState.voiceMode` defaults to `remote`.
 
@@ -38,3 +38,6 @@ Night actions produce frames only from acting seats. Option: clients send a `noo
 ## Rules questions (for the rules owner)
 - `day.openVotes`, `day.accusedVotesOnConfirm`, `reveal.historyAtEnd`: UI follows the projection; no change needed if they flip.
 - Help text needs public rule settings to describe the match truthfully (e.g. Guard repeat rule, Seer result kind, timers). Request a public `rules` summary in the projection (`{ seer.result, guard.noRepeatTarget, witch.*, timing.* }`) so help copy reads settings instead of hard-coding them. Until then help lists only approved rules + "other details follow the match settings".
+
+## P11. `@moonveil/scene` in the web manifest (foundation)
+`apps/web/package.json` needs `"@moonveil/scene": "*"` (the shell imports it for the mount; resolves today only by hoisting).

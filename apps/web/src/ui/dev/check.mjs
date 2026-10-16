@@ -51,7 +51,12 @@ await page.getByTestId('confirm').click();
 ok('own vote line shows chosen name', /Your vote: Bình|Your vote: An/.test(await page.getByTestId('my-vote').textContent()));
 await page.getByTestId('vote-skip').click();
 ok('vote changed to skip', /Skip/.test(await page.getByTestId('my-vote').textContent()));
-ok('no tally / voted counters rendered', !/of \d+ voted|\d+ votes?\b/.test(await page.locator('.dock').innerText()));
+{
+  const me = (await page.locator('.topbar .sub').textContent()).split('·').pop().trim();
+  const row = page.locator('[data-testid=ballots] li', { hasText: me });
+  ok('open ballots: my row shows my ballot (choice or voted mark) from the projection', (await row.count()) === 1 && /Skip|✓/.test(await row.innerText()));
+  ok('voted count pill shows', /\d+ of \d+ voted/.test(await page.getByTestId('voted-count').innerText()));
+}
 
 // 6. Confirm: yes, then close -> announcement + next step.
 await open('confirm');

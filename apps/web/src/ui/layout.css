@@ -84,6 +84,8 @@ ul { padding: 0; list-style: none; }
 .timer svg { width: 28px; height: 28px; transform: rotate(-90deg); }
 .timer svg circle { fill: none; stroke-width: 3; }
 .tally { display: grid; gap: 6px; }
+.ballots { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 2px 12px; font-size: var(--fs-1); }
+.ballots li { display: flex; justify-content: space-between; gap: 8px; min-height: 24px; }
 .tally-row { display: grid; grid-template-columns: 1fr 2fr auto; align-items: center; gap: var(--sp-2); font-size: var(--fs-1); }
 .tally-bar { height: 10px; }
 .role-card { padding: var(--sp-5); border-radius: var(--r-3); text-align: center; cursor: pointer; min-height: 200px; display: flex; flex-direction: column; justify-content: center; gap: var(--sp-2); }

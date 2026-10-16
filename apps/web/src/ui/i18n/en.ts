@@ -42,8 +42,7 @@ export const en = {
   nightWolfTask: 'Choose tonight\'s victim with your pack', nightPackPicks: 'Pack picks', nightPackNone: 'No pick yet', nightPackPass: 'passes',
   nightSeerTask: 'Who do you want to see?', nightSeerResult: '{name} is', resultWolf: 'a Wolf', resultNotWolf: 'not a Wolf', nightSeerDone: 'Seen. One look per night.',
   nightGuardTask: 'Who do you protect tonight?', nightGuardLast: 'Last night you protected {name}.',
-  nightNoteTask: 'Who do you suspect? Private note, only on your phone.', nightNoteHint: 'Notes stay on this device. Nobody else sees them.',
-  noteSuspect: 'Suspect', noteTrust: 'Trust', noteClear: 'Clear',
+  nightWaitHint: 'Nothing to do tonight. The night lasts the same for everyone.', votesShort: 'votes', votedCount: '{n} of {total} voted',
   nightChoose: 'Choose', nightNoTarget: 'Nobody', nightSelected: 'Selected: {name}',
 
   witchTask: 'The witch\'s hour', witchVictim: 'The wolves attacked {name}.', witchNoVictim: 'Nobody was attacked tonight.', witchVictimHidden: 'You no longer learn who was attacked.',
@@ -56,8 +55,8 @@ export const en = {
   dawnTitle: 'Dawn', dawnNobody: 'Everyone wakes up. Nobody died.', dawnDied: 'Did not wake up: {names}', dawnMourn: 'The camp falls silent.',
 
   discussTitle: 'Discussion', discussHint: 'Talk it out. Who seems off?', discussCountdown: 'Nomination opens when time is up.',
-  voteTitle: 'Who goes on trial?', voteHint: 'Pick one player, or Skip. Only you see your vote until the end.', voteYours: 'Your vote: {name}', voteYoursSkip: 'Your vote: Skip', voteNone: 'No vote yet',
-  voteCloses: 'Votes are revealed when time is up.', voteNoTrial: 'No trial today.', voteNoTrialTie: 'No trial today (tie or Skip).', voteTrial: '{name} goes on trial.', voteTally: 'Nomination results',
+  voteTitle: 'Who goes on trial?', voteHint: 'Pick one player, or Skip. Votes are open: everyone sees who voted for whom.', voteYours: 'Your vote: {name}', voteYoursSkip: 'Your vote: Skip', voteNone: 'No vote yet',
+  voteCloses: 'You can change your vote until time is up.', voteNoTrial: 'No trial today.', voteNoTrialTie: 'No trial today (tie or Skip).', voteTrial: '{name} goes on trial.', voteTally: 'Nomination results',
   defenseTitle: '{name} speaks', defenseAccused: 'Your defense. Only you may speak.', defenseOthers: 'Listen. Only {name} may speak now.', defenseNext: 'Then everyone votes Yes or No.',
   confirmTitle: 'Execute {name}?', confirmHint: 'Yes needs more than half of all living players.', confirmYes: 'Yes', confirmNo: 'No', confirmYours: 'Your ballot: {choice}', confirmNone: 'No ballot yet',
   confirmExecuted: '{name} was executed.', confirmSpared: '{name} is spared.', confirmResult: 'Yes {yes} · No {no}', confirmDead: 'You are dead and cannot vote.',
@@ -98,7 +97,7 @@ export const en = {
   annNight: 'Night falls', annDawn: 'Dawn', annVote: 'Nomination open', annDefense: 'Defense', annConfirm: 'Verdict', annYourTurn: 'Your turn', annOver: 'Match over',
   annDied: '{name} died', annExecuted: '{name} executed', annShot: '{by} shot {target}', annHunter: '{name} is the Hunter',
 
-  provisional: 'provisional', ambience: 'Camp ambience', wakeHint: 'Keep your screen on during the match.', copyManual: 'Copy not available here. Long-press the link to copy it.', youLabel: 'You', modNarrationSetting: 'Narration cues (provisional)', nightNotesSetting: 'Private suspect notes at night (provisional)',
+  provisional: 'provisional', ambience: 'Camp ambience', sceneSetting: 'Camp scene', wakeHint: 'Keep your screen on during the match.', copyManual: 'Copy not available here. Long-press the link to copy it.', youLabel: 'You', modNarrationSetting: 'Narration cues (provisional)', 
   a11yTimer: '{s} seconds left', a11ySeat: '{name}, {state}', a11yDead: 'dead', a11yAlive: 'alive', a11ySpeaking: 'speaking', a11yYou: 'you', a11yTarget: 'choose {name}',
   stepDisplay: { 'night.main': 'Night', 'night.witch': 'Witch', hunter: 'Hunter', 'day.discussion': 'Discussion', 'day.vote': 'Nomination', 'day.defense': 'Defense', 'day.confirm': 'Verdict', ended: 'Ended' } as Record<string, string>,
 };

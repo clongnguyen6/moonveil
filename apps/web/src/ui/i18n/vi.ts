@@ -43,8 +43,7 @@ export const vi: Strings = {
   nightWolfTask: 'Cùng bầy chọn nạn nhân đêm nay', nightPackPicks: 'Bầy chọn', nightPackNone: 'Chưa chọn', nightPackPass: 'bỏ qua',
   nightSeerTask: 'Bạn muốn soi ai?', nightSeerResult: '{name} là', resultWolf: 'Sói', resultNotWolf: 'không phải Sói', nightSeerDone: 'Đã soi. Mỗi đêm một lần.',
   nightGuardTask: 'Đêm nay bảo vệ ai?', nightGuardLast: 'Đêm qua bạn bảo vệ {name}.',
-  nightNoteTask: 'Bạn nghi ai? Ghi chú riêng, chỉ trên máy bạn.', nightNoteHint: 'Ghi chú chỉ lưu trên thiết bị này. Không ai khác thấy.',
-  noteSuspect: 'Nghi', noteTrust: 'Tin', noteClear: 'Xóa',
+  nightWaitHint: 'Đêm nay bạn không có việc gì. Đêm dài như nhau với mọi người.', votesShort: 'phiếu', votedCount: '{n}/{total} đã bỏ phiếu',
   nightChoose: 'Chọn', nightNoTarget: 'Không ai', nightSelected: 'Đã chọn: {name}',
 
   witchTask: 'Giờ của phù thủy', witchVictim: 'Sói đã cắn {name}.', witchNoVictim: 'Đêm nay không ai bị cắn.', witchVictimHidden: 'Bạn không còn biết ai bị cắn.',
@@ -57,8 +56,8 @@ export const vi: Strings = {
   dawnTitle: 'Bình minh', dawnNobody: 'Mọi người thức dậy. Không ai chết.', dawnDied: 'Không tỉnh dậy: {names}', dawnMourn: 'Cả trại lặng im.',
 
   discussTitle: 'Thảo luận', discussHint: 'Bàn bạc đi. Ai đáng ngờ?', discussCountdown: 'Hết giờ sẽ mở đề cử.',
-  voteTitle: 'Ai bị đưa ra xét xử?', voteHint: 'Chọn một người, hoặc Không ai. Chỉ bạn thấy phiếu của mình đến khi kết thúc.', voteYours: 'Phiếu của bạn: {name}', voteYoursSkip: 'Phiếu của bạn: Không ai', voteNone: 'Chưa bỏ phiếu',
-  voteCloses: 'Phiếu được công bố khi hết giờ.', voteNoTrial: 'Hôm nay không xét xử.', voteNoTrialTie: 'Hôm nay không xét xử (hòa hoặc Không ai thắng).', voteTrial: '{name} bị đưa ra xét xử.', voteTally: 'Kết quả đề cử',
+  voteTitle: 'Ai bị đưa ra xét xử?', voteHint: 'Chọn một người, hoặc Không ai. Phiếu công khai: mọi người thấy ai bầu ai.', voteYours: 'Phiếu của bạn: {name}', voteYoursSkip: 'Phiếu của bạn: Không ai', voteNone: 'Chưa bỏ phiếu',
+  voteCloses: 'Có thể đổi phiếu đến khi hết giờ.', voteNoTrial: 'Hôm nay không xét xử.', voteNoTrialTie: 'Hôm nay không xét xử (hòa hoặc Không ai thắng).', voteTrial: '{name} bị đưa ra xét xử.', voteTally: 'Kết quả đề cử',
   defenseTitle: '{name} biện hộ', defenseAccused: 'Lời biện hộ của bạn. Chỉ bạn được nói.', defenseOthers: 'Lắng nghe. Lúc này chỉ {name} được nói.', defenseNext: 'Sau đó mọi người bỏ phiếu Có hoặc Không.',
   confirmTitle: 'Treo cổ {name}?', confirmHint: 'Cần số phiếu Có nhiều hơn một nửa số người còn sống.', confirmYes: 'Có', confirmNo: 'Không', confirmYours: 'Phiếu của bạn: {choice}', confirmNone: 'Chưa bỏ phiếu',
   confirmExecuted: '{name} đã bị treo cổ.', confirmSpared: '{name} được tha.', confirmResult: 'Có {yes} · Không {no}', confirmDead: 'Bạn đã chết, không bỏ phiếu được.',
@@ -99,7 +98,7 @@ export const vi: Strings = {
   annNight: 'Đêm xuống', annDawn: 'Bình minh', annVote: 'Mở đề cử', annDefense: 'Biện hộ', annConfirm: 'Phán quyết', annYourTurn: 'Đến lượt bạn', annOver: 'Kết thúc',
   annDied: '{name} đã chết', annExecuted: '{name} bị treo cổ', annShot: '{by} bắn {target}', annHunter: '{name} là Thợ săn',
 
-  provisional: 'tạm thời', ambience: 'Âm thanh trại', wakeHint: 'Giữ màn hình sáng trong ván.', copyManual: 'Không chép tự động được. Nhấn giữ link để chép.', youLabel: 'Bạn', modNarrationSetting: 'Gợi ý lời dẫn (tạm thời)', nightNotesSetting: 'Ghi chú nghi ngờ ban đêm (tạm thời)',
+  provisional: 'tạm thời', ambience: 'Âm thanh trại', sceneSetting: 'Cảnh trại', wakeHint: 'Giữ màn hình sáng trong ván.', copyManual: 'Không chép tự động được. Nhấn giữ link để chép.', youLabel: 'Bạn', modNarrationSetting: 'Gợi ý lời dẫn (tạm thời)', 
   a11yTimer: 'còn {s} giây', a11ySeat: '{name}, {state}', a11yDead: 'đã chết', a11yAlive: 'còn sống', a11ySpeaking: 'đang nói', a11yYou: 'bạn', a11yTarget: 'chọn {name}',
   stepDisplay: { 'night.main': 'Đêm', 'night.witch': 'Phù thủy', hunter: 'Thợ săn', 'day.discussion': 'Thảo luận', 'day.vote': 'Đề cử', 'day.defense': 'Biện hộ', 'day.confirm': 'Phán quyết', ended: 'Kết thúc' },
 };

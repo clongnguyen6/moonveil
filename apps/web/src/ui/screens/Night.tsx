@@ -7,7 +7,6 @@ const isInspect = (f: Fact): f is Extract<Fact, { k: 'inspect' }> => f.k === 'in
 const isVictim = (f: Fact): f is Extract<Fact, { k: 'victim' }> => f.k === 'victim';
 import { useEffect, useState } from 'react';
 import { act } from '../../game/commands.ts';
-import { type Note, notesStore, useNotes, useSettings } from '../../game/local-store.ts';
 import { action, nameAt } from '../../game/select.ts';
 import type { GameView, SeatView } from '../../game/types.ts';
 import { Button, Timer } from '../components/index.tsx';
@@ -183,27 +182,19 @@ export function WitchPanel({ view, g, title }: PanelProps & { title: string }) {
   );
 }
 
-/** Same frame, no game effect: a private suspect/trust note kept on this device only. */
+/** APPROVED: roles without an action get a plain waiting panel in the SAME frame (grid shown, no selection). */
 export function NotePanel({ view, g, title }: PanelProps & { title: string }) {
   const t = useT();
-  const notes = useNotes(view.code);
-  const [sel, setSel] = useState<Seat | null>(null);
-  const tags: Record<number, { text: string; accent?: boolean }> = {};
-  for (const [k, v] of Object.entries(notes)) tags[Number(k)] = { text: v === 'suspect' ? '🔍' : '🤝', accent: v === 'suspect' };
-  const set = (n: Note | null) => sel !== null && notesStore.set(sel, n);
-  const dead = g.me && !g.me.alive;
-  const notesOn = useSettings().nightNotes && !dead; // PROVISIONAL (product question): off = plain waiting panel, same frame
   return (
-    <Frame view={view} testId="night-note" title={title} task={notesOn ? t('nightNoteTask') : t('nightWait')} info={<span className="muted" style={{ fontSize: 'var(--fs-0)' }}>{notesOn ? t('nightNoteHint') : ''}</span>}
-      status={notesOn && sel !== null ? t('nightSelected', { name: nameAt(view, g, sel) }) : t('nightWait')}
+    <Frame view={view} testId="night-wait" title={title} task={t('nightWait')} info={<span className="muted" style={{ fontSize: 'var(--fs-0)' }}>{t('nightWaitHint')}</span>} status={t('nightWait')}
       buttons={
         <>
-          <Button kind="quiet" disabled={!notesOn || sel === null} onClick={() => set(notes[sel!] === 'trust' ? null : 'trust')}>{notesOn ? t('noteTrust') : ' '}</Button>
-          <Button testId="confirm" disabled={!notesOn || sel === null} onClick={() => set(notes[sel!] === 'suspect' ? null : 'suspect')}>{notesOn ? t('noteSuspect') : ' '}</Button>
+          <Button kind="quiet" disabled>{' '}</Button>
+          <Button testId="confirm" disabled>{' '}</Button>
         </>
       }
     >
-      <SeatGrid view={view} g={g} selected={notesOn ? sel : null} onSelect={notesOn ? setSel : undefined} tags={notesOn ? tags : undefined} showDead={false} />
+      <SeatGrid view={view} g={g} showDead={false} />
     </Frame>
   );
 }
