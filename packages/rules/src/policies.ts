@@ -1,33 +1,28 @@
-// Isolated rule policies. Each function owns one provisional decision (PROPOSAL.md Qxx) and is selected by config.
+// Isolated rule policies: one decision per function. Approved ones are fixed; provisional ones are selected by config.
 // Pure: no state mutation, no IO.
-import type { DeckCounts, RulesConfig } from './config.ts';
+import { DEFENSE_SECONDS, type DeckCounts, NIGHT_TOTAL_SECONDS, type RulesConfig } from './config.ts';
 import { nextInt } from './rng.ts';
 import type { DeathCause, MatchState, Outcome, Pick, Role, Seat, SeatState } from './types.ts';
 import { ROLES } from './types.ts';
 
-/** Q07: pack victim from living wolves' submitted picks (null = not submitted, excluded). */
+/**
+ * APPROVED Q07 (2026-10-16): the target with the most living-wolf picks is chosen; ties are broken at random
+ * (seeded) among the tied top targets. No picks -> no attack. How 'pass' picks count is provisional (Q08):
+ * 'counted' = pass prevents the attack only if it alone has the most picks; 'ignored' = passes are dropped.
+ */
 export function resolveWolfTarget(
   picks: Pick[],
-  livingWolves: number,
-  rule: RulesConfig['wolves']['resolve'],
+  passHandling: RulesConfig['wolves']['passHandling'],
   rng: number,
 ): { target: Seat | null; rng: number } {
-  if (picks.length === 0) return { target: null, rng };
-  const asTarget = (p: Pick): Seat | null => (p === 'pass' ? null : p);
-  if (rule === 'unanimous') {
-    const first = picks[0] as Pick;
-    const all = picks.length === livingWolves && picks.every((p) => p === first);
-    return { target: all ? asTarget(first) : null, rng };
-  }
-  if (rule === 'random') {
-    const r = nextInt(rng, picks.length);
-    return { target: asTarget(picks[r.value] as Pick), rng: r.state };
-  }
-  // plurality; 'pass' is a candidate; tie broken by seeded random.
-  const top = topCounts(picks);
-  if (top.length === 1) return { target: asTarget(top[0] as Pick), rng };
-  const r = nextInt(rng, top.length);
-  return { target: asTarget(top[r.value] as Pick), rng: r.state };
+  const counted = passHandling === 'ignored' ? picks.filter((p) => p !== 'pass') : picks;
+  if (counted.length === 0) return { target: null, rng };
+  const top = topCounts(counted);
+  const seats = top.filter((p): p is Seat => p !== 'pass');
+  if (seats.length === 0) return { target: null, rng }; // pass alone leads
+  if (seats.length === 1) return { target: seats[0] as Seat, rng };
+  const r = nextInt(rng, seats.length);
+  return { target: seats[r.value] as Seat, rng: r.state };
 }
 
 function topCounts<T extends string | number>(items: T[]): T[] {
@@ -46,18 +41,16 @@ export function tally<T extends string | number>(items: T[]): { target: T; count
 }
 const order = (t: string | number) => (typeof t === 'number' ? t : Number.MAX_SAFE_INTEGER);
 
-/** Q09: nomination from cast votes. Tie at top (incl. with 'skip') -> nobody. */
-export function tallyNomination(
-  votes: (Seat | 'skip' | null)[],
-  livingVoters: number,
-  rule: RulesConfig['day']['nomination'],
-): { accused: Seat | null; tally: { target: Seat | 'skip'; count: number }[] } {
+/**
+ * APPROVED Q09/Q10 (2026-10-16): the single highest count goes on trial; no majority needed. 'skip' is a counted
+ * option. No votes, a tie at the top (incl. with 'skip') or 'skip' leading -> no trial.
+ */
+export function tallyNomination(votes: (Seat | 'skip' | null)[]): { accused: Seat | null; tally: { target: Seat | 'skip'; count: number }[] } {
   const cast = votes.filter((v): v is Seat | 'skip' => v !== null);
   const t = tally(cast);
   const first = t[0];
   if (!first || first.target === 'skip') return { accused: null, tally: t };
   if (t[1] && t[1].count === first.count) return { accused: null, tally: t };
-  if (rule === 'majorityOfLiving' && first.count * 2 <= livingVoters) return { accused: null, tally: t };
   return { accused: first.target, tally: t };
 }
 
@@ -154,35 +147,40 @@ export function validateDeck(deck: DeckCounts, playerCount: number, config: Rule
 
 export type TimedStep = MatchState['step']['kind'];
 
-/** Q11/Q19: step duration and whether the server may close it early. Night never closes early by default. */
+/**
+ * Step duration for the automatic orchestrator, and whether the server may close early.
+ * APPROVED: night = NIGHT_TOTAL_SECONDS in total, never early; votes run to their deadline; defense = DEFENSE_SECONDS.
+ * Provisional (Q11-split/Q19): the main/Witch split and the other durations. The Hunter step may close once all shots are in.
+ */
 export function stepTiming(state: MatchState): { seconds: number; earlyCloseReady: boolean } {
   const t = state.config.timing;
   const step = state.step;
   const alive = state.seats.filter((s) => s.alive);
   switch (step.kind) {
     case 'night.main':
+      return { seconds: nightMainSeconds(t.nightMain), earlyCloseReady: false };
     case 'night.witch':
-      return {
-        seconds: step.kind === 'night.main' ? t.nightMain : t.nightWitch,
-        earlyCloseReady: t.nightEarlyClose && nightInputsComplete(state),
-      };
+      return { seconds: NIGHT_TOTAL_SECONDS - nightMainSeconds(t.nightMain), earlyCloseReady: false };
     case 'day.discussion': {
       const raw = t.discussionBase + t.discussionPerAlive * alive.length;
       return { seconds: Math.min(t.discussionMax, Math.max(t.discussionMin, raw)), earlyCloseReady: false };
     }
     case 'day.vote':
-      return { seconds: t.vote, earlyCloseReady: t.publicEarlyClose && alive.every((s) => step.votes[s.seat] !== null) };
+      return { seconds: t.vote, earlyCloseReady: false };
     case 'day.defense':
-      return { seconds: t.defense, earlyCloseReady: false };
-    case 'day.confirm': {
-      const eligible = alive.filter((s) => state.config.day.accusedVotesOnConfirm || s.seat !== step.accused);
-      return { seconds: t.confirm, earlyCloseReady: t.publicEarlyClose && eligible.every((s) => step.votes[s.seat] !== null) };
-    }
+      return { seconds: DEFENSE_SECONDS, earlyCloseReady: false };
+    case 'day.confirm':
+      return { seconds: t.confirm, earlyCloseReady: false };
     case 'hunter':
       return { seconds: t.hunter, earlyCloseReady: step.pending.every((s) => step.shots[s] !== null) };
     case 'ended':
       return { seconds: 0, earlyCloseReady: false };
   }
+}
+
+/** Clamp the provisional split so both night steps always exist and the approved total holds. */
+function nightMainSeconds(main: number): number {
+  return Math.min(NIGHT_TOTAL_SECONDS - 1, Math.max(1, Math.round(main)));
 }
 
 /** True when every living night actor has submitted for the current night step. */
