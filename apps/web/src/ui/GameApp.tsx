@@ -1,6 +1,9 @@
 // Root of the player/moderator UI. Pure function of SessionState: every screen re-renders from the latest
 // snapshot, so reconnect = render the same view again. Phase skin + announcements derive from public data.
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { FixtureGame } from '../provisional/FixtureGame.tsx';
+import { SceneMount } from './SceneMount.tsx';
+import { useWakeLock } from './lan.ts';
 import { useSettings } from '../game/local-store.ts';
 import { nameAt, projection } from '../game/select.ts';
 import type { Session, SessionState } from '../game/session.ts';
@@ -15,7 +18,7 @@ import { ModeratorConsole } from './screens/Moderator.tsx';
 import { HunterPanel, NightPanel } from './screens/Night.tsx';
 import { ChatSheet, ConnOverlay, EndPanel, GhostBar, HelpSheet, RoleCardSheet, VoiceBar } from './screens/Panels.tsx';
 import { SettingsRow } from './screens/Settings.tsx';
-import { SessionContext, useSessionState } from './session-context.ts';
+import { SessionContext, useSession, useSessionState } from './session-context.ts';
 import { useMic } from './voice/mic.ts';
 
 export function GameApp({ session, children }: { session: Session; children?: React.ReactNode }) {
@@ -36,6 +39,7 @@ function phaseSkin(view: SeatView | null, g: GameView | null): 'day' | 'night' |
 
 function Root() {
   const s = useSessionState();
+  const session = useSession();
   const settings = useSettings();
   const t = useT();
   const view = s.view;
@@ -55,15 +59,34 @@ function Root() {
     return () => removeEventListener('pointerdown', unlock);
   }, []);
   const { toasts, overlay } = useAnnouncer(view, g, t);
+  const wake = useWakeLock(!!view && view.status === 'playing');
 
   return (
     <div className="app" data-testid="app" data-phase={skin}>
       {!view ? (
         <EntryScreen s={s} />
-      ) : view.status === 'lobby' || !g ? (
-        <LobbyScreen s={s} view={view} mic={mic} onHelp={() => setSheet('help')} onChat={() => setSheet('chat')} />
       ) : (
-        <Match s={s} view={view} g={g} mic={mic} open={setSheet} overlay={overlay} />
+        <div className="frame" data-testid="room" data-status={view.status} data-kind={view.me.kind} data-step={g?.step.kind ?? ''} data-wake={wake}>
+          {view.status === 'lobby' || !g ? (
+            <>
+              <div className="scene-host">
+                {view.engine !== 'fixture' && <SceneMount s={s} topbarRef={{ current: null }} micOn={mic.status === 'ok' && !mic.muted} />}
+              </div>
+              <div className="dock">
+                {view.status === 'lobby' ? (
+                  <LobbyScreen s={s} view={view} mic={mic} onHelp={() => setSheet('help')} onChat={() => setSheet('chat')} />
+                ) : (
+                  <div className="card" style={{ padding: 12 }}>
+                    <p className="hint" data-testid="you">{t('youLabel')}: {view.me.kind === 'moderator' ? view.moderator?.name : view.players.find((p) => p.seat === view.me.seat)?.name}</p>
+                    <FixtureGame view={view} send={(m) => session.send(m)} />
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <Match s={s} view={view} g={g} mic={mic} open={setSheet} overlay={overlay} wakeFailed={wake === 'failed' || wake === 'unsupported'} />
+          )}
+        </div>
       )}
       <Toasts items={toasts} />
       {sheet === 'role' && g && view && <RoleCardSheet view={view} g={g} onClose={closeSheet} />}
@@ -97,18 +120,19 @@ function phaseTitle(t: T, g: GameView): string {
   }
 }
 
-function Match({ s, view, g, mic, open, overlay }: { s: SessionState; view: SeatView; g: GameView; mic: ReturnType<typeof useMic>; open: (x: 'role' | 'help' | 'chat' | 'settings') => void; overlay: Announcement | null }) {
+function Match({ s, view, g, mic, open, overlay, wakeFailed }: { s: SessionState; view: SeatView; g: GameView; mic: ReturnType<typeof useMic>; open: (x: 'role' | 'help' | 'chat' | 'settings') => void; overlay: Announcement | null; wakeFailed: boolean }) {
   const t = useT();
   const isMod = view.me.kind === 'moderator';
   const fam = famOf(g.step.kind);
+  const topbar = useRef<HTMLDivElement>(null);
   return (
     <div className="frame" data-testid="match" data-step={g.step.kind}>
       <div className="scene-host">
-        <div className="scene-slot" data-testid="scene-slot" aria-hidden="true" /> {/* packages/scene mounts here (INTEGRATION.md) */}
-        <div className="topbar">
+        <SceneMount s={s} topbarRef={topbar} micOn={mic.status === 'ok' && !mic.muted} />
+        <div className="topbar" ref={topbar} data-ui>
           <div className="titles">
             <div className="title" data-testid="phase-title">{phaseTitle(t, g)}</div>
-            <div className="sub">{view.code} · {isMod ? t('moderator') : nameAt(view, g, g.viewer.kind === 'seat' ? g.viewer.seat : null)}</div>
+            <div className="sub" data-testid="you">{view.code} · {isMod ? t('moderator') : nameAt(view, g, g.viewer.kind === 'seat' ? g.viewer.seat : null)}</div>
           </div>
           <div className="tools">
             {!isMod && <VoiceBar s={s} view={view} mic={mic} night={fam === 'night'} />}
@@ -128,6 +152,7 @@ function Match({ s, view, g, mic, open, overlay }: { s: SessionState; view: Seat
         )}
       </div>
       <div className="dock">
+        {wakeFailed && <p className="muted center" style={{ fontSize: 'var(--fs-0)', margin: '0 0 6px' }} data-testid="wake-hint">{t('wakeHint')}</p>}
         {!isMod && <GhostBar view={view} g={g} />}
         {isMod ? (
           <ModeratorConsole view={view} g={g} />

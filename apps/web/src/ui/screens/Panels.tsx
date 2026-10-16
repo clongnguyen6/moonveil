@@ -264,9 +264,12 @@ export function VoiceBar({ s, view, mic, night }: { s: SessionState; view: SeatV
 export function ConnOverlay({ status }: { status: ConnStatus }) {
   const t = useT();
   const session = useSession();
-  if (status === 'open' || status === 'idle' || status === 'connecting') return null;
+  if (status === 'idle') return null;
+  if (status === 'open' || status === 'connecting') {
+    return <span className="banner ok conn-chip" role="status" data-testid="conn" data-status={status}>{status === 'open' ? t('connConnected') : t('waiting')}</span>;
+  }
   return (
-    <div className="conn-overlay" role="status" data-testid="conn-overlay" data-status={status}>
+    <div className="conn-overlay" role="status" data-testid="conn" data-status={status}>
       <div className="card raised stack">
         {status === 'reconnecting' && (
           <>

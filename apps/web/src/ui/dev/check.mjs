@@ -83,9 +83,9 @@ await page.keyboard.press('Escape');
 // 9. Reconnect overlay shows and clears, view unchanged.
 const before = await page.getByTestId('match').getAttribute('data-step');
 await stub((r) => r.simulateReconnect(600));
-ok('reconnect overlay visible', await page.getByTestId('conn-overlay').isVisible());
+ok('reconnect overlay visible', (await page.getByTestId('conn').getAttribute('data-status')) === 'reconnecting');
 await page.waitForTimeout(900);
-ok('reconnect overlay gone, same step', (await page.locator('[data-testid=conn-overlay]').count()) === 0 && (await page.getByTestId('match').getAttribute('data-step')) === before);
+ok('reconnect overlay gone, same step', (await page.getByTestId('conn').getAttribute('data-status')) === 'open' && (await page.getByTestId('match').getAttribute('data-step')) === before);
 
 // 10. Role card: hidden until tapped.
 await page.getByTestId('open-role').click();

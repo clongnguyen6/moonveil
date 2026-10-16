@@ -7,6 +7,7 @@ import { Avatar, Button, Meter } from '../components/index.tsx';
 import { useT } from '../i18n/index.ts';
 import { useSession } from '../session-context.ts';
 import type { Mic } from '../voice/mic.ts';
+import { copyText } from '../lan.ts';
 import { ProfileEditor, saveProfile } from './Entry.tsx';
 import { SettingsRow } from './Settings.tsx';
 
@@ -17,8 +18,10 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
   const link = `${location.origin}/r/${view.code}`;
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState<'link' | 'code' | null>(null);
-  const copy = (what: 'link' | 'code') => {
-    void navigator.clipboard?.writeText(what === 'link' ? link : view.code);
+  const [manual, setManual] = useState(false);
+  const copy = async (what: 'link' | 'code') => {
+    const r = await copyText(what === 'link' ? link : view.code);
+    if (r === 'manual') return setManual(true); // insecure origin (LAN http): show the link to long-press
     setCopied(what);
     setTimeout(() => setCopied(null), 1500);
   };
@@ -26,11 +29,12 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
   const allReady = view.players.every((p) => p.ready);
   const host = view.players.find((p) => p.seat === (view.me.host ? view.me.seat : ''));
   return (
-    <main className="lobby fade-in" data-testid="lobby">
+    <main className="lobby fade-in" data-testid="lobby" data-ui>
       <header className="row between">
         <div>
           <h1 className="panel-title">{t('lobbyTitle')}</h1>
           <p className="hint">{view.mode === 'moderator' ? t('lobbyModeMod') : t('lobbyModeAuto')} · {t('lobbyPlayers', { n: view.players.length, min: view.limits.minPlayers, max: view.limits.maxPlayers })}</p>
+          <p className="hint" data-testid="you">{t('youLabel')}: {view.me.kind === 'moderator' ? `${view.moderator?.name ?? ''} (${t('moderator')})` : me?.name}{view.me.host ? ` · ${t('host')}` : ''}</p>
         </div>
         <div className="row">
           <Button kind="icon" label={t('chat')} onClick={onChat}>💬</Button>
@@ -44,9 +48,15 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
           <kbd className="code" data-testid="room-code">{view.code}</kbd>
         </div>
         <div className="row">
-          <Button kind="secondary" testId="copy-link" onClick={() => copy('link')}>{copied === 'link' ? t('copied') : t('lobbyCopyLink')}</Button>
-          <Button kind="quiet" onClick={() => copy('code')}>{copied === 'code' ? t('copied') : t('lobbyCopyCode')}</Button>
+          <Button kind="secondary" testId="copy-link" onClick={() => void copy('link')}>{copied === 'link' ? t('copied') : t('lobbyCopyLink')}</Button>
+          <Button kind="quiet" onClick={() => void copy('code')}>{copied === 'code' ? t('copied') : t('lobbyCopyCode')}</Button>
         </div>
+        {manual && (
+          <div className="col" style={{ width: '100%' }} data-testid="copy-manual">
+            <p className="hint">{t('copyManual')}</p>
+            <input className="input" readOnly value={link} onFocus={(e) => e.target.select()} />
+          </div>
+        )}
       </section>
 
       <section className="card stack">

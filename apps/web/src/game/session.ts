@@ -1,7 +1,7 @@
 // What the UI talks to. The real implementation wraps apps/web/src/client.ts (foundation); the dev stub
 // (./stub) implements the same surface in-browser. Keeping the UI on this interface means screens never
 // know whether a socket or a stub is behind them.
-import type { ClientMessageInput, ErrorCode, Mode, Profile, SeatId, SeatView } from '@moonveil/protocol';
+import type { ClientMessageInput, ErrorCode, Mode, Pose, Profile, SeatId, SeatView } from '@moonveil/protocol';
 import type { ChatEntry } from './types.ts';
 
 export type ConnStatus = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'replaced' | 'ended';
@@ -18,6 +18,8 @@ export interface SessionState {
   chat: ChatEntry[];
   /** Seats currently speaking on channels this seat may listen to (`speaking` frame). */
   speaking: SeatId[];
+  /** Latest `poses` frame (lobby: everyone; play: only what the server lets this seat see). */
+  poses: Pose[];
   /** Room voice setting (proposal P3): 'remote' = in-game voice, 'inPerson' = voice off, text only. */
   voiceMode: 'remote' | 'inPerson';
 }
@@ -34,5 +36,5 @@ export interface Session {
 }
 
 export function emptySession(): SessionState {
-  return { status: 'idle', code: null, view: null, error: null, chat: [], speaking: [], voiceMode: 'remote' };
+  return { status: 'idle', code: null, view: null, error: null, chat: [], speaking: [], poses: [], voiceMode: 'remote' };
 }

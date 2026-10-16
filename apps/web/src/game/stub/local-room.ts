@@ -314,6 +314,7 @@ export class LocalRoom implements Session {
       error: this.error,
       chat: this.chat.filter((c) => listen.has(c.channel)), // read-time filter, as the rules API requires
       speaking: this.speaking,
+      poses: [],
       voiceMode: this.voiceMode,
     };
   }

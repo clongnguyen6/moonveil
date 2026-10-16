@@ -98,7 +98,7 @@ export const en = {
   annNight: 'Night falls', annDawn: 'Dawn', annVote: 'Nomination open', annDefense: 'Defense', annConfirm: 'Verdict', annYourTurn: 'Your turn', annOver: 'Match over',
   annDied: '{name} died', annExecuted: '{name} executed', annShot: '{by} shot {target}', annHunter: '{name} is the Hunter',
 
-  provisional: 'provisional', modNarrationSetting: 'Narration cues (provisional)', nightNotesSetting: 'Private suspect notes at night (provisional)',
+  provisional: 'provisional', ambience: 'Camp ambience', wakeHint: 'Keep your screen on during the match.', copyManual: 'Copy not available here. Long-press the link to copy it.', youLabel: 'You', modNarrationSetting: 'Narration cues (provisional)', nightNotesSetting: 'Private suspect notes at night (provisional)',
   a11yTimer: '{s} seconds left', a11ySeat: '{name}, {state}', a11yDead: 'dead', a11yAlive: 'alive', a11ySpeaking: 'speaking', a11yYou: 'you', a11yTarget: 'choose {name}',
   stepDisplay: { 'night.main': 'Night', 'night.witch': 'Witch', hunter: 'Hunter', 'day.discussion': 'Discussion', 'day.vote': 'Nomination', 'day.defense': 'Defense', 'day.confirm': 'Verdict', ended: 'Ended' } as Record<string, string>,
 };

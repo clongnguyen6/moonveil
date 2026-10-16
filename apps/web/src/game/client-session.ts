@@ -1,7 +1,7 @@
 // Session over the real socket client (apps/web/src/client.ts, foundation). Adds chat/speaking state from
 // the `chatlog`/`chat`/`speaking` frames. INTERIM: the Client exposes no frame hook, so this taps the socket's
 // message events (addEventListener, never replacing the Client's handler). See docs/ui/PROPOSALS.md P2.
-import type { ChatMessage, Mode, Profile, SeatId, ServerMessage } from '@moonveil/protocol';
+import type { ChatMessage, Mode, Pose, Profile, SeatId, ServerMessage } from '@moonveil/protocol';
 import type { Client } from '../client.ts';
 import type { OutMessage, Session, SessionState } from './session.ts';
 import type { ChannelId, ChatEntry } from './types.ts';
@@ -10,6 +10,7 @@ export function clientSession(client: Client): Session {
   const listeners = new Set<() => void>();
   let chat: ChatEntry[] = [];
   let speaking: SeatId[] = [];
+  let poses: Pose[] = [];
   let tapped: WebSocket | null = null;
   let cached: SessionState | null = null;
   let lastClient = client.getState();
@@ -36,9 +37,13 @@ export function clientSession(client: Client): Session {
     } else if (m.t === 'speaking') {
       speaking = m.seats;
       emit();
+    } else if (m.t === 'poses') {
+      poses = m.poses;
+      emit();
     } else if (m.t === 'welcome') {
       chat = [];
       speaking = [];
+      poses = [];
     }
   };
 
@@ -62,6 +67,7 @@ export function clientSession(client: Client): Session {
     if (!s.view) {
       chat = [];
       speaking = [];
+      poses = [];
     }
     lastClient = s;
     emit();
@@ -75,7 +81,7 @@ export function clientSession(client: Client): Session {
     getState() {
       if (cached) return cached;
       const s = client.getState();
-      cached = { status: s.status, code: s.code, view: s.view, error: s.error, chat, speaking, voiceMode: 'remote' };
+      cached = { status: s.status, code: s.code, view: s.view, error: s.error, chat, speaking, poses, voiceMode: 'remote' };
       return cached;
     },
     create: (mode: Mode, profile: Profile) => client.create(mode, profile),

@@ -10,6 +10,8 @@ export interface Settings {
   /** PROVISIONAL aids pending Human decisions (kept behind settings, default off). */
   modNarration: boolean;
   nightNotes: boolean;
+  /** Scene ambience audio (procedural). Starts after a gesture. */
+  ambience: boolean;
 }
 
 const SETTINGS_KEY = 'moonveil.ui.settings';
@@ -29,7 +31,7 @@ function read<T>(key: string, fallback: T): T {
   }
 }
 
-let settings: Settings = read<Settings>(SETTINGS_KEY, { lang: detectLang(), sound: true, reducedMotion: 'system', modNarration: false, nightNotes: true });
+let settings: Settings = read<Settings>(SETTINGS_KEY, { lang: detectLang(), sound: true, reducedMotion: 'system', modNarration: false, nightNotes: true, ambience: false });
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((fn) => fn());
 

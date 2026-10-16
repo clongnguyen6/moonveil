@@ -77,6 +77,9 @@ ul { padding: 0; list-style: none; }
 .overlay-announce { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; text-align: center; padding: var(--sp-5); animation: fadeIn var(--dur-3) both; }
 .conn-overlay { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); text-align: center; padding: var(--sp-5); }
 .conn-overlay .card { padding: var(--sp-5); max-width: 360px; }
+.conn-chip { position: fixed; right: var(--sp-2); bottom: max(var(--sp-2), env(safe-area-inset-bottom)); z-index: 15; opacity: .85; }
+.frame > .scene-host:empty, .frame > .scene-host { min-height: 120px; }
+.lobby { padding-top: var(--sp-2); }
 .timer { display: inline-flex; align-items: center; gap: 6px; }
 .timer svg { width: 28px; height: 28px; transform: rotate(-90deg); }
 .timer svg circle { fill: none; stroke-width: 3; }
