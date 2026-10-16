@@ -27,32 +27,11 @@ describe('F2: seats removed mid-night', () => {
   });
 });
 
-describe('F5: witch heal fact under seesVictim=never', () => {
-  const healNight = (victim: number): MatchState => {
-    let s = match(undefined, { witch: { seesVictim: 'never' } });
-    s = ok(s, S(0), { type: 'wolf.pick', seat: 0, target: victim });
-    s = close(s);
-    return close(ok(s, S(4), { type: 'witch.heal', seat: 4, use: true }));
-  };
-  it('two different victims, both healed: the witch cannot tell them apart', () => {
-    const a = healNight(5);
-    const b = healNight(6);
-    assert.equal(a.seats.every((x) => x.alive), true);
-    assert.equal(b.seats.every((x) => x.alive), true);
-    assert.deepEqual(project(a, { kind: 'seat', seat: 4 }), project(b, { kind: 'seat', seat: 4 }));
-    assert.deepEqual(a.knowledge[4]?.at(-1), { k: 'own', night: 1, act: 'heal', target: null });
-  });
-  it('when entitled (default policy), the heal fact names the target', () => {
-    const s = close(ok(close(ok(match(), S(0), { type: 'wolf.pick', seat: 0, target: 6 })), S(4), { type: 'witch.heal', seat: 4, use: true }));
-    assert.deepEqual(s.knowledge[4]?.at(-1), { k: 'own', night: 1, act: 'heal', target: 6 });
-  });
-});
+// F5 (heal target leak under seesVictim='never') is moot since Q03 was approved (2026-10-16): the Witch always sees the
+// victim while her heal is unused, so a heal fact always names a target she was entitled to see. See approved-q03.test.ts.
 
 describe('F7: entitlement under the selected policy; ghost ledger contents', () => {
-  it('seesVictim=never: no victim facts ever; whileHealUnused: none after the heal night', () => {
-    let s = match(undefined, { witch: { seesVictim: 'never' } });
-    s = night(s, { bite: 6 });
-    assert.equal(s.knowledge[4]?.some((f) => f.k === 'victim'), false);
+  it('victim facts stop after the heal night (approved Q03)', () => {
     let t = night(match(), { bite: 6, heal: true });
     t = night(day(t, 'skip'), { bite: 3 });
     assert.deepEqual(t.knowledge[4]?.filter((f) => f.k === 'victim').map((f) => f.night), [1]);

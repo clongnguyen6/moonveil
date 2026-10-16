@@ -30,8 +30,7 @@ describe('host contract (server adapter)', () => {
     assert.equal(eng.submit(s, other, 'garbage').ok, false);
   });
 
-  it('view maps seats; moderate/advance/remove work; phase reports earlyClose for public votes when enabled', () => {
-    const eng = createRulesEngine({ config: { players: { min: 7, max: 16 }, timing: { publicEarlyClose: true } } });
+  it('view maps seats; moderate/advance/remove work; votes never report earlyClose (approved: run to deadline)', () => {
     let s = eng.setup({ seats: IDS, seed: 's2' });
     const v = eng.view(s, { kind: 'seat', seat: 'c' });
     assert.deepEqual(v.seatIds, IDS);
@@ -46,7 +45,7 @@ describe('host contract (server adapter)', () => {
       assert.ok(r.ok);
       s = r.state;
     }
-    assert.equal(eng.phase(s).earlyClose, true);
+    assert.equal(eng.phase(s).earlyClose, false);
     const m = eng.moderate(s, { type: 'match.abort' });
     assert.ok(m.ok && eng.phase(m.state).ended);
   });

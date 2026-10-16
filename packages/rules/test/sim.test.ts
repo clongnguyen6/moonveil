@@ -36,13 +36,13 @@ function checkInvariants(s: MatchState, frozen: Map<number, string>): void {
     for (const f of facts) {
       if (f.k in SECRET_FACT_OWNER) assert.equal(v.role, SECRET_FACT_OWNER[f.k as keyof typeof SECRET_FACT_OWNER], `${f.k} fact held by ${v.role}`);
     }
-    // Entitlement under the selected Witch policy (F7), not just role.
-    const mode = s.config.witch.seesVictim;
+    // APPROVED Q03 entitlement: victim facts only up to (and including) the night the heal was used.
     const heal = facts.find((f) => f.k === 'own' && f.act === 'heal');
     const healNight = heal && heal.k === 'own' ? heal.night : Infinity;
-    for (const f of facts) {
-      if (f.k === 'victim') assert.ok(mode !== 'never' && (mode === 'always' || f.night <= healNight), `victim fact under ${mode}`);
-      if (f.k === 'own' && f.act === 'heal' && mode === 'never') assert.equal(f.target, null, 'heal target leaked');
+    for (const f of facts) if (f.k === 'victim') assert.ok(f.night <= healNight, 'victim fact after heal used');
+    // APPROVED day votes: no non-moderator view carries other seats' ballots or interim tallies.
+    if (s.step.kind === 'day.vote' || s.step.kind === 'day.confirm') {
+      assert.equal((p.step as { votes: unknown }).votes, null, 'interim ballots leaked');
     }
     if (!v.alive) {
       const snap = JSON.stringify(facts);
@@ -120,9 +120,7 @@ function simulate(seed: number, players: number, config: DeepPartial<RulesConfig
 const VARIANTS: [string, DeepPartial<RulesConfig>][] = [
   ['defaults', {}],
   ['cause at dawn + no history at end', { reveal: { causeAtDawn: true, historyAtEnd: false } }],
-  ['secret votes, no defense/confirm', { day: { openVotes: false, defense: false, confirmVote: false } }],
-  ['witch always sees, one potion/night, unanimous wolves', { witch: { seesVictim: 'always', bothPotionsSameNight: false }, wolves: { resolve: 'unanimous' } }],
-  ['witch never sees', { witch: { seesVictim: 'never' } }],
+  ['totals only at close, who-voted shown, passes ignored', { day: { revealBallotsAtClose: false, showWhoVoted: true }, wolves: { passHandling: 'ignored' } }],
 ];
 
 describe('randomized matches', () => {
