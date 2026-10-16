@@ -16,7 +16,7 @@ const args = process.argv.slice(2);
 const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : null;
 const withWebkit = args.includes('--webkit');
 
-const SCENARIOS = ['entry', 'lobby', 'role', 'night-wolf', 'night-seer', 'night-guard', 'night-villager', 'witch', 'hunter', 'day', 'vote', 'defense', 'confirm', 'ghost', 'ended', 'moderator', 'moderator-day'];
+const SCENARIOS = ['entry', 'lobby', 'role', 'night-wolf', 'night-seer', 'night-guard', 'night-villager', 'witch', 'hunter', 'day', 'vote', 'defense', 'confirm', 'ghost', 'ended', 'moderator', 'moderator-day', 'stalemate'];
 const SHEETS = { role: 'open-role', help: 'open-help', chat: 'open-chat' };
 
 const sizes = {

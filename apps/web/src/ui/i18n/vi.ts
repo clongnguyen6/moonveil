@@ -69,8 +69,10 @@ export const vi: Strings = {
   ghostWatch: 'Xem và lắng nghe. Ma không hành động hay bỏ phiếu được.',
   ghostDiedNight: 'Bạn chết trong đêm.', ghostExecuted: 'Dân làng đã treo cổ bạn.', ghostShot: 'Thợ săn đã bắn bạn.', ghostRemoved: 'Bạn đã bị đưa khỏi ván.',
 
-  endTitle: 'Kết thúc', endVillage: 'Dân làng thắng', endWolves: 'Sói thắng', endDraw: 'Không ai sống sót. Hòa.', endAborted: 'Ván bị hủy',
-  endReasonNoWolves: 'Sói đã bị tiêu diệt hết.', endReasonParity: 'Số sói đã ít nhất bằng tất cả những người còn sống khác.', endReasonZero: 'Mọi người đều chết.', endReasonAborted: 'Quản trò đã kết thúc ván.',
+  endTitle: 'Kết thúc', endVillage: 'Dân làng thắng', endWolves: 'Sói thắng', endDraw: 'Không ai sống sót. Hòa.', endAborted: 'Ván bị hủy', endByModerator: 'Quản trò đã kết thúc ván', endStalemate: 'Ba ngày đêm liền không ai chết. Hòa.',
+  endReasonNoWolves: 'Sói đã bị tiêu diệt hết.', endReasonParity: 'Số sói đã ít nhất bằng tất cả những người còn sống khác.', endReasonZero: 'Mọi người đều chết.', endReasonAborted: 'Quản trò đã kết thúc ván.', endReasonByModerator: 'Quản trò đã kết thúc ván. Không có người thắng.', endReasonStalemate: 'Hòa: ba chu kỳ không ai chết.',
+  stalemateWarning: 'Nếu không ai chết trước khi hết ngày mai, ván đấu sẽ hòa.',
+  endMatchTitle: 'Kết thúc ván', endMatchHint: 'Không có bên thắng; lộ hết vai. Không hoàn tác được.', endMatchOpen: 'Kết thúc ván…', endMatchType: 'Gõ {word} để xác nhận', endMatchWord: 'END', endMatchConfirm: 'Kết thúc ván ngay',
   endReveal: 'Vai của mọi người', endHistory: 'Diễn biến các đêm', endSurvived: 'sống sót', endDied: 'đã chết',
 
   modConsole: 'Quản trò', modStep: 'Bước', modCloseStep: 'Kết thúc bước', modCloseConfirm: 'Kết thúc "{step}" ngay?', modSeats: 'Ghế', modNight: 'Đêm', modLog: 'Nhật ký', modDanger: 'Điều khiển',

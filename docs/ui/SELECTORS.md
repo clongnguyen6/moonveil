@@ -60,7 +60,9 @@ Lobby `[data-testid=mic][data-status=…]`: with a VoiceClient, `ok|checking|idl
 ## Moderator
 `[data-testid=mod-console]`, `[data-testid=mod-step]` (step label), `[data-testid=close-step]` → `[role=alertdialog] .btn` (2nd = confirm),
 `[data-testid=yes-count]` + `[data-testid=yes-apply]` (day.confirm), `[data-testid=mod-seat-<index>]`, `[data-testid=mod-night]`, `[data-testid=public-log]`.
-Provisional, hidden unless config enables: `[data-testid=abort]`, remove buttons, `[data-testid=mod-say]`.
+Approved end-match (separate moderator only): `[data-testid=end-match][data-open]` → `end-match-open` → `end-match-input` (type END) → `end-match-confirm` (disabled until the word matches) / `end-match-cancel`.
+`[data-testid=stalemate-warning]` (dock banner while the engine's warning is active). End screen: `[data-testid=ended][data-winner][data-reason]`, `[data-testid=end-title]`.
+Provisional, hidden unless config enables: remove buttons, `[data-testid=mod-say]`.
 
 ## Driving a seat through a night (what real-check.mjs does)
 1. `confirm` present? else nothing to do (waiting panel).

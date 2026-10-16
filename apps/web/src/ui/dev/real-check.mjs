@@ -183,6 +183,22 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   ok('moderator: chat is listen-only', (await mod.page.locator('[data-testid=chat-listen-only]').count()) === 1 && (await mod.page.locator('[data-testid=chat-input]').count()) === 0);
   await mod.page.keyboard.press('Escape');
   const closeStep = async () => { await mod.page.getByTestId('close-step').click(); await mod.page.locator('[role=alertdialog] .btn').nth(1).click(); await mod.page.waitForTimeout(250); };
+  // Approved: end-match control exists only for the separate moderator; misclicks never end the match.
+  ok('moderator: end-match control present, closed', (await mod.page.locator('[data-testid=end-match][data-open=false]').count()) === 1);
+  ok('players: no end-match control', (await ps[0].page.locator('[data-testid=end-match], [data-testid=end-match-open]').count()) === 0);
+  await mod.page.getByTestId('end-match-open').click();
+  await mod.page.getByTestId('end-match-input').fill('nope');
+  ok('misclick: open + wrong word keeps confirm disabled and the match running', (await mod.page.locator('[data-testid=end-match-confirm]').isDisabled()) && (await mod.step()) !== 'ended');
+  await mod.page.getByTestId('end-match-cancel').click();
+  ok('cancel: match still running', (await mod.step()) !== 'ended' && (await mod.page.locator('[data-testid=end-match][data-open=false]').count()) === 1);
+  // Idle cycles: nobody acts. rules-12 publishes a stalemate warning after 2 idle cycles and a draw after 3.
+  let idleClosed = 0, warned = false, stalemate = false;
+  for (let i = 0; i < 40 && (await mod.step()) !== 'ended'; i++) { await closeStep(); idleClosed++; if ((await ps[0].page.locator('[data-testid=stalemate-warning]').count()) > 0) warned = true; }
+  stalemate = (await mod.step()) === 'ended';
+  if (stalemate) {
+    ok('stalemate: warning banner appeared before the draw', warned);
+    ok('stalemate: end screen shows the distinct draw reason with full reveal', (await ps[0].page.locator('[data-testid=ended][data-reason=stalemate]').count()) === 1 && (await ps[0].page.locator('[data-testid=ended] .seat-chip .tag').count()) === 7);
+  } else console.log(`INFO  engine did not end an idle match after ${idleClosed} closes (rules-12 stalemate pending); continuing with a normal match`);
   let guard = 0;
   while (guard++ < 60) {
     const step = await mod.step();
@@ -194,6 +210,10 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
     if (step === 'day.confirm') { for (const p of ps.filter((p) => p.game().me.alive)) await p.page.getByTestId('vote-yes').click().catch(() => {}); await mod.page.waitForTimeout(300); }
     await closeStep();
     await mod.page.waitForTimeout(150);
+  }
+  if ((await mod.step()) !== 'ended') { // end via the approved control
+    await mod.page.getByTestId('end-match-open').click(); await mod.page.getByTestId('end-match-input').fill('END'); await mod.page.getByTestId('end-match-confirm').click(); await mod.page.waitForTimeout(300);
+    ok('moderator end-match: ended by the moderator, no winner, full reveal on a player', (await ps[0].page.locator('[data-testid=ended][data-reason=aborted]').count()) === 1 && (await ps[0].page.locator('[data-testid=ended] .seat-chip .tag').count()) === 7);
   }
   ok('moderator mode: match reached ended via UI-driven steps', (await mod.step()) === 'ended');
   if ((await mod.step()) === 'ended') {

@@ -6,6 +6,7 @@ import { SceneMount } from './SceneMount.tsx';
 import { useWakeLock } from './lan.ts';
 import { useSettings } from '../game/local-store.ts';
 import { nameAt, projection } from '../game/select.ts';
+import { stalemateWarning } from '../game/approved.ts';
 import type { Session, SessionState } from '../game/session.ts';
 import { type GameView, type SeatView, stepFamily as famOf } from '../game/types.ts';
 import { type Cue, playCue, unlockAudio } from './audio/cues.ts';
@@ -153,6 +154,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
       </div>
       <div className="dock" key={`${g.step.kind}:${g.night}:${g.day}`}>
         {wakeFailed && <p className="muted center" style={{ fontSize: 'var(--fs-0)', margin: '0 0 6px' }} data-testid="wake-hint">{t('wakeHint')}</p>}
+        {stalemateWarning(g) && g.step.kind !== 'ended' && <p className="card warn-banner" role="status" data-testid="stalemate-warning">⚠ {t('stalemateWarning')}</p>}
         {!isMod && <GhostBar view={view} g={g} />}
         {isMod ? (
           <ModeratorConsole view={view} g={g} />
@@ -217,6 +219,7 @@ function useAnnouncer(view: SeatView | null, g: GameView | null, t: T) {
         case 'confirm': push(e.counted === 'moderator' ? t('confirmYesOnly', { yes: e.yes }) : t('confirmResult', { yes: e.yes, no: e.no ?? 0 })); break;
         case 'executed': cues.push('death'); show(t('annExecuted', { name: n(e.seat) })); break;
         case 'hunterTurn': cues.push('attention'); push(t('annHunter', { name: e.seats.map(n).join(', ') }), 'warn'); break;
+        case 'stalemateWarning' as never: cues.push('attention'); push(t('stalemateWarning'), 'warn'); break;
         case 'shot': if (e.target !== null) { cues.push('death'); show(t('annShot', { by: n(e.by), target: n(e.target) })); } else push(t('hunterNoShot', { by: n(e.by) })); break;
         case 'ended': cues.push(g.outcome?.winner === 'wolves' ? (g.me?.role === 'wolf' ? 'victory' : 'defeat') : g.outcome?.winner === 'village' ? (g.me?.role === 'wolf' ? 'defeat' : 'victory') : 'dawn'); break;
         default: break;

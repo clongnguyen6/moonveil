@@ -150,6 +150,31 @@ await page.getByTestId('yes-apply').click();
 await page.waitForTimeout(150);
 ok('yes count applied -> executed and step moved on', (await page.getByTestId('mod-step').textContent()) !== 'Verdict' && !(await page.locator('[data-testid=error]').count()));
 
+// 11b. Approved: moderator ends the match with a typed confirmation; misclicks never end it. Players never see it.
+await open('moderator-day');
+ok('end-match control present for the separate moderator, closed by default', (await page.locator('[data-testid=end-match][data-open=false]').count()) === 1);
+await page.getByTestId('end-match-open').click();
+ok('misclick 1: opening shows a typed confirm, match continues', (await page.locator('[data-testid=end-match-confirm]').isDisabled()) && (await page.getByTestId('match').getAttribute('data-step')) !== 'ended');
+await page.getByTestId('end-match-input').fill('en');
+ok('misclick 2: wrong word keeps confirm disabled', await page.locator('[data-testid=end-match-confirm]').isDisabled());
+await page.getByTestId('end-match-cancel').click();
+ok('cancel closes it, match continues', (await page.locator('[data-testid=end-match][data-open=false]').count()) === 1 && (await page.getByTestId('match').getAttribute('data-step')) !== 'ended');
+await page.getByTestId('end-match-open').click();
+await page.getByTestId('end-match-input').fill('end');
+await page.getByTestId('end-match-confirm').click();
+await page.waitForTimeout(150);
+ok('typed END ends the match', (await page.getByTestId('match').getAttribute('data-step')) === 'ended');
+await stub((r) => r.setViewer(r.players[0].id));
+await page.waitForTimeout(150);
+ok('end screen: "Ended by the moderator", no winner, full reveal', (await page.locator('[data-testid=ended][data-reason=aborted]').count()) === 1 && /moderator/i.test(await page.getByTestId('end-title').innerText()) && (await page.locator('[data-testid=ended] .seat-chip .tag').count()) === 8);
+await open('day');
+ok('automatic mode: no end-match control for players/host', (await page.locator('[data-testid=end-match], [data-testid=end-match-open]').count()) === 0);
+// 11c. Approved: stalemate warning rendered from the engine's public event (stub injects it).
+await open('stalemate');
+ok('stalemate warning banner shown from the projection', (await page.locator('[data-testid=stalemate-warning]').count()) === 1);
+await open('day');
+ok('no stalemate banner without the event', (await page.locator('[data-testid=stalemate-warning]').count()) === 0);
+
 // 12. Full automatic match with bots in live mode: run until ended (speed via stub).
 await open('lobby', '&live=1');
 await stub((r) => { r.players.forEach((p) => (p.ready = true)); r.speed = 40; r.autoBots = true; r.start(); });

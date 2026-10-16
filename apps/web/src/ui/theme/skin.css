@@ -71,6 +71,8 @@ label.field.row { min-height: var(--tap); gap: var(--sp-3); cursor: pointer; }
 .chat-msg.mine .from { color: var(--ok); }
 .tab { font: inherit; background: transparent; border: 0; color: var(--ink-3); border-bottom: 2px solid transparent; min-height: var(--tap); padding: 0 var(--sp-3); cursor: pointer; }
 .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.warn-banner { padding: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-2); background: rgba(255,208,138,.12); border: 1px solid var(--warn); color: var(--warn); font-weight: 600; }
+.end-match { border: 1px solid var(--danger); background: var(--danger-soft); }
 .mod-secret { border: 1px dashed var(--warn); background: rgba(255,208,138,.06); }
 kbd.code { font-family: ui-monospace, Menlo, monospace; letter-spacing: .12em; background: var(--bg-2); border: 1px solid var(--line-strong); border-radius: var(--r-1); padding: 2px 8px; }
 

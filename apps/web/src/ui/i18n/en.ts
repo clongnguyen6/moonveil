@@ -68,8 +68,10 @@ export const en = {
   ghostWatch: 'Watch and listen. Ghosts cannot act or vote.',
   ghostDiedNight: 'You died in the night.', ghostExecuted: 'The village executed you.', ghostShot: 'The Hunter shot you.', ghostRemoved: 'You were removed from the match.',
 
-  endTitle: 'Match over', endVillage: 'The village wins', endWolves: 'The wolves win', endDraw: 'Nobody survives. A draw.', endAborted: 'Match aborted',
-  endReasonNoWolves: 'All wolves are gone.', endReasonParity: 'The wolves are at least as many as everyone else alive.', endReasonZero: 'Everyone is dead.', endReasonAborted: 'The moderator ended the match.',
+  endTitle: 'Match over', endVillage: 'The village wins', endWolves: 'The wolves win', endDraw: 'Nobody survives. A draw.', endAborted: 'Match aborted', endByModerator: 'Ended by the moderator', endStalemate: 'Three full days and nights without a death. It\'s a draw.',
+  endReasonNoWolves: 'All wolves are gone.', endReasonParity: 'The wolves are at least as many as everyone else alive.', endReasonZero: 'Everyone is dead.', endReasonAborted: 'The moderator ended the match.', endReasonByModerator: 'The moderator ended the match. No winner.', endReasonStalemate: 'Draw: no one died for three cycles.',
+  stalemateWarning: 'If nobody dies before the end of the next day, the match ends in a draw.',
+  endMatchTitle: 'End the match', endMatchHint: 'No winner; all roles are revealed. Cannot be undone.', endMatchOpen: 'End match…', endMatchType: 'Type {word} to confirm', endMatchWord: 'END', endMatchConfirm: 'End the match now',
   endReveal: 'Everyone\'s roles', endHistory: 'Night history', endSurvived: 'survived', endDied: 'died',
 
   modConsole: 'Moderator', modStep: 'Step', modCloseStep: 'Close step', modCloseConfirm: 'Close "{step}" now?', modSeats: 'Seats', modNight: 'Night', modLog: 'Log', modDanger: 'Controls',
