@@ -1,0 +1,26 @@
+// Command shapes the UI sends. Player commands are Commands without `seat` (host.ts injects it).
+// Keep every engine-facing string here so a rules API change touches one file.
+import type { Seat } from '@moonveil/rules';
+
+export const act = {
+  wolfPick: (target: Seat | 'pass') => ({ type: 'wolf.pick', target }),
+  seerInspect: (target: Seat) => ({ type: 'seer.inspect', target }),
+  guardProtect: (target: Seat | 'pass') => ({ type: 'guard.protect', target }),
+  witchHeal: (use: boolean) => ({ type: 'witch.heal', use }),
+  witchPoison: (target: Seat | 'pass') => ({ type: 'witch.poison', target }),
+  nominate: (target: Seat | 'skip' | null) => ({ type: 'vote.nominate', target }),
+  confirm: (choice: 'yes' | 'no' | null) => ({ type: 'vote.confirm', choice }),
+  hunterShoot: (target: Seat | 'pass') => ({ type: 'hunter.shoot', target }),
+};
+
+/** Moderator commands (engine `moderate`). Sent as `{ t: 'moderate', action }` (proposal P1). */
+export const mod = {
+  forSeat: (seat: Seat, a: Record<string, unknown>) => ({ ...a, seat }),
+  wolfDecide: (target: Seat | 'pass') => ({ type: 'wolf.decide', target }),
+  closeStep: () => ({ type: 'step.close' }),
+  remove: (seat: Seat) => ({ type: 'player.remove', seat }),
+  abort: () => ({ type: 'match.abort' }),
+  /** APPROVED (Human, 2026-10-16): in-person mode the moderator enters the Yes count and the engine applies
+   *  Yes*2 > living. Command name pending the rules owner's API; `day.setOutcome` is not used by the UI. */
+  yesCount: (yes: number) => ({ type: 'day.setYesCount', yes }),
+};

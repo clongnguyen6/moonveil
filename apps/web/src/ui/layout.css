@@ -1,0 +1,110 @@
+/* Structure only. Looks live in theme/. Phone portrait first; landscape and laptop via media queries. */
+@import './theme/tokens.css';
+@import './theme/skin.css';
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body { margin: 0; font: 16px/1.4 var(--font); background: var(--bg); color: var(--ink); -webkit-text-size-adjust: 100%; overscroll-behavior: none; }
+button, input, select, textarea { font: inherit; }
+h1, h2, h3, p, ul { margin: 0; }
+ul { padding: 0; list-style: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.row { display: flex; align-items: center; gap: var(--sp-2); }
+.row.wrap { flex-wrap: wrap; }
+.row.between { justify-content: space-between; }
+.col { display: flex; flex-direction: column; gap: var(--sp-3); }
+.grow { flex: 1 1 auto; min-width: 0; }
+.stack > * + * { margin-top: var(--sp-3); }
+.center { text-align: center; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); }
+.btn.wide { width: 100%; }
+.btn-row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--sp-2); }
+
+/* app frame */
+.app { height: 100%; display: flex; flex-direction: column; background: var(--bg); transition: background var(--dur-phase) var(--ease); }
+.frame { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.scene-host { position: relative; flex: 1 1 auto; min-height: 120px; overflow: hidden; }
+.scene-host .scene-slot { position: absolute; inset: 0; }
+.topbar { position: absolute; top: 0; left: 0; right: 0; z-index: 2; display: flex; align-items: center; gap: var(--sp-2);
+  padding: max(var(--sp-2), env(safe-area-inset-top)) var(--sp-3) var(--sp-2); pointer-events: none; }
+.topbar > * { pointer-events: auto; }
+.topbar .title { font-weight: 700; font-size: var(--fs-3); text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+.topbar .sub { font-size: var(--fs-0); color: var(--ink-2); text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+.topbar .tools { margin-left: auto; display: flex; gap: var(--sp-2); }
+.dock { flex: 0 0 auto; max-height: 62%; overflow: auto; -webkit-overflow-scrolling: touch; padding: var(--sp-2) var(--sp-2) max(var(--sp-2), env(safe-area-inset-bottom)); }
+.dock > .card { padding: var(--sp-4); }
+.panel { display: flex; flex-direction: column; gap: var(--sp-3); }
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
+
+/* seat grid: equal cells for every role so night screens share one layout */
+.seat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--sp-2); }
+.seat-chip { display: flex; align-items: center; gap: var(--sp-2); min-height: 52px; padding: 6px 10px; text-align: left; cursor: pointer; width: 100%; }
+.seat-chip .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seat-chip .meta { display: flex; flex-direction: column; min-width: 0; }
+.seat-chip .right { margin-left: auto; display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.avatar { width: 32px; height: 32px; font-size: var(--fs-0); flex-shrink: 0; position: relative; }
+.avatar.lg { width: 56px; height: 56px; font-size: var(--fs-3); }
+.avatar .hat { position: absolute; top: -8px; right: -4px; font-size: .9rem; }
+.speaking-ring { position: absolute; inset: -3px; border-radius: var(--r-pill); pointer-events: none; }
+
+/* entry / lobby */
+.entry { max-width: 480px; margin: 0 auto; padding: max(var(--sp-5), env(safe-area-inset-top)) var(--sp-4) var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4); }
+.entry .logo { font-size: var(--fs-5); font-weight: 800; letter-spacing: -.02em; }
+.swatches { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.swatch { width: var(--tap); height: var(--tap); border-radius: var(--r-pill); border: 3px solid transparent; padding: 0; cursor: pointer; }
+.swatch[aria-pressed="true"] { border-color: var(--ink); }
+.lobby { max-width: 720px; margin: 0 auto; width: 100%; padding: var(--sp-3) var(--sp-3) max(var(--sp-4), env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: var(--sp-3); }
+.lobby .card { padding: var(--sp-4); }
+.player-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-2); }
+.player-row { display: flex; align-items: center; gap: var(--sp-2); min-height: 48px; padding: 4px 8px; border-radius: var(--r-2); background: var(--surface-2); }
+.player-row .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dot { width: 8px; height: 8px; border-radius: var(--r-pill); background: var(--ok); flex-shrink: 0; }
+.dot.off { background: var(--danger); }
+.meter { height: 10px; width: 100%; }
+
+/* sheets, overlays, toasts */
+.scrim { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; animation: fadeIn var(--dur-2) both; }
+.sheet { width: 100%; max-width: 640px; max-height: 88%; display: flex; flex-direction: column; animation: riseIn var(--dur-3) var(--ease) both; }
+.sheet .grip { width: 40px; height: 4px; margin: 8px auto 0; }
+.sheet .sheet-head { display: flex; align-items: center; justify-content: space-between; padding: var(--sp-2) var(--sp-4); }
+.sheet .sheet-body { overflow: auto; padding: 0 var(--sp-4) max(var(--sp-4), env(safe-area-inset-bottom)); }
+.toasts { position: fixed; top: max(var(--sp-3), env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 30; display: flex; flex-direction: column; gap: var(--sp-2); pointer-events: none; width: min(92vw, 420px); }
+.toast { padding: var(--sp-3) var(--sp-4); animation: riseIn var(--dur-3) var(--ease) both; }
+.overlay-announce { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; text-align: center; padding: var(--sp-5); animation: fadeIn var(--dur-3) both; }
+.conn-overlay { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); text-align: center; padding: var(--sp-5); }
+.conn-overlay .card { padding: var(--sp-5); max-width: 360px; }
+.timer { display: inline-flex; align-items: center; gap: 6px; }
+.timer svg { width: 28px; height: 28px; transform: rotate(-90deg); }
+.timer svg circle { fill: none; stroke-width: 3; }
+.tally { display: grid; gap: 6px; }
+.tally-row { display: grid; grid-template-columns: 1fr 2fr auto; align-items: center; gap: var(--sp-2); font-size: var(--fs-1); }
+.tally-bar { height: 10px; }
+.role-card { padding: var(--sp-5); border-radius: var(--r-3); text-align: center; cursor: pointer; min-height: 200px; display: flex; flex-direction: column; justify-content: center; gap: var(--sp-2); }
+.role-card .role-name { font-size: var(--fs-5); font-weight: 800; }
+.facts { display: grid; gap: 4px; font-size: var(--fs-1); }
+.chat { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.chat-log { flex: 1 1 auto; overflow: auto; display: flex; flex-direction: column; gap: 6px; padding: var(--sp-2) 0; min-height: 160px; }
+.chat-msg { font-size: var(--fs-1); word-break: break-word; }
+.chat-form { display: grid; grid-template-columns: 1fr auto; gap: var(--sp-2); }
+.tabs { display: flex; border-bottom: 1px solid var(--line); }
+.mod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: var(--sp-2); }
+.log { display: grid; gap: 4px; font-size: var(--fs-1); max-height: 40vh; overflow: auto; }
+.potions { display: flex; gap: var(--sp-2); }
+.ghost-bar { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); }
+.mic-bar { display: flex; align-items: center; gap: var(--sp-2); }
+
+/* phone landscape + laptop: scene left, dock right */
+@media (min-width: 700px) and (min-aspect-ratio: 1/1) {
+  .frame { flex-direction: row; }
+  .scene-host { flex: 1 1 auto; height: auto; }
+  .dock { flex: 0 0 min(420px, 46%); max-height: none; height: 100%; padding: var(--sp-3); border-left: 1px solid var(--line); }
+  .topbar { right: auto; left: 0; width: auto; }
+}
+@media (min-width: 1100px) {
+  .dock { flex-basis: 440px; }
+  .seat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-height: 460px) and (min-aspect-ratio: 1/1) {
+  .dock { flex-basis: 52%; }
+  .topbar .sub { display: none; }
+}
