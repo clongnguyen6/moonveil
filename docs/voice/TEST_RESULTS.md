@@ -1,4 +1,34 @@
-# Voice spike: test results
+# Voice: test results
+
+## Browser full-match suite (`packages/voice/e2e`, product code on foundation's wiring)
+
+Command: `E2E_PORT=4350 node scripts/env.mjs npm run e2e -w @moonveil/voice` (web build, pinned LiveKit 1.13.10 on 4360/4361 with multiplexed UDP 4370–4399, real-engine server with `MOONVEIL_TEST_TIME_SCALE=2`; headless-shell Chromium, fake mic = speech-like bursts, one context per seat; foundation's harness).
+
+### Run 10 (2026-10-16 20:50–21:10, heavy-run lock held; test files at d2815dd, product code identical to 7bc0be9)
+
+Conditions (sampled every 30 s into `.cache/voice-e2e/conditions-run10.log`): load average 6.9 at start, peak 27.8 (0.3 % CPU idle) at 21:06, 12.9 at end; memory 35 GB of 36 GB used throughout, 12–15 GB in the compressor. The load came from other projects on the shared machine, not from Moonveil test processes.
+
+**Measured hear-matrix** (received audio energy per channel and remote seat, 2 s window after every step, versus the matrix derived from each seat's own `state.voice`: A hears B on c ⇔ A.listen(c) ∧ B.speak(c) ∧ B's mic granted):
+
+| Match | Steps measured | Pair-channel checks | should-hear failures | must-not-hear failures | Windows skipped |
+|---|---|---|---|---|---|
+| moderator, 7 seats + moderator, complete match to `ended` (9.1 min) | 11 (lobby, 2 nights, 1 day with vote/defense/confirm, Hunter, ended) | 658 | 0 | 0 | 0 |
+| automatic, 10 seats, real timers ×2, 5 min budget (8.1 min) | 4 (lobby, night.main, day.discussion ×2) | 369 | 0 | 0 | 4 |
+
+The 4 skipped windows are all whole-table step boundaries: in each, every page moved from the same step to the same next step during the 2 s window (day.vote → night.main twice; night.witch → day.discussion; night.witch → hunter), i.e. a timer-driven step closed while measuring. No window showed per-page skew (pages on different steps). Evidence lines are in the run log (`skipped <step>: … pages that differ/changed: …`).
+
+**Token / channel checks (separate from the audio measurement), all pass:** every page holds exactly the channels of its grants and each is connected; rosters contain only granted seats and never a listen-only one; every `voice` frame carries only channels the seat is granted at that moment, with `speak` never beyond the state grant; LiveKit's participant list shows the moderator hidden while listen-only and visible at `ended`; in-person room (1.7 min): no sessions in any `voice` frame, no LiveKit room for the code, no voice channel in any page, public text delivered in the lobby.
+
+### Earlier runs of this suite (same day)
+
+- Run 1 (steady 440 Hz tone): ~1/40 of the expected energy on every should-hear pair, 0 must-not-hear failures → speech-like bursts (noise suppression on the product mic treats a constant tone as noise).
+- Run 2: hearing 0/0; 315 + 297 roster hits = listen-only seats visible in the public roster (sticky visibility kept seats that died mid-room visible) → adapter switched to the literal ADR 0004 rule (visible iff speak).
+- Run 3: 0 hear-matrix failures (1,050 + 1,215 checks); one false assertion of mine (moderator expected hidden at `ended`) fixed. Run 4: moderator complete match 1,960 checks, 0 failures, 0 skipped.
+- Runs 5–9 under load averages 10–28 from other projects: should-hear failures only in windows mixing two steps across pages (frames lagging per page), ICE "could not establish pc connection" for the moderator's rooms, one 12-minute test timeout. Changes: tolerant driver, 45 s expect timeout, time scale 2, `VoiceClient` connect timeout + retry, multiplexed UDP ports, cross-page step-consistency guard with skew evidence. Run 8 (moderator alone, 0099957): 896 checks, 0 failures, 0 skipped.
+
+Not covered here: real devices, NAT/TURN, >10 seats, TLS in this suite (the spike covers TLS), timing/traffic side channels.
+
+## Spike suites (`spikes/voice/tests/`)
 
 Suites (`spikes/voice/tests/`): `channels.spec.ts` (approved channel policy, 11 sessions: 10 players + hidden listen-only moderator, 52 checks) and `secure-context.spec.ts` (3 tests). Playwright 1.64.1 with full Chrome for Testing 156.0.8078.4 from `spikes/voice/.browsers`, headless, one isolated context per seat, fake mic = generated 440 Hz WAV. Browser `HOME` and `TMPDIR` point into `spikes/voice/.tmp`.
 

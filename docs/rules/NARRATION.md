@@ -71,6 +71,9 @@ Vietnamese is my draft and needs a native read-through. Role names follow sky2 (
 | E1 | public | The wolves now equal the rest of the village. **The wolves win.** | Số Sói đã bằng số dân còn lại. **Sói thắng.** | ✅ victory |
 | E2 | public | The last wolf is gone. **The village wins.** | Con Sói cuối cùng đã bị loại. **Dân làng thắng.** | ✅ victory |
 | E3 | public | Nobody is left standing. **It's a draw.** | Không còn ai sống sót. **Hòa.** | ✅ Q14 |
+| E3b | public (event `stalemateWarning`, end of the 2nd no-death day) | If nobody dies before the end of the next day, the match ends in a draw. | Nếu không ai chết trước khi hết ngày mai, ván đấu sẽ hòa. | ✅ F1-A |
+| E3c | public | Three full days and nights without a death. **It's a draw.** | Ba ngày đêm liền không ai chết. **Hòa.** | ✅ F1-A |
+| E3d | public | The moderator ended the match. No winner. | Quản trò đã kết thúc ván. Không có người thắng. | ✅ moderator end |
 | E4 | public | All roles are revealed. | Tất cả vai trò được công khai. | ✅ Q20 |
 | C1 | reconnecting player | Welcome back. You're still in the game. | Chào mừng trở lại. Bạn vẫn đang trong trận. | ✅ disconnects |
 | C2 | anyone connected while paused (moderator, spectator) | All players are offline. The game is paused. | Mọi người chơi đều mất kết nối. Trận đấu tạm dừng. | ✅ pause |

@@ -12,9 +12,10 @@
   },
   "scripts": {
     "test": "node --test --test-concurrency=1 'test/**/*.test.ts'",
-    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.client.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.client.json && tsc -p tsconfig.e2e.json",
     "livekit": "node tooling/livekit.mjs",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run typecheck && npm test",
+    "e2e": "playwright test -c e2e/playwright.config.ts"
   },
   "engines": {
     "node": ">=24.12"
@@ -33,6 +34,7 @@
     }
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@types/node": "26.6.5",
     "@types/react": "19.3.0"
   }

@@ -56,7 +56,12 @@ function checkInvariants(s: MatchState, frozen: Map<number, string>): void {
   assert.ok(pub.seats.every((x) => x.role === null || ended || revealed.has(x.seat)));
   const v = evaluateVictory(s.seats);
   if (ended) {
-    if (s.outcome?.winner !== 'aborted') assert.deepEqual(s.outcome, v);
+    if (s.outcome?.reason === 'stalemate') {
+      // APPROVED F1-A: a stalemate only when no win condition holds, after 3 quiet cycles and a prior warning.
+      assert.equal(v, null, 'stalemate while a win condition holds');
+      assert.equal(s.quietCycles, 3);
+      assert.ok(s.publicLog.some((e) => e.t === 'stalemateWarning'), 'stalemate without warning');
+    } else if (s.outcome?.winner !== 'aborted') assert.deepEqual(s.outcome, v);
   } else if (v !== null) {
     assert.equal(s.step.kind, 'hunter', 'victory reached but match continues outside a hunter turn');
   }

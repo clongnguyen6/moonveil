@@ -1,6 +1,6 @@
 // Engine: createMatch + apply. Pure: apply clones the input state and returns a new one.
 import { clone } from './clone.ts';
-import { type DeckCounts, type DeepPartial, type RulesConfig, resolveConfig } from './config.ts';
+import { type DeckCounts, type DeepPartial, type RulesConfig, resolveConfig, STALEMATE_CYCLES } from './config.ts';
 import {
   defaultDeck,
   evaluateVictory,
@@ -90,6 +90,8 @@ function build(opts: CreateOptions, validate: boolean): CreateResult {
     day: 0,
     step: { kind: 'night.main', night: 0 },
     stepSeq: 0,
+    quietCycles: 0,
+    cycleHadDeath: false,
     nightRec: null,
     publicLog: [],
     knowledge: roles.map(() => []),
@@ -131,8 +133,8 @@ export function check(state: MatchState, actor: Actor, cmd: Command): EngineErro
 
 // ---------- authorization ----------
 
-const MOD_ONLY = new Set<Command['type']>(['wolf.decide', 'day.confirmCount']);
-const MOD_OR_SYSTEM = new Set<Command['type']>(['step.close', 'player.remove', 'match.abort']);
+const MOD_ONLY = new Set<Command['type']>(['wolf.decide', 'day.confirmCount', 'match.end']);
+const MOD_OR_SYSTEM = new Set<Command['type']>(['step.close', 'player.remove']);
 
 function authorize(actor: Actor, cmd: Command, config: RulesConfig): EngineError | null {
   if (MOD_ONLY.has(cmd.type)) return actor.kind === 'moderator' ? null : err('forbidden', 'moderator only');
@@ -312,7 +314,9 @@ function handle(state: MatchState, cmd: Command, lax: boolean, dry = false, acto
       removePlayer(state, cmd.seat);
       return null;
     }
-    case 'match.abort':
+    case 'match.end':
+      // APPROVED: moderator ends the match (no winner). Requires the explicit confirm literal.
+      if ((cmd as { confirm?: unknown }).confirm !== 'end-match') return err('bad_value', "match.end requires confirm: 'end-match'");
       if (dry) return null;
       endMatch(state, { winner: 'aborted', reason: 'aborted' });
       return null;
@@ -398,6 +402,8 @@ function execute(state: MatchState, seat: Seat): void {
 }
 
 function startNight(state: MatchState): void {
+  // Every night after the first starts at an end-of-day boundary (after Hunter chains and the win check).
+  if (state.night >= 1 && !endOfDayBoundary(state)) return;
   state.night += 1;
   const n = state.seats.length;
   const nulls = <T>() => Array<T | null>(n).fill(null);
@@ -414,6 +420,21 @@ function startNight(state: MatchState): void {
   };
   setStep(state, { kind: 'night.main', night: state.night });
   state.publicLog.push({ t: 'nightStart', night: state.night });
+}
+
+/**
+ * APPROVED F1-A (2026-10-16): stalemate check at the end of each day (one full cycle = night + its day).
+ * Runs after pending Hunter shots, death chains and the win check. Returns false if the match ended.
+ */
+function endOfDayBoundary(state: MatchState): boolean {
+  state.quietCycles = state.cycleHadDeath ? 0 : (state.quietCycles ?? 0) + 1;
+  state.cycleHadDeath = false;
+  if (state.quietCycles >= STALEMATE_CYCLES) {
+    endMatch(state, { winner: 'draw', reason: 'stalemate' });
+    return false;
+  }
+  if (state.quietCycles === STALEMATE_CYCLES - 1) state.publicLog.push({ t: 'stalemateWarning', day: state.day });
+  return true;
 }
 
 function startDay(state: MatchState): void {
@@ -576,6 +597,7 @@ function kill(state: MatchState, deaths: { seat: Seat; cause: DeathCause }[]): {
     if (s && s.alive) {
       s.alive = false;
       s.death = { cause: d.cause, night: state.night, day: state.day };
+      if (d.cause !== 'removed') state.cycleHadDeath = true; // approved: removal is not a gameplay death
       out.push(d);
     }
   }
