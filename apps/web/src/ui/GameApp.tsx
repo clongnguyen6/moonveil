@@ -10,7 +10,7 @@ import { stalemateWarning } from '../game/approved.ts';
 import type { Session, SessionState } from '../game/session.ts';
 import { type GameView, type SeatView, stepFamily as famOf } from '../game/types.ts';
 import { type Cue, playCue, unlockAudio } from './audio/cues.ts';
-import { Button, Timer, type ToastItem, Toasts } from './components/index.tsx';
+import { Button, Sheet, Timer, type ToastItem, Toasts } from './components/index.tsx';
 import { type T, useT } from './i18n/index.ts';
 import { ConfirmPanel, DefensePanel, DiscussionPanel, GhostPanel, VotePanel } from './screens/Day.tsx';
 import { EntryScreen } from './screens/Entry.tsx';
@@ -101,13 +101,9 @@ function Root() {
       {sheet === 'help' && <HelpSheet g={g} onClose={closeSheet} limits={view ? { min: view.limits.minPlayers, max: view.limits.maxPlayers } : undefined} />}
       {sheet === 'chat' && view && <ChatSheet s={s} view={view} onClose={closeSheet} />}
       {sheet === 'settings' && (
-        <div className="scrim" onClick={closeSheet}>
-          <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={t('settings')}>
-            <div className="grip" />
-            <div className="sheet-head"><h2 className="panel-title">{t('settings')}</h2><Button kind="icon" label={t('close')} onClick={closeSheet}>✕</Button></div>
-            <div className="sheet-body"><SettingsPanel moderator={view?.me.kind === 'moderator'} /></div>
-          </div>
-        </div>
+        <Sheet title={t('settings')} onClose={closeSheet} testId="settings-sheet">
+          <SettingsPanel moderator={view?.me.kind === 'moderator'} />
+        </Sheet>
       )}
       <ConnOverlay status={s.status} serverRestart={s.serverRestart} />
     </div>
