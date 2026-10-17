@@ -64,7 +64,7 @@ Status: foundation, 2026-10-16. The harness is ready now; the UI-driven layer wa
 - **Why:** on foundation-8 (`5b081c4`) the protocol suite at ×20 acted in fewer steps under load. `a7-0`: 14 loop iterations without voice, 13 with. `a9-3`: 34 vs 25. A step that passes between two loop iterations gets no bot action, so later bot choices diverge from the in-process simulation. The outcomes still matched, by luck of the path.
 - **Check:** `skippedSteps(m)` (`e2e/harness/match.ts`) = step keys (`night/day/kind`) that the driver's socket saw while playing but the loop never acted in. `withActions` marks steps where some seat's own view offered actions. Same-key collisions merge, so it can only under-count. Unit test: `e2e/harness/match.test.ts`.
   - `real-match.spec.ts` (protocol, with and without voice) **fails** on any skipped step and logs `STEPS {seed, acted, skipped}` first.
-  - `real-match-ui.spec.ts` logs `skipped` in `UIMATCH` (not yet a failure; proposal: make it one once a locked run shows 0 at ×5/×2).
+  - `real-match-ui.spec.ts` logs `skipped` in `UIMATCH` and, in strict runs (`E2E_UI_STRICT=1`, i.e. `e2e:ui:accept`), **fails** on any (foundation-10). Basis: 0 skipped steps in all 16 strict matches at ×5/×2 on `36bdafd` (`.cache/runs/full-36bdafd/`). Quick runs (`e2e:ui`, ×10) only log them. Not yet run in a locked acceptance run.
   - Step-change polls run every 20 ms (views are local frames, so polling is cheap).
 - **Protocol suite time scale: ×10** (default of `e2e:matches` and `e2e:matches:voice`; `E2E_TIME_SCALE` overrides). Locked run on `9a806be`, 2026-10-17 (`.cache/runs/pacing-x10-9a806be/`):
   - 0 skipped steps in all 10 matches, with and without voice;

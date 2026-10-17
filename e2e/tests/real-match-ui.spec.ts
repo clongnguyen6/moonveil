@@ -42,7 +42,7 @@ for (const seed of ALL_ACCEPTANCE) {
       await probe.context.close();
 
       let outcome: unknown = null;
-      // Steps passed without the UI actor acting (pacing). Logged only here; the protocol suite fails on them (0006).
+      // Steps passed without the UI actor acting (pacing). Strict (acceptance) runs fail on them, like the protocol suite (0006).
       let skipped: ReturnType<typeof skippedSteps> | null = null;
       uiStats.attempted = uiStats.done = 0;
       uiStats.misses = [];
@@ -130,6 +130,7 @@ for (const seed of ALL_ACCEPTANCE) {
       expect(uiStats.done, 'UI actions performed').toBeGreaterThan(0);
       // Acceptance (E2E_UI_STRICT=1): every intended UI action must land. Quick runs: at least 80%.
       if (STRICT) expect(uiStats.misses, 'UI actions that did not land').toEqual([]);
+      if (STRICT) expect(skipped, 'steps passed without the UI actor acting (pacing: lower E2E_TIME_SCALE)').toEqual([]);
       else expect(uiStats.done / uiStats.attempted, 'share of UI actions that landed').toBeGreaterThanOrEqual(0.8);
       report('passed');
       } catch (e) {
