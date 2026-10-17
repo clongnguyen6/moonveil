@@ -243,7 +243,10 @@ try {
       persist: s?.persist,
       voice: s?.voice,
       uptimeSec: s?.uptimeSec,
-      ok: !!s && String(s.revision).startsWith(EXPECT_REV.toLowerCase().slice(0, 7)) && s.persist?.mode === 'volume' && s.voice === 'configured',
+      // /api/status exists only from the new code (35151f2 has none). 'unknown' = Railway gave no commit at runtime:
+      // not a failure, but then the revision proof is the Railway deployment's source commit (Human), 0010 §7f.
+      revisionVerified: !!s && String(s.revision).startsWith(EXPECT_REV.toLowerCase().slice(0, 7)),
+      ok: !!s && (s.revision === 'unknown' || String(s.revision).startsWith(EXPECT_REV.toLowerCase().slice(0, 7))) && s.persist?.mode === 'volume' && s.voice === 'configured',
     });
   }
   for (const p of pages) await p.page.getByTestId('leave').click({ timeout: 5_000 }).catch(() => {});
