@@ -1,6 +1,6 @@
 # LiveKit Cloud compatibility for the voice gateway
 
-Owner: voice. Paper analysis (2026-10-17) for the hosting plan "Render for the game server + LiveKit Cloud (existing account) for voice". Nothing here was run against Cloud; see §5 for what would be. Hosting, sign-ups and deployment stay unapproved (grant d).
+Owner: voice. Paper analysis (2026-10-17) for the hosting direction "the app host (Railway first; Render alternative) for the game server + LiveKit Cloud (existing account) for voice". Nothing here was run against Cloud; see §5 for what would be. Hosting, sign-ups, Cloud credentials and deployment stay unapproved (grant d).
 
 Evidence tags: **[docs 2026-10-17]** primary LiveKit docs fetched today (`docs.livekit.io`: quotas-and-limits, intro/basics/…/participants, frontends/reference/tokens-grants, deploy/admin/firewall, deploy/admin/regions) · **[src]** our code or installed SDK/server source · **[search]** secondary (forum, KB) · **[unverified]**.
 
@@ -36,7 +36,7 @@ Code changes made for Cloud (2026-10-17, `packages/voice`, unit-tested against `
 
 What local OSS already proves (and Cloud shares the code path for): grant→permission mapping, hidden sessions, `UpdateParticipant` publish flips, rotation mechanics, token shape, client reconnect, the full-match hear-matrix. What only a real Cloud project can show: revocation timing, `DeleteRoom` vs tokens, the auto-create toggle, error wording, region/latency from Vietnam, TURN fallback, quota behaviour.
 
-**Prerequisites (Human):** authorize the use of the existing Cloud account for a test, and provide a project API key/secret as a test key. The key lives only in a gitignored local env file (`.env.voice-cloud`, listed in `.gitignore`) or in Render's dashboard; never committed, logged or shown. Playwright traces are off for Cloud runs because wire capture would store tokens in `.cache` artifacts. Expected consumption: smoke ≈ 20 participant-minutes; full-match run ≈ 300; keep a 1,000-minute margin under the 5,000 cap.
+**Prerequisites (Human):** authorize the use of the existing Cloud account for a test, and provide a project API key/secret as a test key. The key lives only in a gitignored local env file (`.env.voice-cloud`, listed in `.gitignore`) or in the app host's environment settings (Railway first; Render alternative); never committed, logged or shown. Playwright traces are off for Cloud runs because wire capture would store tokens in `.cache` artifacts. Expected consumption: smoke ≈ 20 participant-minutes; full-match run ≈ 300; keep a 1,000-minute margin under the 5,000 cap.
 
 **Suite changes (voice scope, before any run):** a `VOICE_E2E_TARGET=cloud` mode for `packages/voice/e2e`: skip starting local LiveKit, read `LIVEKIT_*` from env, disable traces and frame logging, and add the Cloud probes below as a separate spec that is skipped unless the target is `cloud`.
 
