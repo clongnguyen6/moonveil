@@ -24,6 +24,8 @@ export interface LiveKitVoiceGatewayOptions {
   // false = reconcile only on explicit commit(room). Default true = also coalesce on a microtask.
   autoCommit?: boolean;
   random?: () => number;
+  // Clock for revocation timestamps (unix ms). Default Date.now.
+  now?: () => number;
 }
 
 interface RoomState {
@@ -37,11 +39,11 @@ interface RoomState {
 
 export class LiveKitVoiceGateway {
   private readonly rooms = new Map<string, RoomState>();
-  private readonly opts: Required<Pick<LiveKitVoiceGatewayOptions, 'tokenTtlSeconds' | 'roomEmptyTimeoutSeconds' | 'autoCommit' | 'random'>> &
+  private readonly opts: Required<Pick<LiveKitVoiceGatewayOptions, 'tokenTtlSeconds' | 'roomEmptyTimeoutSeconds' | 'autoCommit' | 'random' | 'now'>> &
     LiveKitVoiceGatewayOptions;
 
   constructor(opts: LiveKitVoiceGatewayOptions) {
-    this.opts = { tokenTtlSeconds: 15 * 60, roomEmptyTimeoutSeconds: 10 * 60, autoCommit: true, random: Math.random, ...opts };
+    this.opts = { tokenTtlSeconds: 15 * 60, roomEmptyTimeoutSeconds: 10 * 60, autoCommit: true, random: Math.random, now: Date.now, ...opts };
   }
 
   // --- VoiceGateway (ADR 0004) ---
@@ -68,10 +70,22 @@ export class LiveKitVoiceGateway {
     this.rooms.delete(room);
     const names = [...st.gen.entries()].map(([ch, gen]) => roomName(room, ch, gen));
     try {
-      await Promise.all(names.map((n) => this.opts.backend.deleteRoom(n)));
+      // Everyone departs: revoke (Cloud) then delete, per room.
+      await Promise.all(names.map((n) => this.closeLiveKitRoom(n)));
     } catch (err) {
       this.opts.onError?.(room, err);
     }
+  }
+
+  // Close one LiveKit room generation: every present participant departs it, so each is removed with a
+  // revocation timestamp (LiveKit Cloud then rejects tokens issued before it; OSS ignores the field),
+  // then the room is deleted. The cutoff is one second in the past so the fresh tokens minted later in
+  // the same reconcile (nbf = now) are never "before" it, while every earlier token is.
+  private async closeLiveKitRoom(name: string): Promise<void> {
+    const present = await this.opts.backend.listParticipants(name);
+    const revokeTs = Math.floor(this.opts.now() / 1000) - 1;
+    await Promise.all(present.map((p) => this.opts.backend.removeParticipant(name, p.identity, revokeTs)));
+    await this.opts.backend.deleteRoom(name);
   }
 
   // --- per-seat helpers (older seam; tests) ---
@@ -147,7 +161,7 @@ export class LiveKitVoiceGateway {
       const name = roomName(room, ch, gen);
       const plan = planChannel(ch, desired.get(ch), present.get(ch) ?? []);
       if (plan.rotate) {
-        ops.push(() => this.opts.backend.deleteRoom(name));
+        ops.push(() => this.closeLiveKitRoom(name));
         st.gen.set(ch, gen + 1);
         rotated.push(ch);
         continue;

@@ -12,7 +12,7 @@ node scripts/env.mjs npm run typecheck -w @moonveil/voice
 node scripts/env.mjs node packages/voice/tooling/livekit.mjs start --port 4300   # local LiveKit (ports 4300–4399)
 ```
 
-Rules the code enforces: no grant ⇒ not connected; visibility derived from `speak` when a seat enters a room and kept while it stays (listen-only newcomers such as ghosts, a pending Hunter or the moderator are hidden); any member leaving a channel or changing visibility class ⇒ that channel's room rotates (new name, new tokens, old room deleted; `auto_create` off); publish/subscribe flips stay in-room; API calls per sync run in parallel, shuffled; `sync` resolves only after LiveKit is updated.
+Rules the code enforces: no grant ⇒ not connected; visibility derived from `speak` when a seat enters a room and kept while it stays (listen-only newcomers such as ghosts, a pending Hunter or the moderator are hidden); any member leaving a channel or changing visibility class ⇒ that channel's room rotates (everyone present is removed with `revokeTokenTs` so LiveKit Cloud rejects their old tokens, then the room is deleted; new name, new tokens; `auto_create` off on OSS); publish/subscribe flips stay in-room; API calls per sync run in parallel, shuffled; `sync` resolves only after LiveKit is updated.
 
 Wiring (Foundation): `new LiveKitVoiceGateway({ backend: new LiveKitBackend(url, key, secret), keys: { apiKey, apiSecret }, publicWsUrl })`, call `sync` once per `Room.flush()`, send each seat its sessions in a `voice` message, call `sessionsFor` on reconnect, `closeRoom` when the game room closes. Browser: `client.applySessions(msg.sessions)` on every `voice` message; `unlockAudio()` from the "join campfire" tap when `audioBlocked`.
 

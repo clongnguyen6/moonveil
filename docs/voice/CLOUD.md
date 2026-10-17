@@ -8,9 +8,9 @@ Evidence tags: **[docs 2026-10-17]** primary LiveKit docs fetched today (`docs.l
 
 Yes, for the parts the gateway uses: `CreateRoom`, `ListParticipants`, `UpdateParticipant`, `DeleteRoom`, and tokens minted with `AccessToken` **[src: `packages/voice/src/server/backend.ts`, `tokens.ts`]**. Config: `LIVEKIT_URL=https://<project>.livekit.cloud` (the server SDK also accepts the `wss://` form and rewrites it to `https://` **[src: `livekit-server-sdk/dist/TwirpRPC.js`]**), `LIVEKIT_PUBLIC_WS=wss://<project>.livekit.cloud`, and the project's API key/secret; Foundation's `main.ts` already reads these four **[src]**. Browsers detect a `*.livekit.cloud` URL and pick the nearest region themselves (`RegionUrlProvider`) **[src: `livekit-client`]**.
 
-Code changes worth making before Cloud use (none required to connect):
-- **Revoke on removal (Cloud-only API).** Add `removeParticipant(room, identity, revokeTokenTs)` to `VoiceBackend` and have the gateway call it for every seat that leaves a channel, with an explicit `revokeTokenTs = now`, before `DeleteRoom`. On OSS this is a no-op for tokens; on Cloud it closes the one-minute gap described in §2. Small, backend-level, unit-testable with `FakeBackend`.
-- **Not-found detection.** `isNotFound()` matches error text ("not found", "does not exist") **[src]**; Cloud's wording for a missing room/participant is **[unverified]**. Make it code-based if the Cloud smoke test shows different text.
+Code changes made for Cloud (2026-10-17, `packages/voice`, unit-tested against `FakeBackend`; none were required to connect):
+- **Revoke on departure (Cloud-only effect).** `VoiceBackend.removeParticipant(room, identity, revokeTokenTs)`; when a room generation closes (rotation or `closeRoom`), the gateway removes every participant present in it with `revokeTokenTs = now − 1 s` and only then calls `DeleteRoom`. Fresh tokens for the next generation are minted afterwards with `nbf = now`, so they are never "before" the cutoff, while every earlier token is. On OSS the field is ignored (verified in the server source) and behaviour is unchanged **[src: gateway tests "rotation: every participant…", "closeRoom revokes…"]**.
+- **Code-based not-found.** `isNotFound()` now checks the SDK's `ServerError` fields (`code === 'not_found'` or HTTP `status === 404`) instead of message text, so Cloud's wording no longer matters **[src: `backend.test.ts`]**.
 - Nothing else: room names, `emptyTimeout`, hidden grants and `canPublish` updates are the same API.
 
 ## 2. Token revocation and room rotation on Cloud
@@ -43,7 +43,7 @@ What local OSS already proves (and Cloud shares the code path for): grant→perm
 | # | Probe | Expected | Verifies |
 |---|---|---|---|
 | C1 | two browsers join one room, measure energy both ways | hear each other | config-only compatibility, region auto-selection; record `RegionUrlProvider` choice and RTT |
-| C2 | rotation (public death case): `RemoveParticipant`+`revokeTokenTs` then `DeleteRoom`; old token tried after 0 s, 30 s, 90 s | rejected at every point; no room recreated under the old name | revocation semantics incl. the one-minute buffer; `DeleteRoom` vs tokens |
+| C2 | rotation (public death case) as the gateway does it: `RemoveParticipant`+`revokeTokenTs = now − 1 s` for everyone present, then `DeleteRoom`; old token tried after 0 s, 30 s, 90 s; a fresh next-generation token tried at once | old token rejected at every point, fresh one accepted; no room recreated under the old name | revocation semantics incl. the one-minute buffer and the −1 s cutoff; `DeleteRoom` vs tokens |
 | C3 | `DeleteRoom` only (no RemoveParticipant), old token tried | records whether it rejoins and whether an empty room appears | whether rotation alone is enough on Cloud; auto-create toggle state |
 | C4 | `UpdateParticipant` canPublish false/true on a connected seat | tracks removed, event received, client still connected with a working token | permission flips + automatic token rotation |
 | C5 | hidden listen-only session (moderator pattern) | not in rosters/speaker lists of others; `ListParticipants` shows hidden | hidden on Cloud |
