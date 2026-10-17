@@ -51,7 +51,41 @@ export async function voiceSettled(players: Player[], timeout = 40_000) {
       )
       .toBe('ok');
   }
-  await sleep(2500); // tracks subscribe, audio starts flowing
+  // Publishing must have started where speak is granted and the mic works; then wait (bounded) until every
+  // listener has a subscribed track from every expected speaker, so the window measures routing, not setup.
+  for (const p of players) {
+    await expect
+      .poll(async () => {
+        const snap = await voiceSnapshot(p);
+        if (!snap) return 'no voice client';
+        for (const [name, c] of Object.entries(snap.channels)) if (c.speak && snap.mic === 'granted' && !snap.muted && !c.publishing) return `${name}: not publishing yet`;
+        return 'ok';
+      }, { message: `${p.name}: publishing`, timeout })
+      .toBe('ok');
+  }
+  const deadline = Date.now() + 15_000;
+  for (;;) {
+    const missing: string[] = [];
+    for (const a of players) {
+      const sa = await voiceSnapshot(a);
+      const stats = await voiceStats(a);
+      for (const g of grants(a)) {
+        if (!g.listen) continue;
+        for (const b of players) {
+          if (a === b) continue;
+          const gb = grant(b.view(), g.channel);
+          const sb = sa && (await voiceSnapshot(b));
+          if (gb?.speak && sb?.mic === 'granted' && !sb.muted && !stats.some((s) => s.channel === g.channel && s.identity === b.seat)) missing.push(`${a.name}<-${b.name}@${g.channel}`);
+        }
+      }
+    }
+    if (missing.length === 0 || Date.now() > deadline) {
+      if (missing.length) console.log(`  (tracks still missing after 15 s: ${missing.join(', ')})`);
+      break;
+    }
+    await sleep(500);
+  }
+  await sleep(1000); // first packets
 }
 
 // ---- hear-matrix ----
