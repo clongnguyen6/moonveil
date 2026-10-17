@@ -97,8 +97,16 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Settings UX: users find Settings confusing → game-UI audit + reversible clarity fixes within original style (personal vs room/host controls, plain labels, grouping, advanced collapsed).
 - Live status: railway.app URL verified reachable/UI/idle 76 min/voice reach; persistence restart/redeploy untested live (retry script ready, on hold); www.moonveil.id.vn TLS ok but origin switch NOT applied (server 403s www origin); voice Cloud measured check running 00:17.
 
+## Overnight plan 2026-10-18 (Human asleep; no deploy/main merge/Human actions)
+- Lead self-check cron every 20 min (session-only job 1aa20ef6): read owners' latest reports, process candidates/lock, forward to Supervisor.
+- dev 5480ccd (foundation-13: room event log, /api/status, rules-15 defense all-living speak, server tests). Live deploy remains 35151f2 (deploy-trial).
+- Lock order: game-UI (settings clarity + opaque sheets + defense copy, heavy checks) → voice Cloud rotation-gap diagnosis (cap 15 p-min; aggregate ≈5.6/100 so far) → foundation release full acceptance on bundle SHA.
+- Pending merges (light): foundation-14 (0010 §7b–7e notes + postdeploy script, from unmerged foundation-12) after UI window; voice small candidate (defense assertions + no-rotation-at-defense test); rules engine snapshot versioning (prevents restoring old in-progress matches under new rules).
+- Unverified live: Railway restart/redeploy persistence; Cloud post-rotation audio gap (7 should-hear fails at old-rule defense window, cause unconfirmed); real devices. Cloud region nearest = Hyderabad (no Singapore).
+- Proposals awaiting Human: 2 h room idle timeout; next deploy request (origin switch, revision move, persistence sequence) after release acceptance. Batches C/D/E unapproved.
+
 ## Lead message queue (deliver at owner's next turn end)
-- voice (after Cloud run): update defense assertions (all living speak publicly) after rules merge.
+- (cleared)
 - (cleared)
 
 ## Approved rules (Human, 2026-10-16) — rules owner records in docs/rules/PROPOSAL.md
