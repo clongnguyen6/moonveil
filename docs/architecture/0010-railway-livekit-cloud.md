@@ -348,6 +348,42 @@ For the account holder. Approved 2026-10-17: Railway Trial only, revision pinned
 - Any check fails: stop, report, and revert the variables (step 3) or roll back the deployment (step 4).
 - No upgrades, and no switch of host.
 
+### 7f. Deploy request: release candidate `f12761a` (for decision, NOT approved)
+Revision `f12761aa730b691ec8bebf12bd4c9fecc115f733`. Moving `deploy-trial` from `35151f2` is a **fast-forward**: `35151f2` is an ancestor (57 commits; checked 2026-10-18). This note lives on foundation-15, not on the candidate, so it doesn't change the candidate SHA.
+
+**Preconditions (Human)**
+1. No match running (lobbies and finished matches are fine). An in-progress match saved by `35151f2` would be skipped on restore (`skippedRooms`).
+2. Usage snapshot: workspace Usage page, credit and days left. Stop if under $1 or under 5 days.
+
+**Steps, in order** (agents never trigger a deploy; each wait is ≤ 30 min)
+1. Agents start the check on the current revision (3 pages on railway.app) and send **READY FOR RESTART**.
+2. Human: service → deployment ⋮ → **Restart**. Agents check resume on the same seats, then send **RESTART OK, READY FOR VARIABLES**.
+3. Human: service → Variables:
+   - `MOONVEIL_PUBLIC_ORIGIN` = `https://www.moonveil.id.vn`
+   - add `MOONVEIL_ALLOWED_ORIGINS` = `https://moonveil-production-b733.up.railway.app`
+   - add `MOONVEIL_REVISION` = `f12761aa730b691ec8bebf12bd4c9fecc115f733`
+   - *optional, separate approval:* add `MOONVEIL_ROOM_IDLE_MS` = `7200000` (rooms survive a 2 h break)
+
+   Then **Apply / Deploy** once *(label unverified)*. Agents check resume, both origins working, foreign origins refused, and a fresh create + join on `www`; then send **VARIABLES OK, READY FOR REVISION**.
+4. Agents: `git push origin f12761a…:refs/heads/deploy-trial` (fast-forward), then verify. If Railway doesn't build on push, Human clicks **Deploy** on the service.
+5. Human: in the new deployment's logs, the first line reads `moonveil server … persist=/data/rooms restoredRooms=≥1 skippedRooms=0`, with `room <CODE> restored …` lines. Agents check that the test room survived and that `/api/status` shows `revision=f12761a…`, `persist.mode=volume` and `voice=configured`. Then they send **DEPLOY OK**.
+6. Human: usage snapshot again.
+
+**Stop and roll back**
+- Any agent check fails, or the build or health check fails: **stop**, screenshot, report.
+- Steps 2–3 (variables): set `MOONVEIL_PUBLIC_ORIGIN` back to the railway.app URL, remove the added variables, deploy.
+- Step 4 (revision): Railway → the previous deployment → ⋮ → **Rollback** *(label unverified)*. `deploy-trial` is never moved back (that would need a force push). A later fix moves it forward again.
+- `skippedRooms>0` means a match was running: report it. No action needed for the deploy itself.
+- An upgrade or payment prompt: stop. Never upgrade.
+
+**Evidence**
+- Acceptance on `f12761a`: `.cache/runs/full-f12761a/summary.txt`.
+  - `check`, matches ×10, voice matches ×10, strict UI 16/16 with 711/711 actions landed.
+  - 3 s click wait; one 4 fps scene observer per match (test mitigation).
+- Restore of old saved matches: `apps/server/test/restore-compat.test.ts`, with the rules owner's real 35151f2 fixtures.
+- Origin switch validated against the deployed code: §7c. Live state of the current deploy: §7d.
+- Check script: `scripts/postdeploy-check.mjs` (`--actions`, `--then-origin`, `--expect-revision`).
+
 ## 8. Open items
 - **LiveKit Cloud compatibility and testing plan:** voice owner (link pending, as in 0009 §5). LiveKit Cloud probes and credentials remain unapproved.
 - **Decisions for Human:** IaC (`railway` npm package, a deploy-time step) vs. dashboard-only settings; deploy approval with the package above.
