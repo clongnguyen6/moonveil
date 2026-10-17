@@ -25,6 +25,9 @@ const ACTION_TIMEOUT_MS = Number(opt('action-timeout-min', '30')) * 60_000;
 const VOICE = !args.includes('--no-voice');
 // Hard cap on LiveKit Cloud participant-minutes for this script (pages x connected time); voice phase is cut short at it.
 const VOICE_CAP_MIN = Number(opt('voice-cap-min', '10'));
+// --then-origin=<url>: after the last action (a redeploy carrying MOONVEIL_PUBLIC_ORIGIN=<url> plus
+// MOONVEIL_ALLOWED_ORIGINS=<this url>), check /ws on both hosts and origins, and a fresh create + join on <url>.
+const THEN = (opt('then-origin', '') || '').replace(/\/+$/, '');
 const OUT = opt('out', `.cache/postdeploy/check-${new Date().toISOString().replace(/[:.]/g, '-')}.jsonl`);
 if (!/^https?:\/\/[^/]+$/.test(url)) {
   console.error('usage: postdeploy-check.mjs https://<domain> [--idle-min=16] [--actions=2] [--no-voice]');
@@ -53,9 +56,9 @@ log({ check: 'api/lan empty (MOONVEIL_PUBLIC_ORIGIN set)', body: lan, ok: Array.
 
 // 2. Origin rule on /ws (Host preservation itself is not observable from outside).
 const wsUrl = url.replace(/^http/, 'ws') + '/ws';
-const tryWs = (origin) =>
+const tryWs = (origin, at = wsUrl) =>
   new Promise((r) => {
-    const ws = new WebSocket(wsUrl, { headers: { origin } });
+    const ws = new WebSocket(at, { headers: { origin } });
     ws.on('open', () => (ws.close(), r('open')));
     ws.on('error', (e) => r(e.message));
   });
@@ -190,6 +193,43 @@ try {
       reconnectGapMs: gap,
       ok: dropped && after.every((s) => s.status === 'open' && s.code === code) && pages.every((p, i) => after[i].seat === seats[p.name]) && after[0].players === 3,
     });
+  }
+  // 7. After the origin switch: both origins accepted on both hosts, foreign refused; fresh pages on the new origin.
+  if (THEN) {
+    const newWs = THEN.replace(/^http/, 'ws') + '/ws';
+    const thz = await fetch(`${THEN}/healthz`).catch(() => ({ status: 0 }));
+    log({ check: `new origin healthz ${THEN}`, status: thz.status, ok: thz.status === 200 });
+    for (const [label, origin, at, want] of [
+      ['new origin on new host', THEN, newWs, 'open'],
+      ['old origin on old host', own, wsUrl, 'open'],
+      ['new origin on old host', THEN, wsUrl, 'open'],
+      ['foreign on new host', 'https://evil.example', newWs, '403'],
+      ['foreign on old host', 'https://evil.example', wsUrl, '403'],
+      ...(THEN.startsWith('https:') ? [['http form of new origin', THEN.replace(/^https:/, 'http:'), newWs, '403']] : []),
+    ]) {
+      const r = await tryWs(origin, at);
+      log({ check: `ws after switch: ${label}`, result: r, ok: want === 'open' ? r === 'open' : /403/.test(r) });
+    }
+    const fresh = [];
+    for (const name of ['PD-New-Host', 'PD-New-Two']) {
+      const ctx = await browser.newContext({ baseURL: THEN, viewport: { width: 1280, height: 800 } });
+      await ctx.addInitScript(quiet);
+      fresh.push({ name, page: await ctx.newPage() });
+    }
+    const [h2, j2] = fresh;
+    await h2.page.goto('/');
+    await h2.page.getByTestId('name').fill(h2.name);
+    await h2.page.getByTestId('create-automatic').click();
+    await h2.page.waitForFunction(() => globalThis.__moonveil?.getState().code, null, { timeout: 20_000 });
+    const code2 = (await st(h2.page)).code;
+    await j2.page.goto('/');
+    await j2.page.getByTestId('name').fill(j2.name);
+    await j2.page.getByTestId('code').fill(code2);
+    await j2.page.getByTestId('join').click();
+    await h2.page.waitForFunction(() => globalThis.__moonveil.getState().view?.players?.length === 2, null, { timeout: 20_000 });
+    const pageOrigin = await h2.page.evaluate(() => location.origin);
+    log({ check: 'fresh create + join on new origin', code: code2, players: (await st(h2.page)).players, inviteOrigin: pageOrigin, ok: pageOrigin === new URL(THEN).origin });
+    for (const p of fresh) await p.page.getByTestId('leave').click({ timeout: 5_000 }).catch(() => {});
   }
   for (const p of pages) await p.page.getByTestId('leave').click({ timeout: 5_000 }).catch(() => {});
 } catch (e) {
