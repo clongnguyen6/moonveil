@@ -54,7 +54,7 @@ test('stop(): rooms saved, sockets closed with 1012, a new server restores the r
   assert.equal(saved[0]!.code, welcome.code);
 
   const b = createMoonveilServer({ engine, store: fileRoomStore(dir) });
-  assert.equal(b.registry.restoreAll(), 1);
+  assert.equal(b.registry.restoreAll().restored, 1);
   const back = client(await listenFree(b.http));
   try {
     await back.opened;

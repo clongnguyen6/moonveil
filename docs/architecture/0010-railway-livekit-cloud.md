@@ -328,8 +328,10 @@ For the account holder. Approved 2026-10-17: Railway Trial only, revision pinned
 - Railway may build on push. If it doesn't, the account holder clicks Deploy.
 - **Rollback:** Railway's previous deployment (⋮ → Rollback, *label unverified*). The branch can't be moved back without a force push (forbidden).
 
-**Precondition: no match running.** The engine id is the same in every revision (`moonveil-werewolf`), so a match saved under the old rules would be restored under the new ones without a check. Lobby and ended rooms restore safely. Deploy between sessions, when nobody is mid-match.
-- Proposal for the rules owner: version the engine id or state, so an incompatible snapshot is skipped instead of misread. The server already skips a mismatched id.
+**Saved matches across the revision change** (rules-16 + foundation-14):
+- An in-progress match saved by 35151f2 (rules version 1) is **skipped** on restore. The log shows `room <CODE> skipped reason=in-progress match saved under rules version 1; this engine runs version 2`, and the startup line counts `skippedRooms`.
+- Lobby and finished rooms restore.
+- Still deploy between sessions: a skipped match is lost for its players. They see "room not found" on resume.
 
 **Sequence with the persistence check** (each wait ≤ 30 min; agents never trigger a deploy)
 1. **Agents** start run A on the *current* revision:
@@ -340,7 +342,7 @@ For the account holder. Approved 2026-10-17: Railway Trial only, revision pinned
 4. **Agents** start run B, then move `deploy-trial` to the bundle SHA. That push, or the account holder's Deploy, is run B's one action:
    `postdeploy-check.mjs https://www.moonveil.id.vn --no-voice --idle-min=0 --actions=1 --expect-revision=<bundle SHA>`
    Run B checks that its lobby survives the revision change, then that `/api/status` reports the revision, `persist.mode=volume` and `voice=configured`.
-5. **Account holder:** the first log line of the new revision shows `persist=/data/rooms restoredRooms≥1` and the `room … restored` lines. Usage snapshot (§7a I).
+5. **Account holder:** the first log line of the new revision shows `persist=/data/rooms restoredRooms≥1 skippedRooms=0`, plus the `room … restored` lines; a skipped line means a match was running. Usage snapshot (§7a I).
 
 **Stop rules**
 - Any check fails: stop, report, and revert the variables (step 3) or roll back the deployment (step 4).

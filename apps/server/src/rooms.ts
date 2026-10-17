@@ -9,7 +9,7 @@ import {
   ROOM_CODE_LENGTH,
   type SeatId,
 } from '@moonveil/protocol';
-import { type Conn, Room, type RoomDeps, RoomError, realScheduler } from './room.ts';
+import { type Conn, RestoreSkip, Room, type RoomDeps, RoomError, realScheduler } from './room.ts';
 import type { RulesEngine } from './rules/engine.ts';
 import type { RoomStore } from './store.ts';
 import { nullVoiceGateway, type VoiceGateway } from './voice.ts';
@@ -69,21 +69,26 @@ export class Registry {
     return room;
   }
 
-  // Load saved rooms after a restart. Unreadable or mismatched rooms are logged and skipped (file kept).
-  restoreAll(): number {
-    let n = 0;
+  // Load saved rooms after a restart. Rooms saved by another engine or rules version are skipped (`room … skipped`
+  // with the engine's reason); unreadable rooms are logged as errors. Files are kept either way.
+  restoreAll(): { restored: number; skipped: number } {
+    const log = this.opts.log ?? noLog;
+    let restored = 0;
+    let skipped = 0;
     for (const snap of this.opts.store?.loadAll() ?? []) {
       if (this.rooms.has(snap.code)) continue;
       try {
         const room = Room.restore(snap, this.deps());
         this.rooms.set(snap.code, room);
-        (this.opts.log ?? noLog)(`room ${snap.code} restored status=${room.status} seats=${room.seatCount()}`);
-        n++;
+        log(`room ${snap.code} restored status=${room.status} seats=${room.seatCount()}`);
+        restored++;
       } catch (e) {
-        console.error(`room ${snap.code} not restored:`, (e as Error).message);
+        skipped++;
+        if (e instanceof RestoreSkip) log(`room ${snap.code} skipped reason=${e.message.replace(/\s+/g, ' ').slice(0, 200)}`);
+        else console.error(`room ${snap.code} not restored:`, (e as Error).message);
       }
     }
-    return n;
+    return { restored, skipped };
   }
 
   get(code: string): Room {
