@@ -176,11 +176,12 @@ test('approved channel policy is enforced server-side across 11 sessions', async
   await settled(def.epoch);
   {
     const v7 = await measure(pages.get('p07')!); const acc = await snap(pages.get('p06')!); const g = await measure(pages.get('p04')!); const m = await measure(pages.get(MOD)!);
+    // Approved 2026-10-18: every living player speaks during defense (the accused's focus lives in the step, not in grants).
+    const livingNow = PLAYERS.filter((x) => !dead.has(x) && x !== MIC_DENIED);
     check('defense: accused publishes in public', acc.channels.public.localPublished === true && acc.channels.public.perm.canPublish === true);
-    check('defense: other living hear only the accused', heard(v7, 'public', 'p06') && Object.entries(v7.energy.public).every(([id, e]) => id === 'p06' || e < ENERGY_MIN), JSON.stringify(v7.energy.public));
-    check('defense: other living cannot publish (server rejects a forced publish)', (await forcePublish('p07', 'public')).ok === false);
+    check('defense: other living hear every living publisher (incl. the accused)', livingNow.filter((x) => x !== 'p07').every((x) => heard(v7, 'public', x)), JSON.stringify(v7.energy.public));
     const lk = await roomsFromLiveKit();
-    check('defense: LiveKit shows exactly one published track in public, the accused one', lk.public.reduce((n, p) => n + p.tracks, 0) === 1 && lk.public.find((p) => p.identity === 'p06')?.tracks === 1, JSON.stringify(lk.public));
+    check('defense: LiveKit shows one published track per living publisher', lk.public.filter((p) => p.tracks === 1).length === livingNow.length, JSON.stringify(lk.public));
     check('defense: ghost and moderator hear the accused', heard(g, 'public', 'p06') && heard(m, 'public', 'p06'));
   }
 

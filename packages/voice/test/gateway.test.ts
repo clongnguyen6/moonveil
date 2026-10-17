@@ -256,19 +256,21 @@ test('derived visibility: ghost/pending Hunter/moderator listen-only sessions ar
   assert.deepEqual(r.get('p1')!.map((s) => s.visible), [true]);
 });
 
-test('defense (ADR 0004 §1, measured): listeners become hidden, so the public room rotates at defense start and end', async () => {
+test('defense (approved 2026-10-18: every living player speaks): vote -> defense -> confirm changes nothing in LiveKit, no rotation', async () => {
   const a = make();
-  await a.gw.sync('DEF', new Map([['acc', [g('public', true, true)]], ['v1', [g('public', true, true)]], ['v2', [g('public', true, true)]]]));
+  const living = new Map([['acc', [g('public', true, true)]], ['v1', [g('public', true, true)]], ['v2', [g('public', true, true)]]]);
+  const r1 = await a.gw.sync('DEF', living); // day.vote
   for (const s of ['acc', 'v1', 'v2']) a.backend.connect('DEF-public-g1', s, { canPublish: true, canSubscribe: true, hidden: false });
-  const r = await a.gw.sync('DEF', new Map([['acc', [g('public', true, true)]], ['v1', [g('public', false, true)]], ['v2', [g('public', false, true)]]]));
-  assert.deepEqual(a.backend.deleted, ['DEF-public-g1']); // everyone reconnects as the defense starts
-  assert.equal(r.get('v1')![0]!.visible, false);
-  assert.equal(r.get('acc')![0]!.visible, true);
-  for (const s of ['acc', 'v1', 'v2']) a.backend.connect('DEF-public-g2', s, { canPublish: s === 'acc', canSubscribe: true, hidden: s !== 'acc' });
-  await a.gw.sync('DEF', new Map([['acc', [g('public', true, true)]], ['v1', [g('public', true, true)]], ['v2', [g('public', true, true)]]]));
-  assert.deepEqual(a.backend.deleted, ['DEF-public-g1', 'DEF-public-g2']); // and again when the defense ends
-  // Why not keep them visible ("sticky"): a seat that dies while connected (execution, Hunter) would stay
-  // visible as a listen-only ghost in the public roster. Measured in the browser suite; policy forbids it.
+  const r2 = await a.gw.sync('DEF', living); // day.defense: same grants for every living seat
+  const r3 = await a.gw.sync('DEF', living); // day.confirm
+  assert.deepEqual(a.backend.deleted, []);
+  assert.equal(a.backend.calls.filter((c) => c.op === 'update' || c.op === 'remove').length, 0);
+  assert.equal(a.gw.roomNameOf('DEF', 'public'), 'DEF-public-g1');
+  for (const seat of ['acc', 'v1', 'v2']) {
+    assert.equal(r2.get(seat)![0]!.token, r1.get(seat)![0]!.token); // tokens unchanged: no churn through defense
+    assert.equal(r3.get(seat)![0]!.token, r1.get(seat)![0]!.token);
+    assert.equal(r2.get(seat)![0]!.visible, true);
+  }
 });
 
 test('D5: lobby switch remote -> in-person -> remote: every session closes, no token is minted, then sessions resume on a new generation', async () => {

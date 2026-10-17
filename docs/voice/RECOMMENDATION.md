@@ -21,8 +21,7 @@ Grant = `{channel, listen, speak, visible}` from the rules engine's `channels(se
 |---|---|---|---|
 | lobby (all) | speak+listen | – | – |
 | day, living | speak+listen | – | – |
-| defense, accused | speak+listen | – | – |
-| defense, other living | listen | – | – |
+| defense (approved 2026-10-18: every living player speaks; earlier rule: accused only) | speak+listen | – | – |
 | night, living wolf | – | speak+listen | – |
 | night, other living | – | – | – |
 | ghost | listen, hidden | never | speak+listen |
@@ -31,7 +30,7 @@ Grant = `{channel, listen, speak, visible}` from the rules engine's `channels(se
 | in-person mode | – | – | – |
 
 - Living players are connected to public only while they hold a public grant; at nightfall the public room closes for everyone (channel rotation), so a villager observes only leave-type events and its own disconnect, never a publish or speaker event **[test]**. The order in which leave events arrive is LiveKit's room-close order, not role-driven **[src: Go map iteration in `room.Close`; unverified statistically]**.
-- Permission flips inside a room (day→defense) use `UpdateParticipant`; the server removes the mic tracks itself **[src: `participant.go SetPermission` → `removePublishedTrack`; test: exactly one published track during defense]**.
+- Permission flips inside a room (e.g. a provisional listen-only step) use `UpdateParticipant`; the server removes the mic tracks itself **[src: `participant.go SetPermission` → `removePublishedTrack`; test: exactly one published track during defense]**.
 - `hidden` participants are never included in participant lists or updates sent to others **[src: `room.go` ~1559, ~2365; test: moderator and ghosts invisible]**. Speaker updates are only sent for publishers a participant is subscribed to **[src: `room.go onSubscribeStatusChanged`]**.
 - Text and emotes are not LiveKit's job: they go through Moonveil's own protocol with the same grants. LiveKit data channels follow `speak` (`canPublishData`).
 - Moderator publishing is off by default, as approved; turning it on is one grant bit.
@@ -79,7 +78,7 @@ Agreed and implemented in `LiveKitVoiceGateway`:
 - Tokens never in `state` views. Speaking indicators from the SDK, bounded by the sessions the server issued.
 - `VoiceSession` = ADR shape `{channel, url, token, listen, speak}` plus two extras the client uses: `room` (rotation detection) and `visible`. Extra fields are harmless if passed through; the client also derives them when absent.
 
-Visibility (ADR 0004 §1: derive `visible = speak`): adopted literally after measurement. Every listen-only session is hidden: ghosts, pending Hunter, moderator, and the non-accused during defense. A speak→listen flip inside a room rotates that room (LiveKit cannot hide a participant in place), so a trial costs two public reconnects (defense start and end), each about 1–2 s, at scene transitions **[test: gateway "defense (ADR 0004 §1, measured)"]**. I first tried a "sticky" refinement (keep a seat visible while it stays in the room) to avoid those reconnects; the browser full-match suite showed it leaves seats that die mid-room (execution, Hunter shot) visible as listen-only ghosts in the public roster, which the policy forbids. Rejected on that evidence; the adapter still honours an explicit `visible` if one is ever added.
+Visibility (ADR 0004 §1: derive `visible = speak`): adopted literally after measurement. Every listen-only session is hidden: ghosts, pending Hunter, moderator. A speak→listen flip inside a room rotates that room (LiveKit cannot hide a participant in place). Under the defense rule of 2026-10-18 (every living player speaks) a trial causes no rotation at all **[test: gateway "defense (approved 2026-10-18…)"]**; under the earlier accused-only rule it cost two public reconnects per trial. I first tried a "sticky" refinement (keep a seat visible while it stays in the room) to avoid those reconnects; the browser full-match suite showed it leaves seats that die mid-room (execution, Hunter shot) visible as listen-only ghosts in the public roster, which the policy forbids. Rejected on that evidence; the adapter still honours an explicit `visible` if one is ever added.
 
 Server duties that stay in Foundation's server: hold the LiveKit API key/secret; derive grants only from the engine's `channels()`; `voiceMode === 'inPerson'` ⇒ every grant set is `[]` ⇒ no sessions, no LiveKit rooms **[test: "in-person"]**; re-issue sessions on reconnect under the same seat identity; serve page, game WS and LiveKit signaling behind one TLS origin (`SECURE_CONTEXT.md`).
 

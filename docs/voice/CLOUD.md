@@ -48,7 +48,7 @@ Approved: Railway Trial at exactly 35151f2 + LiveKit Cloud; probes ≤ 100 parti
 
 ## 4b. First runtime evidence (2026-10-18, run 1, ~5.1 participant-minutes)
 
-Through the deployed app: config-only compatibility confirmed (signaling host `personal-c15mov1e.livekit.cloud`); nearest offered region Hyderabad (3,122 km), then Osaka, Tokyo; no Singapore region; revocation confirmed (old token `/rtc/validate` 401 after rotation, fresh token 200); hidden moderator/ghost rosters and token/channel checks pass; hear-matrix 0 failures in 4 of 5 windows, the defense window right after a rotation showed no audio yet from the accused (timing on Cloud, to be confirmed). Details: `TEST_RESULTS.md`.
+Through the deployed app: config-only compatibility confirmed (signaling host `personal-c15mov1e.livekit.cloud`); nearest offered region Hyderabad (3,122 km), then Osaka, Tokyo; no Singapore region; revocation confirmed (old token `/rtc/validate` 401 after rotation, fresh token 200); hidden moderator/ghost rosters and token/channel checks pass; hear-matrix 0 failures in 4 of 5 windows, the defense window right after a rotation showed no audio yet from the accused (timing on Cloud, to be confirmed). Under the defense rule of 2026-10-18 (every living player speaks) that rotation no longer exists; the gateway unit test covers vote → defense → confirm with no LiveKit change. Details: `TEST_RESULTS.md`.
 
 ## 5. Cloud runtime test plan (run 1 done; see 4b)
 
