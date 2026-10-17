@@ -40,7 +40,7 @@ function originOk(req: IncomingMessage, allowed: readonly string[]): boolean {
   }
 }
 
-export function createMoonveilServer(opts: ServerOptions): { http: Server; registry: Registry; stop: () => Promise<void> } {
+export function createMoonveilServer(opts: ServerOptions): { http: Server; registry: Registry; stop: (graceMs?: number) => Promise<void> } {
   const registry = new Registry(opts);
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_FRAME_BYTES });
   const staticDir = opts.staticDir ? normalize(opts.staticDir) : null;
@@ -98,7 +98,13 @@ export function createMoonveilServer(opts: ServerOptions): { http: Server; regis
     else createReadStream(file).pipe(res);
   });
 
+  let stopping = false;
   http.on('upgrade', (req, socket, head) => {
+    if (stopping) {
+      socket.write('HTTP/1.1 503 Service Unavailable\r\n\r\n');
+      socket.destroy();
+      return;
+    }
     const path = new URL(req.url ?? '/', 'http://x').pathname;
     if (path !== WS_PATH || !originOk(req, opts.allowedOrigins ?? [])) {
       socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
@@ -149,13 +155,31 @@ export function createMoonveilServer(opts: ServerOptions): { http: Server; regis
     registry.sweep();
   }, opts.heartbeatMs ?? HEARTBEAT_MS);
 
-  const stop = () =>
+  // Shutdown (SIGTERM; ADR 0010 §4): save every room, refuse new upgrades, close each socket with 1012 so clients
+  // reconnect and resume after the restart, wait up to graceMs for the close handshakes, then drop the rest.
+  // Best effort only: a crash or SIGKILL gives no notice, and recovery doesn't depend on it.
+  const stop = (graceMs = 1000) =>
     new Promise<void>((resolve) => {
+      stopping = true;
       clearInterval(hb);
-      for (const ws of wss.clients) ws.terminate();
-      wss.close();
-      http.close(() => resolve());
-      http.closeAllConnections();
+      registry.saveAll();
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        for (const ws of wss.clients) ws.terminate();
+        wss.close();
+        http.close(() => resolve());
+        http.closeAllConnections();
+      };
+      let open = wss.clients.size;
+      const timer = setTimeout(finish, graceMs);
+      for (const ws of wss.clients) {
+        ws.once('close', () => --open === 0 && finish());
+        ws.close(CLOSE.serviceRestart, 'service restart');
+      }
+      if (open === 0) finish();
     });
 
   return { http, registry, stop };

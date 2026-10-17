@@ -580,6 +580,11 @@ export class Room<S = unknown> {
     };
   }
 
+  // Shutdown: write the current state now (it is normally saved on every change).
+  save() {
+    this.persist();
+  }
+
   // Save when persistent state changed. Volatile state (sockets, poses, speaking, timers) is not saved.
   private persist() {
     const store = this.deps.store;

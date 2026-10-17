@@ -175,5 +175,5 @@ export async function seatRealMatchUi(table: Table, opts: { mode: Mode; seats: n
   await expect.poll(() => host.view().canStart).toBe(true);
   await tid(host, 'start').click();
   for (const p of [host, ...players]) await expect(tid(p, 'room')).toHaveAttribute('data-status', 'playing');
-  return { mode: opts.mode, moderator: opts.mode === 'moderator' ? host : null, players, driver: host, steps: 0 };
+  return { mode: opts.mode, moderator: opts.mode === 'moderator' ? host : null, players, driver: host, steps: 0, acted: new Set() };
 }

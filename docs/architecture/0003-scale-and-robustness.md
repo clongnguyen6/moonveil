@@ -50,6 +50,7 @@ Movement must be a separate per-viewer-filtered position channel: ghost position
 - Each room is saved as JSON after every persistent change (`apps/server/src/store.ts`): seats and tokens, mode, voiceMode, engine state incl. its clock, chat, frozen presence.
   - Location: `MOONVEIL_DATA_DIR` (default `<repo>/.data/rooms`, gitignored); write `.tmp` then rename; files 0600; deleted on room close. `MOONVEIL_PERSIST=0` disables.
   - Not saved: sockets, poses, speaking, timers.
+- SIGTERM/SIGINT (foundation-9): every room saved, sockets closed with 1012 "service restart" (best effort; clients reconnect and resume), exit within ~1 s. SIGKILL and crashes give no notice; recovery doesn't depend on it (0010 §4).
 - Boot restores all rooms (`Registry.restoreAll`). A room saved by a different engine id is skipped and its file kept.
 - An automatic clock is paused at the last save time, so downtime counts as paused wall time (approved pause rule). The first player back resumes with the exact remaining time.
 - Evidence:

@@ -6,8 +6,8 @@
 // MOONVEIL_TEST_TIME_SCALE (TESTS ONLY: server clock + timers run k× faster; rules and approved timings unchanged),
 // MOONVEIL_TEST_SEED (TESTS ONLY: deterministic match seed `<base>:<host name>`, logged to stdout server-side only;
 //   a trailing `!` = that exact seed for every room, for reproducing one match),
-// MOONVEIL_ALLOWED_ORIGINS (extra /ws origins, comma-separated), MOONVEIL_LAN=0 (no /api/lan addresses); on Render
-//   (RENDER=true) RENDER_EXTERNAL_URL is allowed, LAN addresses are off and the port-range warning is skipped (ADR 0009),
+// MOONVEIL_PUBLIC_ORIGIN (hosted deploy: the public URL; allowed on /ws, LAN addresses off, no port-range warning),
+// MOONVEIL_ALLOWED_ORIGINS (extra /ws origins, comma-separated), MOONVEIL_LAN=0 (no /api/lan addresses) (ADR 0010),
 // LIVEKIT_URL + LIVEKIT_PUBLIC_WS + LIVEKIT_API_KEY + LIVEKIT_API_SECRET (all four = voice via LiveKit; none = no voice).
 import { networkInterfaces } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -63,8 +63,8 @@ const voice = lk.every(Boolean)
     })
   : undefined;
 
-const store =
-  process.env.MOONVEIL_PERSIST === '0' ? undefined : fileRoomStore(process.env.MOONVEIL_DATA_DIR ?? join(here, '../../../.data/rooms'));
+const dataDir = process.env.MOONVEIL_DATA_DIR ?? join(here, '../../../.data/rooms');
+const store = process.env.MOONVEIL_PERSIST === '0' ? undefined : fileRoomStore(dataDir);
 
 // Reachable LAN URLs, only when bound beyond loopback (HOST=0.0.0.0 or a LAN IP). http until TLS is chosen (ADR 0002).
 const lan = lanEnabled(process.env);
@@ -102,8 +102,15 @@ const { http, stop, registry } = createMoonveilServer({
 
 const restored = registry.restoreAll();
 http.listen(port, host, () =>
-  console.log(`moonveil server http://${host}:${port} engine=${engineKind} voice=${voice ? lkPublicWs : 'off'} restoredRooms=${restored}`),
+  console.log(`moonveil server http://${host}:${port} engine=${engineKind} voice=${voice ? lkPublicWs : 'off'} persist=${store ? dataDir : 'off'} restoredRooms=${restored}`),
 );
+// SIGTERM: rooms saved, sockets closed with 1012, exit (up to ~1 s). Hosts that SIGKILL right after SIGTERM need a grace
+// period (Railway: RAILWAY_DEPLOYMENT_DRAINING_SECONDS=5, deploy/railway.ts) for the notice to reach clients.
+let shuttingDown = false;
 for (const s of ['SIGINT', 'SIGTERM'] as const) {
-  process.on(s, () => void stop().then(() => process.exit(0)));
+  process.on(s, () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    void stop().then(() => process.exit(0));
+  });
 }

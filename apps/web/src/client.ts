@@ -35,6 +35,11 @@ export interface ClientState {
   serverOffsetMs: number;
   // This seat's voice sessions from the server (ADR 0004); applied to `client.voice` automatically.
   voiceSessions: VoiceSession[];
+  // Close code of the last connection that dropped after it had opened (UI P15). 1012 = the server's best-effort restart
+  // notice (CLOSE.serviceRestart; ADR 0010 §4): the room is saved and paused until the server is back. null = none yet,
+  // or the watchdog dropped a silent link. Failed reconnect attempts don't change it; cleared by the next welcome.
+  // A crash gives no notice, so `reconnecting` with any other value must also work.
+  lastCloseCode: number | null;
 }
 
 type Intent =
@@ -74,7 +79,7 @@ const BACKOFF = [250, 500, 1000, 2000, 4000];
 const WATCHDOG_MS = HEARTBEAT_MS * 2.5;
 
 export class Client {
-  state: ClientState = { status: 'idle', code: null, view: null, error: null, chat: {}, speaking: [], voiceMode: 'remote', serverOffsetMs: 0, voiceSessions: [] };
+  state: ClientState = { status: 'idle', code: null, view: null, error: null, chat: {}, speaking: [], voiceMode: 'remote', serverOffsetMs: 0, voiceSessions: [], lastCloseCode: null };
   // LiveKit voice client (@moonveil/voice), created on the first non-empty `voice` message (lazy import: in-person
   // and text-only sessions never load livekit-client). UI: unlockAudio() from a tap, setMuted(), subscribe/getSnapshot.
   // Also reachable as globalThis.__moonveil.voice for e2e.
@@ -171,6 +176,7 @@ export class Client {
     ws.onopen = ws.onmessage = ws.onclose = null;
     ws.close();
     this.ws = null;
+    this.set({ lastCloseCode: null }); // dropped by us: no close code from the server
     this.reconnectLater();
   }
 
@@ -187,7 +193,9 @@ export class Client {
     const ws = new WebSocket(this.url);
     this.ws = ws;
     this.set({ status });
+    let opened = false;
     ws.onopen = () => {
+      opened = true;
       if (this.intent) ws.send(JSON.stringify(this.intent));
       this.kick();
     };
@@ -200,6 +208,7 @@ export class Client {
       if (ws !== this.ws) return;
       this.ws = null;
       this.clearTimers();
+      if (opened) this.set({ lastCloseCode: ev.code });
       if (ev.code === CLOSE.replaced) return this.set({ status: 'replaced' });
       if (ev.code === CLOSE.left || this.state.status === 'ended') return this.set({ status: 'ended' });
       if (!this.intent) return this.set({ status: 'idle' });
@@ -242,7 +251,7 @@ export class Client {
         // Subsequent reconnects resume the seat, never re-create/re-join.
         this.intent = { t: 'resume', code: m.code, token: m.token ?? storedToken(m.code) ?? '' };
         this.attempt = 0;
-        this.set({ status: 'open', code: m.code, error: null });
+        this.set({ status: 'open', code: m.code, error: null, lastCloseCode: null });
         if (location.pathname !== `/r/${m.code}`) history.replaceState(null, '', `/r/${m.code}`);
         return;
       case 'state':

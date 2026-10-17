@@ -5,7 +5,7 @@ import type { GameView, SeatView } from '@moonveil/protocol';
 import { assertOpenBallotsViews, assertOutcome, assertSeatIsolationViews } from '../../apps/server/test/assertions.ts';
 import { ALL_ACCEPTANCE } from '../../apps/server/test/acceptance-seeds.ts';
 import { expect, type Player, test } from '../harness/index.ts';
-import { game, protocolActor, runRealMatch, seatRealMatch, send } from '../harness/match.ts';
+import { game, protocolActor, runRealMatch, seatRealMatch, send, skippedSteps } from '../harness/match.ts';
 
 const REAL_PORT = Number(process.env.E2E_REAL_PORT ?? 4152);
 const states = (p: Player): SeatView[] => p.frames.flatMap((f) => (f.msg.t === 'state' ? [f.msg.view] : []));
@@ -60,6 +60,10 @@ for (const seed of ALL_ACCEPTANCE) {
           }
         }
       }, 200, protocolActor, seats + 3); // acceptance: win condition within seats + 3 days
+      // Every step the server ran must have been acted in (strict pacing; 0006). Logged first so evidence survives.
+      const skipped = skippedSteps(m);
+      console.log(`STEPS ${JSON.stringify({ seed: seed.S, acted: m.acted.size, skipped })}`);
+      expect(skipped, 'steps passed without the bots acting (pacing: lower E2E_TIME_SCALE)').toEqual([]);
       expect(m.driver.view().status).toBe('ended');
       const finals = m.players.map((p) => game(p) as GameView);
       assertOutcome(finals[0]!);
@@ -74,7 +78,7 @@ for (const seed of ALL_ACCEPTANCE) {
         const sessions = [...m.players, ...(m.moderator ? [m.moderator] : [])].reduce((n, p) => n + assertVoiceWire(p), 0);
         expect(sessions, 'voice sessions observed').toBeGreaterThan(0);
       }
-      console.log(`MATCH ${JSON.stringify({ mode, seats, seed: seed.S, expected: seed.expect, steps: m.steps, ballotSteps, wolfChat, outcome: finals[0]!.outcome })}`);
+      console.log(`MATCH ${JSON.stringify({ mode, seats, seed: seed.S, expected: seed.expect, steps: m.steps, acted: m.acted.size, ballotSteps, wolfChat, outcome: finals[0]!.outcome })}`);
       expect(ballotSteps).toBeGreaterThan(0);
     });
   }

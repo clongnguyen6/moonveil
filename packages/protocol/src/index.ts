@@ -214,7 +214,8 @@ export type ServerMessage =
   // Sent only to the seat itself; never part of `state`. Empty when the seat holds no grant (or in-person).
   | { t: 'voice'; gen: number; sessions: VoiceSession[] };
 
-export const CLOSE = { protocol: 4000, replaced: 4001, left: 4002, badToken: 4003 } as const;
+// serviceRestart = standard WebSocket 1012: server shutting down (SIGTERM); clients keep their token and reconnect.
+export const CLOSE = { protocol: 4000, replaced: 4001, left: 4002, badToken: 4003, serviceRestart: 1012 } as const;
 export const HEARTBEAT_MS = 10_000;
 export const MAX_FRAME_BYTES = 16 * 1024;
 

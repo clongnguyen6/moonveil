@@ -11,7 +11,7 @@ Status: foundation, 2026-10-16. The harness is ready now; the UI-driven layer wa
   - wolf chat reaches wolves only;
   - outcome matches the approved win conditions;
   - the moderator gets moderator data.
-- **Time** (TEST ONLY): `MOONVEIL_TEST_TIME_SCALE=20` on the real-engine server. Server clock and timers run 20× faster; the engine still sees 60 s nights and all approved timings. Server tests verify real durations.
+- **Time** (TEST ONLY): `MOONVEIL_TEST_TIME_SCALE` on the real-engine server (playwright default 20; the match scripts set ×10, see Strict pacing). Server clock and timers run 20× faster; the engine still sees 60 s nights and all approved timings. Server tests verify real durations.
 - **Ports:** `scripts/e2e-run.mjs` gives OS-assigned free ports (`E2E_PORT` fixture server, `E2E_REAL_PORT` real server, `E2E_RESTART_PORT`).
 - **Voice:** `npm run e2e:matches:voice` (`E2E_VOICE=1`) also starts the pinned LiveKit (voice tooling; writes only under `.cache/livekit`; UDP 4160–4199) and asserts the `voice` frames on every browser. The harness captures only the game socket (`/ws`), never LiveKit's.
 - **Filters:** `E2E_GREP="…"` selects tests; `E2E_TIME_SCALE` sets the real server's time scale (default 20).
@@ -59,3 +59,17 @@ Status: foundation, 2026-10-16. The harness is ready now; the UI-driven layer wa
   Phones reuse the 7-seat seeds. Every browser suite asserts each match's expected outcome. `acceptance-seeds.test.ts` re-simulates the table in-process, so a rules change that shifts an outcome fails a light test, not only the heavy suites.
 - **Q14 zero survivors:** reachable. Found within seats + 3 days for automatic 9 and 10, and moderator 7, 8 and 9; none in 2,000 seeds for automatic 7/8 or moderator 10. Added as extra matches: `a9-1025` (automatic, 9, day 5) and `m7-1124` (moderator, 7, day 3), so each mode covers all four end paths (`EXTRA_SEEDS`, required by `acceptance-seeds.test.ts`). Phones run the 7-seat cases (`a7-0`, `m7-2`, `m7-1124`).
 - **Search scripts must yield to the event loop between simulated matches.** Otherwise pending voice-sync callbacks hold every room and memory grows about 0.5 MB per match. Measured: flat at 10–14 MB over 400 matches with yields. Not a server leak.
+
+## Strict pacing: no skipped steps (foundation-9)
+- **Why:** on foundation-8 (`5b081c4`) the protocol suite at ×20 acted in fewer steps under load. `a7-0`: 14 loop iterations without voice, 13 with. `a9-3`: 34 vs 25. A step that passes between two loop iterations gets no bot action, so later bot choices diverge from the in-process simulation. The outcomes still matched, by luck of the path.
+- **Check:** `skippedSteps(m)` (`e2e/harness/match.ts`) = step keys (`night/day/kind`) that the driver's socket saw while playing but the loop never acted in. `withActions` marks steps where some seat's own view offered actions. Same-key collisions merge, so it can only under-count. Unit test: `e2e/harness/match.test.ts`.
+  - `real-match.spec.ts` (protocol, with and without voice) **fails** on any skipped step and logs `STEPS {seed, acted, skipped}` first.
+  - `real-match-ui.spec.ts` logs `skipped` in `UIMATCH` (not yet a failure; proposal: make it one once a locked run shows 0 at ×5/×2).
+  - Step-change polls run every 20 ms (views are local frames, so polling is cheap).
+- **Protocol suite time scale: ×10** (default of `e2e:matches` and `e2e:matches:voice`; `E2E_TIME_SCALE` overrides). Locked run on `9a806be`, 2026-10-17 (`.cache/runs/pacing-x10-9a806be/`):
+  - 0 skipped steps in all 10 matches, with and without voice;
+  - identical acted-step counts in both runs (a7-0 14, a8-6 10, a9-3 25, a10-16 12, m7-2 7, m8-3 14, m9-54 14, m10-39 21, a9-1025 27, m7-1124 19);
+  - every expected end path reached;
+  - 8.1 min without voice, 8.5 min with (×20 took 4.7 min);
+  - load 3.3 → 4.3, 1.8–3.0 GB free; peaks: browsers 3.4 GB RSS and 484 % CPU, server 336 MB.
+  ×5 was not needed.

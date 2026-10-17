@@ -95,6 +95,11 @@ export class Registry {
     }
   }
 
+  // Shutdown: save every open room before sockets close.
+  saveAll() {
+    for (const r of this.rooms.values()) if (!r.closed) r.save();
+  }
+
   get size() {
     return this.rooms.size;
   }

@@ -1,6 +1,7 @@
 # 0009: Playtest hosting on Render (SPA + game server) + LiveKit Cloud (voice)
 
-Status: chosen provider (Human, 2026-10-17); paper and repo config only. No account actions, spend, credentials or deploys are authorized by this note. Supersedes the candidate list in 0008.
+Status: **documented alternative** (2026-10-17). Railway is the primary host (0010); the app config is host-neutral (0010 §1). Paper and repo config only: no account actions, spend, credentials or deploys. Supersedes the candidate list in 0008.
+**Durable recovery (approved requirement) on Render needs a paid instance + disk (§3 b):** Free has no disk, so the draft `deploy/render.yaml` keeps persistence on by default (no `MOONVEIL_PERSIST`) but on `plan: free` rooms still won't survive a restart.
 Facts are from Render's primary docs, checked 2026-10-17 (pages carry no last-updated date). **unverified** = not confirmed from a primary page.
 
 ## 1. Render service config
@@ -22,11 +23,13 @@ Draft Blueprint: `deploy/render.yaml`. It is inactive until a Blueprint is creat
 ### Environment (names only)
 | Name | Set where | Secret | Note |
 |---|---|---|---|
-| `NODE_VERSION`, `HOST`, `MOONVEIL_ENGINE=rules`, `MOONVEIL_PERSIST` | render.yaml | no | `MOONVEIL_PERSIST` depends on the §3 decision |
+| `NODE_VERSION`, `HOST`, `MOONVEIL_ENGINE=rules` | render.yaml | no | `MOONVEIL_PERSIST` is never set: disabling persistence (§3 a) is unapproved |
+| `MOONVEIL_PUBLIC_ORIGIN` | dashboard (`sync: false`) | no | `https://<service>.onrender.com` (= `RENDER_EXTERNAL_URL`); see §4 |
+| `MOONVEIL_DATA_DIR` | dashboard (`sync: false`) | no | the disk mount + `/rooms` if a paid disk is attached (§3 b) |
 | `LIVEKIT_URL`, `LIVEKIT_PUBLIC_WS` | dashboard (`sync: false`) | no, but project-specific | Cloud project URLs; all four `LIVEKIT_*` or none (server refuses to start otherwise) |
 | `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | dashboard only (`sync: false`) | **yes** | Render's server-side env only. Never committed, never in render.yaml values, never in the client bundle |
-| `MOONVEIL_ALLOWED_ORIGINS` | optional | no | extra `/ws` origins (§4); not needed when `RENDER_EXTERNAL_URL` covers the public name |
-| `PORT`, `RENDER`, `RENDER_EXTERNAL_URL`, `RENDER_EXTERNAL_HOSTNAME` | injected by Render | no | read by the server (§4) |
+| `MOONVEIL_ALLOWED_ORIGINS` | optional | no | extra `/ws` origins (§4), e.g. a custom domain |
+| `PORT`, `RENDER`, `RENDER_EXTERNAL_URL`, `RENDER_EXTERNAL_HOSTNAME` | injected by Render | no | only `PORT` is read by the server (host-neutral since foundation-9) |
 
 - The client bundle reads no env: no `import.meta.env` or `VITE_*` in `apps/web/src` (grep, 2026-10-17). Voice tokens reach a browser only per seat, in `voice` messages (0004).
 - **Never set on Render** (test-only): `MOONVEIL_TEST_TIME_SCALE`, `MOONVEIL_TEST_SEED`, `MOONVEIL_ENGINE=fixture`, `MOONVEIL_FIXTURE_MS`, and all `E2E_*` (`E2E_TIME_SCALE`, `E2E_SEED`, `E2E_GREP`, `E2E_VOICE`, `E2E_UI_STRICT`, `E2E_PORT`, `E2E_REAL_PORT`, `E2E_RESTART_PORT`).
@@ -54,25 +57,26 @@ Today: `fileRoomStore` in `MOONVEIL_DATA_DIR` restores rooms after a process res
 
 | Option | What it means | Cost | Work |
 |---|---|---|---|
-| **(a) Persistence off** | `MOONVEIL_PERSIST=0`. Any restart, spin-down or deploy ends every match in progress. The UI must say so (UI owner); nobody claims matches survive | $0 | config only (render.yaml draft has it). UI copy: UI owner |
+| **(a) Persistence off** | `MOONVEIL_PERSIST=0`. Any restart, spin-down or deploy ends every match in progress. The UI must say so (UI owner); nobody claims matches survive | $0 | config only (not in the render.yaml draft: unapproved). UI copy: UI owner |
 | (b) Paid instance + Render disk | `MOONVEIL_DATA_DIR=<mount>/rooms`; the existing store works unchanged; no spin-down on paid | paid instance + disk, prices **unverified** (owner reads them in the dashboard) | config only; a restart smoke test on Render |
 | (c) External durable store (free tier) | Render Key Value Free has no persistence (data lost on restart): **unusable**. Render Postgres Free: 1 GB, expires 30 days after creation (14-day grace), no backups. Other providers (e.g. a hosted Redis or Postgres free tier): **unverified**, plus a new account | $0 within limits | `RoomStore` is synchronous today. Needs an async adapter (write-behind queue, awaited restore before `listen`, failure handling), unit tests on a fake, and a restart test against the real store. Snapshots hold seat tokens and secret roles, so they would sit with a third party. ~1 agent-day plus account set-up |
 | (d) Keep the instance up | (d1) **in-session keepalive**: the client sends a tiny app message every ~5 min while connected, so idle lobbies or pauses don't spin down. It keeps the service up only while people play (real use), within 750 h. (d2) an external pinger 24/7: not recommended. Docs are silent; it hides a Free limit and doesn't stop restarts or deploys | $0 | (d1): new `ClientMessage` (`t:'ka'`, no reply, no state change), a client timer, server ignore + tests. Small. Not implemented |
 
-**Recommendation: (a) + (d1)** for the first playtests. It costs $0, takes config plus a small protocol/client change, and the risk left is honest: a Render-initiated restart or a deploy ends matches (deploys are manual, so not during a session). Move to (b) if a playtest loses a match or playtests become regular. (c) costs more work than (b) and adds third-party data exposure.
+**Recommendation (pending, sent for decision): (a) + (d1)** if Render is used for the first playtests. Railway with a volume (0010 §4) keeps the approved recovery and needs none of this. It costs $0, takes config plus a small protocol/client change, and the risk left is honest: a Render-initiated restart or a deploy ends matches (deploys are manual, so not during a session). Move to (b) if a playtest loses a match or playtests become regular. (c) costs more work than (b) and adds third-party data exposure.
 Until the decision: recovery code is unchanged, and (b), (c) and (d1) are not implemented.
 
 ## 4. Readiness gaps
 Done on foundation-8 (repo-safe; unset env = previous behaviour), `apps/server/src/deploy.ts` + `apps/server/test/deploy.test.ts`:
-- **Origin check vs. proxy Host.** Whether Render's proxy keeps `Host` = the public name is **unverified**. If it doesn't, the same-origin check would refuse every `/ws` upgrade. Now, extra exact origins are allowed: `RENDER_EXTERNAL_URL` when `RENDER=true`, plus `MOONVEIL_ALLOWED_ORIGINS`. Same-origin is unchanged; other origins are still refused; no `X-Forwarded-*` is trusted. Test: an allowed origin with a rewritten Host passes; an unlisted origin and a wrong scheme are refused. Nothing in the server uses client IPs (rate limits are per seat), so no proxy IP trust is needed.
-- **`/api/lan` on a host.** With `HOST=0.0.0.0` it would list the container's internal IPs. Now off when `RENDER=true` or `MOONVEIL_LAN=0` (returns `[]`; the client already ignores it off loopback).
-- **Port-range warning** skipped when `RENDER=true` (4100–4199 is a workstation rule).
-- **render.yaml draft**, with a test that it contains no test-only vars, no secret values, one free instance and `/healthz`.
+- **Origin check vs. proxy Host.** Whether Render's proxy keeps `Host` = the public name is **unverified**. If it doesn't, the same-origin check would refuse every `/ws` upgrade. Now, extra exact origins are allowed: `MOONVEIL_PUBLIC_ORIGIN` (foundation-9; foundation-8 read `RENDER_EXTERNAL_URL` when `RENDER=true`), plus `MOONVEIL_ALLOWED_ORIGINS`. Same-origin is unchanged; other origins are still refused; no `X-Forwarded-*` is trusted. Test: an allowed origin with a rewritten Host passes; an unlisted origin and a wrong scheme are refused. Nothing in the server uses client IPs (rate limits are per seat), so no proxy IP trust is needed.
+- **`/api/lan` on a host.** With `HOST=0.0.0.0` it would list the container's internal IPs. Now off when `MOONVEIL_PUBLIC_ORIGIN` is set or `MOONVEIL_LAN=0` (returns `[]`; the client already ignores it off loopback).
+- **Port-range warning** skipped when `MOONVEIL_PUBLIC_ORIGIN` is set (4100–4199 is a workstation rule).
+- **render.yaml draft**, with a test that it contains no test-only vars or `MOONVEIL_PERSIST`, no secret values, one instance and `/healthz`.
 
 Proposed (need a decision or another owner):
 - **(d1) keepalive** as above (protocol + client: mine; no UI change).
+- Both below are needed only for a host without durable storage (option a); on Railway with a volume they aren't (0010 §4).
 - **Durability signal for honest UI**: add `durable: boolean` to `welcome`, so the UI shows "a server restart ends this match" when false. Shared protocol field, so it needs the UI owner's agreement. Test: server reports false with `MOONVEIL_PERSIST=0`, true with a store.
-- **Restart notice**: on SIGTERM, send a notice before closing (new `bye` reason, e.g. `restarting`; today's `closed` makes the client drop its token and end), so clients show "server restarting" instead of a silent reconnect then `room-not-found`. Shared protocol + UI copy. Test: `stop()` sends the notice to every socket before terminating.
+- **Restart notice**: implemented differently on foundation-9 as a best-effort WebSocket close 1012 on SIGTERM (0010 §4). Render's 30 s SIGTERM grace is enough for it.
 - **First smoke test on Render** (after deploy approval): check `Host` and `Origin` as seen by the server, `/healthz`, a match on 2 phones + a laptop, and a reconnect.
 
 ## 5. Voice: LiveKit Cloud

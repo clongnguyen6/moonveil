@@ -1,35 +1,39 @@
-// ADR 0009 deploy switches: env -> allowed /ws origins, LAN listing, port warning. Unset env = local behaviour.
-// Plus the server: an allowed origin passes even when a proxy rewrites Host; others are still refused.
+// ADR 0010 deploy switches (host-neutral): env -> allowed /ws origins, LAN listing, port warning. Unset = local.
+// Plus the server (an allowed origin passes even when a proxy rewrites Host) and the deploy/ drafts.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { WebSocket as WsClient } from 'ws';
-import { allowedOrigins, lanEnabled, warnPort } from '../src/deploy.ts';
+import { allowedOrigins, lanEnabled, publicOrigin, warnPort } from '../src/deploy.ts';
 import type { RulesEngine } from '../src/rules/engine.ts';
 import { createFixtureEngine } from '../src/rules/fixture-engine.ts';
 import { createMoonveilServer } from '../src/server.ts';
 import { listenFree } from './ports.ts';
 
-test('local env: no extra origins, LAN on, port warning outside 4100-4199', () => {
+test('local env: no extra origins, LAN on, port warning outside 4100-4199; platform vars alone change nothing', () => {
   assert.deepEqual(allowedOrigins({}), []);
+  assert.equal(publicOrigin({}), undefined);
   assert.equal(lanEnabled({}), true);
   assert.equal(warnPort({}, 4100), false);
   assert.equal(warnPort({}, 10000), true);
-  // RENDER_EXTERNAL_URL alone (not on Render) changes nothing.
-  assert.deepEqual(allowedOrigins({ RENDER_EXTERNAL_URL: 'https://x.onrender.com' }), []);
+  const platform = { RENDER: 'true', RENDER_EXTERNAL_URL: 'https://x.onrender.com', RAILWAY_PUBLIC_DOMAIN: 'x.up.railway.app' };
+  assert.deepEqual(allowedOrigins(platform), []);
+  assert.equal(lanEnabled(platform), true);
 });
 
-test('Render env: external URL allowed, LAN off, no port warning', () => {
-  const env = { RENDER: 'true', RENDER_EXTERNAL_URL: 'https://moonveil.onrender.com' };
-  assert.deepEqual(allowedOrigins(env), ['https://moonveil.onrender.com']);
+test('MOONVEIL_PUBLIC_ORIGIN: hosted deploy = origin allowed, LAN off, no port warning', () => {
+  const env = { MOONVEIL_PUBLIC_ORIGIN: ' https://moonveil.up.railway.app/ ' };
+  assert.equal(publicOrigin(env), 'https://moonveil.up.railway.app');
+  assert.deepEqual(allowedOrigins(env), ['https://moonveil.up.railway.app']);
   assert.equal(lanEnabled(env), false);
-  assert.equal(warnPort(env, 10000), false);
+  assert.equal(warnPort(env, 8080), false);
+  assert.throws(() => publicOrigin({ MOONVEIL_PUBLIC_ORIGIN: 'moonveil.up.railway.app' }), 'a bare domain is a startup error');
 });
 
-test('MOONVEIL_ALLOWED_ORIGINS: trimmed, normalised to origin, deduped; non-http(s) or junk is a startup error', () => {
+test('MOONVEIL_ALLOWED_ORIGINS: trimmed, normalised, deduped with the public origin; non-http(s) or junk is a startup error', () => {
   assert.deepEqual(
-    allowedOrigins({ MOONVEIL_ALLOWED_ORIGINS: ' https://a.example/path , https://a.example,http://b.example:4100 ', RENDER: 'true', RENDER_EXTERNAL_URL: 'https://a.example' }),
+    allowedOrigins({ MOONVEIL_ALLOWED_ORIGINS: ' https://a.example/path , https://a.example,http://b.example:4100 ', MOONVEIL_PUBLIC_ORIGIN: 'https://a.example' }),
     ['https://a.example', 'http://b.example:4100'],
   );
   assert.throws(() => allowedOrigins({ MOONVEIL_ALLOWED_ORIGINS: 'ftp://a.example' }));
@@ -38,7 +42,7 @@ test('MOONVEIL_ALLOWED_ORIGINS: trimmed, normalised to origin, deduped; non-http
 });
 
 test('ws: allowed origin passes with a rewritten Host; unlisted origin and same-origin rules unchanged', async () => {
-  const srv = createMoonveilServer({ engine: () => createFixtureEngine() as RulesEngine<unknown>, allowedOrigins: ['https://moonveil.onrender.com'] });
+  const srv = createMoonveilServer({ engine: () => createFixtureEngine() as RulesEngine<unknown>, allowedOrigins: ['https://moonveil.up.railway.app'] });
   const port = await listenFree(srv.http);
   const open = (origin: string, host: string) =>
     new Promise<string>((resolve) => {
@@ -47,26 +51,44 @@ test('ws: allowed origin passes with a rewritten Host; unlisted origin and same-
       ws.on('error', (e) => resolve(e.message));
     });
   try {
-    assert.equal(await open('https://moonveil.onrender.com', 'internal:10000'), 'open');
-    assert.match(await open('https://evil.example', 'internal:10000'), /403/);
-    assert.match(await open('http://moonveil.onrender.com', 'internal:10000'), /403/, 'scheme is part of the origin');
-    assert.equal(await open(`http://internal:10000`, 'internal:10000'), 'open', 'same-origin still accepted');
+    assert.equal(await open('https://moonveil.up.railway.app', 'internal:8080'), 'open');
+    assert.match(await open('https://evil.example', 'internal:8080'), /403/);
+    assert.match(await open('http://moonveil.up.railway.app', 'internal:8080'), /403/, 'scheme is part of the origin');
+    assert.equal(await open('http://internal:8080', 'internal:8080'), 'open', 'same-origin still accepted');
   } finally {
     await srv.stop();
   }
 });
 
-test('deploy/render.yaml draft: no test-only vars, no secret values, one free instance', () => {
-  const y = readFileSync(join(import.meta.dirname, '../../../deploy/render.yaml'), 'utf8');
-  const entries = [...y.matchAll(/- key: (\S+)\n\s+(value|sync): (.+)/g)].map((m) => ({ key: m[1]!, kind: m[2]!, v: m[3]! }));
-  assert.ok(entries.length >= 8, 'parsed the envVars');
-  for (const e of entries) {
-    assert.doesNotMatch(e.key, /^(MOONVEIL_TEST_|MOONVEIL_FIXTURE_|E2E_)/, `test-only var ${e.key}`);
-    if (e.key === 'MOONVEIL_ENGINE') assert.match(e.v, /^rules\b/);
-    if (e.key.startsWith('LIVEKIT_')) assert.deepEqual([e.kind, e.v], ['sync', 'false'], `${e.key} must be dashboard-only`);
+const draft = (f: string) => readFileSync(join(import.meta.dirname, '../../../deploy', f), 'utf8');
+const TEST_ONLY = /^(MOONVEIL_TEST_|MOONVEIL_FIXTURE_|E2E_|MOONVEIL_PERSIST$)/;
+const SECRETS = ['LIVEKIT_URL', 'LIVEKIT_PUBLIC_WS', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET', 'MOONVEIL_PUBLIC_ORIGIN'];
+
+test('deploy/railway.ts draft (primary): no test-only vars or persistence switch, secrets preserve()d, data dir on the volume, one replica', () => {
+  const t = draft('railway.ts');
+  const env = Object.fromEntries([...t.matchAll(/^\s+([A-Z][A-Z0-9_]+): (.+?),?(?:\s*\/\/.*)?$/gm)].map((m) => [m[1]!, m[2]!]));
+  assert.ok(Object.keys(env).length >= 9, 'parsed the env block');
+  for (const k of Object.keys(env)) assert.doesNotMatch(k, TEST_ONLY, `forbidden var ${k}`);
+  for (const k of SECRETS) assert.equal(env[k], 'preserve()', `${k} must be dashboard-only`);
+  assert.equal(env.MOONVEIL_ENGINE, "'rules'");
+  const mount = /volumeMounts: \{ '([^']+)': rooms \}/.exec(t)?.[1];
+  assert.ok(mount && env.MOONVEIL_DATA_DIR?.startsWith(`'${mount}/`), 'MOONVEIL_DATA_DIR is inside the volume mount');
+  assert.equal(env.RAILWAY_DEPLOYMENT_DRAINING_SECONDS, "'5'", 'grace for the SIGTERM restart notice');
+  assert.match(t, /replicas: \{ \[REGION\]: 1 \}/);
+  assert.match(t, /healthcheck: '\/healthz'/);
+  assert.match(t, /start: 'node apps\/server\/src\/main\.ts'/);
+});
+
+test('deploy/render.yaml draft (alternative): no test-only vars or persistence switch, no secret values, one instance', () => {
+  const y = draft('render.yaml');
+  const entries = [...y.matchAll(/- key: (\S+)\n\s+(value|sync): (\S+)/g)].map((m) => ({ key: m[1]!, kind: m[2]!, v: m[3]! }));
+  assert.ok(entries.length >= 9, 'parsed the envVars');
+  for (const e of entries) assert.doesNotMatch(e.key, TEST_ONLY, `forbidden var ${e.key}`);
+  for (const k of SECRETS) {
+    const e = entries.find((x) => x.key === k);
+    assert.deepEqual([e?.kind, e?.v], ['sync', 'false'], `${k} must be dashboard-only`);
   }
-  assert.doesNotMatch(y, /SECRET\b.*value:|API_KEY\b.*value:/);
+  assert.equal(entries.find((e) => e.key === 'MOONVEIL_ENGINE')?.v, 'rules');
   assert.match(y, /numInstances: 1\b/);
-  assert.match(y, /plan: free\b/);
   assert.match(y, /healthCheckPath: \/healthz\b/);
 });
