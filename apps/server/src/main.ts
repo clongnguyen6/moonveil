@@ -113,7 +113,7 @@ const { http, stop, registry } = createMoonveilServer({
 
 const restored = registry.restoreAll();
 http.listen(port, host, () =>
-  console.log(`moonveil server http://${host}:${port} engine=${engineKind} voice=${voice ? lkPublicWs : 'off'} persist=${store ? dataDir : 'off'} restoredRooms=${restored}`),
+  console.log(`moonveil server http://${host}:${port} engine=${engineKind} voice=${voice ? lkPublicWs : 'off'} persist=${store ? dataDir : 'off'} restoredRooms=${restored.restored} skippedRooms=${restored.skipped}`),
 );
 // SIGTERM: rooms saved, sockets closed with 1012, exit (up to ~1 s). Hosts that SIGKILL right after SIGTERM need a grace
 // period (Railway: RAILWAY_DEPLOYMENT_DRAINING_SECONDS=5, deploy/railway.ts) for the notice to reach clients.

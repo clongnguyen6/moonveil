@@ -51,7 +51,7 @@ Movement must be a separate per-viewer-filtered position channel: ghost position
   - Location: `MOONVEIL_DATA_DIR` (default `<repo>/.data/rooms`, gitignored); write `.tmp` then rename; files 0600; deleted on room close. `MOONVEIL_PERSIST=0` disables.
   - Not saved: sockets, poses, speaking, timers.
 - SIGTERM/SIGINT (foundation-9): every room saved, sockets closed with 1012 "service restart" (best effort; clients reconnect and resume), exit within ~1 s. SIGKILL and crashes give no notice; recovery doesn't depend on it (0010 §4).
-- Boot restores all rooms (`Registry.restoreAll`). A room saved by a different engine id is skipped and its file kept.
+- Boot restores all rooms (`Registry.restoreAll`). Skipped, file kept, `room … skipped reason=…` logged: a room saved by a different engine id, or one whose game `engine.restoreCheck` refuses (rules version: an in-progress match from older rules; rules API.md "Saved matches"). The startup line counts `restoredRooms=N skippedRooms=M`.
 - An automatic clock is paused at the last save time, so downtime counts as paused wall time (approved pause rule). The first player back resumes with the exact remaining time.
 - Evidence:
   - `apps/server/test/restart.test.ts`: 10 min downtime gives identical views and exact remaining time; chat history and isolation hold; moderator mode; engine mismatch skipped; file store atomic/0600/corrupt-skip/remove.

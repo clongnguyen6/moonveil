@@ -89,7 +89,7 @@ test('moderator mode: moderator leaving the lobby closes with a reason; restore 
   p.send({ t: 'join', code: mod.code!, profile: profile('Quillon') });
   // A restart: a second registry on the same store restores the room.
   const w2 = world(store);
-  assert.equal(w2.reg.restoreAll(), 1);
+  assert.equal(w2.reg.restoreAll().restored, 1);
   assert.deepEqual(w2.lines, [`room ${mod.code} restored status=lobby seats=1`]);
   mod.send({ t: 'leave' });
   assert.equal(w.lines.at(-1), `room ${mod.code} closed reason=moderator-left status=lobby reconnects=0 mod=0`);

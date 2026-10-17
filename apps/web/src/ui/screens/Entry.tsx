@@ -80,6 +80,7 @@ export function EntryScreen({ s }: { s: SessionState }) {
       </section>
       {s.error && <p className="danger" role="alert" data-testid="error" data-code={s.error.code}>{errorText(t, s.error)}</p>}
       <section className="card stack" style={{ padding: 16 }}>
+        {!linkCode && <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('entryJoinTitle')}</h2>}
         {linkCode ? (
           <p data-testid="invited"><strong>{t('entryInvited', { code: linkCode })}</strong><br /><span className="hint">{t('entryInvitedHint')}</span></p>
         ) : null}
@@ -90,16 +91,25 @@ export function EntryScreen({ s }: { s: SessionState }) {
         <Button wide testId="join" disabled={!valid || busy || code.length !== 6} onClick={() => go((p) => session.join(code, p))}>{t('entryJoin')}</Button>
       </section>
       {!linkCode && (
-        <section className="card stack" style={{ padding: 16 }}>
-          <p className="hint center">{t('entryOr')}</p>
-          <label className="field row" style={{ justifyContent: 'center' }}>
-            <input type="checkbox" checked={inPerson} onChange={(e) => setInPerson(e.target.checked)} data-testid="in-person" />
-            {t('entryInPerson')}
-          </label>
-          <Button wide kind="secondary" testId="create-automatic" disabled={!valid || busy} onClick={() => create('automatic')}>{t('entryCreateAuto')}</Button>
-          <p className="muted center" style={{ fontSize: 'var(--fs-0)' }}>{t('entryCreateAutoHint')}</p>
+        <section className="card stack" style={{ padding: 16 }} data-testid="create-card">
+          <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('entryNewRoom')}</h2>
+          <div className="field">
+            <span>{t('entryWhere')}</span>
+            <div className="choice" role="radiogroup" aria-label={t('entryWhere')}>
+              <label data-checked={!inPerson}>
+                <input type="radio" name="where" checked={!inPerson} onChange={() => setInPerson(false)} data-testid="where-online" />
+                <span className="meta"><span className="lbl">{t('entryOnline')}</span><span className="line">{t('entryOnlineLine')}</span></span>
+              </label>
+              <label data-checked={inPerson}>
+                <input type="radio" name="where" checked={inPerson} onChange={() => setInPerson(true)} data-testid="in-person" />
+                <span className="meta"><span className="lbl">{t('entryTogether')}</span><span className="line">{t('entryTogetherLine')}</span></span>
+              </label>
+            </div>
+          </div>
+          <Button wide testId="create-automatic" disabled={!valid || busy} onClick={() => create('automatic')}>{t('entryCreateAuto')}</Button>
+          <p className="line center">{t('entryCreateAutoHint')}</p>
           <Button wide kind="secondary" testId="create-moderator" disabled={!valid || busy} onClick={() => create('moderator')}>{t('entryCreateMod')}</Button>
-          <p className="muted center" style={{ fontSize: 'var(--fs-0)' }}>{t('entryCreateModHint')}</p>
+          <p className="line center">{t('entryCreateModHint')}</p>
         </section>
       )}
       <SettingsRow />
