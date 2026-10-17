@@ -214,7 +214,7 @@ export class LocalRoom implements Session {
   stubVoice = new StubVoice();
   /** Dev: simulate a server with no voice backend (no sessions ever) or the P19 flag. */
   voiceNoSessions = false;
-  voiceAvailable: boolean | undefined = undefined;
+  voiceAvailable = true;
   voiceJoin() {
     if (this.voiceMode === 'remote') {
       this.voiceJoined = true;
@@ -373,6 +373,7 @@ export class LocalRoom implements Session {
       phaseEndsAt: this.phaseEndsAt,
       phaseDurationMs: this.game && this.phaseEndsAt !== null ? this.engine.phase(this.game).durationMs : null,
       voiceMode: this.voiceMode,
+      voiceAvailable: this.voiceAvailable,
       deck: this.status === 'lobby' ? { default: defaultDeck(this.players.length), custom: this.customDeck, error: this.deckError() } : null,
       game: this.game ? this.engine.view(this.game, isMod ? { kind: 'moderator' } : { kind: 'seat', seat: me.id }) : null,
       voice: grants,
