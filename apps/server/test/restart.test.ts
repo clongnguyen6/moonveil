@@ -57,7 +57,7 @@ test('automatic: restart mid-night resumes the same match; downtime is paused ti
   // Crash: sockets gone, server process gone. 10 min downtime.
   const clock2 = restartClock(clock, 10 * 60_000);
   const reg2 = registry(store, clock2);
-  assert.equal(reg2.restoreAll(), 1);
+  assert.equal(reg2.restoreAll().restored, 1);
   const back = players.map((p) => resumeOn(reg2, p));
   back.forEach((c, i) => {
     assert.equal(c.seat, players[i]!.seat, 'same seat');
@@ -95,7 +95,7 @@ test('a room saved by another engine is skipped, not misread', () => {
   const clock = new ManualClock();
   seat8(registry(store, clock, () => createFixtureEngine() as RulesEngine<unknown>), 'automatic');
   const reg2 = registry(store, clock);
-  assert.equal(reg2.restoreAll(), 0);
+  assert.equal(reg2.restoreAll().restored, 0);
 });
 
 test('file store: atomic 0600 files, corrupt files skipped, closed rooms removed', () => {
@@ -109,7 +109,7 @@ test('file store: atomic 0600 files, corrupt files skipped, closed rooms removed
   assert.equal(statSync(join(dir, files[0]!)).mode & 0o777, 0o600);
   writeFileSync(join(dir, 'ZZZZZZ.json'), '{not json');
   const reg2 = registry(fileRoomStore(dir), restartClock(clock, 1_000));
-  assert.equal(reg2.restoreAll(), 1);
+  assert.equal(reg2.restoreAll().restored, 1);
   reg2.get(creator.code!).close();
   assert.ok(!readdirSync(dir).includes(`${creator.code}.json`), 'closed room file removed');
 });

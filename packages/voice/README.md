@@ -33,3 +33,10 @@ Scene in test pages: `MOONVEIL_SCENE=off|low|high` (default `off` here; the init
 Needed from foundation's wiring (asked through Lead): the server reads the four `LIVEKIT_*` env vars above to build
 `LiveKitVoiceGateway`; the web shell exposes its `VoiceClient` as `globalThis.__moonveil.voice` (same pattern as `__moonveil`
 for the client). Optional: `MOONVEIL_RULES_CONFIG` (JSON) to shorten phase durations in automatic-mode tests.
+
+## LiveKit Cloud (deployed app) runtime check
+
+```
+VOICE_CLOUD_URL=https://<app-host> VOICE_CLOUD_CAP_MIN=60 node scripts/env.mjs npm run e2e:cloud -w @moonveil/voice
+```
+No local server, no LiveKit started, no secret on this machine: 8 headless pages (7 players + moderator, the rules minimum) join the deployed app, tap Join voice, and measure through Cloud (lobby, night, day, a forced execution, the next night). Prints the running participant-minute estimate (connected channels × minutes, sampled every 5 s) and leaves voice before the cap. Traces/video/screenshots off (tokens never reach artifacts). Env names for the server (set in the app host's dashboard only): `LIVEKIT_URL=https://<project>.livekit.cloud`, `LIVEKIT_PUBLIC_WS=wss://<project>.livekit.cloud`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`. `LiveKitBackend.probe()` is a one-call reachability check for the server's startup log / `/healthz`.

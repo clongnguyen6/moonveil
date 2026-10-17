@@ -8,12 +8,15 @@ import { assertOpenBallotsViews, assertOutcome, assertSeatIsolationViews } from 
 import { ALL_ACCEPTANCE } from '../../apps/server/test/acceptance-seeds.ts';
 import { expect, type Player, test } from '../harness/index.ts';
 import { type BrowserMatch, game, runRealMatch, skippedSteps } from '../harness/match.ts';
-import { seatRealMatchUi, uiBotAct, uiCloseStep, uiPresent, uiStats } from '../harness/ui.ts';
+import { sceneMode, seatRealMatchUi, uiBotAct, uiCloseStep, uiPresent, uiStats } from '../harness/ui.ts';
 
 const REAL_PORT = Number(process.env.E2E_REAL_PORT ?? 4152);
 const states = (p: Player): SeatView[] => p.frames.flatMap((f) => (f.msg.t === 'state' ? [f.msg.view] : []));
 const isPhone = (name: string) => name.startsWith('ui-phone');
 const STRICT = process.env.E2E_UI_STRICT === '1';
+// One scene observer per match (host: moderator, or the first seat): 'auto' (no override; the scene picks 'low' under
+// webdriver). All other contexts 'off'. MOONVEIL_SCENE overrides the observer's mode.
+const SCENE = sceneMode('auto');
 const ACTION_CONTROLS = ['confirm', 'vote-skip', 'vote-yes', 'vote-no', 'heal-yes', 'heal-no'];
 
 // On a failed ghost check: what the wire says vs which hooks the page shows.
@@ -42,17 +45,19 @@ for (const seed of ALL_ACCEPTANCE) {
       await probe.context.close();
 
       let outcome: unknown = null;
-      // Steps passed without the UI actor acting (pacing). Logged only here; the protocol suite fails on them (0006).
+      // Steps passed without the UI actor acting (pacing). Strict (acceptance) runs fail on them, like the protocol suite (0006).
       let skipped: ReturnType<typeof skippedSteps> | null = null;
+      let sceneObserver: string | null = null;
       uiStats.attempted = uiStats.done = 0;
       uiStats.misses = [];
       uiStats.byType = {};
       uiStats.wolfPicks = [];
       const stats = { ballotSteps: 0, reloads: 0, reloadMs: 0, ballotRecheckAfterReload: '', drops: 0, ghostChecks: 0, overflowChecks: 0, wolfPicksChecked: 0 };
       const report = (result: string) =>
-        console.log(`UIMATCH ${JSON.stringify({ project: info.project.name, mode, seats, seed: seed.S, expected: seed.expect, outcome, result, strict: STRICT, landed: uiStats.done, intended: uiStats.attempted, byType: uiStats.byType, misses: uiStats.misses, skipped, ...stats })}`);
+        console.log(`UIMATCH ${JSON.stringify({ project: info.project.name, mode, seats, seed: seed.S, scene: { mode: SCENE, observer: sceneObserver, others: 'off' }, expected: seed.expect, outcome, result, strict: STRICT, landed: uiStats.done, intended: uiStats.attempted, byType: uiStats.byType, misses: uiStats.misses, skipped, ...stats })}`);
       try {
-      const m = await seatRealMatchUi(table, { mode, seats, baseURL: `http://127.0.0.1:${REAL_PORT}`, hostName: seed.S });
+      const m = await seatRealMatchUi(table, { mode, seats, baseURL: `http://127.0.0.1:${REAL_PORT}`, hostName: seed.S, scene: SCENE });
+      sceneObserver = m.moderator ? `moderator (${m.driver.name})` : `seat ${game(m.driver)!.me!.seat} (${m.driver.name})`;
       await runRealMatch(
         m,
         seed.S,
@@ -130,6 +135,7 @@ for (const seed of ALL_ACCEPTANCE) {
       expect(uiStats.done, 'UI actions performed').toBeGreaterThan(0);
       // Acceptance (E2E_UI_STRICT=1): every intended UI action must land. Quick runs: at least 80%.
       if (STRICT) expect(uiStats.misses, 'UI actions that did not land').toEqual([]);
+      if (STRICT) expect(skipped, 'steps passed without the UI actor acting (pacing: lower E2E_TIME_SCALE)').toEqual([]);
       else expect(uiStats.done / uiStats.attempted, 'share of UI actions that landed').toBeGreaterThanOrEqual(0.8);
       report('passed');
       } catch (e) {

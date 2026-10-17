@@ -83,6 +83,9 @@ export const ClientMessage = z.discriminatedUnion('t', [
       .refine((o) => Object.keys(o).length <= 16, 'too many roles')
       .nullable(),
   }),
+  // Host, lobby only (D5): switch remote voice <-> in person. Every view's `voiceMode` updates; inPerson = no voice
+  // sessions for anyone (grants synced as []), remote = normal grants again.
+  z.strictObject({ t: z.literal('voiceMode'), ref: Ref, voiceMode: VoiceMode }),
   // Text on a channel. Server accepts only with a current `speak` grant on that channel.
   z.strictObject({ t: z.literal('say'), ref: Ref, channel: ChannelId, text: ChatText }),
   // Free movement (lobby; ghosts during play). <= 10 Hz. Server silently drops moves a seat may not make. No ack.
@@ -117,6 +120,10 @@ export interface SeatView {
   engine: string;
   mode: Mode;
   voiceMode: VoiceMode;
+  // P19: false when this server runs without a voice backend (no LiveKit configured): the UI offers no Join voice
+  // and says so. Independent of voiceMode (a room choice). Constant for the server's lifetime. Always sent by this
+  // server; optional in the type so clients and stubs built before P19 still compile.
+  voiceAvailable?: boolean;
   status: RoomStatus;
   me: { seat: SeatId; kind: SeatKind; host: boolean };
   players: PublicSeat[];

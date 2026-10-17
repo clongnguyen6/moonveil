@@ -14,7 +14,7 @@ visual changes. Text is localized (vi/en) and must not be asserted on. Everythin
 | `[data-testid=room][data-status=lobby\|playing\|ended][data-kind=player\|moderator][data-step=<step.kind>][data-wake=on\|off\|failed\|unsupported]` | frame | room state (present in lobby and match) |
 | `[data-testid=conn][data-status=open\|connecting\|reconnecting\|replaced\|ended]` | one element | connection; `open` = chip, others = overlay |
 | `[data-testid=you]` | lobby header / match top bar | this seat's display name (moderator shows the moderator name) |
-| `[data-testid=error]` | entry/lobby/match | last server error text |
+| `[data-testid=error][data-code=<server error code>]` | entry/lobby/match | last server error; assert on `data-code`, the text is localized copy |
 | `[data-testid=scene-slot]` | scene host | canvas mount (absent when Settings → scene is off) |
 | `localStorage['moonveil.ui.settings']` | init script | `{ lang, sound, reducedMotion, modNarration, ambience, scene }`; set `scene:false, sound:false, reducedMotion:'on'` for many-context runs |
 
@@ -29,7 +29,7 @@ visual changes. Text is localized (vi/en) and must not be asserted on. Everythin
 host only: `[data-testid=deck-edit]` → `[data-role=<role>] button[aria-label^="+"|"-"]` → `[data-testid=deck-apply]`; `[data-testid=deck-reset]` when custom. Server errors also land in `[data-testid=error]`.
 
 ## Voice (single VoiceClient from client.ts, `__moonveil.voice`)
-`[data-testid=voice][data-speak=<channels>][data-mic=idle|requesting|granted|denied|failed|…][data-muted]` in the match top bar; `[data-testid=audio-unlock]` when autoplay is blocked.
+`[data-testid=voice][data-speak=<channels>][data-mic=…][data-muted][data-voice=off|notJoined|connecting|reconnecting|live|listening|denied|failed]` in the match top bar (`voice-label` text); lobby `[data-testid=mic][data-voice=…]` with `voice-busy` while connecting/reconnecting; `[data-testid=audio-unlock]` when autoplay is blocked.
 Lobby `[data-testid=mic][data-status=…]`: with a VoiceClient, `ok|checking|idle|denied|failed` from its snapshot plus `[data-testid=mic-mute]` / `[data-testid=mic-reload]`; without one (in-person, stub), the local check hooks listed above.
 
 ## Match

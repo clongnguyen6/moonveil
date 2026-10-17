@@ -56,9 +56,11 @@ label.field.row { min-height: var(--tap); gap: var(--sp-3); cursor: pointer; }
 .banner.danger { background: var(--danger-soft); color: var(--danger); }
 
 .toast { background: var(--surface-3); color: var(--ink); border: 1px solid var(--line-strong); border-radius: var(--r-2); box-shadow: var(--shadow-2); font-weight: 600; }
-.sheet { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3) var(--r-3) 0 0; box-shadow: var(--shadow-2); }
+/* Sheets and dialogs are opaque: the screen behind must not show through text. */
+.sheet { background: var(--bg); border: 1px solid var(--line-strong); border-radius: var(--r-3) var(--r-3) 0 0; box-shadow: var(--shadow-2); }
+.scrim .card.raised { background: var(--bg); backdrop-filter: none; }
 .sheet .grip { background: var(--line-strong); border-radius: var(--r-pill); }
-.scrim { background: rgba(0,0,0,.45); }
+.scrim { background: rgba(0,0,0,.65); }
 .scene-host { background: var(--scene); transition: background var(--dur-phase) var(--ease); }
 .topbar { background: linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,0)); color: var(--ink); }
 .meter { background: var(--bg-2); border-radius: var(--r-pill); overflow: hidden; border: 1px solid var(--line); }

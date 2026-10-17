@@ -15,6 +15,8 @@ const base = `http://127.0.0.1:${port}/src/ui/dev/index.html`;
 const args = process.argv.slice(2);
 const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : null;
 const withWebkit = args.includes('--webkit');
+const SCENE = process.env.SCENE === 'off' ? 'off' : 'on';
+console.log(`[scene] ${SCENE} (captures render the scene unless SCENE=off; needs the lock when on)`);
 
 const SCENARIOS = ['entry', 'lobby', 'role', 'night-wolf', 'night-seer', 'night-guard', 'night-villager', 'witch', 'hunter', 'day', 'vote', 'defense', 'confirm', 'ghost', 'ended', 'moderator', 'moderator-day', 'stalemate'];
 const SHEETS = { role: 'open-role', help: 'open-help', chat: 'open-chat' };
@@ -27,6 +29,7 @@ const sizes = {
 
 async function shoot(browser, tag, ctxOpts, list, lang) {
   const ctx = await browser.newContext({ ...ctxOpts, locale: lang === 'vi' ? 'vi-VN' : 'en-US', reducedMotion: 'reduce' });
+  if (SCENE === 'off') await ctx.addInitScript(() => { globalThis.__MOONVEIL_SCENE = 'off'; });
   const page = await ctx.newPage();
   for (const sc of list) {
     if (only && sc !== only) continue;

@@ -1,6 +1,6 @@
 # Moonveil narration and phase text
 
-Status: product copy, 2026-10-17. Narration cues are shown by default (D6). They may state **approved rules only**; they must not quietly settle anything that's still pending.
+Status: product copy, 2026-10-18. Narration cues are shown by default (D6). They may state **approved rules only**; they must not quietly settle anything that's still pending.
 Each line has a **Status**:
 - **approved-consistent**: states approved rules only; use as is.
 - **pending: X**: depends on an undecided item (codes from `DECISIONS_REMAINING.md`). Use the **neutral** line instead: it's true whatever is decided. Switch to the specific wording only after the item is approved.
@@ -12,7 +12,7 @@ Vietnamese is my draft and needs a native read-through. Role names follow sky2 (
 - Never say *how* someone died at night, or in what order the night actions happened.
 - **Private** lines appear only on that seat's own device, and only while it is entitled to them (a ghost gets no new night prompts).
 - Day votes are **open ballots** (approved): who voted for whom is public and live. Night actions stay private.
-- Timers, counts and name lists come from the engine (`{t}`, `{mm:ss}`, `{k}`, `{need}`, `{names}`), so a line never hard-codes a provisional duration.
+- Timers, counts and name lists come from the engine (`{t}`, `{mm:ss}`, `{k}`, `{need}`, `{names}`). Durations are approved (Batch B), but timers still come from the engine (pauses, clock).
 - `{name}` = seat name; `{n}` = night or day number.
 
 ## Match start and roles
@@ -43,7 +43,7 @@ Vietnamese is my draft and needs a native read-through. Role names follow sky2 (
 |---|---|---|---|---|
 | D1 | public | Morning. **{names}** did not survive the night. | Trời sáng. **{names}** đã không qua khỏi đêm qua. | approved-consistent: the wording says nothing about causes (**E1** decides only whether causes are added). List names in the engine's order |
 | D2 | public | Morning. Everyone survived the night. | Trời sáng. Đêm qua không ai thiệt mạng. | approved-consistent |
-| H1 | public | **{name} was the Hunter.** They have 20 seconds for a final shot. | **{name} là Thợ săn.** Có 20 giây để bắn phát cuối. | pending: **B4** (the turn may end once the shot is taken). Neutral: "**{name} was the Hunter.** They have up to 20 seconds for a final shot." / "**{name} là Thợ săn.** Có tối đa 20 giây để bắn phát cuối." |
+| H1 | public | **{name} was the Hunter.** They have up to 20 seconds for a final shot. | **{name} là Thợ săn.** Có tối đa 20 giây để bắn phát cuối. | approved-consistent (B3 20 s; B4 the turn ends once the shot is taken, hence "up to") |
 | H2 | private (Hunter) | Choose someone to shoot, or hold your fire. | Chọn người để bắn, hoặc không bắn. | approved-consistent |
 | H3 | public | {hunter} shot **{target}**. | {hunter} đã bắn **{target}**. | approved-consistent |
 | H4 | public | {hunter} held their fire. | {hunter} đã không bắn. | approved-consistent (pass or timeout) |
@@ -51,7 +51,7 @@ Vietnamese is my draft and needs a native read-through. Role names follow sky2 (
 ## Day
 | ID | Audience | English | Tiếng Việt | Status |
 |---|---|---|---|---|
-| Y1 | public | Day {n}. Talk it over: {mm:ss}. | Ngày {n}. Thảo luận: {mm:ss}. | approved-consistent (`{mm:ss}` from the engine; the length itself is **B2**) |
+| Y1 | public | Day {n}. Talk it over: {mm:ss}. | Ngày {n}. Thảo luận: {mm:ss}. | approved-consistent (`{mm:ss}` from the engine; length approved, B2) |
 | Y2 | public | Vote for who goes on trial, or Skip. Everyone sees each vote as it's cast. | Bỏ phiếu đưa ai ra xét xử, hoặc Bỏ qua. Mọi người đều thấy từng phiếu ngay khi bỏ. | approved-consistent (Q09, open ballots) |
 | Y3 | public (live) | {voter} → {name} / {voter} → Skip / {voter}: Yes / {voter}: No | {voter} → {name} / {voter} → Bỏ qua / {voter}: Đồng ý / {voter}: Không | approved-consistent |
 | Y3b | private (voter) | You can change your vote until time is up. | Bạn có thể đổi phiếu đến khi hết giờ. | approved-consistent |
@@ -59,7 +59,7 @@ Vietnamese is my draft and needs a native read-through. Role names follow sky2 (
 | Y5 | public | No trial today: the vote was tied. | Hôm nay không xét xử: số phiếu hòa. | approved-consistent |
 | Y6 | public | No trial today: Skip had the most votes. | Hôm nay không xét xử: Bỏ qua nhiều phiếu nhất. | approved-consistent |
 | Y7 | public | No trial today: nobody voted. | Hôm nay không xét xử: không ai bỏ phiếu. | approved-consistent |
-| Y8 | public | {name}, you have 30 seconds to defend yourself. Everyone else listens. | {name}, bạn có 30 giây để tự bào chữa. Mọi người lắng nghe. | approved-consistent (30 s defense; only the accused speaks) |
+| Y8 | public | {name}, you have 30 seconds to defend yourself. | {name}, bạn có 30 giây để tự bào chữa. | approved-consistent (30 s defense; the accused has the focus, and every living player may speak, 2026-10-18; the line must not say only the accused may speak) |
 | Y9 | public | Execute {name}? It takes Yes from more than half of all living players: **{need} of {living}**. | Xử tử {name}? Cần hơn một nửa số người còn sống đồng ý: **{need}/{living}**. | approved-consistent (whether the accused votes is **D6**; the line doesn't say) |
 | Y10 | public | **{name}** is executed ({yes} Yes). | **{name}** bị xử tử ({yes} phiếu đồng ý). | approved-consistent |
 | Y11 | public | {name} is spared ({yes} Yes; {need} needed). | {name} được tha ({yes} phiếu đồng ý; cần {need}). | approved-consistent |

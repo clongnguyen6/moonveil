@@ -1,7 +1,7 @@
 // Rules configuration. Every key here is PROVISIONAL (see docs/rules/PROPOSAL.md, Qxx) until Human approves it.
 // Approved rules are fixed engine behaviour and are NOT here: six roles; Batch A table sizes/decks (7-15); victory (parity / no wolves / zero = draw);
 // resolve-before-victory; Q03 Witch; Q06 Hunter; Q07 wolf plurality; Q09/Q10 nomination, 30 s defense, Yes/No with
-// Yes*2 > living; Q11 night = fixed 60 s, never early; day votes run to deadline with hidden interim results;
+// Yes*2 > living; Q11 night = fixed 60 s, never early; day votes run to their deadline; Batch B step durations;
 // Q16 moderator Yes count; day votes are open ballots shown live (Q22); Q20 reveal rules; Q24 ghost knowledge; Q25 channel policy (except moderator speaking).
 import { clone } from './clone.ts';
 import type { Role } from './types.ts';
@@ -12,6 +12,21 @@ export type DeckCounts = Record<Role, number>;
 export const NIGHT_TOTAL_SECONDS = 60;
 /** APPROVED: defense length in seconds. */
 export const DEFENSE_SECONDS = 30;
+
+// APPROVED Batch B (2026-10-17), seconds. Night split B1; discussion B2; votes and Hunter B3; Hunter early close B4.
+/** Main night step (Wolves, Seer, Guard); the Witch step gets NIGHT_TOTAL_SECONDS - this. */
+export const NIGHT_MAIN_SECONDS = 40;
+/** Discussion = DISCUSSION_BASE + DISCUSSION_PER_ALIVE x living players, clamped to [DISCUSSION_MIN, DISCUSSION_MAX]. */
+export const DISCUSSION_BASE_SECONDS = 60;
+export const DISCUSSION_PER_ALIVE_SECONDS = 15;
+export const DISCUSSION_MIN_SECONDS = 90;
+export const DISCUSSION_MAX_SECONDS = 240;
+/** Nomination vote. */
+export const VOTE_SECONDS = 30;
+/** Yes/No vote. */
+export const CONFIRM_SECONDS = 15;
+/** Hunter turn; ends early once every pending Hunter has shot or held fire. */
+export const HUNTER_SECONDS = 20;
 
 /** APPROVED F1-A (2026-10-16): consecutive no-death full cycles that end the match as a stalemate draw (warning after one fewer). */
 export const STALEMATE_CYCLES = 3;
@@ -73,18 +88,6 @@ export interface RulesConfig {
   };
   /** Q26: may the system/host remove a seat during a secret (night) step? Moderator always may. */
   removal: { systemDuringSecret: boolean };
-  /** Seconds. Q11/Q19. Night total (60) and defense (30) are approved constants above. */
-  timing: {
-    /** Q11: main night step; the Witch step gets NIGHT_TOTAL_SECONDS - nightMain. Must be 1..59. */
-    nightMain: number;
-    discussionBase: number;
-    discussionPerAlive: number;
-    discussionMin: number;
-    discussionMax: number;
-    vote: number;
-    confirm: number;
-    hunter: number;
-  };
 }
 
 export const DEFAULT_CONFIG: RulesConfig = {
@@ -98,16 +101,6 @@ export const DEFAULT_CONFIG: RulesConfig = {
   // speaksInPublic=false: approved Q25 grants the moderator listening only; speech is not approved.
   moderator: { mayBreakRules: false, canActForSeats: true, canSetWolfTarget: true, speaksInPublic: false },
   removal: { systemDuringSecret: false },
-  timing: {
-    nightMain: 40,
-    discussionBase: 60,
-    discussionPerAlive: 15,
-    discussionMin: 90,
-    discussionMax: 240,
-    vote: 30,
-    confirm: 15,
-    hunter: 20,
-  },
 };
 
 /** Registry of provisional config paths -> proposal item. Tests assert every entry has a swap test. */
@@ -131,14 +124,6 @@ export const PROVISIONAL: Record<string, string> = {
   'moderator.canSetWolfTarget': 'Q16',
   'moderator.speaksInPublic': 'Q16/Q25',
   'removal.systemDuringSecret': 'Q26',
-  'timing.nightMain': 'Q11-split',
-  'timing.discussionBase': 'Q19',
-  'timing.discussionPerAlive': 'Q19',
-  'timing.discussionMin': 'Q19',
-  'timing.discussionMax': 'Q19',
-  'timing.vote': 'Q19',
-  'timing.confirm': 'Q19',
-  'timing.hunter': 'Q19',
 };
 
 export type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };

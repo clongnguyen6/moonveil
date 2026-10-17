@@ -39,6 +39,9 @@ export interface RulesEngine<S> {
     // null = valid for this player count; else the engine's reason.
     validate(counts: Record<string, number>, playerCount: number): string | null;
   };
+  // Saved-match compatibility (rules API.md "Saved matches"): null = restore; a string = refuse, with the reason.
+  // Called by Room.restore for rooms with a game. Optional: engines without it restore everything (fixture).
+  restoreCheck?(state: S): string | null;
   phase(state: S): PhaseInfo;
   // Player action. Engine validates seat, phase, target. Server only routes.
   submit(state: S, seat: SeatId, action: unknown): Result<S>;

@@ -8,8 +8,12 @@ Rules live in `docs/rules/PROPOSAL.md`. **Approved rules are fixed behaviour; ev
 - Q03 Witch; Q06 Hunter; Q07 wolf plurality;
 - Q09/Q10 trial, 30 s defense and Yes/No with `Yes × 2 > all living`; Q16 moderator Yes count;
 - Q11 fixed 60 s nights, never early; day votes run to their deadline as open ballots shown live (Q22);
-- Q20 reveals; Q24 ghosts; Q25 channels (except moderator speaking, which is provisional and **off** by default);
+- Q20 reveals; Q24 ghosts; Q25 channels (except moderator speaking, which is provisional and **off** by default; defense row changed 2026-10-18, below);
 - disconnected seats and the automatic-mode pause.
+
+**Approved 2026-10-17 (fixed): Batch B durations.** Night 40 + 20 s; discussion 60 s + 15 s × living, clamped 90–240 s (`discussionSeconds(living)`); nomination 30 s; defense 30 s; Yes/No 15 s; Hunter 20 s, `earlyCloseReady` once every pending Hunter has shot or held fire. Exported constants: `NIGHT_TOTAL_SECONDS`, `NIGHT_MAIN_SECONDS`, `DISCUSSION_{BASE,PER_ALIVE,MIN,MAX}_SECONDS`, `VOTE_SECONDS`, `DEFENSE_SECONDS`, `CONFIRM_SECONDS`, `HUNTER_SECONDS`. The `timing.*` settings were removed.
+
+**Approved 2026-10-18 (fixed): open speech during defense.** In `day.defense`, every living seat gets `public` listen + speak (supersedes accused-only). `step.accused` still marks the defense focus; the 30 s timer is unchanged. Ghosts, the pending Hunter, the moderator and night grants are unchanged.
 
 ## Run
 ```
@@ -27,6 +31,7 @@ const engine = createRulesEngine({ config?, deck? });   // RulesEngine<HostState
 |---|---|
 | `id`, `minPlayers`, `maxPlayers` | approved Batch A: 7 and 15 (fixed; `PLAYERS_MIN`/`PLAYERS_MAX`) |
 | `setup({seats, seed})` | seeded role assignment; `clock` starts `null`. Call `sync(now)` next in automatic mode |
+| `restoreCheck(state) -> string \| null` | call before restoring a saved state: `null` = restore; a string = refuse, with the reason (see Saved matches). Never throws |
 | `phase(s) -> {name, secret, durationMs, earlyClose, ended}` | `secret` = night steps. `earlyClose` is true only for the Hunter step once all shots are in; never for night or votes (approved) |
 | `submit(s, seatId, action)` | player action = Command without `seat` (the engine injects the actor). Strictly parsed |
 | `moderate(s, action)` | moderator Command (seat indices). Approved: `day.confirmCount {yes}` (the engine applies `yes*2 > living`; `yes` must be an integer 0..living at apply time, else `bad_value`); no direct day-result command. Approved: `match.end {confirm: 'end-match'}`, which ends the match with no winner (`outcome {winner:'aborted', reason:'aborted'}`); a missing or wrong confirm gives `bad_value`; moderator only. Provisional: acting for seats (`moderator.canActForSeats`), `wolf.decide` (`moderator.canSetWolfTarget`), `player.remove`, `step.close`. `match.abort` was removed |
@@ -52,6 +57,7 @@ Seats inside the game are **indices**; `view().seatIds[i]` is the SeatId, and cl
 4. Views: per seat `view(s, {kind:'seat', seat})`; moderator `{kind:'moderator'}`; spectators `{kind:'public'}`. Never send `HostState`.
 5. Grants: `channels(s, seatId)` for players and `channels(s, {kind:'moderator'})` for the moderator. Recompute them after every change.
 6. Host removal of a long-disconnected player → `remove()`. It's refused at night; retry in the day.
+7. **Restore** (see Saved matches): lobby rooms (`game === null`) restore as today; for a room with a game, call `restoreCheck(game)` and, if it returns a reason, don't restore that room (treat it like an engine-id mismatch: skip and log the reason).
 
 ### Channel enforcement the server and voice must provide (approved Q25 and Q06)
 - **Live voice, text and emotes:** deliver on a channel only to seats whose *current* grant has `listen`, and accept only from `speak`.
@@ -59,17 +65,24 @@ Seats inside the game are **indices**; `view().seatIds[i]` is the SeatId, and cl
 - **Membership, rosters and speaking indicators** for a channel go only to seats with `listen` on it.
 - `isPendingHunter(state, seat)` is exported. While pending, the Hunter's grants are public-listen only; they change to ghost access when the turn resolves.
 
+## Saved matches (versioning)
+- `id` stays `'moonveil-werewolf'` in every revision (clients select the game view by it). The rules version is `match.v` = `STATE_VERSION` (`src/version.ts`), set at creation.
+- `restoreCheck(state)`: an **in-progress** match restores only if `match.v === STATE_VERSION`. A **finished** match restores if `match.v` is in `ENDED_READABLE_VERSIONS` (no rules run after the end; only views and grants). Anything else is refused.
+- Versions: 1 = up to and including 35151f2 (deployed); 2 = open defense speech (2026-10-18), current.
+- **Bump `STATE_VERSION`** when a change would alter the meaning of a saved in-progress match. That means any rule behaviour reachable mid-match (step order or durations, legal actions, tallies, deaths, victory, grants, what a view reveals), or a change to the state shape the engine reads. **No bump** for docs, tests, setup-only rules (deck validation, table size), or refactors with identical behaviour. A bump must keep the previous version in `ENDED_READABLE_VERSIONS` unless its ended states no longer project; add a fixture test when you drop one.
+- Guard: `test/restore.test.ts` hashes `src/`. Any src change fails it until you decide: bump if needed, then record the new version and hash in `REVIEWED`.
+
 ## Core calls (engine level)
 ```ts
 createMatch({ seed, playerCount } | { seed, roles } | { seed, playerCount, deck }, config?) -> {ok, state} | {ok:false, error}
 apply(state, actor, command) -> {ok:true, state} | {ok:false, error:{code, message}}   // never mutates input
 check(state, actor, command) -> error | null                                         // same validation, no clone
 project(state, viewer) -> Projection
-stepTiming(state) -> {seconds, earlyCloseReady}
+stepTiming(state) -> {seconds, earlyCloseReady}                                   // approved constants; never reads config
 startClock / pauseClock / resumeClock / remainingMs / deadlineOf / isExpired          // pure PhaseClock helpers
 ```
 - `state` is plain JSON. Replaying the same commands on the same seed gives the same state. `state.stepSeq` increments on every new step, but not when a step resumes after a removal.
-- **Config is strict:** `createMatch`/`createRulesEngine` reject unknown keys (including removed settings such as `comms.*` and `witch.*`), wrong types and invalid enum values (`createMatch` returns `bad_value`; `resolveConfig` throws).
+- **Config is strict:** `createMatch`/`createRulesEngine` reject unknown keys (including removed settings such as `comms.*`, `witch.*` and `timing.*`), wrong types and invalid enum values (`createMatch` returns `bad_value`; `resolveConfig` throws).
 - Actors: `{kind:'seat', seat}`, `{kind:'moderator'}`, `{kind:'system'}`. A seat issues only its own seat commands. `step.close` and `player.remove` are moderator or system only; `wolf.decide`, `day.confirmCount` and `match.end` are moderator only (never a seat, the host or the system). Unknown commands are rejected with `bad_value`.
 - Approved rules can't be bypassed by the provisional `moderator.mayBreakRules`.
 - **Stalemate (approved F1-A):** at the end of each day (after Hunter shots, death chains and the win check), a counter of consecutive no-death cycles updates. Any bite, poison, execution or Hunter shot resets it; a removal doesn't. At 2 the engine emits a public `{t:'stalemateWarning', day}` event; show "If nobody dies before the end of the next day, the match ends in a draw." At 3 the match ends with `outcome {winner:'draw', reason:'stalemate'}`. State fields: `quietCycles`, `cycleHadDeath`.
@@ -77,8 +90,8 @@ startClock / pauseClock / resumeClock / remainingMs / deadlineOf / isExpired    
 - Errors: `forbidden | wrong_step | bad_seat | bad_target | bad_value | rule | locked | ended`. Return them to the caller only.
 
 ## Steps (`state.step.kind`)
-`night.main` (40 s, provisional split: `wolf.pick`, `seer.inspect`, `guard.protect`) → `night.witch` (the rest of the fixed 60 s; **always runs**, even with no or a dead Witch: `witch.heal {use}`, `witch.poison {target|'pass'}`)
-→ [`hunter` (20 s, `hunter.shoot`) if a Hunter died] → victory check → `day.discussion` → `day.vote` (30 s, `vote.nominate {target|'skip'|null}`)
+`night.main` (40 s: `wolf.pick`, `seer.inspect`, `guard.protect`) → `night.witch` (20 s, the rest of the fixed 60 s; **always runs**, even with no or a dead Witch: `witch.heal {use}`, `witch.poison {target|'pass'}`)
+→ [`hunter` (20 s, ends once shot, `hunter.shoot`) if a Hunter died] → victory check → `day.discussion` (60 s + 15 s × living, 90–240 s) → `day.vote` (30 s, `vote.nominate {target|'skip'|null}`)
 → [trial: `day.defense` (30 s, fixed) → `day.confirm` (15 s, `vote.confirm {choice|null}` or moderator `day.confirmCount`)] → [`hunter`] → victory check → `night.main` … → `ended`.
 Every step closes only on `step.close`/`tick`. Anything not submitted counts as a pass.
 

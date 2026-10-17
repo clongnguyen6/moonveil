@@ -19,6 +19,36 @@ The 4 skipped windows are all whole-table step boundaries: in each, every page m
 
 **Token / channel checks (separate from the audio measurement), all pass:** every page holds exactly the channels of its grants and each is connected; rosters contain only granted seats and never a listen-only one; every `voice` frame carries only channels the seat is granted at that moment, with `speak` never beyond the state grant; LiveKit's participant list shows the moderator hidden while listen-only and visible at `ended`; in-person room (1.7 min): no sessions in any `voice` frame, no LiveKit room for the code, no voice channel in any page, public text delivered in the lobby.
 
+### Rotation gaps, Cloud vs local (2026-10-18 01:02–01:07, lock held; test files 1b4a836 + measurement fix)
+
+Gap = time from the first new-generation `voice` frame of a transition until each listener's received energy from each expected speaker starts to grow (polled every 250 ms, no settle wait first). 7 players + moderator, moderator mode, scene off, `join()` per page, no traces. Conditions: load 3.2–6.1, CPU idle 69–77 %, browser GPU process 0 %. Logs: `.cache/voice-gap2-cloud.log`, `.cache/voice-gap2-local.log` (a first attempt, `.cache/voice-gap-*.log`, measured after the settle wait and is superseded; its Cloud invocation also re-ran the cloud-check by title match, 5.0 participant-minutes, defense window failed identically on the deployed old rule).
+
+| Transition | pairs | Cloud median / p95 / max (ms) | Local median / p95 / max (ms) | Cloud ÷ local (median) |
+|---|---|---|---|---|
+| lobby join (join → first audio, incl. mic + publish + subscriptions) | 56 | 9,692 / 10,485 / 10,490 | 3,573 / 4,124 / 4,131 | 2.7 |
+| start → night.main (wolves room opens) | 4 | 2,405 / 2,405 / 2,405 | 509 / 509 / 509 | 4.7 |
+| night → day.discussion (public reopens, rotation) | 43 | 1,421 / 1,690 / 2,202 | 685 / 961 / 961 | 2.1 |
+| execution → next step (public rotates, ghost joins ghosts) | 8 | 1,558 / 2,333 / 2,333 | 538 / 797 / 797 | 2.9 |
+| night 2 → day 2 (public reopens, rotation) | 56 | 1,389 / 1,656 / 1,656 | 886 / 902 / 902 | 1.6 |
+
+No pair was ever unheard within the 25 s limit on either target. Defense caused no rotation on either (new rule). Cloud rotations are 1.6–4.7× local in median, but at most 2.4 s at p95 and 2.3 s max: audio is back within about two seconds of a room rotation through Cloud (Hyderabad region from this client). The lobby join is the long one (about 10 s on Cloud, 3.6 s local): mic acquisition, connect, publish and 7 subscriptions per page, serialized `join()` calls in the test; the UI should show a "connecting voice" state (the snapshot exposes it) rather than treat it as silence.
+
+Budget: this slot used 5.0 (unplanned second cloud-check) + 2.3 + 2.8 = 10.1 participant-minutes; **aggregate about 15.7 of 100** (5.6 before the slot).
+
+Open: the deployed app still runs the accused-only defense rule, and in both cloud-check runs the listeners measured no energy from the accused for the 2 s window taken after their tracks were subscribed (≥ 3 s after the defense rotation). The gap data above shows rotations recover in ≤ 2.4 s, so that window is specific to the old defense path (a single publisher republishing after a rotation that hides everyone else), which no longer exists under the approved rule; it will not be seen once the new rule is deployed. Recorded, not resolved.
+
+### LiveKit Cloud runtime check, run 1 (2026-10-18 00:17:34–00:18:22, lock held; deployed app https://moonveil-production-b733.up.railway.app, test files 3d18e7f)
+
+8 headless pages (7 players + moderator), scene off, `join()` per page, traces off, cap 60 participant-minutes. Conditions: load 4.3–4.5, CPU mostly idle, browser GPU process 0–15 %. **Participant-minutes used: ~5.1** (connected channels × time, sampled every 5 s; foundation's smoke ≤ 0.5 before this). Artifacts: `.cache/voice-cloud-run1.log`, `.cache/voice-cloud/results-cloud1/` (error context only; no traces), `.cache/voice-cloud-conditions.log`. No token appears anywhere.
+
+Findings via Cloud:
+- Signaling host `personal-c15mov1e.livekit.cloud`; `/settings/regions` (200) lists, by distance from this client: ohyderabad1a 3,122 km, oosaka1a 3,952 km, otokyo1a 4,341 km, odubai1a, osydney1a, ojeddah1a. No Singapore region is offered; the client's nearest is Hyderabad.
+- Night: 2 wolves held the wolves channel, 5 others held none; moderator held public, wolves, ghosts; the executed seat became a ghost with public + ghosts.
+- **Revocation:** the executed seat's old public token → `/rtc/validate` **401**; a fresh token → **200**. Cloud rejects the old token after the rotation with `RemoveParticipant`+`revokeTokenTs`.
+- Rosters in every window: no ungranted seat, no listen-only seat visible (moderator and ghosts hidden). `voice` frames: no channel beyond grants, no `speak` beyond the state grant. Channels matched grants on every page after each step (no settle failure, no unresponsive page).
+
+**Measured hear-matrix (separate):** 308 pair-channel checks over 5 windows: lobby 56 checks 0 failures; night.main 0 failures; day.discussion 0 failures; **day.defense 7 failures**: every listener (6 living + moderator) measured 0 energy from the accused, the only permitted speaker, in the 2 s window taken right after the defense rotation; night 2 0 failures. No "must not hear" failure anywhere. The defense window was measured within seconds of a rotation (everyone reconnects through Cloud and the accused republishes); the later window shows audio flowing again. Reading: a post-rotation timing gap on Cloud longer than the local 2–5 s assumption, not a routing error; not confirmed by a rerun. **Not confirmed**: a rotation-gap measurement across deaths and night transitions (Cloud vs local, ≤ 15 participant-minutes) is planned under the probe budget. The defense rotation itself is gone under the rule of 2026-10-18 (every living player speaks; gateway unit test), which does not settle the gap question for the remaining rotations. The spike's defense checks were updated to the new rule and not rerun (heavy); the release acceptance covers the defense path locally.
+
 ### Slot 19 (2026-10-17 18:06–18:44, lock held; candidate 705faad = e432694 (D2 explicit join, D5) + dev 758c44a + a type-only fix): ALL GREEN
 
 Scene loop stopped in test pages (`MOONVEIL_SCENE=off`), `join()` called on every page (D2). Conditions sampled every 30 s (`.cache/voice-e2e/conditions-slot19.log`): load 1-min 3.9 at start, peak 8.2, 6.5 at end; CPU idle 54–73 %; browser GPU process 0–29 % during matches (peak 100 % at page load; 620–730 % with the scene running in runs 15–17); 10–12 renderers summing ~70 %; memory 35 GB used, 7 GB in the compressor.
@@ -38,6 +68,10 @@ Per step, run 21 moderator: lobby 56, night.main 35/63, night.witch 35/63, day.d
 **Token / channel checks (separate), all pass:** channels equal grants and connected on every page; rosters only granted seats, never a listen-only one; `voice` frames never carry an ungranted channel or `speak` beyond the state grant; moderator hidden while listen-only and visible at `ended`; in-person room (5.7 s): no sessions, no LiveKit room, no voice channel, public text delivered. Nothing connects before `join()` (D2, unit-tested; the suite joins explicitly).
 
 The same three suites also passed on 6afa3a3 (runs 19/20: 1,183 + 828 + 981 checks, 0 failures, 0 skipped) before the type-only fix.
+
+Scope statements for this record: run 22's real-time automatic match ran to its 10-minute budget (12 steps, into the second day's defense), not to a match end; the complete-match evidence in automatic mode is run 21 at scale 2 (14 steps, likewise budget-bound) and the moderator matches, which end. Both suites ran with the scene loop stopped (`MOONVEIL_SCENE=off`); the scene's own CPU cost is the visual owner's item. LiveKit Cloud is still untested: every measurement here is against the pinned local OSS server (`CLOUD.md` §5).
+
+Merged: `dev` fast-forwarded to ce2dadc on 2026-10-17 after a root check on that exact SHA (rules 206, scene 26, voice 53, server 96, harness 2, e2e 13/13).
 
 ### Slot 17 (2026-10-17 14:35–, lock held; candidate 1d12fc6 = d85b133 + dev 36bdafd): A/B and run 17, FAILED; cause found by measurement
 

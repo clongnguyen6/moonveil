@@ -30,3 +30,27 @@ export const lanEnabled = (env: Env): boolean => env.MOONVEIL_LAN !== '0' && !pu
 
 // The 4100-4199 rule is for this workstation; hosts inject their own PORT.
 export const warnPort = (env: Env, port: number): boolean => !publicOrigin(env) && (port < 4100 || port > 4199);
+
+// --- /api/status (playtest diagnosis; no secrets) ---
+
+// Deployed revision: MOONVEIL_REVISION (set at build/deploy), else Railway's RAILWAY_GIT_COMMIT_SHA (documented for
+// GitHub-triggered deploys), else 'unknown'. Only a hex SHA is reported.
+export function revision(env: Env): string {
+  for (const v of [env.MOONVEIL_REVISION, env.RAILWAY_GIT_COMMIT_SHA]) {
+    const s = v?.trim();
+    if (s && /^[0-9a-f]{7,40}$/i.test(s)) return s.toLowerCase();
+  }
+  return 'unknown';
+}
+
+// Where rooms are saved: 'volume' (inside RAILWAY_VOLUME_MOUNT_PATH; path reported), 'temp' (on Railway but not on
+// its volume: lost on redeploy), 'disk' (a local path elsewhere; durability depends on the host), or 'off'.
+export type PersistInfo = { mode: 'volume'; path: string } | { mode: 'temp' | 'disk' | 'off' };
+export function persistInfo(env: Env, dataDir: string, enabled: boolean): PersistInfo {
+  if (!enabled) return { mode: 'off' };
+  const mount = env.RAILWAY_VOLUME_MOUNT_PATH?.replace(/\/+$/, '');
+  if (mount && (dataDir === mount || dataDir.startsWith(`${mount}/`))) return { mode: 'volume', path: dataDir };
+  const onRailway = Boolean(env.RAILWAY_ENVIRONMENT_ID || env.RAILWAY_SERVICE_ID || env.RAILWAY_PROJECT_ID);
+  return { mode: onRailway ? 'temp' : 'disk' };
+}
+

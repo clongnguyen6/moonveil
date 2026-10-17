@@ -85,3 +85,21 @@ Accepted from the recommendation: self-hosted LiveKit OSS (grant d), room per ch
 - **Foundation wiring:** no change needed (grants in, sessions out).
 - **Hear-matrix:** 0 failures across 3,175 pair-channel checks (7-seat moderator to the end; 10-seat automatic).
 - My earlier acceptance of sticky visibility (update above) was wrong. The test that should have caught it is the roster check across a death, which the measured suite now covers.
+
+## Lobby voice-mode switch (D5, foundation-10)
+- `{ t: 'voiceMode', voiceMode: 'remote' | 'inPerson' }`: host only, lobby only (else `not-allowed`); invalid values are refused by the parser.
+- The room's `voiceMode` updates every `SeatView` and is persisted. The next flush syncs voice grants: `[]` for every seat when in person, so the gateway closes the sessions and mints nothing; the normal grants when remote.
+- Text channels don't depend on `voiceMode`. Tests: `apps/server/test/voice-mode.test.ts`, including the real `LiveKitVoiceGateway` on its `FakeBackend`.
+
+## Explicit voice join (D2, foundation-10)
+- `client.ts`: `joinVoice()` / `leaveVoice()` / `ClientState.voiceJoined` (UI P16), over voice's `VoiceClient.join()` / `leave()`.
+  - `voice` sessions are always passed to the VoiceClient, which holds them. Nothing connects and the mic isn't requested until `joinVoice()`, which the UI calls from the "Join voice" tap. Never auto-joined.
+  - Leaving the room leaves voice. The VoiceClient is still created lazily; `Client`'s second constructor argument passes `VoiceClientOptions` (tests inject a fake room).
+- Tests: `apps/server/test/client-voice.test.ts` (the real client in Node, fake room and mic). `e2e:matches:voice` checks that nothing connected before join, then joins every page (`joinVoiceAll`).
+
+## Voice availability (P19, foundation-15)
+- `SeatView.voiceAvailable`: true only when the server has a voice backend. The entry builds one only when all four `LIVEKIT_*` are set; the null gateway means false.
+- Same value for every seat and room. Independent of the room's `voiceMode`.
+- Optional in the protocol type for older clients and stubs; this server always sends it.
+- Tests: `apps/server/test/voice-available.test.ts`, including the real entry with and without `LIVEKIT_*`.
+

@@ -5,6 +5,7 @@ import type { SessionState } from '../../game/session.ts';
 import { Button } from '../components/index.tsx';
 import { useT } from '../i18n/index.ts';
 import { useSession } from '../session-context.ts';
+import { errorText } from '../errors.ts';
 import { SettingsRow } from './Settings.tsx';
 
 const PROFILE_KEY = 'moonveil.profile';
@@ -77,25 +78,38 @@ export function EntryScreen({ s }: { s: SessionState }) {
       <section className="card stack" style={{ padding: 16 }}>
         <ProfileEditor value={profile} onChange={setProfile} />
       </section>
-      {s.error && <p className="danger" role="alert" data-testid="error">{s.error.message}</p>}
+      {s.error && <p className="danger" role="alert" data-testid="error" data-code={s.error.code}>{errorText(t, s.error)}</p>}
       <section className="card stack" style={{ padding: 16 }}>
-        <label className="field col" style={{ gap: 4 }}>
+        {!linkCode && <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('entryJoinTitle')}</h2>}
+        {linkCode ? (
+          <p data-testid="invited"><strong>{t('entryInvited', { code: linkCode })}</strong><br /><span className="hint">{t('entryInvitedHint')}</span></p>
+        ) : null}
+        <label className="field col" style={{ gap: 4, ...(linkCode ? { display: 'none' } : {}) }}>
           {t('entryCode')}
           <input className="input" data-testid="code" value={code} maxLength={6} autoCapitalize="characters" autoComplete="off" inputMode="text" style={{ letterSpacing: '.2em', fontWeight: 700, textTransform: 'uppercase' }} onChange={(e) => setCode(e.target.value.toUpperCase())} />
         </label>
         <Button wide testId="join" disabled={!valid || busy || code.length !== 6} onClick={() => go((p) => session.join(code, p))}>{t('entryJoin')}</Button>
       </section>
       {!linkCode && (
-        <section className="card stack" style={{ padding: 16 }}>
-          <p className="hint center">{t('entryOr')}</p>
-          <label className="field row" style={{ justifyContent: 'center' }}>
-            <input type="checkbox" checked={inPerson} onChange={(e) => setInPerson(e.target.checked)} data-testid="in-person" />
-            {t('entryInPerson')}
-          </label>
-          <Button wide kind="secondary" testId="create-automatic" disabled={!valid || busy} onClick={() => create('automatic')}>{t('entryCreateAuto')}</Button>
-          <p className="muted center" style={{ fontSize: 'var(--fs-0)' }}>{t('entryCreateAutoHint')}</p>
+        <section className="card stack" style={{ padding: 16 }} data-testid="create-card">
+          <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('entryNewRoom')}</h2>
+          <div className="field">
+            <span>{t('entryWhere')}</span>
+            <div className="choice" role="radiogroup" aria-label={t('entryWhere')}>
+              <label data-checked={!inPerson}>
+                <input type="radio" name="where" checked={!inPerson} onChange={() => setInPerson(false)} data-testid="where-online" />
+                <span className="meta"><span className="lbl">{t('entryOnline')}</span><span className="line">{t('entryOnlineLine')}</span></span>
+              </label>
+              <label data-checked={inPerson}>
+                <input type="radio" name="where" checked={inPerson} onChange={() => setInPerson(true)} data-testid="in-person" />
+                <span className="meta"><span className="lbl">{t('entryTogether')}</span><span className="line">{t('entryTogetherLine')}</span></span>
+              </label>
+            </div>
+          </div>
+          <Button wide testId="create-automatic" disabled={!valid || busy} onClick={() => create('automatic')}>{t('entryCreateAuto')}</Button>
+          <p className="line center">{t('entryCreateAutoHint')}</p>
           <Button wide kind="secondary" testId="create-moderator" disabled={!valid || busy} onClick={() => create('moderator')}>{t('entryCreateMod')}</Button>
-          <p className="muted center" style={{ fontSize: 'var(--fs-0)' }}>{t('entryCreateModHint')}</p>
+          <p className="line center">{t('entryCreateModHint')}</p>
         </section>
       )}
       <SettingsRow />

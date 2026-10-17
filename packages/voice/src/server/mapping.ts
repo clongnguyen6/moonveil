@@ -8,7 +8,7 @@ export function isActive(g: VoiceGrantLike): boolean {
 }
 
 // Visibility (ADR 0004 §1): explicit override, else visible iff the seat may speak in that room. Every
-// listen-only session is hidden: ghosts, pending Hunter, moderator, and the non-accused during defense.
+// listen-only session is hidden: ghosts, pending Hunter, moderator. (Defense: every living player speaks, approved 2026-10-18.)
 // A speak->listen flip inside a room therefore rotates it (LiveKit cannot hide a participant in place).
 // A "sticky" variant (keep visible while present) was measured in the browser suite: it left seats that
 // died mid-room (execution, Hunter) visible in the public roster, which the policy forbids. Rejected.

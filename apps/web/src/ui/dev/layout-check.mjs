@@ -8,6 +8,7 @@ import { chromium, devices, webkit } from '@playwright/test';
 const port = process.env.WEB_PORT ?? '4401';
 const base = `http://127.0.0.1:${port}/src/ui/dev/index.html`;
 const withWebkit = process.argv.includes('--webkit');
+console.log('[scene] off');
 const SCENARIOS = ['entry', 'lobby', 'role', 'night-wolf', 'night-seer', 'night-villager', 'witch', 'hunter', 'day', 'vote', 'defense', 'confirm', 'ghost', 'ended', 'moderator', 'moderator-day'];
 const SHEETS = ['open-role', 'open-chat', 'open-help'];
 const sizes = {
@@ -39,7 +40,7 @@ const AUDIT = () => {
     if (!visible(el) || el.closest('[data-testid=devbar]')) continue;
     let r = el.getBoundingClientRect();
     if (r.bottom < 0 || r.right < 0) continue; // offscreen helpers (e.g. PixiJS accessibility button)
-    if (el.tagName === 'INPUT' && el.type === 'checkbox' && el.closest('label')) r = el.closest('label').getBoundingClientRect(); // the label is the target
+    if (el.tagName === 'INPUT' && (el.type === 'checkbox' || el.type === 'radio') && el.closest('label')) r = el.closest('label').getBoundingClientRect(); // the label is the target
     const min = el.classList.contains('icon') || el.classList.contains('swatch') ? 40 : 44;
     const minW = min;
     if (r.height < min - 0.5 || r.width < minW - 0.5) out.push(`target ${Math.round(r.width)}×${Math.round(r.height)} <${min}: ${(el.getAttribute('data-testid') || el.getAttribute('aria-label') || el.textContent || el.tagName).trim().slice(0, 24)}`);
@@ -65,7 +66,7 @@ const AUDIT = () => {
 
 async function run(browser, tag, ctxOpts, lang) {
   const ctx = await browser.newContext({ ...ctxOpts, locale: lang === 'vi' ? 'vi-VN' : 'en-US', reducedMotion: 'reduce' });
-  await ctx.addInitScript(() => localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'vi', sound: false, reducedMotion: 'on', modNarration: false, ambience: false, scene: false })));
+  await ctx.addInitScript(() => { globalThis.__MOONVEIL_SCENE = 'off'; localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'vi', sound: false, reducedMotion: 'on', modNarration: true, ambience: false, scene: false })); });
   const page = await ctx.newPage();
   for (const sc of SCENARIOS) {
     await page.goto(`${base}?scenario=${sc}&lang=${lang}&bar=0&sound=0`);

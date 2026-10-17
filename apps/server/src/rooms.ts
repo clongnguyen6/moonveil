@@ -9,7 +9,7 @@ import {
   ROOM_CODE_LENGTH,
   type SeatId,
 } from '@moonveil/protocol';
-import { type Conn, Room, type RoomDeps, RoomError, realScheduler } from './room.ts';
+import { type Conn, RestoreSkip, Room, type RoomDeps, RoomError, realScheduler } from './room.ts';
 import type { RulesEngine } from './rules/engine.ts';
 import type { RoomStore } from './store.ts';
 import { nullVoiceGateway, type VoiceGateway } from './voice.ts';
@@ -26,7 +26,11 @@ export interface RegistryOptions {
   seed?: (ctx: { hostName: string; players: number }) => string;
   // Restart recovery: rooms are saved here and restored by restoreAll().
   store?: RoomStore;
+  // Room event lines (Room.deps.log). Default: no-op; the server entry passes console.log.
+  log?: (line: string) => void;
 }
+
+const noLog = () => {};
 
 export class Registry {
   private rooms = new Map<string, Room>();
@@ -48,10 +52,12 @@ export class Registry {
     return {
       engine: this.opts.engine(),
       voice: this.opts.voice ?? nullVoiceGateway,
+      voiceAvailable: this.opts.voice !== undefined,
       scheduler: this.opts.scheduler ?? realScheduler,
       now: this.opts.now ?? Date.now,
       seed: this.opts.seed ?? (() => randomBytes(16).toString('hex')),
       ...(this.opts.store ? { store: this.opts.store } : {}),
+      log: this.opts.log ?? noLog,
     };
   }
 
@@ -59,23 +65,31 @@ export class Registry {
     const code = this.newCode();
     const room = new Room(code, mode, creator, this.deps(), voiceMode);
     this.rooms.set(code, room);
+    (this.opts.log ?? noLog)(`room ${code} created mode=${mode} voice=${voiceMode}`);
     room.flush();
     return room;
   }
 
-  // Load saved rooms after a restart. Unreadable or mismatched rooms are logged and skipped (file kept).
-  restoreAll(): number {
-    let n = 0;
+  // Load saved rooms after a restart. Rooms saved by another engine or rules version are skipped (`room … skipped`
+  // with the engine's reason); unreadable rooms are logged as errors. Files are kept either way.
+  restoreAll(): { restored: number; skipped: number } {
+    const log = this.opts.log ?? noLog;
+    let restored = 0;
+    let skipped = 0;
     for (const snap of this.opts.store?.loadAll() ?? []) {
       if (this.rooms.has(snap.code)) continue;
       try {
-        this.rooms.set(snap.code, Room.restore(snap, this.deps()));
-        n++;
+        const room = Room.restore(snap, this.deps());
+        this.rooms.set(snap.code, room);
+        log(`room ${snap.code} restored status=${room.status} seats=${room.seatCount()}`);
+        restored++;
       } catch (e) {
-        console.error(`room ${snap.code} not restored:`, (e as Error).message);
+        skipped++;
+        if (e instanceof RestoreSkip) log(`room ${snap.code} skipped reason=${e.message.replace(/\s+/g, ' ').slice(0, 200)}`);
+        else console.error(`room ${snap.code} not restored:`, (e as Error).message);
       }
     }
-    return n;
+    return { restored, skipped };
   }
 
   get(code: string): Room {
@@ -89,7 +103,7 @@ export class Registry {
     const idle = this.opts.idleMs ?? 30 * 60_000;
     for (const [code, r] of this.rooms) {
       if (r.closed || (!r.hasConnections() && now - r.lastActive > idle)) {
-        r.close();
+        r.close(r.closed ? 'closed' : 'idle');
         this.rooms.delete(code);
       }
     }

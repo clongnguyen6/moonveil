@@ -22,6 +22,7 @@ server.stdout.on('data', () => {});
 server.stderr.on('data', (d) => process.stderr.write(d));
 for (let i = 0; i < 100; i++) { try { if ((await fetch(`${base}/healthz`)).ok) break; } catch {} await new Promise((r) => setTimeout(r, 200)); }
 
+console.log('[scene] off');
 const browser = await chromium.launch();
 class P {
   constructor(name, ctx, page) { this.name = name; this.ctx = ctx; this.page = page; this.frames = []; page.on('websocket', (ws) => ws.on('framereceived', ({ payload }) => this.frames.push(JSON.parse(typeof payload === 'string' ? payload : payload.toString('utf8'))))); }
@@ -37,7 +38,7 @@ class P {
   async pickFirst() { const c = this.page.getByTestId('confirm'); if (!(await c.count())) return false; const b = this.page.locator('.seat-grid button[aria-pressed]:not([disabled])').first(); if (!(await b.count())) return false; await b.click(); if (!(await c.isEnabled())) return false; await c.click(); return true; }
 }
 // Scene canvas off: 15 software-rendered WebGL contexts starve the page in headless Chromium; the scene has its own checks (packages/scene).
-const mk = async (name, opts = {}) => { const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce', ...opts }); await ctx.addInitScript(() => localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'en', sound: false, reducedMotion: 'on', modNarration: false, ambience: false, scene: false }))); const page = await ctx.newPage(); return new P(name, ctx, page); };
+const mk = async (name, opts = {}) => { const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce', ...opts }); await ctx.addInitScript(() => { globalThis.__MOONVEIL_SCENE = 'off'; localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'en', sound: false, reducedMotion: 'on', modNarration: true, ambience: false, scene: false })); }); const page = await ctx.newPage(); return new P(name, ctx, page); };
 const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
 
 // ---------- automatic mode: lobby -> night 1 -> dawn/day (real timers) ----------
@@ -49,8 +50,17 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   ok('dist: production entry renders GameApp (entry + app roots present)', (await ps[0].page.locator('[data-testid=app] [data-testid=entry]').count()) === 1);
   ok('dist: old shell markup absent (.shell/.roomhead)', (await ps[0].page.locator('.shell, .roomhead, .provisional').count()) === 0);
   ok('dist: title and lang from the UI', /Moonveil/.test(await ps[0].page.title()) && /^(vi|en)$/.test(await ps[0].page.locator('html').getAttribute('lang')));
+  ok('create: "Where are you playing?" choice present, online by default', (await ps[0].page.locator('[data-testid=create-card] input[type=radio]').count()) === 2 && (await ps[0].page.getByTestId('where-online').isChecked()));
   const code = await ps[0].create('automatic');
   for (const p of ps.slice(1)) await p.join(code);
+  ok('lobby: grouped cards (invite, room settings for the host, you, start)', (await ps[0].page.locator('[data-testid=invite], [data-testid=room-settings][data-host=true], [data-testid=you-card], [data-testid=start-card]').count()) === 4);
+  ok('lobby: guest sees the read-only Room summary and no host controls', (await ps[1].page.locator('[data-testid=room-settings][data-host=false] [data-testid=room-voice-mode]').count()) === 1 && (await ps[1].page.locator('[data-testid=start-card], [data-testid=voice-mode]').count()) === 0);
+  await ps[1].page.getByTestId('open-settings').click();
+  await ps[1].page.waitForTimeout(250);
+  ok('settings sheet: personal group with switches, no moderator group for a player, opaque sheet', (await ps[1].page.locator('[data-testid=settings-personal] input[role=switch]').count()) === 3 && (await ps[1].page.locator('[data-testid=settings-moderator]').count()) === 0 && (await ps[1].page.evaluate(() => { const c = getComputedStyle(document.querySelector('.sheet')).backgroundColor; return !/rgba\(.*,\s*0?\.\d+\)$/.test(c); })));
+  await ps[1].page.keyboard.press('Escape');
+  await ps[1].page.waitForTimeout(150);
+  ok('settings sheet: Escape closes it', (await ps[1].page.locator('[data-testid=settings-sheet]').count()) === 0);
   // Host deck (P12): default shown; invalid custom deck -> error + start blocked; reset -> default again.
   const host = ps[0];
   ok('deck: lobby shows the engine default deck', (await host.page.locator('[data-testid=deck][data-custom=false]').count()) === 1 && (await host.page.locator('[data-testid=deck-counts] [data-role=wolf]').getAttribute('data-count')) !== '0');
@@ -65,6 +75,23 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   await host.page.waitForTimeout(300);
   ok('deck: back to default', (await host.page.locator('[data-testid=deck][data-custom=false]').count()) === 1);
   ok('deck: non-host sees the deck but no controls', (await ps[1].page.locator('[data-testid=deck]').count()) === 1 && (await ps[1].page.locator('[data-testid=deck-edit]').count()) === 0);
+  // D1 QR (host only), D2 Join voice (nothing joined until the tap), D5 host voice-mode switch seen by everyone.
+  ok('D1: host lobby shows the invite QR; guest does not', (await host.page.locator('[data-testid=qr] svg path').count()) === 1 && (await ps[1].page.locator('[data-testid=qr]').count()) === 0);
+  ok('D2: remote room starts not joined (Join voice offered, no mic prompt)', (await ps[1].page.locator('[data-testid=mic][data-status=notJoined] [data-testid=voice-join]').count()) === 1 && ps[1].view().voiceMode === 'remote');
+  await ps[1].page.getByTestId('voice-join').click();
+  await ps[1].page.waitForTimeout(400);
+  ok('D2: Join voice flips the client state (voiceJoined) and shows Leave voice', (await ps[1].page.evaluate(() => globalThis.__moonveil.getState().voiceJoined === true)) && (await ps[1].page.getByTestId('voice-leave').count()) === 1);
+  ok('voice phase: without a LiveKit backend the joined card shows "Connecting voice…" (no sessions ever arrive; with Cloud this resolves to live in ~10 s)', (await ps[1].page.locator('[data-testid=mic][data-voice=connecting] [data-testid=voice-busy]').count()) === 1);
+  await ps[1].page.getByTestId('voice-leave').click();
+  await ps[1].page.waitForTimeout(300);
+  ok('D2: Leave voice returns to not joined', (await ps[1].page.locator('[data-testid=mic][data-status=notJoined]').count()) === 1);
+  ok('D5: host sees the voice-mode switch; guest does not', (await host.page.locator('[data-testid=voice-mode-inperson]').count()) === 1 && (await ps[1].page.locator('[data-testid=voice-mode]').count()) === 0);
+  await host.page.getByTestId('voice-mode-inperson').click();
+  await ps[1].page.waitForTimeout(500);
+  ok('D5: every seat follows the server to in person (guest mic card says in person, no Join voice)', ps[1].view().voiceMode === 'inPerson' && (await ps[1].page.locator('[data-testid=mic][data-status=inPerson]').count()) === 1 && (await ps[1].page.locator('[data-testid=voice-join]').count()) === 0);
+  await host.page.getByTestId('voice-mode-remote').click();
+  await ps[1].page.waitForTimeout(500);
+  ok('D5: back to remote restores Join voice for the guest', ps[1].view().voiceMode === 'remote' && (await ps[1].page.locator('[data-testid=voice-join]').count()) === 1);
   for (const p of ps) await p.ready();
   await ps[0].page.getByTestId('start').click();
   for (const p of ps) await p.waitStep('night.main', 15_000);
@@ -178,6 +205,7 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   await mod.page.getByTestId('start').click();
   await mod.page.waitForSelector('[data-testid=mod-console]', { timeout: 15_000 });
   ok('moderator: console rendered, no timer', (await mod.page.locator('[data-testid=timer]').count()) === 0);
+  ok('D6: narration cue shown by default (approved N1 line + M1 cue)', /Night 1\. Everyone close your eyes\./.test(await mod.page.getByTestId('mod-say').innerText()) && /Close this step/.test(await mod.page.getByTestId('mod-cue').innerText()));
   ok('moderator: cannot speak (grant-driven: no chat input)', true); // asserted below when chat opens
   await mod.page.getByTestId('open-chat').click();
   ok('moderator: chat is listen-only', (await mod.page.locator('[data-testid=chat-listen-only]').count()) === 1 && (await mod.page.locator('[data-testid=chat-input]').count()) === 0);
@@ -207,7 +235,27 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
     for (const n of NAMES.slice(0, 7)) { const p = await mk(n + '2'); await p.join(code2); await p.ready(); ps2.push(p); }
     await mod2.page.getByTestId('start').click();
     await mod2.page.waitForSelector('[data-testid=mod-console]', { timeout: 15_000 });
-    await mod2.page.getByTestId('end-match-open').click(); await mod2.page.getByTestId('end-match-input').fill('END'); await mod2.page.getByTestId('end-match-confirm').click(); await mod2.page.waitForTimeout(400);
+    // Normal UI-driven loop until the first verdict closes: proves nomination ballots, the defense grant and the Yes/No step.
+    const close2 = async () => { await mod2.page.getByTestId('close-step').click(); await mod2.page.locator('[role=alertdialog] .btn').nth(1).click(); await mod2.page.waitForTimeout(250); };
+    let sawDefense = false, sawConfirm = false;
+    for (let i = 0; i < 24 && !sawConfirm && (await mod2.step()) !== 'ended'; i++) {
+      const step = await mod2.step();
+      if (step === 'night.main' || step === 'night.witch') { for (const p of ps2) await p.pickFirst().catch(() => {}); if (step === 'night.witch') { const w = ps2.find((p) => p.game().me.role === 'witch' && p.game().me.alive); if (w) await w.page.getByTestId('heal-no').click().catch(() => {}); } }
+      if (step === 'hunter') for (const p of ps2) await p.pickFirst().catch(() => {});
+      if (step === 'day.vote') { const alive = ps2.filter((p) => p.game().me.alive); const target = alive[0]; for (const p of alive) { if (p === target) continue; const b = p.page.locator(`[data-testid=seat-${target.game().me.seat}]`); if (await b.count()) { await b.click(); await p.page.getByTestId('confirm').click(); } } await mod2.page.waitForTimeout(300); }
+      if (step === 'day.defense') {
+        sawDefense = true;
+        const acc = mod2.game().step.accused;
+        const other = ps2.find((p) => p.game().me.alive && p.game().me.seat !== acc);
+        ok('defense: living non-accused players may speak (public speak grant + "Everyone may speak" copy)', !!other && (await other.page.locator('[data-testid=voice][data-speak=public]').count()) === 1 && /Everyone may speak/.test(await other.page.getByTestId('defense-hint').innerText()) && (await other.page.locator('[data-testid=day-defense][data-everyone=true]').count()) === 1);
+        const accused = ps2.find((p) => p.game().me.seat === acc);
+        if (accused) ok('defense: the accused keeps the floor copy and the public speak grant', /defense|Your defense/i.test(await accused.page.getByTestId('defense-hint').innerText()) && (await accused.page.locator('[data-testid=voice][data-speak=public]').count()) === 1);
+      }
+      if (step === 'day.confirm') { for (const p of ps2.filter((p) => p.game().me.alive)) await p.page.getByTestId('vote-yes').click().catch(() => {}); await mod2.page.waitForTimeout(300); sawConfirm = true; }
+      await close2();
+    }
+    ok('moderator room 2: reached a defense and a verdict through the UI', sawDefense && sawConfirm);
+    if ((await mod2.step()) !== 'ended') { await mod2.page.getByTestId('end-match-open').click(); await mod2.page.getByTestId('end-match-input').fill('END'); await mod2.page.getByTestId('end-match-confirm').click(); await mod2.page.waitForTimeout(400); }
     ok('moderator end-match (match.end): ended by the moderator, no winner, full reveal on a player', (await ps2[0].page.locator('[data-testid=ended][data-reason=aborted]').count()) === 1 && (await ps2[0].page.locator('[data-testid=ended] .seat-chip .tag').count()) === 7 && !/village|wolves/.test(await ps2[0].page.locator('[data-testid=ended]').getAttribute('data-winner')));
     for (const p of [mod2, ...ps2]) await p.ctx.close();
     await browser.close(); server.kill('SIGTERM');
@@ -218,6 +266,11 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
     const step = await mod.step();
     if (step === 'ended') break;
     if (step === 'night.main' || step === 'night.witch' || step === 'hunter') { for (const p of ps) await p.pickFirst().catch(() => {}); if (step === 'night.witch') { const w = ps.find((p) => p.game().me.role === 'witch' && p.game().me.alive); if (w) await w.page.getByTestId('heal-no').click().catch(() => {}); } }
+    if (step === 'day.defense') {
+      const acc = mod.game().step.accused;
+      const other = ps.find((p) => p.game().me.alive && p.game().me.seat !== acc);
+      if (other) ok('defense: living non-accused players may speak (grant + copy "Everyone may speak")', (await other.page.locator('[data-testid=voice][data-speak=public]').count()) === 1 && /Everyone may speak/.test(await other.page.getByTestId('defense-hint').innerText()) && (await other.page.locator('[data-testid=day-defense][data-everyone=true]').count()) === 1);
+    }
     if (step === 'day.vote') { const alive = ps.filter((p) => p.game().me.alive); const target = alive[0]; for (const p of alive) { if (p === target) continue; const b = p.page.locator(`[data-testid=seat-${target.game().me.seat}]`); if (await b.count()) { await b.click(); await p.page.getByTestId('confirm').click(); } } await mod.page.waitForTimeout(300);
       ok('open ballots: a voter sees the live ballot list on day.vote', (await alive[1].page.locator('[data-testid=ballots]').count()) === 1);
       for (const d of ps.filter((p) => !p.game().me.alive)) ok(`${d.name} (dead, moderator mode): ghost panel, no action hooks at day.vote`, (await d.page.locator('[data-testid=ghost-panel]').count()) === 1 && (await d.page.locator('[data-testid=confirm], [data-testid=vote-skip], [data-testid=vote-yes], [data-testid=vote-no]').count()) === 0); }

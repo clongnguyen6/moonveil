@@ -31,6 +31,17 @@ export interface StubOptions {
 let n = 0;
 const sid = () => `s_${(++n).toString(16).padStart(4, '0')}`;
 
+type Snap = import('@moonveil/voice/client').VoiceSnapshot;
+class StubVoice {
+  private snap: Snap = { channels: {}, mic: 'idle', micError: null, muted: false, audioBlocked: false };
+  private subs = new Set<() => void>();
+  subscribe = (fn: () => void) => { this.subs.add(fn); return () => { this.subs.delete(fn); }; };
+  getSnapshot = () => this.snap;
+  set(patch: Partial<Snap>) { this.snap = { ...this.snap, ...patch }; for (const fn of this.subs) fn(); }
+  async setMuted(m: boolean) { this.set({ muted: m }); }
+  async unlockAudio() { this.set({ audioBlocked: false }); }
+}
+
 export class LocalRoom implements Session {
   readonly engine: RulesEngine<HostState>;
   readonly code: string;
@@ -173,6 +184,12 @@ export class LocalRoom implements Session {
           this.chat.push({ channel: msg.channel as ChannelId, msg: { id: Math.random().toString(36).slice(2), from: me.id, name: me.name, text: String(msg.text).slice(0, 500), at: Date.now() } });
           break;
         }
+        case 'voiceMode': {
+          if (this.status !== 'lobby' || me.id !== this.hostId) throw new Error('host, lobby only');
+          this.voiceMode = msg.voiceMode;
+          if (msg.voiceMode === 'inPerson') this.voiceJoined = false; // remote -> in-person drops voice for everyone
+          break;
+        }
         case 'leave':
           this.leave();
           return true;
@@ -192,6 +209,30 @@ export class LocalRoom implements Session {
     this.emit();
   }
   restarting = false;
+  voiceJoined = false;
+  /** Dev stand-in for the VoiceClient snapshot (subscribe/getSnapshot/setMuted/unlockAudio) so the UI's phases can be checked. */
+  stubVoice = new StubVoice();
+  voiceJoin() {
+    if (this.voiceMode === 'remote') {
+      this.voiceJoined = true;
+      this.stubVoice.set({ mic: 'requesting', channels: { public: { channel: 'public', room: 'r', state: 'connecting', speak: true, listen: true, visible: true, publishing: false, participants: [], error: null } } });
+    }
+    this.emit();
+  }
+  voiceLeave() {
+    this.voiceJoined = false;
+    this.stubVoice.set({ mic: 'idle', channels: {} });
+    this.emit();
+  }
+  voice() {
+    return this.voiceJoined ? (this.stubVoice as unknown as import('@moonveil/voice/client').VoiceClient) : null;
+  }
+  /** Dev: move the fake channel to connected / reconnecting / failed. */
+  voiceState(state: 'connected' | 'reconnecting' | 'failed') {
+    const ch = this.stubVoice.getSnapshot().channels['public'];
+    if (!ch) return;
+    this.stubVoice.set({ mic: state === 'connected' ? 'granted' : this.stubVoice.getSnapshot().mic, channels: { public: { ...ch, state, publishing: state === 'connected' } } });
+  }
   simulateReconnect(ms = 1800, opts: { restart?: boolean } = {}) {
     this.conn = 'reconnecting';
     this.restarting = !!opts.restart;
@@ -343,6 +384,7 @@ export class LocalRoom implements Session {
       poses: [],
       voiceMode: this.voiceMode,
       serverRestart: this.conn === 'reconnecting' && this.restarting,
+      voiceJoined: this.voiceJoined && this.voiceMode === 'remote',
     };
   }
 }
