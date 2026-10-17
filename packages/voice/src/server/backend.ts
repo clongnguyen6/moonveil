@@ -57,6 +57,17 @@ export class LiveKitBackend implements VoiceBackend {
       if (!isNotFound(err)) throw err;
     }
   }
+
+  async probe(): Promise<{ ok: true; rooms: number } | { ok: false; error: string }> {
+    try {
+      const rooms = await this.svc.listRooms();
+      return { ok: true, rooms: rooms.length };
+    } catch (err) {
+      const e = err as { message?: string; status?: number; code?: string; cause?: { code?: string } };
+      // Shape the message for logs: HTTP status / twirp code (auth problems) or the socket error (no outbound path).
+      return { ok: false, error: `${e.status ?? ''} ${e.code ?? e.cause?.code ?? ''} ${e.message ?? String(err)}`.trim() };
+    }
+  }
 }
 
 // Twirp errors from livekit-server-sdk are ServerError { status (HTTP), code (twirp code) }.
@@ -116,5 +127,10 @@ export class FakeBackend implements VoiceBackend {
   async removeParticipant(room: string, identity: string, revokeTokenTs?: number): Promise<void> {
     this.calls.push({ op: 'remove', room, identity, ...(revokeTokenTs === undefined ? {} : { revokeTokenTs }) });
     this.rooms.get(room)?.delete(identity);
+  }
+
+  probeError: string | null = null;
+  async probe(): Promise<{ ok: true; rooms: number } | { ok: false; error: string }> {
+    return this.probeError ? { ok: false, error: this.probeError } : { ok: true, rooms: this.rooms.size };
   }
 }

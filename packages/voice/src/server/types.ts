@@ -45,6 +45,9 @@ export interface VoiceBackend {
   // Disconnects one participant. `revokeTokenTs` (unix seconds) asks LiveKit Cloud to reject tokens
   // issued before it; the OSS server ignores the field (verified in its source). No-op when absent.
   removeParticipant(room: string, identity: string, revokeTokenTs?: number): Promise<void>;
+  // Startup/health probe: one cheap authenticated API call. Detects a blocked outbound path or a bad key
+  // before the first match (e.g. a hosting trial without outbound access).
+  probe(): Promise<{ ok: true; rooms: number } | { ok: false; error: string }>;
 }
 
 export type Grants = ReadonlyMap<SeatId, readonly VoiceGrantLike[]>;

@@ -27,3 +27,10 @@ test('FakeBackend.removeParticipant records the revocation timestamp and drops t
   assert.deepEqual(b.calls.at(-1), { op: 'remove', room: 'R-public-g1', identity: 'p1', revokeTokenTs: 1_700_000_000 });
   await b.removeParticipant('R-public-g1', 'ghost'); // absent participant: no-op, no throw
 });
+
+test('probe reports reachability for a startup/health check', async () => {
+  const b = new FakeBackend();
+  assert.deepEqual(await b.probe(), { ok: true, rooms: 0 });
+  b.probeError = 'ENOTFOUND project.livekit.cloud';
+  assert.deepEqual(await b.probe(), { ok: false, error: 'ENOTFOUND project.livekit.cloud' });
+});

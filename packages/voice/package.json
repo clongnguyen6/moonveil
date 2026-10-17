@@ -15,7 +15,8 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.client.json && tsc -p tsconfig.e2e.json",
     "livekit": "node tooling/livekit.mjs",
     "check": "npm run typecheck && npm test",
-    "e2e": "playwright test -c e2e/playwright.config.ts"
+    "e2e": "playwright test -c e2e/playwright.config.ts",
+    "e2e:cloud": "playwright test -c e2e/cloud.config.ts"
   },
   "engines": {
     "node": ">=24.12"
