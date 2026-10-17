@@ -73,3 +73,16 @@ Status: foundation, 2026-10-16. The harness is ready now; the UI-driven layer wa
   - 8.1 min without voice, 8.5 min with (×20 took 4.7 min);
   - load 3.3 → 4.3, 1.8–3.0 GB free; peaks: browsers 3.4 GB RSS and 484 % CPU, server 336 MB.
   ×5 was not needed.
+
+## Scene cost per suite (foundation-10, needs visual-7 in `dev`)
+- Knob (visual-7, `docs/visual/MOUNT.md`): `quietUi(p, scene)` in `e2e/harness/ui.ts`.
+  - `off`: the Settings scene switch is off and the page override `globalThis.__MOONVEIL_SCENE = 'off'` is set, so there's no canvas and no loop.
+  - `low` / `high`: scene on, with that override.
+  - `auto`: scene on, no override; the scene picks `low` under `navigator.webdriver`.
+  - Env `MOONVEIL_SCENE=off|low|high|auto` overrides a suite's default; any other value is an error.
+- **Protocol and voice suites** (`real-match.spec.ts`): `off`. They assert the wire. Voice measured 11 software-rendered scenes at 600–700 % CPU in the GPU process.
+- **Strict UI suite** (`real-match-ui.spec.ts`): `auto` (resolves to `low`), on every context in all three projects, so the UI is exercised with the scene mounted.
+- Each match logs its mode (`scene` in `MATCH`, `STEPS`, `UIMATCH`).
+- Before foundation-10, every real-match suite ran with the scene switched off (quiet settings).
+- Not yet run in a locked run. If scene cost breaks pacing (misses or skipped steps), that's a finding to report, not a reason to switch the suite to `off` silently.
+

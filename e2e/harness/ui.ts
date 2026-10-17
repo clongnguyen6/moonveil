@@ -7,10 +7,23 @@ import { expect, type Player, type Table } from './index.ts';
 import { type BrowserMatch, game } from './match.ts';
 
 // Per SELECTORS.md: for many-context runs, scene off, sound off, reduced motion on.
-export async function quietUi(p: Player) {
-  await p.context.addInitScript(() => {
-    localStorage.setItem('moonveil.ui.settings', JSON.stringify({ scene: false, sound: false, reducedMotion: 'on' }));
-  });
+// Scene cost for many-context runs (visual-7, docs/visual/MOUNT.md). 'off' = Settings scene switch off + page override
+// 'off' (no canvas, no loop). 'low' | 'high' = scene on, forced via globalThis.__MOONVEIL_SCENE. 'auto' = scene on, no
+// override: the scene picks 'low' under navigator.webdriver. Env MOONVEIL_SCENE overrides a suite's default.
+export type SceneMode = 'off' | 'low' | 'high' | 'auto';
+export function sceneMode(suiteDefault: SceneMode): SceneMode {
+  const v = process.env.MOONVEIL_SCENE;
+  if (v === undefined || v === '') return suiteDefault;
+  if (v === 'off' || v === 'low' || v === 'high' || v === 'auto') return v;
+  throw new Error(`MOONVEIL_SCENE must be off|low|high|auto, got ${v}`);
+}
+
+// Documented quiet settings (SELECTORS.md): no sound, reduced motion; scene per `scene`.
+export async function quietUi(p: Player, scene: SceneMode = 'off') {
+  await p.context.addInitScript((mode: SceneMode) => {
+    localStorage.setItem('moonveil.ui.settings', JSON.stringify({ scene: mode !== 'off', sound: false, reducedMotion: 'on' }));
+    if (mode !== 'auto') (globalThis as Record<string, unknown>).__MOONVEIL_SCENE = mode;
+  }, scene);
 }
 
 export async function uiPresent(p: Player): Promise<boolean> {
@@ -151,10 +164,10 @@ export async function uiCloseStep(mod: Player) {
   uiStats.done++;
 }
 
-export async function seatRealMatchUi(table: Table, opts: { mode: Mode; seats: number; baseURL: string; hostName?: string }): Promise<BrowserMatch> {
+export async function seatRealMatchUi(table: Table, opts: { mode: Mode; seats: number; baseURL: string; hostName?: string; scene: SceneMode }): Promise<BrowserMatch> {
   const ctx = { baseURL: opts.baseURL };
   const host = await table.player(opts.hostName ?? (opts.mode === 'moderator' ? 'Mod' : 'P0'), ctx);
-  await quietUi(host);
+  await quietUi(host, opts.scene);
   await host.page.goto('/');
   await tid(host, 'name').fill(host.name);
   await tid(host, `create-${opts.mode}`).click();
@@ -163,7 +176,7 @@ export async function seatRealMatchUi(table: Table, opts: { mode: Mode; seats: n
   const players: Player[] = opts.mode === 'automatic' ? [host] : [];
   while (players.length < opts.seats) {
     const p = await table.player(`P${players.length}`, ctx);
-    await quietUi(p);
+    await quietUi(p, opts.scene);
     await p.page.goto('/');
     await tid(p, 'name').fill(p.name);
     await tid(p, 'code').fill(code);

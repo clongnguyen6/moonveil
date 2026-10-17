@@ -5,7 +5,7 @@
 import type { GameView, Mode, Profile, SeatView } from '@moonveil/protocol';
 import { planActions, rng, toAction } from '../../apps/server/test/bot-policy.ts';
 import { expect, type Player, type Table } from './index.ts';
-import { quietUi } from './ui.ts';
+import { quietUi, type SceneMode } from './ui.ts';
 
 export const game = (p: Player) => p.view().game as GameView | null;
 export const stepKey = (v: SeatView) => {
@@ -45,11 +45,11 @@ export interface BrowserMatch {
 
 // Create, join, ready, start: all via the client handle. `baseURL` = real-engine server.
 // hostName: with MOONVEIL_TEST_SEED the server's match seed is `<base>:<host name>` (acceptance seeds).
-export async function seatRealMatch(table: Table, opts: { mode: Mode; seats: number; baseURL: string; hostName?: string }): Promise<BrowserMatch> {
+export async function seatRealMatch(table: Table, opts: { mode: Mode; seats: number; baseURL: string; hostName?: string; scene: SceneMode }): Promise<BrowserMatch> {
   const ctx = { baseURL: opts.baseURL };
   const host = await table.player(opts.hostName ?? (opts.mode === 'moderator' ? 'Mod' : 'P0'), ctx);
-  // Game UI is mounted on every page: use its documented quiet settings for many-context runs (SELECTORS.md).
-  await quietUi(host);
+  // Game UI is mounted on every page: documented quiet settings for many-context runs (SELECTORS.md); scene per opts.
+  await quietUi(host, opts.scene);
   await host.page.goto('/');
   await clientCall(host, 'create', [opts.mode, profile(host.name)]);
   // The room code is read from the first state frame (welcome may arrive alone first).
@@ -58,7 +58,7 @@ export async function seatRealMatch(table: Table, opts: { mode: Mode; seats: num
   const players: Player[] = opts.mode === 'automatic' ? [host] : [];
   while (players.length < opts.seats) {
     const p = await table.player(`P${players.length}`, ctx);
-    await quietUi(p);
+    await quietUi(p, opts.scene);
     await p.page.goto('/');
     await clientCall(p, 'join', [code, profile(p.name)]);
     players.push(p);
