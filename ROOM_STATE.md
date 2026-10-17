@@ -91,7 +91,14 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Batch B made fixed in engine (rules-14 ad2429f, merged to dev); 35151f2 already runs identical defaults.
 - Outside writes (rules, 2026-10-17): /tmp/moonveil-unused (created+deleted ~21:58), /tmp/.none (471 B, 22:01, left in place). No cleanup authorized.
 
+## Decisions 2026-10-18 (Human)
+- Direction: finish the game; deploy considered OK for now. Not acceptance of unverified Cloud audio / Railway persistence; no blanket future deploy/main merge.
+- Rule change: during the 30 s defense ALL living players may speak publicly (accused keeps focus/timer; no PTT queue). Supersedes accused-only defense speech. Ghost/public separation, Hunter pending isolation, moderator powers unchanged.
+- Settings UX: users find Settings confusing → game-UI audit + reversible clarity fixes within original style (personal vs room/host controls, plain labels, grouping, advanced collapsed).
+- Live status: railway.app URL verified reachable/UI/idle 76 min/voice reach; persistence restart/redeploy untested live (retry script ready, on hold); www.moonveil.id.vn TLS ok but origin switch NOT applied (server 403s www origin); voice Cloud measured check running 00:17.
+
 ## Lead message queue (deliver at owner's next turn end)
+- voice (after Cloud run): update defense assertions (all living speak publicly) after rules merge.
 - (cleared)
 
 ## Approved rules (Human, 2026-10-16) — rules owner records in docs/rules/PROPOSAL.md
