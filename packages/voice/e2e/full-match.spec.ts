@@ -7,7 +7,7 @@
 //   VOICE_E2E_SEATS=10 VOICE_E2E_AUTO_BUDGET_MS=300000 MOONVEIL_SCENE=low ... -g automatic
 import { RoomServiceClient } from 'livekit-server-sdk';
 import { expect, type Player, test } from '../../../e2e/harness/index.ts';
-import { botAct, checkHearMatrix, game, type MatrixReport, moderatorClose, requireVoiceWiring, rng, sleep, step, voiceFrameLeaks, voiceFrames, voiceSettled, voiceSnapshot, waitStepChange } from './helpers.ts';
+import { botAct, checkHearMatrix, game, joinVoice, type MatrixReport, moderatorClose, requireVoiceWiring, rng, sleep, step, voiceFrameLeaks, voiceFrames, voiceSettled, voiceSnapshot, waitStepChange } from './helpers.ts';
 
 const SEATS = Number(process.env.VOICE_E2E_SEATS ?? 0);
 const AUTO_BUDGET_MS = Number(process.env.VOICE_E2E_AUTO_BUDGET_MS ?? 5 * 60_000);
@@ -68,7 +68,7 @@ test('moderator mode, full match with voice: hear-matrix equals grants on every 
   const seats = SEATS || 7;
   const { players, mod, code } = await seatTable(table, 'moderator', seats);
   const all = [...players, mod!];
-  await requireVoiceWiring(players[0]!);
+  await joinVoice(all); // D2: explicit join per page (the UI's tap)
 
   // lobby: everyone speaks and hears; the moderator listens hidden
   await voiceSettled(all);
@@ -115,7 +115,7 @@ test('automatic mode, 10 seats with voice: hear-matrix on every step within the 
   test.setTimeout(AUTO_BUDGET_MS + 8 * 60_000); // budget + seating, settling and the final checks
   const seats = SEATS || 10;
   const { players } = await seatTable(table, 'automatic', seats);
-  await requireVoiceWiring(players[0]!);
+  await joinVoice(players); // D2
   await voiceSettled(players);
   const reports: MatrixReport[] = [await checkHearMatrix(players, 'lobby')];
 

@@ -271,6 +271,27 @@ test('defense (ADR 0004 §1, measured): listeners become hidden, so the public r
   // visible as a listen-only ghost in the public roster. Measured in the browser suite; policy forbids it.
 });
 
+test('D5: lobby switch remote -> in-person -> remote: every session closes, no token is minted, then sessions resume on a new generation', async () => {
+  const backend = new FakeBackend();
+  const gw = new LiveKitVoiceGateway({ backend, keys, publicWsUrl: 'wss://x', autoCommit: false, random: () => 0.5, now: () => 1_700_000_000_000 });
+  const lobby = new Map([['p1', [g('public', true, true)]], ['p2', [g('public', true, true)]]]);
+  const r1 = await gw.sync('L', lobby);
+  await joinAll(gw, backend, 'L', ['p1', 'p2']);
+  assert.equal(r1.get('p1')![0]!.room, 'L-public-g1');
+  // host switches to in-person: the server sends the same seats with [] (voice grants only; text grants unaffected)
+  const r2 = await gw.sync('L', new Map([['p1', []], ['p2', []]]));
+  assert.deepEqual([...r2.values()].map((v) => v.length), [0, 0]); // no token minted
+  assert.deepEqual(backend.deleted, ['L-public-g1']); // session rooms closed (revoked first)
+  assert.deepEqual(backend.calls.filter((c) => c.op === 'remove').map((c) => c.identity).sort(), ['p1', 'p2']);
+  assert.equal(backend.calls.filter((c) => c.op === 'create').length, 1); // only the original room was ever created
+  assert.deepEqual(await gw.sessionsFor('L', 'p1'), []);
+  // host switches back: issued as for any remote lobby, on a fresh generation
+  const r3 = await gw.sync('L', lobby);
+  assert.equal(r3.get('p1')![0]!.room, 'L-public-g2');
+  assert.equal(r3.get('p2')!.length, 1);
+  assert.deepEqual([...backend.rooms.keys()], ['L-public-g2']);
+});
+
 test('backend errors are reported, not thrown into the server', async () => {
   const backend = new FakeBackend();
   backend.createRoom = async () => {

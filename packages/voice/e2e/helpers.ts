@@ -48,6 +48,15 @@ export async function requireVoiceWiring(p: Player) {
     .toBe(true);
 }
 
+// D2: voice connects only after an explicit join() from a user gesture; the UI makes that call from the
+// "join campfire" tap. The suite makes it directly on each page once the VoiceClient exists.
+export async function joinVoice(players: Player[]) {
+  for (const p of players) {
+    await requireVoiceWiring(p);
+    await evalBounded(p, 'voice.join', () => (globalThis as any).__moonveil.voice.join());
+  }
+}
+
 // Wait until every player's voice channels match its grants (names) and are connected.
 export async function voiceSettled(players: Player[], timeout = 40_000) {
   const t0 = Date.now();

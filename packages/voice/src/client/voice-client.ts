@@ -53,6 +53,10 @@ export interface ChannelView {
   error: string | null;
 }
 export interface VoiceSnapshot {
+  // D2: nothing connects and no microphone is requested before join() (called by the UI from a user gesture).
+  joined: boolean;
+  // Channels the server currently grants (held while not joined).
+  pendingChannels: string[];
   channels: Record<string, ChannelView>;
   mic: MicState;
   micError: string | null;
@@ -148,7 +152,9 @@ export class VoiceClient {
   private readonly opts: VoiceClientOptions;
   private readonly chans = new Map<string, Chan>();
   private readonly subs = new Set<() => void>();
-  private snapshot: VoiceSnapshot = { channels: {}, mic: 'idle', micError: null, muted: false, audioBlocked: false };
+  private snapshot: VoiceSnapshot = { joined: false, pendingChannels: [], channels: {}, mic: 'idle', micError: null, muted: false, audioBlocked: false };
+  private joined = false;
+  private pending: VoiceSession[] = [];
   private mic: MicState = 'idle';
   private micError: string | null = null;
   private muted = false;
@@ -172,9 +178,38 @@ export class VoiceClient {
   // --- commands ---
 
   // Apply the server's current sessions. Serialized: a second call waits for the first.
+  // Before join(), sessions are only held: no connection, no microphone (D2).
   applySessions(sessions: readonly VoiceSessionInput[]): Promise<void> {
-    const normalized = sessions.map(normalizeSession);
+    this.pending = sessions.map(normalizeSession);
+    if (!this.joined) {
+      this.publish();
+      return this.chain;
+    }
+    const normalized = this.pending;
     this.chain = this.chain.then(() => this.reconcile(normalized)).catch((err) => this.opts.onError?.('*', err));
+    return this.chain;
+  }
+
+  // D2: the UI calls this from a user gesture (the "join campfire" tap). Connects to the currently granted
+  // channels and requests the microphone where speak is granted. Idempotent.
+  join(): Promise<void> {
+    if (this.disposed) return Promise.resolve();
+    this.joined = true;
+    const sessions = this.pending;
+    this.chain = this.chain.then(() => this.reconcile(sessions)).catch((err) => this.opts.onError?.('*', err));
+    return this.chain;
+  }
+
+  // Disconnect every channel and release the microphone; sessions keep arriving and are held for a later join().
+  leave(): Promise<void> {
+    this.joined = false;
+    this.chain = this.chain
+      .then(async () => {
+        await Promise.all([...this.chans.keys()].map((ch) => this.drop(ch)));
+        this.mic = this.mic === 'denied' ? 'denied' : 'idle';
+        this.publish();
+      })
+      .catch((err) => this.opts.onError?.('*', err));
     return this.chain;
   }
 
@@ -212,13 +247,13 @@ export class VoiceClient {
     }
     for (const s of wanted.values()) {
       const c = this.chans.get(s.channel);
-      if (!c) await this.join(s);
+      if (!c) await this.joinChannel(s);
       else await this.follow(c, s);
     }
     this.publish();
   }
 
-  private async join(s: VoiceSession, attempt = 0): Promise<void> {
+  private async joinChannel(s: VoiceSession, attempt = 0): Promise<void> {
     const room = this.opts.createRoom ? this.opts.createRoom() : await defaultCreateRoom();
     const c: Chan = {
       session: s,
@@ -257,7 +292,7 @@ export class VoiceClient {
           this.chain = this.chain.then(async () => {
             if (this.chans.get(s.channel) !== c) return;
             await this.drop(s.channel);
-            await this.join(s, attempt + 1);
+            await this.joinChannel(s, attempt + 1);
           }).catch((e) => this.opts.onError?.(s.channel, e));
         }, delay);
       }
@@ -434,7 +469,7 @@ export class VoiceClient {
       channels[ch] = { ...c.view, participants: c.view.participants.map((p) => ({ ...p })) };
       if (c.view.state === 'connected' && !c.room.canPlaybackAudio) blocked = true;
     }
-    this.snapshot = { channels, mic: this.mic, micError: this.micError, muted: this.muted, audioBlocked: blocked };
+    this.snapshot = { joined: this.joined, pendingChannels: this.pending.filter((s) => s.listen || s.speak).map((s) => s.channel), channels, mic: this.mic, micError: this.micError, muted: this.muted, audioBlocked: blocked };
     for (const cb of this.subs) cb();
   }
 }
