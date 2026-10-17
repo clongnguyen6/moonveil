@@ -212,9 +212,13 @@ export class LocalRoom implements Session {
   voiceJoined = false;
   /** Dev stand-in for the VoiceClient snapshot (subscribe/getSnapshot/setMuted/unlockAudio) so the UI's phases can be checked. */
   stubVoice = new StubVoice();
+  /** Dev: simulate a server with no voice backend (no sessions ever) or the P19 flag. */
+  voiceNoSessions = false;
+  voiceAvailable: boolean | undefined = undefined;
   voiceJoin() {
     if (this.voiceMode === 'remote') {
       this.voiceJoined = true;
+      if (this.voiceNoSessions) { this.stubVoice.set({ mic: 'idle', channels: {} }); this.emit(); return; }
       this.stubVoice.set({ mic: 'requesting', channels: { public: { channel: 'public', room: 'r', state: 'connecting', speak: true, listen: true, visible: true, publishing: false, participants: [], error: null } } });
     }
     this.emit();
@@ -385,6 +389,8 @@ export class LocalRoom implements Session {
       voiceMode: this.voiceMode,
       serverRestart: this.conn === 'reconnecting' && this.restarting,
       voiceJoined: this.voiceJoined && this.voiceMode === 'remote',
+      voiceSessions: this.voiceJoined && !this.voiceNoSessions ? 1 : 0,
+      voiceAvailable: this.voiceAvailable,
     };
   }
 }

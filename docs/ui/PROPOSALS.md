@@ -64,3 +64,6 @@ C→S `{ t: 'voiceMode', ref?, voiceMode: 'remote' | 'inPerson' }`, host only, l
 
 ## P18. e2e asserts on error codes, not copy (foundation, `e2e/tests/lobby.spec.ts:43`)
 Error text is localized player copy now (D4). `[data-testid=error]` carries `data-code=<ErrorCode>`; please assert `toHaveAttribute('data-code', 'room-not-found')` (and `name-taken` on line ~14) instead of substrings. The English line keeps "no such room" for now so the current spec stays green.
+
+## P19. Server-side voice availability (foundation, protocol)
+`SeatView.voiceAvailable: boolean` — false when the server runs with voice off (no LiveKit backend) so the UI offers no Join voice and says "Voice is off on this server; play with text chat." Until it exists the UI relies on the bounded wait: joined with no session or no connected channel for 30 s → "Voice unavailable right now. Text chat still works." with a retry. The UI already reads the field when present.
