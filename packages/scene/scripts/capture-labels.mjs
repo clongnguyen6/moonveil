@@ -21,7 +21,9 @@ async function shot(ctxOpts, name, query, sec) {
   await page.screenshot({ path: join(outDir, `${name}.jpg`), type: 'jpeg', quality: 86 });
   await ctx.close(); console.log('shot', name);
 }
-for (const [tag, labels] of [['before', '0'], ['after', '1']]) {
+// pass 1 (visual-8): before = no layout, after = v1. pass 2 (visual-9): before = v1, after = v2 (default). Select with --pass 2.
+const pass2 = args.includes('--pass') && args[args.indexOf('--pass') + 1] === '2';
+for (const [tag, labels] of pass2 ? [['v1-before', '1'], ['v2-after', '2']] : [['before', '0'], ['after', '1']]) {
   await shot(laptop, `${tag}-laptop-seating-15`, `scene=seating&n=15&labels=${labels}`, 7);
   await shot(phone, `${tag}-phone-portrait-seating-15`, `scene=seating&n=15&labels=${labels}`, 7);
   await shot(phone, `${tag}-phone-portrait-lobby-edge`, `scene=lobby&n=15&labels=${labels}&cam=fit`, 5);
