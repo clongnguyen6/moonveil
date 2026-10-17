@@ -15,7 +15,9 @@ test('labels at the screen edges are pulled fully inside, including under the to
   assert.equal(out.find((l) => l.id === 't')!.y, 56 + 4 + 14);
 });
 
-// 15 seats on a phone in tight framing: ring ≈ 142 × 84 px (world rx 195 / ry 115 at scale 0.73), labels 50–78 px wide
+// 15 seats on a phone in tight framing: ring ≈ 142 × 84 px (world rx 195 / ry 115 at scale 0.73), labels 50–78 px wide.
+// An earlier synthetic ring at a 70 px radius was denser than any real layout; with the lift capped at one label height
+// it cannot be solved without residual overlap, so the test targets the real geometry rather than loosening the cap.
 const ring15 = (): LabelRect[] => { const ls: LabelRect[] = []; for (let i = 0; i < 15; i++) { const a = (i / 15) * Math.PI * 2; ls.push(rect(`s${i}`, 195 + Math.cos(a) * 142, 420 + Math.sin(a) * 84, 50 + (i % 3) * 14)); } return ls; };
 
 test('a 15-seat phone ring ends with no overlapping labels, all inside, lifts capped at one label height', () => {
