@@ -274,6 +274,20 @@ For the account holder. Approved 2026-10-17: Railway Trial only, revision pinned
 - Create and join work.
 - SIGTERM: both clients get close 1012 and the process exits 0. The restart logs `restoredRooms=1`, and both clients resume the same seats with their lobby state.
 
+### 7d. Live state of the deploy (2026-10-17/18; pinned revision, Railway Trial)
+**Verified from outside** (`scripts/postdeploy-check.mjs`, evidence in `.cache/postdeploy/live/` and `.cache/postdeploy/www-check.jsonl`)
+- **Reachability and app:** `/healthz` ok; `/` and `/r/<CODE>` load; `/api/lan` = `[]`; a foreign origin is refused on `/ws` (403); create + 2 joins through the real UI with 3 pages. All of this on both `https://moonveil-production-b733.up.railway.app` and `https://www.moonveil.id.vn`.
+- **Idle:** 3 pages connected for ~76 min with 0 reconnects.
+- **Voice:** the server reached LiveKit's API (sessions issued); 3 browsers connected to LiveKit Cloud in ~1 s; ≤ 0.5 participant-minutes used.
+- **`Host` is preserved by Railway's proxy, at least on the custom domain.** A `www` page's `/ws` (Origin `www`, Host `www`) opens through the same-origin rule, although `MOONVEIL_PUBLIC_ORIGIN` is still the railway.app URL. The only case refused is a `www` origin sent to the railway.app host, which the browser client never does.
+
+**Untested live**
+- **Persistence across a restart and a redeploy on Railway.** Both 30-minute windows expired without the account holder's action. On hold, by decision 2026-10-18. The local equivalents pass: SIGTERM gives 1012 and `restoredRooms=1` with the same seats; SIGKILL then start gives 1006 and the same seats (`.cache/postdeploy/dryrun.jsonl`), plus the browser restart tests in every full acceptance run.
+- **Retry:** ready as `postdeploy-check.mjs … --no-voice --idle-min=0 --actions=2 --then-origin=https://www.moonveil.id.vn`. It needs the account holder's Restart and Redeploy.
+- **Not seen from outside:** the startup line (`persist=/data/rooms`, `voice=…`, `restoredRooms`), so whether rooms are written to the volume rather than the ephemeral disk; and the trial type (Full or Limited), although LiveKit was reached, which argues against an outbound block.
+
+**Origin switch (§7c): not applied, and not needed for `www` to work.** `MOONVEIL_PUBLIC_ORIGIN` is still the railway.app URL. Applying §7c makes it name `www`, and keeps railway.app pages working through `MOONVEIL_ALLOWED_ORIGINS`. Do it at the next planned redeploy, between sessions.
+
 ### 7c. Custom domain `www.moonveil.id.vn` (state 2026-10-17; origin switch combined with the redeploy check)
 **Done by the account holder**
 - CNAME `www` → `76wjlnn2.up.railway.app` plus the `_railway-verify.www` TXT record; the domain is green in Railway.
@@ -332,7 +346,7 @@ A playtest runs only when every gate in G1–G4 is **met** or explicitly waived 
 | L2 Acceptance runs the scene at 4 fps on one observer per match | Reduced-motion emulation, a test-environment mitigation. It shows the UI works with a scene mounted; it is not performance evidence | foundation (harness); visual owner (product performance) |
 | L3 LiveKit Cloud is untested | Voice is verified only against local LiveKit OSS (grant d). Gateway compatibility on Cloud, revocation, room rotation minutes and the 5,000-minute cap are unverified | voice owner |
 | L4 No real devices | All phone results are browser emulation (Pixel 7 Chromium, iPhone 15 WebKit). No real iPhone or Android, and no real microphone or speaker audio in foundation's suites | first playtest; voice and visual owners for their device checks |
-| L5 Railway facts not confirmed by docs | `Host` preservation, Serverless default off, volume survival wording, trial-type indicator, card requirement, several dashboard labels | checked by §7a; account holder |
+| L5 Railway facts not confirmed by docs | `Host` preservation (since observed live on the custom domain, §7d), Serverless default off, volume survival wording, trial-type indicator, card requirement, several dashboard labels | checked by §7a; account holder |
 | L6 Restarts interrupt play | A redeploy, restart or host migration drops every player. They see the reconnect overlay and resume with the room restored and paused. The 1012 notice is best effort; crashes give none | foundation (documented, §4) |
 | L7 Costs and bandwidth are estimates | ~$1.5–2.5/month and ~20 MB per match come from rates and local measurements, not from Railway's usage page | account holder measures during the trial (§6) |
 | L8 Balance evidence is from bots | `docs/rules/BALANCE.md`; bots aren't players | rules owner; playtest feedback |
@@ -340,6 +354,6 @@ A playtest runs only when every gate in G1–G4 is **met** or explicitly waived 
 ### G4. After deploy, before players join
 | Gate | Status | Evidence / owner |
 |---|---|---|
-| G4.1 §7a parts A–G pass (trial type, settings, variables, volume, first log line, connection and idle, restart and redeploy recovery) | open: needs deploy | account holder; screenshots to Lead |
-| G4.2 §7a part H (voice reachability) passes, or G2.4 says voice off | open | account holder after G2.3 |
+| G4.1 §7a parts A–G pass (trial type, settings, variables, volume, first log line, connection and idle, restart and redeploy recovery) | partly: reachability, app, idle and origin verified live (§7d). Restart and redeploy recovery are **untested live** (on hold); startup line and trial type need the account holder | foundation (live checks); account holder |
+| G4.2 §7a part H (voice reachability) passes, or G2.4 says voice off | met from outside (§7d): sessions issued, browsers connected to LiveKit Cloud | foundation |
 | G4.3 §7a part I usage baseline recorded; stop rules (§6: under $1 or 5 days) in force | open | account holder |
