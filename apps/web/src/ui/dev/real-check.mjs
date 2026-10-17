@@ -234,7 +234,27 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
     for (const n of NAMES.slice(0, 7)) { const p = await mk(n + '2'); await p.join(code2); await p.ready(); ps2.push(p); }
     await mod2.page.getByTestId('start').click();
     await mod2.page.waitForSelector('[data-testid=mod-console]', { timeout: 15_000 });
-    await mod2.page.getByTestId('end-match-open').click(); await mod2.page.getByTestId('end-match-input').fill('END'); await mod2.page.getByTestId('end-match-confirm').click(); await mod2.page.waitForTimeout(400);
+    // Normal UI-driven loop until the first verdict closes: proves nomination ballots, the defense grant and the Yes/No step.
+    const close2 = async () => { await mod2.page.getByTestId('close-step').click(); await mod2.page.locator('[role=alertdialog] .btn').nth(1).click(); await mod2.page.waitForTimeout(250); };
+    let sawDefense = false, sawConfirm = false;
+    for (let i = 0; i < 24 && !sawConfirm && (await mod2.step()) !== 'ended'; i++) {
+      const step = await mod2.step();
+      if (step === 'night.main' || step === 'night.witch') { for (const p of ps2) await p.pickFirst().catch(() => {}); if (step === 'night.witch') { const w = ps2.find((p) => p.game().me.role === 'witch' && p.game().me.alive); if (w) await w.page.getByTestId('heal-no').click().catch(() => {}); } }
+      if (step === 'hunter') for (const p of ps2) await p.pickFirst().catch(() => {});
+      if (step === 'day.vote') { const alive = ps2.filter((p) => p.game().me.alive); const target = alive[0]; for (const p of alive) { if (p === target) continue; const b = p.page.locator(`[data-testid=seat-${target.game().me.seat}]`); if (await b.count()) { await b.click(); await p.page.getByTestId('confirm').click(); } } await mod2.page.waitForTimeout(300); }
+      if (step === 'day.defense') {
+        sawDefense = true;
+        const acc = mod2.game().step.accused;
+        const other = ps2.find((p) => p.game().me.alive && p.game().me.seat !== acc);
+        ok('defense: living non-accused players may speak (public speak grant + "Everyone may speak" copy)', !!other && (await other.page.locator('[data-testid=voice][data-speak=public]').count()) === 1 && /Everyone may speak/.test(await other.page.getByTestId('defense-hint').innerText()) && (await other.page.locator('[data-testid=day-defense][data-everyone=true]').count()) === 1);
+        const accused = ps2.find((p) => p.game().me.seat === acc);
+        if (accused) ok('defense: the accused keeps the floor copy and the public speak grant', /defense|Your defense/i.test(await accused.page.getByTestId('defense-hint').innerText()) && (await accused.page.locator('[data-testid=voice][data-speak=public]').count()) === 1);
+      }
+      if (step === 'day.confirm') { for (const p of ps2.filter((p) => p.game().me.alive)) await p.page.getByTestId('vote-yes').click().catch(() => {}); await mod2.page.waitForTimeout(300); sawConfirm = true; }
+      await close2();
+    }
+    ok('moderator room 2: reached a defense and a verdict through the UI', sawDefense && sawConfirm);
+    if ((await mod2.step()) !== 'ended') { await mod2.page.getByTestId('end-match-open').click(); await mod2.page.getByTestId('end-match-input').fill('END'); await mod2.page.getByTestId('end-match-confirm').click(); await mod2.page.waitForTimeout(400); }
     ok('moderator end-match (match.end): ended by the moderator, no winner, full reveal on a player', (await ps2[0].page.locator('[data-testid=ended][data-reason=aborted]').count()) === 1 && (await ps2[0].page.locator('[data-testid=ended] .seat-chip .tag').count()) === 7 && !/village|wolves/.test(await ps2[0].page.locator('[data-testid=ended]').getAttribute('data-winner')));
     for (const p of [mod2, ...ps2]) await p.ctx.close();
     await browser.close(); server.kill('SIGTERM');

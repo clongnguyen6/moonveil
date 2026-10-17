@@ -310,7 +310,7 @@ await stub((r) => r.setViewer(r.players[1].id));
 ok('lobby: non-host sees a read-only Room summary (mode + deck), no host controls', (await page.locator('[data-testid=room-settings][data-host=false] [data-testid=room-voice-mode]').count()) === 1 && (await page.locator('[data-testid=voice-mode], [data-testid=deck-edit], [data-testid=start-card]').count()) === 0);
 // defense copy follows grants
 await open('defense', '&lang=en');
-ok('defense: copy follows the grant (engine today: only the accused speaks → "listen" text, no everyone text)', /Listen\. Only/.test(await page.getByTestId('defense-hint').innerText()) && (await page.locator('[data-testid=day-defense][data-everyone=false]').count()) === 1);
+ok('defense: copy follows the grant (engine: all living may speak → "Everyone may speak", no "only" text)', /Everyone may speak/.test(await page.getByTestId('defense-hint').innerText()) && (await page.locator('[data-testid=day-defense][data-everyone=true]').count()) === 1 && (await page.locator('[data-testid=voice][data-speak=public]').count()) === 1);
 await open('day');
 
 // 12. Full automatic match with bots in live mode: run until ended (speed via stub).
