@@ -45,7 +45,10 @@ export const uiStats = {
   // Engine-accepted wolf picks, checked against the end-of-match night records.
   wolfPicks: [] as { night: number; seat: number; target: number }[],
 };
-const CLICK_MS = 1_500;
+// Per-click actionability wait (visible, stable over animation frames, enabled). 3 s since foundation-15: on 3ceaeae the
+// software-rendered scene observer missed 2 clicks in ~1,200 at 1.5 s (control present, frames late). Strictness is
+// unchanged: the action must still land inside its step, and a step that closes first is still a miss (0006).
+const CLICK_MS = 3_000;
 let lastReason = '';
 async function tryClick(l: ReturnType<typeof tid>): Promise<boolean> {
   try {

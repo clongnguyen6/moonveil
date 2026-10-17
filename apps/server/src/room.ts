@@ -91,6 +91,8 @@ export class RestoreSkip extends Error {}
 export interface RoomDeps<S> {
   engine: RulesEngine<S>;
   voice: VoiceGateway;
+  // P19: a real voice backend is configured (false with nullVoiceGateway). Sent as SeatView.voiceAvailable.
+  voiceAvailable: boolean;
   scheduler: Scheduler;
   now: () => number;
   seed: (ctx: { hostName: string; players: number }) => string;
@@ -676,6 +678,7 @@ export class Room<S = unknown> {
       engine: engine.id,
       mode: this.mode,
       voiceMode: this.voiceMode,
+      voiceAvailable: this.deps.voiceAvailable,
       status: this.status,
       me: { seat: seat.id, kind: seat.kind, host: isHost },
       players,
