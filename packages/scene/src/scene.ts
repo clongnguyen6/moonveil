@@ -1,14 +1,14 @@
 // mountScene: the renderer. Consumes SceneInput snapshots + server-filtered PoseFrames + local input.
-import { Application, Container, Sprite } from 'pixi.js';
+import { Application, Container, Sprite, TilingSprite } from 'pixi.js';
 import { TextureBank } from './textures.ts';
 import { World } from './world.ts';
 import { Avatar } from './avatar.ts';
 import { Lighting } from './lighting.ts';
-import { Fire, Fireflies, WaterGlints, Fog } from './particles.ts';
+import { Fire, Fireflies, WaterGlints, Mist } from './particles.ts';
 import { Input } from './input.ts';
 import { Ambience } from './audio.ts';
 import { PoseBuffer } from './poses.ts';
-import { createMap, frameRect, FIRE, WORLD, inWorld, type MapLayout } from './map.ts';
+import { createMap, frameRect, FIRE, WORLD, inWorld, streamX, type MapLayout } from './map.ts';
 import { intentFor, canMove, nightLevelFor, type SeatIntent } from './choreo.ts';
 import { lerp, clamp, mixColor, smooth } from './rng.ts';
 import type { CameraMode, Pose, PoseFrame, SafeArea, SceneHandle, SceneInput, SceneOptions, SeatId, PerfStats } from './types.ts';
@@ -61,7 +61,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   const ready = (async () => {
     const a = new Application();
     await a.init({
-      resizeTo: host, background: '#0f1813', antialias: true,
+      resizeTo: host, background: '#0b0f14', antialias: true,
       resolution: low ? 1 : Math.min(window.devicePixelRatio || 1, opts.resolution ?? 2), autoDensity: true,
       preference: 'webgl', powerPreference: 'high-performance',
     });
@@ -83,10 +83,11 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   let map: MapLayout;
   let world: World;
   let bank: TextureBank;
-  let emissive: Container, fx: Container, lighting: Lighting, vignette: Sprite, nightTint: Sprite;
-  let fire: Fire, fireflies: Fireflies, glints: WaterGlints, fog: Fog;
-  let fireLight: Sprite, fireLight2: Sprite, moon: Sprite, moonEdge: Sprite;
-  let tentLights: Sprite[] = [], tentBulbs: Sprite[] = [], postLights: Sprite[] = [], postBulbs: Sprite[] = [];
+  let emissive: Container, warm: Container, fx: Container, lighting: Lighting, vignette: Sprite, grain: TilingSprite | null = null;
+  const foreground: Sprite[] = [];
+  let fire: Fire, fireflies: Fireflies, glints: WaterGlints, mist: Mist;
+  let fireLight: Sprite, fireLight2: Sprite, firePool: Sprite, moon: Sprite, moonWaterRef: Sprite | null = null;
+  let tentLights: Sprite[] = [], tentPools: Sprite[] = [], tentReflections: (Sprite | null)[] = [], postLights: Sprite[] = [], postBulbs: Sprite[] = [], postReflections: (Sprite | null)[] = [];
   const lanternLevel: number[] = [];
   let inputCtl: Input;
   const avatars = new Map<SeatId, Avatar>();
@@ -100,25 +101,29 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   let lastSent: Pose | null = null;
 
   function build(a: Application) {
-    bank = new TextureBank(a.renderer);
+    bank = new TextureBank(a.renderer, low);
     map = createMap(Math.max(4, input.players.length));
-    world = new World(bank, map);
-    emissive = new Container(); fx = new Container();
+    world = new World(bank, map, low);
+    emissive = new Container(); warm = new Container(); fx = new Container();
     lighting = new Lighting(a.renderer, bank.light);
-    vignette = new Sprite(bank.vignette); vignette.alpha = 0.9;
-    nightTint = new Sprite(bank.light); nightTint.tint = 0x6a5aa8; nightTint.alpha = 0; nightTint.anchor.set(0.5); // soft purple wash at night
-    a.stage.addChild(world.root, lighting.out, nightTint, emissive, fx, vignette);
+    vignette = new Sprite(bank.vignette);
+    // layers: painted world → multiply lightmap (shapes the dark) → warm additive pools (lift near fire/lamps)
+    //         → emissive (flames, embers, bulbs, reflections) → fx (mist, smoke) → vignette → grain
+    a.stage.addChild(world.root, lighting.out, warm, emissive, fx, vignette);
+    // screen-space framing: dark foliage in the bottom-left and top-right corners (depth cue, cheap)
+    bank.foreground.forEach((tex, i) => { const f = new Sprite(tex); f.anchor.set(i === 0 ? 0 : 1, i === 0 ? 1 : 0); f.alpha = 0.9; foreground.push(f); fx.addChild(f); });
+    if (!low) { grain = new TilingSprite({ texture: bank.grain, width: 64, height: 64 }); grain.blendMode = 'add'; grain.alpha = 0.028; a.stage.addChild(grain); }
 
-    fireLight = lighting.addLight(0xffa84a, 3.2); fireLight2 = lighting.addLight(0xff7a30, 1.4);
-    fireLight.position.set(FIRE.x, FIRE.y - 10); fireLight2.position.set(FIRE.x, FIRE.y - 10);
-    moon = lighting.addLight(0x8690ff, 9, 0); moon.position.set(FIRE.x + 150, FIRE.y - 120);
-    moonEdge = lighting.addLight(0x6060c8, 16, 0); moonEdge.position.set(FIRE.x, FIRE.y);
-    tentLights = map.tents.map((tn) => { const l = lighting.addLight(0xffa858, 1.0, 0); l.position.set(tn.lanternAt.x, tn.lanternAt.y + 20); return l; });
-    tentBulbs = map.tents.map((tn) => { const s = new Sprite(bank.dot); s.anchor.set(0.5); s.blendMode = 'add'; s.tint = 0xffd890; s.position.set(tn.x + 4, tn.y - 34); s.scale.set(0.5); s.alpha = 0; emissive.addChild(s); return s; });
-    postLights = world.lanternBulbs.map((p) => { const l = lighting.addLight(0xffb066, 1.4, 0); l.position.set(p.x, p.y + 10); return l; });
-    postBulbs = world.lanternBulbs.map((p) => { const s = new Sprite(bank.dot); s.anchor.set(0.5); s.blendMode = 'add'; s.tint = 0xffe0a0; s.position.set(p.x, p.y); s.scale.set(0.6); s.alpha = 0; emissive.addChild(s); return s; });
-    for (let i = 0; i < map.tents.length; i++) lanternLevel.push(0);
-    fire = new Fire(emissive, fx, bank); fireflies = new Fireflies(emissive, bank); glints = new WaterGlints(emissive, bank); fog = new Fog(fx, bank);
+    fireLight = lighting.addLight(0xffb070, 3.4); fireLight2 = lighting.addLight(0xff8a40, 1.3);
+    fireLight.position.set(FIRE.x, FIRE.y - 6); fireLight2.position.set(FIRE.x, FIRE.y - 6);
+    firePool = new Sprite(bank.light); firePool.anchor.set(0.5); firePool.blendMode = 'add'; firePool.tint = 0xff8c3a; firePool.position.set(FIRE.x, FIRE.y + 10); firePool.scale.set(3.4, 2.1); warm.addChild(firePool);
+    const moonWater = new Sprite(bank.lightSoft); moonWater.anchor.set(0.5); moonWater.blendMode = 'add'; moonWater.tint = 0x5a6e8c; moonWater.position.set(streamX(420), 420); moonWater.scale.set(3.2, 5); moonWater.alpha = 0; warm.addChild(moonWater); moonWaterRef = moonWater;
+    moon = lighting.addLight(0x9aa6c8, 12, 0); moon.position.set(FIRE.x + 420, FIRE.y - 300);
+    buildTentLights();
+    postLights = world.lanternBulbs.map((p) => { const l = lighting.addLight(0xffb066, 1.0, 0); l.position.set(p.x, p.y + 14); return l; });
+    postBulbs = world.lanternBulbs.map((p) => { const s = new Sprite(bank.dot); s.anchor.set(0.5); s.blendMode = 'add'; s.tint = 0xffd9a0; s.position.set(p.x, p.y); s.scale.set(0.35); s.alpha = 0; emissive.addChild(s); return s; });
+    postReflections = world.lanternBulbs.map((p) => reflectionFor(p.x, p.y, 0xffc080));
+    fire = new Fire(emissive, fx, bank); fireflies = new Fireflies(emissive, bank); glints = new WaterGlints(emissive, bank); mist = new Mist(fx, bank, low ? 2 : 6);
 
     inputCtl = new Input(host);
     inputCtl.onSpeakKey = (down) => { localSpeaking = down; };
@@ -246,17 +251,30 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   }
 
   function rebuildMap(n: number) {
-    // Lobby growth beyond the initial layout: rebuild world and lights. Rare; acceptable cost.
+    // Lobby growth beyond the initial layout: rebuild world and tent lights. Rare; acceptable cost.
     const a = app!; const old = world;
     map = createMap(n);
-    world = new World(bank, map);
+    world = new World(bank, map, low);
     a.stage.addChildAt(world.root, 0);
     for (const av of avatars.values()) world.objects.addChild(av.root);
     old.root.destroy({ children: true });
-    for (const l of tentLights) l.destroy(); for (const b of tentBulbs) b.destroy();
-    tentLights = map.tents.map((tn) => { const l = lighting.addLight(0xffa858, 1.0, 0); l.position.set(tn.lanternAt.x, tn.lanternAt.y + 20); return l; });
-    tentBulbs = map.tents.map((tn) => { const s = new Sprite(bank.dot); s.anchor.set(0.5); s.blendMode = 'add'; s.tint = 0xffd890; s.position.set(tn.x + 4, tn.y - 34); s.scale.set(0.5); s.alpha = 0; emissive.addChild(s); return s; });
+    buildTentLights();
+  }
+
+  function buildTentLights() {
+    for (const l of tentLights) l.destroy(); for (const p of tentPools) p.destroy(); for (const r of tentReflections) r?.destroy();
+    tentLights = map.tents.map((tn) => { const l = lighting.addLight(0xffb070, 0.8, 0); l.position.set(tn.x + 2, tn.y - 10); return l; });
+    tentPools = map.tents.map((tn) => { const s = new Sprite(bank.lightSoft); s.anchor.set(0.5); s.blendMode = 'add'; s.tint = 0xff9a50; s.position.set(tn.x + 2, tn.y + 4); s.scale.set(0.7, 0.4); s.alpha = 0; warm.addChild(s); return s; });
+    tentReflections = map.tents.map((tn) => reflectionFor(tn.x, tn.y, 0xffb070));
     lanternLevel.length = 0; for (let i = 0; i < map.tents.length; i++) lanternLevel.push(0);
+  }
+  // a warm light near the stream shows as a vertical streak on the water
+  function reflectionFor(x: number, y: number, tint: number): Sprite | null {
+    const sx = streamX(y);
+    if (x > sx - 420 && x < sx + 100) {
+      const s = new Sprite(bank.streak); s.anchor.set(0.5, 0); s.blendMode = 'add'; s.tint = tint; s.position.set(sx + (x - sx) * 0.12, y + 30); s.scale.set(1.1, 1.2); s.alpha = 0; emissive.addChild(s); return s;
+    }
+    return null;
   }
 
   function layoutCamera(dt: number, vw: number, vh: number) {
@@ -281,7 +299,13 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     cam.y = safe.top + innerH / 2 - cy * scale;
     for (const c of [world.root, emissive, fx]) { c.position.set(cam.x, cam.y); c.scale.set(scale); }
     vignette.width = vw; vignette.height = vh;
-    nightTint.position.set(vw / 2, vh / 2); nightTint.scale.set(Math.max(vw, vh) / 256 * 1.6);
+    if (grain) { grain.width = vw; grain.height = vh; }
+    // foreground framing stays in screen space with a slight parallax against the camera
+    const fgScale = Math.max(0.9, Math.min(1.6, vh / 720)) / scale;
+    foreground.forEach((f, i) => {
+      const sx = i === 0 ? -20 + (cam.x * 0.02) : vw + 20 - (cam.x * 0.02), sy = i === 0 ? vh + 20 : -10;
+      f.position.set((sx - cam.x) / scale, (sy - cam.y) / scale); f.scale.set(fgScale);
+    });
   }
 
   function tick(dt: number) {
@@ -333,32 +357,36 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       if (!lastSent || lastSent.x !== pose.x || lastSent.y !== pose.y || lastSent.facing !== pose.facing || lastSent.moving !== pose.moving) { lastSent = pose; for (const cb of listeners.move) cb(pose); }
     }
 
-    // world + effects (cheap mode: no sway, no particle pools, no fog)
+    // world + effects (cheap mode: no shimmer, no pools, fewer mist puffs)
     if (!low && !reducedMotion) world.update(t, dt);
-    const fi = lerp(1, 0.45, smooth(n));
-    const flick = 1 + Math.sin(t * 9.3) * 0.05 + Math.sin(t * 23.7) * 0.03 + Math.sin(t * 3.1) * 0.03;
+    world.setNight(smooth(n));
+    const fi = lerp(1, 0.6, smooth(n));                     // the fire stays the scene's anchor at night
+    const flick = 1 + Math.sin(t * 7.3) * 0.03 + Math.sin(t * 19.7) * 0.02 + Math.sin(t * 2.1) * 0.02;
     fire.intensity = fi;
-    fireLight.scale.set(3.4 * flick * (0.7 + 0.3 * fi)); fireLight.alpha = 0.85 * (0.5 + 0.5 * fi);
-    fireLight2.scale.set(1.5 * flick); fireLight2.alpha = 0.9;
-    moon.alpha = 0.7 * moonL; moonEdge.alpha = 0.45 * moonL;
-    tentLights.forEach((l, i) => { const lv = (lanternLevel[i] ?? 0) * (0.8 + Math.sin(t * 6 + i) * 0.08); l.alpha = lv * 0.9; const b = tentBulbs[i]; if (b) { b.alpha = lv * 0.9; b.scale.set(0.45 + lv * 0.2); } });
-    postLights.forEach((l, i) => { l.alpha = moonL * (0.75 + Math.sin(t * 5 + i * 2) * 0.1); const b = postBulbs[i]; if (b) b.alpha = moonL * 0.95; });
-    if (!low) {
-      fireflies.level = moonL; fireflies.update(t);
-      glints.night = moonL; glints.update(t);
-      fog.level = moonL * 0.45; fog.update(t);
-    }
-    fire.update(t, low ? 0 : dt, mixColor(0xffffff, 0x5a6090, n));   // dt 0: flames animate, pools emit nothing
+    fireLight.scale.set(3.4 * flick * (0.85 + 0.15 * fi)); fireLight.alpha = 0.95;
+    fireLight2.scale.set(1.3 * flick); fireLight2.alpha = 0.9;
+    firePool.alpha = (0.07 + 0.3 * moonL) * flick; firePool.scale.set(3.4 * flick, 2.1 * flick);
+    moon.alpha = 0.4 * moonL; if (moonWaterRef) moonWaterRef.alpha = 0.10 * moonL;
+    // tent lamps: a dim baseline at night, full when the tent is occupied (lanternLevel)
+    tentLights.forEach((l, i) => {
+      const lv = Math.max(moonL * 0.45, (lanternLevel[i] ?? 0) * moonL) * (0.9 + Math.sin(t * 5 + i) * 0.05);
+      l.alpha = lv; const p = tentPools[i]; if (p) p.alpha = lv * 0.3; world.setTentLit(i, lv);
+      const r = tentReflections[i]; if (r) r.alpha = lv * 0.14;
+    });
+    postLights.forEach((l, i) => { const lv = moonL * (0.8 + Math.sin(t * 4 + i * 2) * 0.06); l.alpha = lv; const b = postBulbs[i]; if (b) b.alpha = lv * 0.9; const r = postReflections[i]; if (r) r.alpha = lv * 0.18; });
+    if (!low) { fireflies.level = moonL; fireflies.update(t); glints.night = moonL; glints.update(t); }
+    mist.level = moonL; mist.update(t);
+    fire.update(t, low ? 0 : dt, mixColor(0xd8d4cc, 0x5a6478, n));
     lighting.ambient = ambientColor(n);
-    nightTint.alpha = 0.16 * moonL;
-    vignette.alpha = 0.75 + 0.25 * n;
+    vignette.alpha = 0.65 + 0.2 * n;
+    if (grain) grain.tilePosition.set((t * 37) % 64, (t * 53) % 64);
     ambience.night = n; ambience.fire = fi; ambience.update(dt);
   }
 
   function ambientColor(nl: number): number {
-    const s = smooth(nl);
-    const day = 0xffffff, dusk = 0xe8a070, night = 0x3a3c92;
-    return s < 0.5 ? mixColor(day, dusk, s * 2) : mixColor(dusk, night, (s - 0.5) * 2);
+    // plates carry the time of day; the lightmap only shapes it: slight warm at dusk, a cool darkening at night
+    const sm = smooth(nl);
+    return mixColor(0xf6efe2, 0xa6adc0, sm);
   }
 
   const stat = (arr: number[]) => { const s = [...arr].sort((x, y) => x - y); const n = s.length || 1; return { avg: +(arr.reduce((x, y) => x + y, 0) / n).toFixed(2), p95: +(s[Math.floor(n * 0.95)] ?? 0).toFixed(2), max: +(s[n - 1] ?? 0).toFixed(2) }; };

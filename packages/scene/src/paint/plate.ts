@@ -15,14 +15,14 @@ interface Pal {
 }
 const PALETTES: Record<Variant, Pal> = {
   dusk: {
-    base: '#1c2419', groundDark: [38, 52, 36], groundLight: [86, 104, 62], clearing: 'rgba(96,84,58,0.55)', path: 'rgba(92,78,52,0.5)',
+    base: '#1c2419', groundDark: [40, 50, 34], groundLight: [100, 104, 60], clearing: 'rgba(96,84,58,0.55)', path: 'rgba(92,78,52,0.5)',
     water: ['#263b3f', '#1b2d33', '#2c4448'], bank: '#4a4a3c', bankLight: '#6b6652',
     far: ['#4b5f5e', '#324445'], mid: ['#2f4634', '#223326'], near: ['#1b2a1e', '#101a13'], trunk: '#241b14', mist: 'rgba(150,170,180,', shadow: 'rgba(10,16,12,',
   },
   night: {
-    base: '#0b0f14', groundDark: [16, 22, 24], groundLight: [38, 48, 42], clearing: 'rgba(70,58,42,0.5)', path: 'rgba(60,52,40,0.45)',
-    water: ['#141e26', '#0c141a', '#182630'], bank: '#2a2c2a', bankLight: '#3c3d38',
-    far: ['#2a363d', '#1c262c'], mid: ['#182420', '#101a16'], near: ['#0c1410', '#070d0a'], trunk: '#100c0a', mist: 'rgba(120,140,160,', shadow: 'rgba(4,8,10,',
+    base: '#0c1116', groundDark: [26, 34, 38], groundLight: [68, 80, 70], clearing: 'rgba(70,58,42,0.5)', path: 'rgba(60,52,40,0.45)',
+    water: ['#1e2c38', '#141e28', '#243440'], bank: '#2e302e', bankLight: '#42433e',
+    far: ['#34424a', '#223038'], mid: ['#1f2c28', '#14201a'], near: ['#101a14', '#0a120d'], trunk: '#120e0c', mist: 'rgba(120,140,160,', shadow: 'rgba(4,8,10,',
   },
 };
 
@@ -116,8 +116,15 @@ export function paintPlate(map: MapLayout, variant: Variant, scale: number): HTM
     c.beginPath(); c.moveTo(x, y); c.lineTo(x + rng.range(-3, 3), y - rng.range(5, 12)); c.stroke();
   }
 
-  // 6. forest: depth bands by screen y (far = top, small & misty; near = bottom, large & dark)
-  const trees = [...map.trees, ...extraFar(rng)].sort((a, b) => a.y - b.y);
+  // 5b. dusk: low warm light from the left, cooler to the right
+  if (variant === 'dusk') {
+    const g = c.createLinearGradient(PLATE.x, 0, PLATE.x + PLATE.w, 0);
+    g.addColorStop(0, 'rgba(226,164,88,0.16)'); g.addColorStop(0.5, 'rgba(226,164,88,0.05)'); g.addColorStop(1, 'rgba(90,110,140,0.10)');
+    c.fillStyle = g; c.fillRect(PLATE.x, PLATE.y, PLATE.w, PLATE.h);
+  }
+  // 6. forest: depth bands by screen y (far = top, small & misty; near = bottom, large & dark); a few hero trees near the camp
+  const hero: Tree[] = [{ x: 150, y: 640, kind: 'round', variant: 0, scale: 1.9, phase: 0, tintMix: 0 }, { x: 1250, y: 1120, kind: 'round', variant: 0, scale: 1.7, phase: 0, tintMix: 0 }, { x: 440, y: 1220, kind: 'pine', variant: 0, scale: 1.6, phase: 0, tintMix: 0 }, { x: 1600, y: 330, kind: 'pine', variant: 0, scale: 1.7, phase: 0, tintMix: 0 }];
+  const trees = [...map.trees, ...extraFar(rng), ...hero].sort((a, b) => a.y - b.y);
   for (const t of trees) {
     const depth = Math.max(0, Math.min(1, (t.y - PLATE.y) / PLATE.h));    // 0 far .. 1 near
     const [lit, dark] = depth < 0.3 ? pal.far : depth < 0.62 ? pal.mid : pal.near;

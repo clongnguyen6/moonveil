@@ -18,8 +18,12 @@ const HAIR: Record<SceneAppearance['hairColor'], string> = { black: '#1d1816', b
 const TROUSERS = ['#2d3138', '#3a3a30', '#2a3240', '#45403a', '#333a2c'];
 const HATS = ['#3a3a3a', '#5a5248', '#2e3a46', '#6a5a3c', '#4a3e36'];
 
+function rgb(c: string): number[] {
+  if (c.startsWith('rgb')) return c.match(/\d+/g)!.slice(0, 3).map(Number);
+  return c.replace('#', '').match(/\w\w/g)!.map((h) => parseInt(h, 16));
+}
 function mix(a: string, b: string, t: number): string {
-  const pa = a.match(/\w\w/g)!.map((h) => parseInt(h, 16)), pb = b.match(/\w\w/g)!.map((h) => parseInt(h, 16));
+  const pa = rgb(a), pb = rgb(b);
   return `rgb(${pa.map((v, i) => Math.round(v + (pb[i]! - v) * t)).join(',')})`;
 }
 const dark = (c: string, f: number) => mix(c, '#000000', f);

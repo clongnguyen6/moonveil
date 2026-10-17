@@ -5,7 +5,7 @@ import { lerp, clamp, hashString } from './rng.ts';
 import type { SceneAppearance } from './types.ts';
 
 export type AvatarMode = 'walk' | 'idle' | 'seated' | 'ghost' | 'hidden';
-const SCALE = 0.92;   // painted at 128 units standing → ~118 world units (tents ~110): adult proportions in the 2.5D view
+const SCALE = 1.0;   // painted at 128 units standing → ~118 world units (tents ~110): adult proportions in the 2.5D view
 
 export class Avatar {
   readonly root = new Container();

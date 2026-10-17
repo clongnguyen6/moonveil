@@ -150,3 +150,32 @@ export function paintSpeakBars(S = 2): Painted {
 }
 export function paintShadow(size = 64): HTMLCanvasElement { return radial(size, [[0, 'rgba(0,0,0,0.5)'], [0.6, 'rgba(0,0,0,0.22)'], [1, 'rgba(0,0,0,0)']]); }
 export const hexColor = hex;
+
+// soft ripple tile for the water shimmer (alpha only, tileable by mirroring)
+export function paintRipple(size: number, seed: number): HTMLCanvasElement {
+  const [canvas, c] = cv(size, size); const img = c.createImageData(size, size); const d = img.data; const n = new Noise(seed);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const u = x / size, v = y / size;
+    const fx = Math.sin(u * Math.PI) ** 1 , fy = Math.sin(v * Math.PI);        // fade at the edges so tiles never show seams
+    const val = n.fbm(u * 3 + seed, v * 9, 3);
+    const a = Math.max(0, val - 0.45) * 2.2 * Math.min(1, fx * 2) * Math.min(1, fy * 2);
+    const k = (y * size + x) * 4; d[k] = 255; d[k + 1] = 255; d[k + 2] = 255; d[k + 3] = Math.round(Math.min(1, a) * 255);
+  }
+  c.putImageData(img, 0, 0); return canvas;
+}
+
+// Foreground framing: a dark, soft-edged tree silhouette (trunk + foliage) painted at low res and upscaled.
+export function paintForeground(seed: number, flip: boolean): HTMLCanvasElement {
+  const w = 220, h = 300; const [small, sc] = cv(w, h); const n = new Noise(seed); const rng = new Rng(seed);
+  sc.save(); if (flip) { sc.translate(w, 0); sc.scale(-1, 1); }
+  const ink = (a: number) => `rgba(6,10,8,${a})`;
+  sc.fillStyle = ink(0.95); sc.beginPath(); sc.moveTo(10, h); sc.quadraticCurveTo(26, h * 0.5, 40, 0); sc.lineTo(90, 0); sc.quadraticCurveTo(60, h * 0.5, 70, h); sc.closePath(); sc.fill();
+  for (let i = 0; i < 26; i++) {
+    const x = rng.range(20, w * 0.9), y = rng.range(0, h * 0.6), r = rng.range(22, 54) * (0.8 + n.value(x * 0.05, y * 0.05) * 0.5);
+    const g = sc.createRadialGradient(x, y, r * 0.2, x, y, r); g.addColorStop(0, ink(0.9)); g.addColorStop(0.7, ink(0.7)); g.addColorStop(1, ink(0));
+    sc.fillStyle = g; sc.beginPath(); sc.arc(x, y, r, 0, 6.3); sc.fill();
+  }
+  sc.restore();
+  const [big, bc] = cv(w * 2, h * 2); bc.filter = 'blur(2px)'; bc.drawImage(small, 0, 0, w * 2, h * 2);
+  return big;
+}

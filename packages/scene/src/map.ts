@@ -12,7 +12,8 @@ export function frameRect(map: MapLayout): { x: number; y: number; w: number; h:
   return map.tents.length > 10 ? { x: CORE.x, y: 150, w: CORE.w, h: CORE.h + 90 } : { ...CORE };
 }
 export const WALK_BOUNDS = { minX: 40, maxX: WORLD.w - 40, minY: 120, maxY: WORLD.h - 30 } as const;
-export const TENT_COLORS = [0xb5543c, 0x6b8e5a, 0x4a7f8c, 0xc9a04b, 0x7a5c8e, 0xc0704f, 0x5c7fa8, 0x8f9a5a, 0xa85c6e, 0x6f6f8c, 0x9c6b3a, 0x5a8a7a, 0xb38a4f, 0x4f8a6a, 0x8a5c5c, 0x6a7fa0] as const;
+// Muted canvas tones (olive, slate, rust, khaki, umber, moss, charcoal, teal); never bright.
+export const TENT_COLORS = [0x5e6a4a, 0x4e5a66, 0x7a4a3a, 0x8a7a56, 0x5a4a3c, 0x46584a, 0x4a4a4e, 0x3e5a5c, 0x6a5a48, 0x56626a, 0x6a4e44, 0x4c5c50, 0x7a6a4e, 0x44504a, 0x5c4c52, 0x505a60] as const;
 
 export function streamX(y: number): number {
   return 1440 - 0.09 * (y - 760) + 50 * Math.sin(y / 220);
