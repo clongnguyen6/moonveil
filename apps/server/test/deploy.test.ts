@@ -73,6 +73,7 @@ test('deploy/railway.ts draft (primary): no test-only vars or persistence switch
   assert.equal(env.MOONVEIL_ENGINE, "'rules'");
   const mount = /volumeMounts: \{ '([^']+)': rooms \}/.exec(t)?.[1];
   assert.ok(mount && env.MOONVEIL_DATA_DIR?.startsWith(`'${mount}/`), 'MOONVEIL_DATA_DIR is inside the volume mount');
+  assert.equal(env.RAILWAY_DEPLOYMENT_DRAINING_SECONDS, "'5'", 'grace for the SIGTERM restart notice');
   assert.match(t, /replicas: \{ \[REGION\]: 1 \}/);
   assert.match(t, /healthcheck: '\/healthz'/);
   assert.match(t, /start: 'node apps\/server\/src\/main\.ts'/);

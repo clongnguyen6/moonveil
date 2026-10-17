@@ -76,7 +76,7 @@ Proposed (need a decision or another owner):
 - **(d1) keepalive** as above (protocol + client: mine; no UI change).
 - Both below are needed only for a host without durable storage (option a); on Railway with a volume they aren't (0010 §4).
 - **Durability signal for honest UI**: add `durable: boolean` to `welcome`, so the UI shows "a server restart ends this match" when false. Shared protocol field, so it needs the UI owner's agreement. Test: server reports false with `MOONVEIL_PERSIST=0`, true with a store.
-- **Restart notice**: on SIGTERM, send a notice before closing (new `bye` reason, e.g. `restarting`; today's `closed` makes the client drop its token and end), so clients show "server restarting" instead of a silent reconnect then `room-not-found`. Shared protocol + UI copy. Test: `stop()` sends the notice to every socket before terminating.
+- **Restart notice**: implemented differently on foundation-9 as a best-effort WebSocket close 1012 on SIGTERM (0010 §4). Render's 30 s SIGTERM grace is enough for it.
 - **First smoke test on Render** (after deploy approval): check `Host` and `Origin` as seen by the server, `/healthz`, a match on 2 phones + a laptop, and a reconnect.
 
 ## 5. Voice: LiveKit Cloud

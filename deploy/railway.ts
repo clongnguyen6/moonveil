@@ -20,6 +20,7 @@ const web = service('moonveil', {
     RAILPACK_NODE_VERSION: '24.20.0', // the version all checks ran on; engines >=24.12 has no upper bound
     RAILPACK_NODE_NPM_INSTALL: 'npm ci --include=dev', // the web build needs devDependencies (Vite, TS)
     HOST: '0.0.0.0',
+    RAILWAY_DEPLOYMENT_DRAINING_SECONDS: '5', // SIGTERM->SIGKILL grace (default 0) so the 1012 restart notice gets out
     MOONVEIL_ENGINE: 'rules',
     MOONVEIL_DATA_DIR: '/data/rooms', // restart recovery on the volume (approved behaviour)
     MOONVEIL_PUBLIC_ORIGIN: preserve(), // dashboard: https://${{RAILWAY_PUBLIC_DOMAIN}}

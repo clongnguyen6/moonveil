@@ -49,7 +49,7 @@ In `deploy/railway.ts` (IaC draft), or set by hand in the dashboard with the sam
 - Source: this repo, the branch chosen at deploy approval. Build `npm run build`; start `node apps/server/src/main.ts`; health check `/healthz`.
 - Region `asia-southeast1-eqsg3a`; **1 replica**.
 - Volume `moonveil-rooms` mounted at `/data` (0.5 GB fits Trial and Free; room files are KBs).
-- Env: `RAILPACK_NODE_VERSION=24.20.0` (the version all checks ran on), `RAILPACK_NODE_NPM_INSTALL`, `HOST=0.0.0.0`, `MOONVEIL_ENGINE=rules`, `MOONVEIL_DATA_DIR=/data/rooms`.
+- Env: `RAILPACK_NODE_VERSION=24.20.0` (the version all checks ran on), `RAILPACK_NODE_NPM_INSTALL`, `RAILWAY_DEPLOYMENT_DRAINING_SECONDS=5` (§4), `HOST=0.0.0.0`, `MOONVEIL_ENGINE=rules`, `MOONVEIL_DATA_DIR=/data/rooms`.
 - Dashboard only: `MOONVEIL_PUBLIC_ORIGIN=https://${{RAILWAY_PUBLIC_DOMAIN}}` (reference variable; whether this same-service reference resolves Railway-provided vars is checked at the smoke test). The four `LIVEKIT_*`, with key and secret **sealed**.
 - Dashboard only: generate the Railway domain; **Serverless off**; restart policy left at default (on failure, **unverified** default); no `RAILWAY_RUN_UID` unless the volume is not writable (the server then fails at start with an `EACCES` from `mkdir`, so it's visible).
 - **Deploy-time step (not in the repo):** IaC needs the `railway` npm package. It is not added; adding it is a dependency decision to ask for at deploy approval (then: copy `deploy/railway.ts` to `.railway/railway.ts`, `railway config plan`, `apply`, run by whoever holds the account). A first playtest can use dashboard settings alone.
@@ -66,12 +66,17 @@ In `deploy/railway.ts` (IaC draft), or set by hand in the dashboard with the sam
   - Voice sessions are re-issued on resume.
   - Lost: at most an action that was in flight at the kill (its ack never arrives; the player re-acts if the step is still open).
 - **`durable` flag: keep withdrawn.** On this setup every restart ends in resume, so there's nothing different to warn about. It matters only on a host without durable storage (0009 option a, unapproved).
-- **Restart notice: recommend a small best-effort version.**
-  - What: on SIGTERM the server closes every socket with the standard WebSocket close code **1012 (Service Restart)** instead of the current silent terminate, then exits. Set `RAILWAY_DEPLOYMENT_DRAINING_SECONDS=5` so the close frames leave before SIGKILL.
-  - Why it's worth having: the client starts reconnecting at once instead of possibly waiting out the 25 s watchdog if the proxy holds a dead connection, and the UI owner can then show "Server restarting, your match is saved" (true with a volume).
-  - Cost: additive, a few lines plus one test. The current client already treats any close other than replaced or left as "reconnect", so it works before any UI change. The UI copy is the UI owner's.
-  - Limits: best effort only. Crashes, OOM kills, host faults and a SIGKILL without draining give no notice, so the UI must behave the same without it.
-  - Status: proposal; not implemented until decided.
+- **Restart notice (best effort; implemented on foundation-9, decided by Lead 2026-10-17):**
+  - On SIGTERM/SIGINT the server saves every room (`Registry.saveAll`), refuses new upgrades (503), closes every socket with the standard WebSocket code **1012 (Service Restart)** (`CLOSE.serviceRestart`), waits up to 1 s for the close handshakes, then exits 0.
+  - Railway: `RAILWAY_DEPLOYMENT_DRAINING_SECONDS=5` (in `deploy/railway.ts`) so the notice leaves before SIGKILL. Render already allows 30 s.
+  - Client (UI P15): a 1012 close keeps the token and reconnects as before. `ClientState.lastCloseCode` holds the close code of the last connection that dropped after it had opened. Failed reconnect attempts (1006 while the server is down) don't overwrite it; the watchdog's own drop sets `null`; the next welcome clears it. The UI maps `1012` to "Your match is saved and paused until the server is back", and anything else to neutral copy (UI owner's).
+  - Why: the client starts reconnecting at once instead of possibly waiting out the 25 s watchdog, and players learn why the overlay appeared.
+  - Limits: best effort only. Crashes, OOM kills, host faults and a SIGKILL without draining give no notice; the UI behaves the same without it (plain `reconnecting`).
+  - Tests: `apps/server/test/shutdown.test.ts`, three cases:
+    - in-process stop: 1012 and reason, the room on disk, a new server restores it, and the client resumes the same seat with its pre-shutdown state;
+    - upgrades refused while stopping;
+    - the real `main.ts` process: SIGTERM gives 1012 and exit 0, the room is on disk, and the restarted process logs `restoredRooms=1` and the client resumes.
+  - `apps/server/test/client-close.test.ts`: the real web client (`client.ts`, in Node with browser globals stubbed) against real servers. A 1012 close sets `lastCloseCode` to 1012; refused retries keep it; resuming on the restarted server clears it; an abrupt TCP drop gives 1006, so neutral copy.
 
 ## 5. Moving room data between hosts (planned, between sessions)
 - **What's stored:** one `<CODE>.json` per open room in `MOONVEIL_DATA_DIR`. Files contain seat tokens and secret roles, so treat them as secrets. They are deleted when a room closes; rooms close after 30 min with no connection (`MOONVEIL_ROOM_IDLE_MS`), so between sessions the directory is usually empty.
@@ -102,7 +107,7 @@ In `deploy/railway.ts` (IaC draft), or set by hand in the dashboard with the sam
 - **Service:** one Railway project and one web service from this repo at that SHA. Region `asia-southeast1-eqsg3a` (Singapore). **1 replica**. Serverless **off**. Build `npm run build`; start `node apps/server/src/main.ts`; health check `/healthz`.
 - **Volume:** `moonveil-rooms` mounted at `/data`, 500 MB (Trial cap 0.5 GB). `MOONVEIL_DATA_DIR=/data/rooms`.
 - **Env (names; values in the dashboard only):**
-  - plain: `RAILPACK_NODE_VERSION=24.20.0`, `RAILPACK_NODE_NPM_INSTALL=npm ci --include=dev`, `HOST=0.0.0.0`, `MOONVEIL_ENGINE=rules`, `MOONVEIL_DATA_DIR=/data/rooms`, `MOONVEIL_PUBLIC_ORIGIN=https://${{RAILWAY_PUBLIC_DOMAIN}}`;
+  - plain: `RAILPACK_NODE_VERSION=24.20.0`, `RAILPACK_NODE_NPM_INSTALL=npm ci --include=dev`, `RAILWAY_DEPLOYMENT_DRAINING_SECONDS=5`, `HOST=0.0.0.0`, `MOONVEIL_ENGINE=rules`, `MOONVEIL_DATA_DIR=/data/rooms`, `MOONVEIL_PUBLIC_ORIGIN=https://${{RAILWAY_PUBLIC_DOMAIN}}`;
   - voice, later, all four or none: `LIVEKIT_URL`, `LIVEKIT_PUBLIC_WS`, and the **sealed** `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`;
   - never: `MOONVEIL_PERSIST`, `MOONVEIL_TEST_*`, `MOONVEIL_ENGINE=fixture`, `MOONVEIL_FIXTURE_MS`, `E2E_*`.
 - **Steps, each with its stop condition** (stop = do nothing further, report evidence; never upgrade, never pay, never move hosts):
@@ -119,10 +124,10 @@ In `deploy/railway.ts` (IaC draft), or set by hand in the dashboard with the sam
   - [ ] **Host and origin:** `/ws` connects from the public URL. Optional, to learn the proxy behaviour: deploy once with `MOONVEIL_PUBLIC_ORIGIN` unset; if `/ws` still connects, `Host` is preserved.
   - [ ] Invite link = `https://<domain>/r/<CODE>` (from `location.origin`); `/api/lan` returns `[]`.
   - [ ] **WebSocket idle:** a lobby left idle for 20 min (past the 15-min and 5-min HTTP limits) stays connected, with no reconnect overlay.
-  - [ ] **Restart recovery on the volume:** start a match; redeploy mid-match. Expect the reconnect overlay, then resume on the same seats with roles kept, timers paused through the gap, and `restoredRooms≥1` in the new startup line. Repeat with a restart (not only a redeploy).
+  - [ ] **Restart recovery on the volume:** start a match; redeploy mid-match. Expect the 1012 restart notice (client `lastCloseCode === 1012`), the reconnect overlay, then resume on the same seats with roles kept, timers paused through the gap, and `restoredRooms≥1` in the new startup line. Repeat with a restart (not only a redeploy).
   - [ ] **Voice reachability** (after step 8): sessions issued per seat, audio both ways, wolves-only at night.
   - [ ] Usage before and after the session recorded (§6).
 
 ## 8. Open items
 - **LiveKit Cloud compatibility and testing plan:** voice owner (link pending, as in 0009 §5). LiveKit Cloud probes and credentials remain unapproved.
-- **Decisions for Human:** the best-effort restart notice (§4); IaC (`railway` npm package, a deploy-time step) vs. dashboard-only settings; deploy approval with the package above.
+- **Decisions for Human:** IaC (`railway` npm package, a deploy-time step) vs. dashboard-only settings; deploy approval with the package above.
