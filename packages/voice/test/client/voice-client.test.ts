@@ -60,7 +60,7 @@ class FakeRoom extends EventEmitter implements RoomLike {
 
 const S = (channel: string, room: string, speak: boolean, listen = true, visible = true, token = `tok-${room}`): VoiceSession => ({ channel, room, url: 'wss://x', token, speak, listen, visible });
 
-function make(micFactory?: () => Promise<MicTrackLike>) {
+function make(micFactory?: () => Promise<MicTrackLike>, opts: { join?: boolean } = {}) {
   const rooms: FakeRoom[] = [];
   const mics: FakeMic[] = [];
   const client = new VoiceClient({
@@ -79,12 +79,56 @@ function make(micFactory?: () => Promise<MicTrackLike>) {
     audioContainer: null,
     document: null,
   });
+  if (opts.join !== false) void client.join(); // most tests exercise the joined state (D2: join is explicit)
   return { client, rooms, mics };
 }
+
+test('D2: before join() nothing connects and the microphone is never requested; sessions are held', async () => {
+  const { client, rooms, mics } = make(undefined, { join: false });
+  await client.applySessions([S('public', 'R-public-g1', true), S('wolves', 'R-wolves-g1', true)]);
+  await client.idle();
+  assert.equal(rooms.length, 0);
+  assert.equal(mics.length, 0);
+  const snap = client.getSnapshot();
+  assert.equal(snap.joined, false);
+  assert.deepEqual(snap.pendingChannels, ['public', 'wolves']);
+  assert.deepEqual(snap.channels, {});
+  assert.equal(snap.mic, 'idle');
+  // sessions change while not joined: still nothing
+  await client.applySessions([S('public', 'R-public-g2', true)]);
+  await client.idle();
+  assert.equal(rooms.length, 0);
+  // join from the user's tap: connects to the currently granted channels only
+  await client.join();
+  await client.idle();
+  assert.equal(rooms.length, 1);
+  assert.equal(rooms[0]!.connected?.token, 'tok-R-public-g2');
+  assert.equal(mics.length, 1);
+  assert.equal(client.getSnapshot().joined, true);
+});
+
+test('D2: leave() disconnects everything and releases the mic; a later join() reconnects to the held sessions', async () => {
+  const { client, rooms, mics } = make();
+  await client.applySessions([S('public', 'R-public-g1', true)]);
+  await client.idle();
+  await client.leave();
+  assert.equal(rooms[0]!.disconnected, 1);
+  assert.equal(mics[0]!.stopped, true);
+  assert.deepEqual(client.getSnapshot().channels, {});
+  assert.equal(client.getSnapshot().joined, false);
+  await client.applySessions([S('public', 'R-public-g1', true, true, true, 'tok-after-leave')]);
+  await client.idle();
+  assert.equal(rooms.length, 1); // still not connected
+  await client.join();
+  await client.idle();
+  assert.equal(rooms.length, 2);
+  assert.equal(rooms[1]!.connected?.token, 'tok-after-leave');
+});
 
 test('applySessions connects one room per session and publishes the mic only where speak is granted', async () => {
   const { client, rooms, mics } = make();
   await client.applySessions([S('public', 'R-public-g1', true), S('wolves', 'R-wolves-g1', false)]);
+  await client.idle();
   assert.equal(rooms.length, 2);
   assert.deepEqual(rooms.map((r) => r.connected?.token), ['tok-R-public-g1', 'tok-R-wolves-g1']);
   assert.equal(rooms[0]!.published.length, 1);
@@ -100,11 +144,14 @@ test('applySessions connects one room per session and publishes the mic only whe
 test('speak revoked -> mic unpublished; speak granted again -> republished; same room kept', async () => {
   const { client, rooms } = make();
   await client.applySessions([S('public', 'R-public-g1', true)]);
+  await client.idle();
   await client.applySessions([S('public', 'R-public-g1', false, true, true, 'tok2')]);
+  await client.idle();
   assert.equal(rooms.length, 1);
   assert.equal(rooms[0]!.unpublished.length, 1);
   assert.equal(client.getSnapshot().channels.public?.publishing, false);
   await client.applySessions([S('public', 'R-public-g1', true, true, true, 'tok3')]);
+  await client.idle();
   assert.equal(rooms[0]!.published.length, 2);
 });
 
@@ -125,6 +172,7 @@ test('rotation (new room name) reconnects; a dropped session disconnects and rem
 test('empty sessions (night villager, in-person) leaves no channels and no mic', async () => {
   const { client, rooms, mics } = make();
   await client.applySessions([S('public', 'R-public-g1', true)]);
+  await client.idle();
   await client.applySessions([]);
   assert.equal(rooms[0]!.disconnected, 1);
   assert.equal(mics[0]!.stopped, true);
@@ -140,6 +188,7 @@ test('mic denied: channel still connects (listen-only), state is denied, no retr
     throw e;
   });
   await client.applySessions([S('public', 'R-public-g1', true), S('ghosts', 'R-ghosts-g1', true)]);
+  await client.idle();
   const snap = client.getSnapshot();
   assert.equal(snap.mic, 'denied');
   assert.match(snap.micError ?? '', /denied/);
@@ -153,7 +202,41 @@ test('mic hardware failure is reported as failed, not denied', async () => {
     throw new Error('Could not start audio source');
   });
   await client.applySessions([S('public', 'R-public-g1', true)]);
+  await client.idle();
   assert.equal(client.getSnapshot().mic, 'failed');
+});
+
+test('a hung microphone publish never blocks applying new sessions; it times out, is reported, and retries', async () => {
+  const rooms: FakeRoom[] = [];
+  let micCalls = 0;
+  const client = new VoiceClient({
+    publishTimeoutMs: 40,
+    createRoom: () => {
+      const r = new FakeRoom();
+      rooms.push(r);
+      return r;
+    },
+    createMicTrack: async () => {
+      micCalls++;
+      if (micCalls === 1) return new Promise(() => {}); // getUserMedia hangs
+      return new FakeMic();
+    },
+    audioContainer: null,
+    document: null,
+  });
+  void client.join();
+  await client.applySessions([S('public', 'R-public-g1', true)]);
+  // Rotation arrives while the first publish is still hanging: it must apply immediately.
+  await client.applySessions([S('public', 'R-public-g2', true)]);
+  assert.equal(client.getSnapshot().channels.public?.room, 'R-public-g2');
+  assert.equal(rooms.length, 2);
+  await new Promise((r) => setTimeout(r, 60)); // first publish times out (mic: failed), g1 channel was dropped
+  assert.equal(client.getSnapshot().mic === 'failed' || client.getSnapshot().mic === 'granted', true);
+  await new Promise((r) => setTimeout(r, 1100)); // g2's own publish (2nd mic call) or the retry has run
+  await client.idle();
+  assert.equal(client.getSnapshot().channels.public?.publishing, true);
+  assert.equal(client.getSnapshot().mic, 'granted');
+  assert.ok(rooms[1]!.published.length >= 1);
 });
 
 test('connect failure is recorded on the channel and reported', async () => {
@@ -171,6 +254,7 @@ test('connect failure is recorded on the channel and reported', async () => {
     document: null,
     onError: (ch, err) => errors.push(`${ch}:${(err as Error).message}`),
   });
+  void client.join();
   await client.applySessions([S('public', 'R-public-g1', true)]);
   assert.equal(client.getSnapshot().channels.public?.state, 'failed');
   assert.deepEqual(errors, ['public:invalid token']);
@@ -194,6 +278,7 @@ test('a stuck or failed connect is retried with backoff while the session is unc
     audioContainer: null,
     document: null,
   });
+  void client.join();
   await client.applySessions([S('public', 'R-public-g1', true)]);
   assert.equal(client.getSnapshot().channels.public?.state, 'failed');
   assert.match(client.getSnapshot().channels.public?.error ?? '', /timed out/);
@@ -229,9 +314,11 @@ test('participants and speaking follow room events; audioBlocked and unlockAudio
 test('setMuted mutes every published mic and is applied to mics acquired later', async () => {
   const { client, mics } = make();
   await client.applySessions([S('public', 'R-public-g1', true)]);
+  await client.idle();
   await client.setMuted(true);
   assert.equal(mics[0]!.muted, true);
   await client.applySessions([S('public', 'R-public-g1', true), S('wolves', 'R-wolves-g1', true)]);
+  await client.idle();
   assert.equal(mics[1]!.muted, true);
   assert.equal(client.getSnapshot().muted, true);
   await client.setMuted(false);
@@ -241,6 +328,7 @@ test('setMuted mutes every published mic and is applied to mics acquired later',
 test('an ended capture track is re-acquired when the page becomes visible again', async () => {
   const { client, mics, rooms } = make();
   await client.applySessions([S('public', 'R-public-g1', true)]);
+  await client.idle();
   mics[0]!.mediaStreamTrack.readyState = 'ended';
   await client.reacquireMicIfNeeded();
   assert.equal(rooms[0]!.unpublished.length, 1);
@@ -291,6 +379,7 @@ test('stats(): received audio energy per channel and remote identity, from subsc
 test('dispose disconnects everything and stops mics', async () => {
   const { client, rooms, mics } = make();
   await client.applySessions([S('public', 'R-public-g1', true), S('ghosts', 'R-ghosts-g1', true)]);
+  await client.idle();
   await client.dispose();
   assert.deepEqual(rooms.map((r) => r.disconnected), [1, 1]);
   assert.ok(mics.every((m) => m.stopped));

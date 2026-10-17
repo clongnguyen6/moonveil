@@ -53,6 +53,11 @@ export interface ChannelView {
   error: string | null;
 }
 export interface VoiceSnapshot {
+  // D2: nothing connects and no microphone is requested before join() (called by the UI from a user gesture).
+  // Optional in the type so consumers that build an empty snapshot literal keep compiling; the client always sets them.
+  joined?: boolean;
+  // Channels the server currently grants (held while not joined).
+  pendingChannels?: string[];
   channels: Record<string, ChannelView>;
   mic: MicState;
   micError: string | null;
@@ -118,6 +123,9 @@ export interface VoiceClientOptions {
   connectTimeoutMs?: number;
   // Failed/stuck connects are retried with backoff while the session is unchanged (default 3 retries).
   connectRetries?: number;
+  // Microphone acquisition and publishing are bounded (default 10 s each); a stuck publish never blocks
+  // applying new sessions, and is retried with backoff while the channel still grants speak.
+  publishTimeoutMs?: number;
   createRoom?: () => RoomLike;
   createMicTrack?: () => Promise<MicTrackLike>;
   // Where remote audio elements go; null disables attaching (tests). Default: document.body.
@@ -135,6 +143,8 @@ interface Chan {
   detach: (() => void)[];
   listeners: [string, (...args: any[]) => void][];
   tracks: Map<string, { track: RemoteTrackLike; identity: string }>;
+  micPending: Promise<void> | null;
+  micAttempt: number;
 }
 
 const noopDoc: VoiceClientOptions['document'] = null;
@@ -143,7 +153,9 @@ export class VoiceClient {
   private readonly opts: VoiceClientOptions;
   private readonly chans = new Map<string, Chan>();
   private readonly subs = new Set<() => void>();
-  private snapshot: VoiceSnapshot = { channels: {}, mic: 'idle', micError: null, muted: false, audioBlocked: false };
+  private snapshot: VoiceSnapshot = { joined: false, pendingChannels: [], channels: {}, mic: 'idle', micError: null, muted: false, audioBlocked: false };
+  private joined = false;
+  private pending: VoiceSession[] = [];
   private mic: MicState = 'idle';
   private micError: string | null = null;
   private muted = false;
@@ -167,9 +179,38 @@ export class VoiceClient {
   // --- commands ---
 
   // Apply the server's current sessions. Serialized: a second call waits for the first.
+  // Before join(), sessions are only held: no connection, no microphone (D2).
   applySessions(sessions: readonly VoiceSessionInput[]): Promise<void> {
-    const normalized = sessions.map(normalizeSession);
+    this.pending = sessions.map(normalizeSession);
+    if (!this.joined) {
+      this.publish();
+      return this.chain;
+    }
+    const normalized = this.pending;
     this.chain = this.chain.then(() => this.reconcile(normalized)).catch((err) => this.opts.onError?.('*', err));
+    return this.chain;
+  }
+
+  // D2: the UI calls this from a user gesture (the "join campfire" tap). Connects to the currently granted
+  // channels and requests the microphone where speak is granted. Idempotent.
+  join(): Promise<void> {
+    if (this.disposed) return Promise.resolve();
+    this.joined = true;
+    const sessions = this.pending;
+    this.chain = this.chain.then(() => this.reconcile(sessions)).catch((err) => this.opts.onError?.('*', err));
+    return this.chain;
+  }
+
+  // Disconnect every channel and release the microphone; sessions keep arriving and are held for a later join().
+  leave(): Promise<void> {
+    this.joined = false;
+    this.chain = this.chain
+      .then(async () => {
+        await Promise.all([...this.chans.keys()].map((ch) => this.drop(ch)));
+        this.mic = this.mic === 'denied' ? 'denied' : 'idle';
+        this.publish();
+      })
+      .catch((err) => this.opts.onError?.('*', err));
     return this.chain;
   }
 
@@ -207,13 +248,13 @@ export class VoiceClient {
     }
     for (const s of wanted.values()) {
       const c = this.chans.get(s.channel);
-      if (!c) await this.join(s);
+      if (!c) await this.joinChannel(s);
       else await this.follow(c, s);
     }
     this.publish();
   }
 
-  private async join(s: VoiceSession, attempt = 0): Promise<void> {
+  private async joinChannel(s: VoiceSession, attempt = 0): Promise<void> {
     const room = this.opts.createRoom ? this.opts.createRoom() : await defaultCreateRoom();
     const c: Chan = {
       session: s,
@@ -223,6 +264,8 @@ export class VoiceClient {
       detach: [],
       listeners: [],
       tracks: new Map(),
+      micPending: null,
+      micAttempt: 0,
     };
     this.chans.set(s.channel, c);
     this.wire(c);
@@ -235,7 +278,7 @@ export class VoiceClient {
       ]);
       c.view.state = 'connected';
       this.refreshParticipants(c);
-      if (s.speak) await this.publishMic(c);
+      if (s.speak) this.startMic(c); // detached: a slow or stuck publish must not block session updates
     } catch (err) {
       c.view.state = 'failed';
       c.view.error = String((err as Error)?.message ?? err);
@@ -250,7 +293,7 @@ export class VoiceClient {
           this.chain = this.chain.then(async () => {
             if (this.chans.get(s.channel) !== c) return;
             await this.drop(s.channel);
-            await this.join(s, attempt + 1);
+            await this.joinChannel(s, attempt + 1);
           }).catch((e) => this.opts.onError?.(s.channel, e));
         }, delay);
       }
@@ -263,7 +306,7 @@ export class VoiceClient {
     c.view.speak = s.speak;
     c.view.listen = s.listen;
     c.view.visible = s.visible;
-    if (s.speak && !c.mic) await this.publishMic(c);
+    if (s.speak && !c.mic) this.startMic(c);
     if (!s.speak && c.mic) await this.unpublishMic(c);
   }
 
@@ -327,24 +370,62 @@ export class VoiceClient {
     this.publish();
   }
 
+  // Resolves when pending session changes and microphone publishes have finished (UI/tests).
+  async idle(): Promise<void> {
+    await this.chain;
+    await Promise.all([...this.chans.values()].map((c) => c.micPending ?? Promise.resolve()));
+  }
+
+  // Start (or continue) publishing the mic on a channel without blocking the caller.
+  private startMic(c: Chan): Promise<void> {
+    if (c.micPending) return c.micPending;
+    if (c.mic) return Promise.resolve();
+    c.micPending = this.publishMic(c).finally(() => {
+      c.micPending = null;
+    });
+    return c.micPending;
+  }
+
   private async publishMic(c: Chan): Promise<void> {
     if (this.mic === 'denied') return; // the user said no; do not nag per channel
     this.mic = this.mic === 'granted' ? 'granted' : 'requesting';
     this.publish();
+    const timeoutMs = this.opts.publishTimeoutMs ?? 10_000;
+    const bounded = <T>(what: string, p: Promise<T>) =>
+      Promise.race([p, new Promise<never>((_, rej) => setTimeout(() => rej(new Error(`${what} timed out after ${timeoutMs} ms`)), timeoutMs))]);
+    let track: MicTrackLike | null = null;
     try {
-      const track = this.opts.createMicTrack ? await this.opts.createMicTrack() : await defaultCreateMicTrack();
+      track = await bounded('microphone capture', this.opts.createMicTrack ? this.opts.createMicTrack() : defaultCreateMicTrack());
+      if (this.chans.get(c.session.channel) !== c) {
+        track.stop(); // channel dropped while we were acquiring
+        return;
+      }
       if (this.muted) await track.mute();
-      await c.room.localParticipant.publishTrack(track, { source: 'microphone' });
+      await bounded('publish', c.room.localParticipant.publishTrack(track, { source: 'microphone' }));
       c.mic = track;
+      c.micAttempt = 0;
       c.view.publishing = true;
       this.mic = 'granted';
       this.micError = null;
     } catch (err) {
+      track?.stop();
+      if (this.chans.get(c.session.channel) !== c) return; // channel dropped meanwhile: a late failure is not news
       const name = (err as { name?: string })?.name ?? '';
       const msg = String((err as Error)?.message ?? err);
-      this.mic = name === 'NotAllowedError' || /denied|permission/i.test(msg) ? 'denied' : 'failed';
+      const denied = name === 'NotAllowedError' || /denied|permission/i.test(msg);
+      // Another channel may already publish fine; only a refusal or a failure with no working mic changes the state.
+      const anyPublishing = [...this.chans.values()].some((x) => x.mic);
+      this.mic = denied ? 'denied' : anyPublishing ? 'granted' : 'failed';
       this.micError = msg;
       this.opts.onError?.(c.session.channel, err);
+      // Not a refusal: retry with backoff while this channel still grants speak and is connected.
+      if (!denied && !this.disposed && c.micAttempt < 5) {
+        const delay = Math.min(15_000, 1000 * 2 ** c.micAttempt++);
+        setTimeout(() => {
+          if (this.disposed || this.chans.get(c.session.channel) !== c || !c.session.speak || c.mic || c.view.state !== 'connected') return;
+          this.startMic(c);
+        }, delay);
+      }
     }
     this.publish();
   }
@@ -377,7 +458,7 @@ export class VoiceClient {
     for (const c of this.chans.values()) {
       if (c.session.speak && c.mic && c.mic.mediaStreamTrack.readyState === 'ended') {
         await this.unpublishMic(c);
-        await this.publishMic(c);
+        await this.startMic(c);
       }
     }
   }
@@ -389,7 +470,7 @@ export class VoiceClient {
       channels[ch] = { ...c.view, participants: c.view.participants.map((p) => ({ ...p })) };
       if (c.view.state === 'connected' && !c.room.canPlaybackAudio) blocked = true;
     }
-    this.snapshot = { channels, mic: this.mic, micError: this.micError, muted: this.muted, audioBlocked: blocked };
+    this.snapshot = { joined: this.joined, pendingChannels: this.pending.filter((s) => s.listen || s.speak).map((s) => s.channel), channels, mic: this.mic, micError: this.micError, muted: this.muted, audioBlocked: blocked };
     for (const cb of this.subs) cb();
   }
 }
