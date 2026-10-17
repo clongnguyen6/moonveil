@@ -38,6 +38,7 @@ Earlier scene changes already contained in 44fb793 and part of the baseline: `vi
 ## Usability fixes inside the baseline (visual-8)
 
 - Name labels are laid out in screen space every frame: clamped fully inside the visible area minus HUD safe insets (no clipping at phone edges), and lifted or slid so neighbouring labels never overlap (dense 13–15 seat rings). The resolver is pure (`src/labels.ts`) and unit-tested.
+- Lifted labels (visual-9, follow-up to the observation in `docs/visual/labels/after-phone-landscape-seating-15.jpg`): labels drop one size step at 13+ seats (12 → 11 px), the upward lift is capped at one label height (sideways slide afterwards), and any label still displaced by 6 px or more gets a one-pixel leader line from its bottom centre to the avatar's head, in the label's colour. Leaders are one shared Graphics redrawn per frame (usually 0–4 lines). Captures: `docs/visual/labels/v1-before-*` vs `v2-after-*`. The harness keeps `?labels=1` for the previous behaviour.
 
 ## Status
 

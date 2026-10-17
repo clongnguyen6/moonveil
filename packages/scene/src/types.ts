@@ -52,7 +52,7 @@ export interface SceneOptions {
   // Cost mode. 'auto' (default): page override globalThis.__MOONVEIL_SCENE, else 'low' under automation
   // or on ≤4 cores / ≤4 GB, else 'high'. 'off' mounts nothing (no canvas, no frame loop).
   quality?: 'off' | 'low' | 'high' | 'auto';
-  labelLayout?: boolean;       // default true: clamp name labels on screen and resolve overlaps (false only for before/after captures)
+  labelLayout?: boolean | 'v1';   // default true: clamp on screen, lift ≤ 1 label height, leader line when displaced, smaller labels at 13+ seats; 'v1' = first version (lift ≤ 3, no leaders); false = off (captures only)
 }
 
 export interface PerfStats { n: number; frame: Stat; update: Stat; lightmap: Stat; render: Stat }

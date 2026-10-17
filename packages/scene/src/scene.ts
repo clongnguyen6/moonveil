@@ -1,5 +1,5 @@
 // mountScene: the renderer. Consumes SceneInput snapshots + server-filtered PoseFrames + local input.
-import { Application, Container, Sprite } from 'pixi.js';
+import { Application, Container, Graphics, Sprite } from 'pixi.js';
 import { TextureBank } from './textures.ts';
 import { World } from './world.ts';
 import { Avatar } from './avatar.ts';
@@ -14,6 +14,8 @@ import { lerp, clamp, mixColor, smooth } from './rng.ts';
 import type { CameraMode, Pose, PoseFrame, SafeArea, SceneHandle, SceneInput, SceneOptions, SeatId, PerfStats } from './types.ts';
 import { resolveQuality, frameCap, readQualityEnv } from './quality.ts';
 import { layoutLabels, type LabelRect } from './labels.ts';
+
+const SMALL_LABEL_FROM = 13;   // seats from which labels drop one size step (12 → 11 px)
 
 const NIGHT_SPEED = 1 / 7;   // full day↔night transition in 7 s
 const MOVE_SEND_HZ = 10;
@@ -85,6 +87,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   let world: World;
   let bank: TextureBank;
   let emissive: Container, fx: Container, lighting: Lighting, vignette: Sprite, nightTint: Sprite;
+  let leaders: Graphics;   // one Graphics for every leader line (label → avatar head), redrawn each frame
   let fire: Fire, fireflies: Fireflies, glints: WaterGlints, fog: Fog;
   let fireLight: Sprite, fireLight2: Sprite, moon: Sprite, moonEdge: Sprite;
   let tentLights: Sprite[] = [], tentBulbs: Sprite[] = [], postLights: Sprite[] = [], postBulbs: Sprite[] = [];
@@ -108,6 +111,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     lighting = new Lighting(a.renderer, bank.light);
     vignette = new Sprite(bank.vignette); vignette.alpha = 0.9;
     nightTint = new Sprite(bank.light); nightTint.tint = 0x6a5aa8; nightTint.alpha = 0; nightTint.anchor.set(0.5); // soft purple wash at night
+    leaders = new Graphics(); leaders.zIndex = 100000; world.objects.addChild(leaders);
     a.stage.addChild(world.root, lighting.out, nightTint, emissive, fx, vignette);
 
     fireLight = lighting.addLight(0xffa84a, 3.2); fireLight2 = lighting.addLight(0xff7a30, 1.4);
@@ -360,17 +364,31 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   }
 
   function layoutNameLabels() {
-    if (!app || opts.labelLayout === false) return;
+    if (!app) return;
+    leaders.clear();
+    if (opts.labelLayout === false) return;
+    const v1 = opts.labelLayout === 'v1';
     const vw = app.screen.width, vh = app.screen.height, sc = cam.scale;
+    const size = !v1 && input.players.length >= SMALL_LABEL_FROM ? 11 : 12;
     const rects: LabelRect[] = []; const byId = new Map<string, Avatar>();
     for (const av of avatars.values()) {
+      av.setLabelSize(size);
       if (!av.root.visible) continue;
       const sx = cam.x + (av.x) * sc, sy = cam.y + (av.y + av.labelBaseY) * sc;
       if (sx < -60 || sx > vw + 60 || sy < -60 || sy > vh + 60) { av.setLabelOffset(0, 0); continue; }   // off-screen avatar: leave it
       rects.push({ id: av.seat, x: sx, y: sy, w: av.label.width * sc, h: av.label.height * sc }); byId.set(av.seat, av);
     }
     if (!rects.length) return;
-    for (const o of layoutLabels(rects, { w: vw, h: vh, top: safe.top, right: safe.right, bottom: safe.bottom, left: safe.left })) byId.get(o.id)?.setLabelOffset(o.dx / sc, o.dy / sc);
+    const px = 1 / sc;   // one screen pixel in world units
+    for (const o of layoutLabels(rects, { w: vw, h: vh, top: safe.top, right: safe.right, bottom: safe.bottom, left: safe.left }, v1 ? 3 : undefined)) {
+      const av = byId.get(o.id); if (!av) continue;
+      av.setLabelOffset(o.dx / sc, o.dy / sc);
+      if (!v1 && o.displaced) {
+        // leader: from the label's bottom centre to just above the head, in the label's colour
+        const x0 = av.x + o.dx / sc, y0 = av.y + av.labelBaseY + o.dy / sc + 2 * px, x1 = av.x, y1 = av.y + av.headOffsetY;
+        leaders.moveTo(x0, y0).lineTo(x1, y1).stroke({ width: px, color: av.speaking ? 0xffe28a : 0xfff6e6, alpha: 0.55 });
+      }
+    }
   }
 
   function ambientColor(nl: number): number {

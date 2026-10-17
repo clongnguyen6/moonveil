@@ -114,6 +114,9 @@ export class Avatar {
   }
 
   setName(name: string) { if (this.label.text !== name) this.label.text = name; }
+  setLabelSize(px: number) { if (this.label.style.fontSize !== px) this.label.style.fontSize = px; }
+  // head position in world units relative to the feet (leader line target)
+  get headOffsetY() { return this.body.y - 62 - (this.mode === 'ghost' ? 12 : 0); }
   setPos(x: number, y: number) { this.x = x; this.y = y; }
   walkTo(x: number, y: number, onArrive?: () => void) { this.target = { x, y }; this.onArrive = onArrive ?? null; }
   showEmote(s: string) { this.emote.text = s; this.emote.visible = true; this.emoteT = 2.2; }
