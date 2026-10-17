@@ -1,6 +1,7 @@
 # 0009: Playtest hosting on Render (SPA + game server) + LiveKit Cloud (voice)
 
 Status: **documented alternative** (2026-10-17). Railway is the primary host (0010); the app config is host-neutral (0010 §1). Paper and repo config only: no account actions, spend, credentials or deploys. Supersedes the candidate list in 0008.
+**Durable recovery (approved requirement) on Render needs a paid instance + disk (§3 b):** Free has no disk, so the draft `deploy/render.yaml` keeps persistence on by default (no `MOONVEIL_PERSIST`) but on `plan: free` rooms still won't survive a restart.
 Facts are from Render's primary docs, checked 2026-10-17 (pages carry no last-updated date). **unverified** = not confirmed from a primary page.
 
 ## 1. Render service config
