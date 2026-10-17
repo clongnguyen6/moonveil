@@ -39,6 +39,10 @@ Per step, run 21 moderator: lobby 56, night.main 35/63, night.witch 35/63, day.d
 
 The same three suites also passed on 6afa3a3 (runs 19/20: 1,183 + 828 + 981 checks, 0 failures, 0 skipped) before the type-only fix.
 
+Scope statements for this record: run 22's real-time automatic match ran to its 10-minute budget (12 steps, into the second day's defense), not to a match end; the complete-match evidence in automatic mode is run 21 at scale 2 (14 steps, likewise budget-bound) and the moderator matches, which end. Both suites ran with the scene loop stopped (`MOONVEIL_SCENE=off`); the scene's own CPU cost is the visual owner's item. LiveKit Cloud is still untested: every measurement here is against the pinned local OSS server (`CLOUD.md` §5).
+
+Merged: `dev` fast-forwarded to ce2dadc on 2026-10-17 after a root check on that exact SHA (rules 206, scene 26, voice 53, server 96, harness 2, e2e 13/13).
+
 ### Slot 17 (2026-10-17 14:35–, lock held; candidate 1d12fc6 = d85b133 + dev 36bdafd): A/B and run 17, FAILED; cause found by measurement
 
 Kept: `.cache/voice-e2e-ab17-off.log`, `.cache/voice-e2e-ab17-on.log`, `.cache/voice-e2e-run17.log`, per-run artifacts `.cache/voice-e2e/results-ab17-off/`, `results-ab17-on/`, `results-run17/` (error contexts + traces), `.cache/voice-e2e/conditions-slot17.log`, `conditions-ab17-off.log`, `conditions-ab17-on.log`, LiveKit server log `.cache/voice-e2e/livekit.log`.
