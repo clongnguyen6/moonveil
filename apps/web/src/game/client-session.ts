@@ -21,7 +21,9 @@ export function clientSession(client: Client): Session {
         const listen = new Set(s.view?.voice.filter((v) => v.listen).map((v) => v.channel) ?? []);
         chat = Object.entries(s.chat).filter(([ch]) => listen.has(ch)).flatMap(([ch, msgs]) => msgs.map((msg) => ({ channel: ch as ChannelId, msg })));
       }
-      cached = { status: s.status, code: s.code, view: s.view, error: s.error, chat, speaking: s.speaking, poses: [], voiceMode: s.voiceMode };
+      // P15: foundation closes with 1012 on SIGTERM; when ClientState carries `lastCloseCode`, the overlay says "paused".
+      const closeCode = (s as { lastCloseCode?: number }).lastCloseCode;
+      cached = { status: s.status, code: s.code, view: s.view, error: s.error, chat, speaking: s.speaking, poses: [], voiceMode: s.voiceMode, serverRestart: s.status === 'reconnecting' && closeCode === 1012 };
       return cached;
     },
     create: (mode: Mode, profile: Profile, voiceMode: VoiceMode = 'remote') => client.create(mode, profile, voiceMode),

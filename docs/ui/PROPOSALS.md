@@ -52,3 +52,6 @@ Batch A: decks are engine config and host customization is engine-validated. The
 
 ## P14. Scene keyboard handler vs text fields (visual, `packages/scene/src/input.ts:16`)
 `window.addEventListener('keydown')` calls `preventDefault()` on Space for every target, and WASD/arrows walk the avatar while a player types in chat or the end-match box. Request: ignore events whose target is editable (`input`, `textarea`, `isContentEditable`) or inside `[data-ui]`, like the pointer handler already does (line 27). DONE in visual-5 (3400f92): the scene ignores editable targets and `[data-ui]` and never claims Escape. The shell's interim key guard was removed.
+
+## P15. Expose the close code for the reconnect overlay (foundation, `client.ts`)
+Server restarts close sockets with 1012 (SIGTERM) and the match is paused and restored; a local drop keeps timers running. Request: `ClientState.lastCloseCode: number | null` (the last `onclose` code while `status === 'reconnecting'`). The UI adapter already maps `lastCloseCode === 1012` to `SessionState.serverRestart`, which switches the overlay copy to "Your match is saved and paused until the server is back." Until then the overlay shows the neutral "Your seat and progress are saved."

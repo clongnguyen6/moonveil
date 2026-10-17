@@ -7,7 +7,7 @@ export const en = {
   language: 'Language', sound: 'Sound cues', on: 'On', off: 'Off', motion: 'Motion', motionSystem: 'Follow device', motionReduce: 'Reduce', motionFull: 'Full',
   change: 'Change', waiting: 'Waiting…', seconds: '{s} s', chosen: 'Chosen', nightDoneChange: 'Chosen. You can still change it until dawn.',
 
-  connConnected: 'Connected', connReconnecting: 'Reconnecting…', connReconnectHint: 'Your seat is kept. The game continues.',
+  connConnected: 'Connected', connReconnecting: 'Reconnecting…', connReconnectHint: 'Your seat and progress are saved.', connRestartHint: 'Your match is saved and paused until the server is back.',
   connReplaced: 'Opened in another tab.', connUseHere: 'Use here', connEnded: 'You left the room.', connOffline: 'Offline',
 
   entryTagline: 'Werewolf by the campfire. One phone each, your voices in the game.',
