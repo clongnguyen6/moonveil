@@ -81,6 +81,7 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   await ps[1].page.getByTestId('voice-join').click();
   await ps[1].page.waitForTimeout(400);
   ok('D2: Join voice flips the client state (voiceJoined) and shows Leave voice', (await ps[1].page.evaluate(() => globalThis.__moonveil.getState().voiceJoined === true)) && (await ps[1].page.getByTestId('voice-leave').count()) === 1);
+  ok('voice phase: without a LiveKit backend the joined card shows "Connecting voice…" (no sessions ever arrive; with Cloud this resolves to live in ~10 s)', (await ps[1].page.locator('[data-testid=mic][data-voice=connecting] [data-testid=voice-busy]').count()) === 1);
   await ps[1].page.getByTestId('voice-leave').click();
   await ps[1].page.waitForTimeout(300);
   ok('D2: Leave voice returns to not joined', (await ps[1].page.locator('[data-testid=mic][data-status=notJoined]').count()) === 1);
