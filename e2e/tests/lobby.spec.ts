@@ -12,7 +12,7 @@ test('create, join by code and link, appearance, ready, start gating, leave', as
   await bao.page.goto(`/r/${code}`);
   await bao.fillProfile('ann');
   await bao.page.getByTestId('join').click();
-  await expect(bao.page.getByTestId('error')).toContainText('name');
+  await expect(bao.page.getByTestId('error')).toHaveAttribute('data-code', 'name-taken'); // P18: codes, not localized copy
   await bao.joinByLink(code, { color: 'river' });
   await chi.joinByCode(code.toLowerCase());
 
@@ -40,5 +40,5 @@ test('unknown room code shows an error', async ({ table }) => {
   await p.fillProfile();
   await p.page.getByTestId('code').fill('ZZZZZZ');
   await p.page.getByTestId('join').click();
-  await expect(p.page.getByTestId('error')).toContainText('no such room');
+  await expect(p.page.getByTestId('error')).toHaveAttribute('data-code', 'room-not-found');
 });

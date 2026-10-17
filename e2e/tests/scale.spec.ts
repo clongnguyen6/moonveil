@@ -32,7 +32,7 @@ for (const n of sizes) {
       await extra.page.goto(`/r/${code}`);
       await extra.fillProfile();
       await extra.page.getByTestId('join').click();
-      await expect(extra.page.getByTestId('error')).toContainText('full');
+      await expect(extra.page.getByTestId('error')).toHaveAttribute('data-code', 'room-full'); // P18
       extraRejected = true;
     }
 
