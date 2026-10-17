@@ -12,13 +12,30 @@ import { createMap, frameRect, FIRE, WORLD, inWorld, type MapLayout } from './ma
 import { intentFor, canMove, nightLevelFor, type SeatIntent } from './choreo.ts';
 import { lerp, clamp, mixColor, smooth } from './rng.ts';
 import type { CameraMode, Pose, PoseFrame, SafeArea, SceneHandle, SceneInput, SceneOptions, SeatId, PerfStats } from './types.ts';
+import { resolveQuality, frameCap, readQualityEnv } from './quality.ts';
 
 const NIGHT_SPEED = 1 / 7;   // full day↔night transition in 7 s
 const MOVE_SEND_HZ = 10;
 
 type Listener = { move: ((p: Pose) => void)[]; emote: ((e: string) => void)[]; tap: ((p: { x: number; y: number; seat: SeatId | null }) => void)[] };
 
+// 'off': nothing is mounted; every method is a no-op. Lets harnesses keep the shell's mount code unchanged.
+function offHandle(input: SceneInput): SceneHandle {
+  let inp = input;
+  return {
+    ready: Promise.resolve(), quality: 'off',
+    setInput(next) { inp = next; }, setPoses() {}, setSpeaking() {}, on() { return () => {}; }, emote() {}, setSpeakingLocal() {},
+    async setAudio() {}, setCamera() {}, setSafeArea() {}, resize() {},
+    time: () => 0, perf: () => null, perfReset() {}, walkLocal() {}, localPose: () => null, night: () => (inp.phase === 'night' ? 1 : 0), destroy() {},
+  };
+}
+
 export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
+  const qEnv = readQualityEnv(globalThis);
+  const quality = resolveQuality(opts.quality, qEnv);
+  if (quality === 'off') return offHandle(opts.input);
+  const reducedMotion = !!qEnv.reducedMotion;
+  const low = quality === 'low';
   let input = opts.input;
   let destroyed = false;
   const listeners: Listener = { move: [], emote: [], tap: [] };
@@ -28,6 +45,8 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   const hostW = () => host.clientWidth || window.innerWidth, hostH = () => host.clientHeight || window.innerHeight;
   let cameraMode: CameraMode = opts.camera ?? (hostH() > hostW() * 1.1 && hostW() < 600 ? 'tight' : 'fit');
   let ro: ResizeObserver | null = null;
+  let onVis: (() => void) | null = null;
+  let frameNo = 0;
   const safe: SafeArea = { top: 0, right: 0, bottom: 0, left: 0 };
   const perfOn = !!opts.perf;
   const perf = { frames: [] as number[], update: [] as number[], lightmap: [] as number[], render: [] as number[], last: 0 };
@@ -43,11 +62,16 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     const a = new Application();
     await a.init({
       resizeTo: host, background: '#0f1813', antialias: true,
-      resolution: Math.min(window.devicePixelRatio || 1, opts.resolution ?? 2), autoDensity: true,
+      resolution: low ? 1 : Math.min(window.devicePixelRatio || 1, opts.resolution ?? 2), autoDensity: true,
       preference: 'webgl', powerPreference: 'high-performance',
     });
     if (destroyed) { a.destroy(true); return; }
     app = a;
+    a.ticker.maxFPS = frameCap(quality, reducedMotion);
+    // no frames while the document is hidden (background tab, headless page marked hidden)
+    onVis = () => { if (document.hidden) a.ticker.stop(); else a.ticker.start(); };
+    document.addEventListener('visibilitychange', onVis);
+    if (document.hidden) a.ticker.stop();
     a.canvas.style.display = 'block';
     a.canvas.style.touchAction = 'none';
     host.appendChild(a.canvas);
@@ -124,7 +148,9 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       inputCtl.update();
       layoutCamera(dt, vw, vh);
       tick(dt);
-      lightMs = 0; const l0 = performance.now(); lighting.render(cam); lightMs = performance.now() - l0;
+      frameNo++;
+      lightMs = 0;
+      if (!low || frameNo % 2 === 0) { const l0 = performance.now(); lighting.render(cam); lightMs = performance.now() - l0; }
     });
   }
   let lightMs = 0;
@@ -307,8 +333,8 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       if (!lastSent || lastSent.x !== pose.x || lastSent.y !== pose.y || lastSent.facing !== pose.facing || lastSent.moving !== pose.moving) { lastSent = pose; for (const cb of listeners.move) cb(pose); }
     }
 
-    // world + effects
-    world.update(t, dt);
+    // world + effects (cheap mode: no sway, no particle pools, no fog)
+    if (!low && !reducedMotion) world.update(t, dt);
     const fi = lerp(1, 0.45, smooth(n));
     const flick = 1 + Math.sin(t * 9.3) * 0.05 + Math.sin(t * 23.7) * 0.03 + Math.sin(t * 3.1) * 0.03;
     fire.intensity = fi;
@@ -317,10 +343,12 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     moon.alpha = 0.7 * moonL; moonEdge.alpha = 0.45 * moonL;
     tentLights.forEach((l, i) => { const lv = (lanternLevel[i] ?? 0) * (0.8 + Math.sin(t * 6 + i) * 0.08); l.alpha = lv * 0.9; const b = tentBulbs[i]; if (b) { b.alpha = lv * 0.9; b.scale.set(0.45 + lv * 0.2); } });
     postLights.forEach((l, i) => { l.alpha = moonL * (0.75 + Math.sin(t * 5 + i * 2) * 0.1); const b = postBulbs[i]; if (b) b.alpha = moonL * 0.95; });
-    fireflies.level = moonL; fireflies.update(t);
-    glints.night = moonL; glints.update(t);
-    fog.level = moonL * 0.45; fog.update(t);
-    fire.update(t, dt, mixColor(0xffffff, 0x5a6090, n));
+    if (!low) {
+      fireflies.level = moonL; fireflies.update(t);
+      glints.night = moonL; glints.update(t);
+      fog.level = moonL * 0.45; fog.update(t);
+    }
+    fire.update(t, low ? 0 : dt, mixColor(0xffffff, 0x5a6090, n));   // dt 0: flames animate, pools emit nothing
     lighting.ambient = ambientColor(n);
     nightTint.alpha = 0.16 * moonL;
     vignette.alpha = 0.75 + 0.25 * n;
@@ -337,6 +365,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
 
   const handle: SceneHandle = {
     ready,
+    quality,
     setInput(next) { if (!app) { input = next; snap = true; } else pendingInput = next; },
     setPoses(frame: PoseFrame) { poses.push(frame, performance.now()); },
     setSpeaking(seats) { speakingSet = new Set(seats); },
@@ -360,6 +389,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       destroyed = true;
       ambience.disable();
       ro?.disconnect(); ro = null;
+      if (onVis) { document.removeEventListener('visibilitychange', onVis); onVis = null; }
       if (app) { inputCtl?.detach(); for (const av of avatars.values()) av.destroy(); app.destroy(true, { children: true }); app = null; }
     },
   };
