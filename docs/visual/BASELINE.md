@@ -31,9 +31,13 @@ Earlier scene changes already contained in 44fb793 and part of the baseline: `vi
 - 30 fps cap; lightmap updated every other frame (fire flicker steps at 15 Hz).
 - No tree sway, no water ripple scrolling, no fireflies, no moon glints on the water, no night fog.
 - Fire flames still animate; no sparks and no smoke.
-- Everything else identical: map, palette, lighting colours, avatars and labels, speaking indicator, walk/seat/tent choreography, night and dawn transitions, ghost treatment.
+- Everything else identical: map, palette, lighting colours, avatars and labels, speaking indicator, walk/seat/tent choreography, night and dawn transitions, ghost treatment. Readability is unaffected: name labels are rasterised at 2× regardless of the canvas resolution, the speaking ring and arcs are plain sprites, and the ghost aura and wisps are not among the effects `low` disables.
 
 `off` renders nothing (no canvas, no loop) and is for suites that do not measure visuals. Harness override: `globalThis.__MOONVEIL_SCENE = 'off' | 'low' | 'high'` (env mirror `MOONVEIL_SCENE`).
+
+## Usability fixes inside the baseline (visual-8)
+
+- Name labels are laid out in screen space every frame: clamped fully inside the visible area minus HUD safe insets (no clipping at phone edges), and lifted or slid so neighbouring labels never overlap (dense 13–15 seat rings). The resolver is pure (`src/labels.ts`) and unit-tested.
 
 ## Status
 
