@@ -211,7 +211,7 @@ For the account holder. Approved 2026-10-17: Railway Trial only, revision pinned
    - Region: **Southeast Asia (Singapore)** (`asia-southeast1-eqsg3a`).
    - Replicas: **1** *(label unverified)*.
    - Settings → Deploy → **Serverless: off**.
-   - Build command: `npm ci --include=dev && npm run build`
+   - Build command: **`npm run build`** (corrected 2026-10-17, see the correction below)
    - Start command: `node apps/server/src/main.ts`
    - Healthcheck path: `/healthz`
 3. **Volume:** add a volume to this service, mount path **`/data`**, the smallest size, at most 0.5 GB *(label unverified)*. STOP if it asks for an upgrade.
@@ -253,7 +253,21 @@ For the account holder. Approved 2026-10-17: Railway Trial only, revision pinned
     - Never add a card or upgrade.
     - `deploy-trial` stays pinned at the approved revision; nobody pushes to it, so redeploys rebuild the same commit.
 
-**Validated locally (2026-10-17, clean worktree at the pinned revision, Node 24.20.0, Railway-like env):**
+**Correction (2026-10-17): the build command was wrong.** The deploy failed at build with `npm error code EBUSY syscall rmdir path /app/apps/web/node_modules/.vite`.
+- **Cause, from Railpack's source** (`railwayapp/railpack`, `core/providers/node`, read 2026-10-17):
+  - Railpack's install step already runs `npm install` with `NODE_ENV=production`, `NPM_CONFIG_PRODUCTION=false` and `CI=true`. The last of these keeps devDependencies, so `vite` is installed.
+  - Its build step mounts caches at `/app/node_modules/.cache` and, for a Vite app, at `/app/apps/web/node_modules/.vite`.
+  - A custom Build Command replaces only the build step's command; the install still runs before it (docs.railway.com/builds/build-configuration).
+  - `npm ci` deletes an existing `node_modules` first, so it tried to remove a mount point: EBUSY.
+  - Pruning (`RAILPACK_PRUNE_DEPS`) is off unless set.
+- **Fix:** Build command `npm run build`. Railpack does the install. Don't set `RAILPACK_PRUNE_DEPS`, `RAILPACK_INSTALL_CMD` or `RAILPACK_NODE_NPM_INSTALL`.
+- **My local validation missed it** because it never reproduced Railpack's cache mounts. The new simulation:
+  - install from manifests only with Railpack's install env (`vite` and all `@moonveil/*` workspace links present, lockfile unchanged);
+  - then the full source and `npm run build` with the same env;
+  - then the start command: `/healthz` `ok`, create works, `restoredRooms=0`.
+- **Not reproduced:** the BuildKit mount itself (EBUSY). That needs a real mount, not available here without system changes. It is established from the source and the exact path.
+
+**Validated locally (2026-10-17, clean worktree at the pinned revision, Node 24.20.0, Railway-like env; superseded for the build step by the correction above):**
 - The build command passes with `NODE_ENV=production`. A plain `npm ci` under `NODE_ENV=production` omits `vite` and the build fails, hence `--include=dev`.
 - At startup: the startup line shows `persist=<dir>/rooms restoredRooms=0`; `/healthz` → `ok`; `/` and `/r/<CODE>` serve the SPA; `/api/lan` → `[]`.
 - `/ws` opens for the public origin even with a rewritten `Host`, and refuses a foreign origin and the `http:` form of the public origin (403).
