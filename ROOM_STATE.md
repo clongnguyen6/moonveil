@@ -31,7 +31,7 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 
 ## Milestones
 - M0 init: docs committed on `dev` (acf85a0). [done]
-- M1 visual: first preview NOT approved (too cartoonish/dull). Human approved revised direction 2026-10-17 (PROJECT_BRIEF 'Revised art direction'). Next: one representative mature scene (visual owner) + representative UI laptop/phone (game-UI owner) for early review; execution pending acceptance.
+- M1 visual: mature redo SUPERSEDED (Human returned to original look, 2026-10-17). Baseline = original look (dev 44fb793, BASELINE.md). Option B: keep look, prioritise playtest readiness; polish deferred. Redo branches visual-6, game-ui-art unmerged.
 - M1 rules: proposal v0.2 at rules 01fbb49 (codex review F1–F7 addressed; Lead re-ran 138/138) sent to Human. Approved so far listed under Approved rules; rest pending. Rules Peer: recording approvals + integration into dev.
 - M1 voice: LiveKit OSS selected for local implementation/verification (grant d). Room-per-channel, server sole token issuer, rotate channel on membership loss. 43/43 on a94fe73 (Peer); reconcile with head + re-run on final SHA before merge. Lead re-run pending.
 - M2 playable slice: server serves real engine (a280efe); protocol-level full matches 7–10 both modes pass (owner); game UI first screens on branch game-ui; scene package in dev; next: UI wired to real client + browser e2e full matches, voice gateway.
@@ -65,6 +65,12 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Open: voice candidate 1d12fc6 (publish-hang fix) fails measured-audio full matches (pages unresponsive); likely CPU starvation from scene rendering in many headless pages; under analysis, not merged.
 - Heavy-run lock (serial, Lead hands out): voice → game-UI (b7bd170) → foundation-10 (strict UI skip-fail) → visual direction captures as needed.
 - Human local preview: 127.0.0.1:4480 (real server, dev 44fb793) and :4481 (stub screens), game-UI owner's PIDs 77636/78025. Keep running.
+
+## Decisions 2026-10-17 (Human)
+- Hosting: Railway Trial only (no upgrade/paid/overage); Render documented alternative; durable volume recovery required; stop + report at credit/expiry. Deploy, main merge, LiveKit Cloud probes/credentials NOT approved.
+- Playtest UX: D1 QR on host screen; D2 voice/mic only after explicit "Join voice" tap; D3 per-browser denied-mic guidance; D4 error only for full/started rooms (no spectator); D5 host may switch in-person/remote in lobby only; D6 moderator narration cues on by default, approved-consistent or neutral wording only (rules-13 statuses). D7 = pending Batch C1. D8 (Lead): rule errors as codes, after playtest.
+- Heavy-run lock covers any browser automation that renders the scene (stub checks included); scene off otherwise. Acceptance runs use one scene observer at 4 fps reduced motion = test mitigation, not product performance evidence.
+- Paseo installed source reference: /Users/long/repo/agent-workflow/paseo-v0.11.2/ (read-only).
 
 ## Lead message queue (deliver at owner's next turn end)
 - (cleared)

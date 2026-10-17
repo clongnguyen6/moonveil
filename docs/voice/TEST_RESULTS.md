@@ -19,6 +19,64 @@ The 4 skipped windows are all whole-table step boundaries: in each, every page m
 
 **Token / channel checks (separate from the audio measurement), all pass:** every page holds exactly the channels of its grants and each is connected; rosters contain only granted seats and never a listen-only one; every `voice` frame carries only channels the seat is granted at that moment, with `speak` never beyond the state grant; LiveKit's participant list shows the moderator hidden while listen-only and visible at `ended`; in-person room (1.7 min): no sessions in any `voice` frame, no LiveKit room for the code, no voice channel in any page, public text delivered in the lobby.
 
+### Slot 19 (2026-10-17 18:06–18:44, lock held; candidate 705faad = e432694 (D2 explicit join, D5) + dev 758c44a + a type-only fix): ALL GREEN
+
+Scene loop stopped in test pages (`MOONVEIL_SCENE=off`), `join()` called on every page (D2). Conditions sampled every 30 s (`.cache/voice-e2e/conditions-slot19.log`): load 1-min 3.9 at start, peak 8.2, 6.5 at end; CPU idle 54–73 %; browser GPU process 0–29 % during matches (peak 100 % at page load; 620–730 % with the scene running in runs 15–17); 10–12 renderers summing ~70 %; memory 35 GB used, 7 GB in the compressor.
+
+Root check on 705faad: typecheck ok; rules 206, scene 26, voice 53, server 96, harness 2, e2e 13/13 (1.8 min). An earlier root check on 6afa3a3 (same product behaviour) failed only because `apps/web` builds an empty `VoiceSnapshot` literal and D2 had added two required fields; they are optional in the type since 705faad.
+
+**Measured hear-matrix on 705faad** (received audio energy per channel and remote seat, 2 s window after every step, versus the matrix derived from each seat's own `state.voice`):
+
+| Run | Match | Steps | Pair-channel checks | should-hear failures | must-not-hear failures | Skipped |
+|---|---|---|---|---|---|---|
+| 21 | moderator, 7 + mod, complete match, scale 2 (44.5 s) | 11 | 658 | 0 | 0 | 0 |
+| 21 | automatic, 10 seats, scale 2, 5-min budget (5.2 min) | 14 | 1,278 | 0 | 0 | 0 |
+| 22 | automatic, 10 seats, real time, 10-min budget (10.2 min) | 12 | 981 | 0 | 0 | 0 |
+
+Per step, run 21 moderator: lobby 56, night.main 35/63, night.witch 35/63, day.discussion 70, day.vote 70, day.defense 70, day.confirm 70, hunter 70, ended 56. Run 21 automatic: lobby 90, night.main 18/63, night.witch 18/63, hunter 90, day.discussion 108/126, day.vote 108/126, day.defense 108/126, day.confirm 108/126. Run 22 (real time): lobby 90, night.main 18/54, night.witch 18/54, day.discussion 99/117, day.vote 99/117, day.defense 99/117, day.confirm 99. The run-13 question (one should-hear failure after a rotation, real time) is settled: 0 failures over 981 real-time checks with the settle fix, and 0 over 1,278 at scale 2.
+
+**Token / channel checks (separate), all pass:** channels equal grants and connected on every page; rosters only granted seats, never a listen-only one; `voice` frames never carry an ungranted channel or `speak` beyond the state grant; moderator hidden while listen-only and visible at `ended`; in-person room (5.7 s): no sessions, no LiveKit room, no voice channel, public text delivered. Nothing connects before `join()` (D2, unit-tested; the suite joins explicitly).
+
+The same three suites also passed on 6afa3a3 (runs 19/20: 1,183 + 828 + 981 checks, 0 failures, 0 skipped) before the type-only fix.
+
+### Slot 17 (2026-10-17 14:35–, lock held; candidate 1d12fc6 = d85b133 + dev 36bdafd): A/B and run 17, FAILED; cause found by measurement
+
+Kept: `.cache/voice-e2e-ab17-off.log`, `.cache/voice-e2e-ab17-on.log`, `.cache/voice-e2e-run17.log`, per-run artifacts `.cache/voice-e2e/results-ab17-off/`, `results-ab17-on/`, `results-run17/` (error contexts + traces), `.cache/voice-e2e/conditions-slot17.log`, `conditions-ab17-off.log`, `conditions-ab17-on.log`, LiveKit server log `.cache/voice-e2e/livekit.log`.
+
+Root check on 1d12fc6 (load 2.7): rules 206, scene 20, voice 50, server 91, e2e 13/13.
+
+**A/B, same test files, `MOONVEIL_TEST_SEED=voice-ab!`, scale 2, back-to-back:**
+- revoke **off**: moderator and automatic both failed: "Ann: page unresponsive, voiceSnapshot did not return within 15000 ms", "Chi: … voiceStats …".
+- revoke **on**: moderator measured 1 window (night.main#0, 35 checks, 0 failures; settle evidence: Ann's wolves room `connecting` → `connect timed out after 20000 ms` → `connecting` again), then the browser was closed at the test timeout; automatic: "Bao: page unresponsive".
+- Conclusion: **revoke-before-delete is not the distinguishing factor**; both variants fail the same way. The `VoiceClient` publish-hang fix (d85b133) did not make the full matches pass either; it holds only what its unit test shows (a stuck publish no longer blocks applying sessions). Conditions during the A/B: load 1-min peak 78 (0.5–0.8 % idle), 35 GB used, 15 GB in the compressor, <130 MB free, swap-ins/outs in the millions.
+
+**Cause, measured live during run 17 (three samples 5 s apart):** the headless browser's **GPU process at 624–728 % CPU** (`--use-angle=swiftshader-webgl`: software WebGL), each of the 11 page renderers at 5–14 %. Every page mounts the camp scene (`apps/web/src/ui/SceneMount.tsx` → `@moonveil/scene`, pixi.js 8, WebGL); 11 software-rendered scenes take 6–7 of the machine's 11 cores, on top of other projects' load and heavy memory pressure. That starves everything in the browser at once: `page.evaluate` (the new 15 s bound turns the starvation into a named failure where the old unbounded harness simply waited), ICE (`could not establish pc connection`, `short ice connection`), mic publishes (run 16's one seat with a single publish event). It also explains the history: the scene entered the web shell on 2026-10-16 ~18:15–21:00 and grew (textures, visual-5); runs 8–10 predate it, run 11 and 13 passed partially on an earlier scene, runs 15–17 fail. No renderer spins, so a client-side busy loop (hypothesis 1) is ruled out by the per-process numbers; what the renderers do during the 15 s is wait for CPU.
+
+**Run 17 (full suite, scale 2, same slot, 15:05–15:16, load 1-min 20–34, 0.5–2 % idle):** all three tests failed with "page unresponsive" (`Mod`, `Bao`, and `Host` in the in-person test, which uses no voice at all). A page that cannot answer `evaluate` within 15 s while holding no LiveKit connection is starvation, not voice.
+
+**Mitigation for this suite (test-only, `packages/voice/e2e`, 4b0a299):** pages get an init script that sets the agreed switch `globalThis.__MOONVEIL_SCENE` from `MOONVEIL_SCENE` (default `off` in this suite) and, until the product honours it (visual-7), stops the frame loop by never firing `requestAnimationFrame` when `off`. The suite measures audio, not visuals.
+
+**Run 18 (verification, 15:16–15:18, moderator match only, scene loop stopped, same machine, load 1-min 14.6 at start / 8.7 at end):** complete match in **1.9 min** (runs 11/15/17 on the same match: 9–12 min or timeout), **1,554 pair-channel checks over 21 steps, 0 should-hear and 0 must-not-hear failures, 0 skipped windows**; per step: lobby 56, night.main 35/49/84/84, night.witch 35/49/84/84, day.discussion 70/91/98, day.vote 70/91/98, day.defense 70/91, day.confirm 70/91, hunter 98, ended 56. Browser CPU sampled every 10 s (`.cache/voice-e2e/browser-cpu-run18.log`): GPU process median 18 %, peak 174 % during the initial page loads, 0 % for most of the match; 10 renderers summing 22–39 %. Before (runs 15–17): GPU process 620–730 % sustained. Token/channel checks all pass. Still to run under the mitigation: the automatic match, the in-person test, and the real-time automatic rerun.
+
+**Product note for the game-UI/visual owners (not my scope):** the scene renders at full rate in every page regardless of `document.hidden` or reduced motion; pausing the ticker for hidden pages and under `prefers-reduced-motion` would save CPU/battery on phones too. Reported through Lead.
+
+### Runs 15–16 (2026-10-17 12:33–13:24, window + lock; candidate 7320503 = 2f38c5f + dev 5b081c4): FAILED, under analysis
+
+First full run with revoke-before-delete (70d5bb2). Kept artifacts: `.cache/voice-e2e/keep/voice-e2e-run15.log`, `.cache/voice-e2e/keep/voice-e2e-run16.log`, `.cache/voice-e2e/keep/run16-results-final/` (run 16 error context + trace), `.cache/voice-e2e/livekit.log` (append-only server log covering runs 10–16), `.cache/voice-e2e/conditions-run15.log`. Run 15's own Playwright artifacts were lost: Playwright wipes `outputDir` when the next run starts, and run 16 started in the same chain; artifact directories are now per run (`VOICE_E2E_RUN`).
+
+| Run | Match | Conditions (load 1-min start / peak / end; idle at peak) | Result |
+|---|---|---|---|
+| 15 | moderator, 7 + mod, scale 2 | 4.0 / 24.0 / 16.7; 0 % idle | 1 window measured (night.main#0: 35 checks, 0 failures), then stuck inside `voiceSettled` until the 12-min test timeout; a `page.evaluate` was still pending when Playwright closed the browser |
+| 15 | automatic, 10 seats, scale 2 | same window | "Ann: voice settle" after 40 s (channels never matched grants) |
+| 15 | in-person | same window | pass (1.5 min) |
+| 16 | automatic, 10 seats, real time, 10-min budget | 10.0 / 17.6 / 12.9; 1.6 % idle | 3 windows: night.main skipped (whole-table step change), day.discussion 18 checks 0 failures, night.main 99 checks 0 failures; at day.discussion one page (Ivy) had no subscribed track from any of 9 speakers; then "Bao: publishing" never became true until the 18-min test timeout |
+
+**Analysis so far (evidence, not conclusion):**
+- LiveKit server log, every rotation in runs 15/16: `ListParticipants`, N × `RemoveParticipant` (all N participants closed with `SERVICE_REQUEST_REMOVE_PARTICIPANT`), `DeleteRoom` ~10 ms later, `CreateRoom` of the next generation; every seat of each new generation joins and becomes active; zero stale-token join errors, zero duplicate-identity events; "2 RTC sessions per seat per generation" is identical in the healthy runs 10–14. The server-side rotation therefore behaves; nothing points at `RemoveParticipant` breaking reconnects.
+- Server log, run 16 room `BET4EW-public-g3`: nine seats show two track-publish events, one seat (`s_49b0643a1e`) only one: one browser's microphone publish never completed. In `VoiceClient` (code at 70d5bb2) the mic publish was awaited inside the same promise chain that applies new sessions, with no timeout (livekit-client's `publishTrack` waits for the server's acknowledgement), so one stuck publish freezes that page's voice state: later `voice` messages are never applied, channels no longer match grants, and the page never settles. This matches both run 15 symptoms and run 16's "publishing"/"hears nobody" symptoms. The same "Ann: voice settle" signature appeared in run 11 on product code without 70d5bb2.
+- Fix applied to `VoiceClient` (next candidate): mic capture and publish bounded (10 s each), detached from session application, retried with backoff while the channel still grants speak; a dropped channel discards a late track. Unit-tested against the fake Room.
+- Still open, needs the A/B under one lock slot (`packages/voice/e2e/ab.sh`: same test files, same `MOONVEIL_TEST_SEED`, same scale, back-to-back, conditions recorded; the only difference `VOICE_REVOKE_ON_CLOSE=0|1`): whether revoke-before-delete changes anything observable on the page side. A green rerun does not cancel runs 15/16; both stay recorded here.
+
 ### Runs 11–14 (2026-10-17 03:03–04:08, heavy-run lock held; dev merged at ca23197): real-time follow-up
 
 Purpose: strengthen automatic-mode audio evidence (`MOONVEIL_TEST_TIME_SCALE=1`, `VOICE_E2E_AUTO_BUDGET_MS=600000`). Conditions sampled every 30 s (`.cache/voice-e2e/conditions-run11.log`); the load came from other projects on the shared machine (two long-running Python jobs, an iOS Simulator with ~200 processes, a Codex session), plus one Moonveil CPU job (`apps/server/test/seed-search-zero.ts`, ~100 % of a core, 03:09–03:40).

@@ -48,8 +48,9 @@ export default defineConfig({
   workers: 1,
   timeout: 12 * 60_000,
   expect: { timeout: 45_000 }, // shared machine: other owners' suites may run concurrently
-  reporter: [['list'], ['json', { outputFile: path.join(cache, 'results.json') }]],
-  outputDir: path.join(cache, 'results'),
+  // Artifacts are kept per run (Playwright wipes outputDir at start): set VOICE_E2E_RUN to name a run.
+  reporter: [['list'], ['json', { outputFile: path.join(cache, `results-${process.env.VOICE_E2E_RUN ?? 'latest'}.json`) }]],
+  outputDir: path.join(cache, `results-${process.env.VOICE_E2E_RUN ?? 'latest'}`),
   use: {
     baseURL: `http://127.0.0.1:${port}`,
     permissions: ['microphone'],

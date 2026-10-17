@@ -49,19 +49,30 @@ export class LiveKitBackend implements VoiceBackend {
       if (!isNotFound(err)) throw err;
     }
   }
+
+  async removeParticipant(room: string, identity: string, revokeTokenTs?: number): Promise<void> {
+    try {
+      await this.svc.removeParticipant(room, identity, revokeTokenTs === undefined ? undefined : { revokeTokenTs: BigInt(Math.floor(revokeTokenTs)) });
+    } catch (err) {
+      if (!isNotFound(err)) throw err;
+    }
+  }
 }
 
-function isNotFound(err: unknown): boolean {
-  const msg = String((err as { message?: string })?.message ?? err).toLowerCase();
-  return msg.includes('not found') || msg.includes('does not exist');
+// Twirp errors from livekit-server-sdk are ServerError { status (HTTP), code (twirp code) }.
+// A missing room or participant is twirp `not_found` (HTTP 404) on both OSS and Cloud; no text matching.
+export function isNotFound(err: unknown): boolean {
+  const e = err as { code?: unknown; status?: unknown } | null;
+  return !!e && typeof e === 'object' && (e.code === 'not_found' || e.status === 404);
 }
 
 // In-memory LiveKit stand-in. Tests "connect" participants and inspect the call log.
 export interface FakeCall {
-  op: 'list' | 'update' | 'create' | 'delete';
+  op: 'list' | 'update' | 'create' | 'delete' | 'remove';
   room: string;
   identity?: string;
   permission?: RoomPermission;
+  revokeTokenTs?: number;
 }
 
 export class FakeBackend implements VoiceBackend {
@@ -100,5 +111,10 @@ export class FakeBackend implements VoiceBackend {
   async deleteRoom(room: string): Promise<void> {
     this.calls.push({ op: 'delete', room });
     if (this.rooms.delete(room)) this.deleted.push(room);
+  }
+
+  async removeParticipant(room: string, identity: string, revokeTokenTs?: number): Promise<void> {
+    this.calls.push({ op: 'remove', room, identity, ...(revokeTokenTs === undefined ? {} : { revokeTokenTs }) });
+    this.rooms.get(room)?.delete(identity);
   }
 }

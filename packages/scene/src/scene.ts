@@ -13,6 +13,7 @@ import { intentFor, canMove, nightLevelFor, type SeatIntent } from './choreo.ts'
 import { lerp, clamp, mixColor, smooth } from './rng.ts';
 import type { CameraMode, Pose, PoseFrame, SafeArea, SceneHandle, SceneInput, SceneOptions, SeatId, PerfStats } from './types.ts';
 import { resolveQuality, frameCap, readQualityEnv } from './quality.ts';
+import { layoutLabels, type LabelRect } from './labels.ts';
 
 const NIGHT_SPEED = 1 / 7;   // full day↔night transition in 7 s
 const MOVE_SEND_HZ = 10;
@@ -324,6 +325,9 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       } else av.update(dt, labelScale, undefined, world.walkable);
       if (local && emoteReq) { av.showEmote(emoteReq); emoteReq = null; }
     }
+    // name labels: keep them fully on screen (minus HUD insets) and free of overlaps (dense seat rings, phones)
+    layoutNameLabels();
+
     // emit own pose at ≤10 Hz when it changed
     const me = avatars.get(meSeat);
     moveAcc += dt;
@@ -353,6 +357,20 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     nightTint.alpha = 0.16 * moonL;
     vignette.alpha = 0.75 + 0.25 * n;
     ambience.night = n; ambience.fire = fi; ambience.update(dt);
+  }
+
+  function layoutNameLabels() {
+    if (!app || opts.labelLayout === false) return;
+    const vw = app.screen.width, vh = app.screen.height, sc = cam.scale;
+    const rects: LabelRect[] = []; const byId = new Map<string, Avatar>();
+    for (const av of avatars.values()) {
+      if (!av.root.visible) continue;
+      const sx = cam.x + (av.x) * sc, sy = cam.y + (av.y + av.labelBaseY) * sc;
+      if (sx < -60 || sx > vw + 60 || sy < -60 || sy > vh + 60) { av.setLabelOffset(0, 0); continue; }   // off-screen avatar: leave it
+      rects.push({ id: av.seat, x: sx, y: sy, w: av.label.width * sc, h: av.label.height * sc }); byId.set(av.seat, av);
+    }
+    if (!rects.length) return;
+    for (const o of layoutLabels(rects, { w: vw, h: vh, top: safe.top, right: safe.right, bottom: safe.bottom, left: safe.left })) byId.get(o.id)?.setLabelOffset(o.dx / sc, o.dy / sc);
   }
 
   function ambientColor(nl: number): number {
