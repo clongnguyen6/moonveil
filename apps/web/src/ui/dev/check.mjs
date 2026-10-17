@@ -277,6 +277,42 @@ await page.waitForTimeout(150);
 ok('D6: night.witch uses the neutral line (no step named)', /The night goes on/.test(await page.getByTestId('mod-say').innerText()));
 await open('day');
 
+// 11f. Settings clarity (UX audit): grouped sections, switches with lines, moderator section only for moderators.
+await open('day', '&lang=en');
+await page.getByTestId('open-settings').click();
+await page.waitForTimeout(150);
+ok('settings: "Your settings" group with language, sound, scene, ambience, animations', (await page.locator('[data-testid=settings-personal] [data-testid=lang], [data-testid=settings-personal] [data-testid=set-sound], [data-testid=settings-personal] [data-testid=set-scene], [data-testid=settings-personal] [data-testid=set-ambience], [data-testid=settings-personal] [data-testid=set-motion]').count()) === 5);
+ok('settings: switches are role=switch with a contextual line', (await page.locator('[data-testid=settings-personal] input[role=switch]').count()) === 3 && (await page.locator('[data-testid=settings-personal] .line').count()) >= 4);
+ok('settings: no moderator section for a player', (await page.locator('[data-testid=settings-moderator]').count()) === 0);
+await page.getByTestId('set-scene').click();
+ok('settings: toggling the scene switch persists (off)', (await page.evaluate(() => JSON.parse(localStorage.getItem('moonveil.ui.settings')).scene)) === false);
+await page.getByTestId('set-scene').click();
+await page.keyboard.press('Escape');
+await open('moderator', '&lang=en');
+await page.getByTestId('open-settings').click();
+await page.waitForTimeout(150);
+ok('settings: moderator sees the Moderator group with narration cues', (await page.locator('[data-testid=settings-moderator] [data-testid=set-narration]').count()) === 1);
+await page.keyboard.press('Escape');
+// entry: "where are you playing" choice drives the in-person create
+await open('entry', '&lang=en');
+ok('entry: create card asks where you are playing (two choices), online by default', (await page.locator('[data-testid=create-card] input[type=radio]').count()) === 2 && (await page.getByTestId('where-online').isChecked()));
+await page.getByTestId('name').fill('Host');
+await page.getByTestId('in-person').click();
+await page.getByTestId('create-automatic').click();
+await page.waitForTimeout(150);
+ok('entry: choosing "together in one room" creates an in-person room (lobby shows in-person voice)', (await page.locator('[data-testid=mic][data-status=inPerson]').count()) === 1 && (await page.locator('[data-testid=voice-mode][data-mode=inPerson]').count()) === 1);
+// lobby grouping
+await open('lobby', '&lang=en');
+ok('lobby: invite card holds code, copy and QR', (await page.locator('[data-testid=invite] [data-testid=room-code], [data-testid=invite] [data-testid=copy-link], [data-testid=invite] [data-testid=qr]').count()) === 3);
+ok('lobby: room settings card (host) holds voice mode + deck with lines', (await page.locator('[data-testid=room-settings][data-host=true] [data-testid=voice-mode], [data-testid=room-settings][data-host=true] [data-testid=deck]').count()) === 2 && (await page.locator('[data-testid=room-settings] .line').count()) >= 3);
+ok('lobby: You card holds Ready / Edit look; Start card for the host', (await page.locator('[data-testid=you-card] [data-testid=ready], [data-testid=you-card] [data-testid=edit-profile], [data-testid=start-card] [data-testid=start]').count()) === 3);
+await stub((r) => r.setViewer(r.players[1].id));
+ok('lobby: non-host sees a read-only Room summary (mode + deck), no host controls', (await page.locator('[data-testid=room-settings][data-host=false] [data-testid=room-voice-mode]').count()) === 1 && (await page.locator('[data-testid=voice-mode], [data-testid=deck-edit], [data-testid=start-card]').count()) === 0);
+// defense copy follows grants
+await open('defense', '&lang=en');
+ok('defense: copy follows the grant (engine today: only the accused speaks → "listen" text, no everyone text)', /Listen\. Only/.test(await page.getByTestId('defense-hint').innerText()) && (await page.locator('[data-testid=day-defense][data-everyone=false]').count()) === 1);
+await open('day');
+
 // 12. Full automatic match with bots in live mode: run until ended (speed via stub).
 await open('lobby', '&live=1');
 await stub((r) => { r.players.forEach((p) => (p.ready = true)); r.speed = 40; r.autoBots = true; r.start(); });

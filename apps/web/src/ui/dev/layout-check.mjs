@@ -40,7 +40,7 @@ const AUDIT = () => {
     if (!visible(el) || el.closest('[data-testid=devbar]')) continue;
     let r = el.getBoundingClientRect();
     if (r.bottom < 0 || r.right < 0) continue; // offscreen helpers (e.g. PixiJS accessibility button)
-    if (el.tagName === 'INPUT' && el.type === 'checkbox' && el.closest('label')) r = el.closest('label').getBoundingClientRect(); // the label is the target
+    if (el.tagName === 'INPUT' && (el.type === 'checkbox' || el.type === 'radio') && el.closest('label')) r = el.closest('label').getBoundingClientRect(); // the label is the target
     const min = el.classList.contains('icon') || el.classList.contains('swatch') ? 40 : 44;
     const minW = min;
     if (r.height < min - 0.5 || r.width < minW - 0.5) out.push(`target ${Math.round(r.width)}×${Math.round(r.height)} <${min}: ${(el.getAttribute('data-testid') || el.getAttribute('aria-label') || el.textContent || el.tagName).trim().slice(0, 24)}`);
