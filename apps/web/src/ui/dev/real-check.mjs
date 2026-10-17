@@ -143,7 +143,8 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   for (const p of ps) counts.add(await p.page.locator('.topbar .tools .btn').count());
   ok('night: identical top-bar button count on every seat', counts.size === 1);
   ok('voice bar reports a mic state hook (data-mic) on every seat', (await Promise.all(ps.map((p) => p.page.locator('[data-testid=voice][data-mic]').count()))).every((n) => n === 1));
-  ok('voice-off server: the match mic button is the disabled voice-off control on every seat, never Join voice', (await Promise.all(ps.map((p) => p.page.locator('[data-testid=voice] [data-testid=voice-off]').count()))).every((n) => n === 1) && (await Promise.all(ps.map((p) => p.page.locator('[data-testid=voice-join]').count()))).every((n) => n === 0));
+  // Night top bar: one neutral button for every seat (uniformity); the voice-off state is its accessible name. No Join voice anywhere.
+  ok('voice-off server: at night every seat's mic button is named "voice is off on this server" and none offers Join voice', (await Promise.all(ps.map((p) => p.page.locator('[data-testid=voice] button[aria-label*="off on this server"]').count()))).every((n) => n === 1) && (await Promise.all(ps.map((p) => p.page.locator('[data-testid=voice-join]').count()))).every((n) => n === 0));
   ok('voice: no second VoiceClient; UI reads the client\'s instance (null without a voice backend)', (await ps[0].page.evaluate(() => (globalThis.__moonveil?.voice ?? null) === null || typeof globalThis.__moonveil.voice.getSnapshot === 'function')));
   // wait for night.witch (fixed 40 s) then dawn (20 s)
   for (const p of ps) await p.waitStep('night.witch', 60_000);
