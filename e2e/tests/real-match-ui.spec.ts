@@ -7,7 +7,7 @@ import type { GameView, SeatView } from '@moonveil/protocol';
 import { assertOpenBallotsViews, assertOutcome, assertSeatIsolationViews } from '../../apps/server/test/assertions.ts';
 import { ALL_ACCEPTANCE } from '../../apps/server/test/acceptance-seeds.ts';
 import { expect, type Player, test } from '../harness/index.ts';
-import { type BrowserMatch, game, runRealMatch } from '../harness/match.ts';
+import { type BrowserMatch, game, runRealMatch, skippedSteps } from '../harness/match.ts';
 import { seatRealMatchUi, uiBotAct, uiCloseStep, uiPresent, uiStats } from '../harness/ui.ts';
 
 const REAL_PORT = Number(process.env.E2E_REAL_PORT ?? 4152);
@@ -42,13 +42,15 @@ for (const seed of ALL_ACCEPTANCE) {
       await probe.context.close();
 
       let outcome: unknown = null;
+      // Steps passed without the UI actor acting (pacing). Logged only here; the protocol suite fails on them (0006).
+      let skipped: ReturnType<typeof skippedSteps> | null = null;
       uiStats.attempted = uiStats.done = 0;
       uiStats.misses = [];
       uiStats.byType = {};
       uiStats.wolfPicks = [];
       const stats = { ballotSteps: 0, reloads: 0, reloadMs: 0, ballotRecheckAfterReload: '', drops: 0, ghostChecks: 0, overflowChecks: 0, wolfPicksChecked: 0 };
       const report = (result: string) =>
-        console.log(`UIMATCH ${JSON.stringify({ project: info.project.name, mode, seats, seed: seed.S, expected: seed.expect, outcome, result, strict: STRICT, landed: uiStats.done, intended: uiStats.attempted, byType: uiStats.byType, misses: uiStats.misses, ...stats })}`);
+        console.log(`UIMATCH ${JSON.stringify({ project: info.project.name, mode, seats, seed: seed.S, expected: seed.expect, outcome, result, strict: STRICT, landed: uiStats.done, intended: uiStats.attempted, byType: uiStats.byType, misses: uiStats.misses, skipped, ...stats })}`);
       try {
       const m = await seatRealMatchUi(table, { mode, seats, baseURL: `http://127.0.0.1:${REAL_PORT}`, hostName: seed.S });
       await runRealMatch(
@@ -110,6 +112,7 @@ for (const seed of ALL_ACCEPTANCE) {
         { act: uiBotAct, close: uiCloseStep },
         seats + 3, // acceptance: win condition within seats + 3 days
       );
+      skipped = skippedSteps(m);
       expect(m.driver.view().status).toBe('ended');
       const final = game(m.players[0]!) as GameView;
       outcome = final.outcome;

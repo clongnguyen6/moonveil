@@ -39,6 +39,8 @@ export interface BrowserMatch {
   players: Player[];
   driver: Player;
   steps: number;
+  // Step keys the loop acted in (one iteration each). See skippedSteps.
+  acted: Set<string>;
 }
 
 // Create, join, ready, start: all via the client handle. `baseURL` = real-engine server.
@@ -66,7 +68,7 @@ export async function seatRealMatch(table: Table, opts: { mode: Mode; seats: num
   await expect.poll(() => host.view().canStart).toBe(true);
   await send(host, { t: 'start' });
   for (const p of [host, ...players]) await expect.poll(() => p.view().status).toBe('playing');
-  return { mode: opts.mode, moderator: opts.mode === 'moderator' ? host : null, players, driver: host, steps: 0 };
+  return { mode: opts.mode, moderator: opts.mode === 'moderator' ? host : null, players, driver: host, steps: 0, acted: new Set() };
 }
 
 // Run to the end. Each step: every bot acts once, `onStep` runs (assertions), then the step closes
@@ -108,12 +110,31 @@ export async function runRealMatch(
     // Acceptance: a match must reach a win condition within a bounded number of days.
     if (day > maxDays) throw new Error(`no win condition by day ${maxDays}: ${matchDiag(m)}`);
     const key = stepKey(m.driver.view());
+    m.acted.add(key);
     for (const p of m.players) await actor.act(p, r);
     await onStep?.(m);
     if (m.moderator) await actor.close(m.moderator);
     // A step can last minutes of wall time at low time scales (e.g. discussion 60 s + 15 s per living seat).
-    await expect.poll(() => m.driver.view().status !== 'playing' || stepKey(m.driver.view()) !== key, { timeout: 240_000 }).toBe(true);
+    // Views are local (captured frames), so tight polling is cheap; it narrows the window for a step to pass unseen.
+    await expect.poll(() => m.driver.view().status !== 'playing' || stepKey(m.driver.view()) !== key, { timeout: 240_000, intervals: [20] }).toBe(true);
     // Every seat agrees on the current step before anyone acts (steps may pass quickly at x20).
-    await expect.poll(() => new Set([m.driver, ...m.players].map((p) => stepKey(p.view()))).size, { timeout: 10_000 }).toBe(1);
+    await expect.poll(() => new Set([m.driver, ...m.players].map((p) => stepKey(p.view()))).size, { timeout: 10_000, intervals: [20] }).toBe(1);
   }
+}
+
+// Steps the driver's socket saw while playing that the loop never acted in: they passed between two iterations
+// (pacing), so no bot acted and later bot choices diverge from the in-process simulation. withActions = some seat's
+// own view offered actions in that step. Key collisions (same night/day/kind twice) are merged, so this can only
+// under-count.
+export function skippedSteps(m: BrowserMatch): { key: string; withActions: boolean }[] {
+  const seen = new Set<string>();
+  for (const f of m.driver.frames) if (f.msg.t === 'state' && f.msg.view.status === 'playing') seen.add(stepKey(f.msg.view));
+  return [...seen]
+    .filter((k) => !m.acted.has(k))
+    .map((key) => ({
+      key,
+      withActions: [...m.players, ...(m.moderator ? [m.moderator] : [])].some((p) =>
+        p.frames.some((f) => f.msg.t === 'state' && stepKey(f.msg.view) === key && ((f.msg.view.game as GameView | null)?.me?.actions.length ?? 0) > 0),
+      ),
+    }));
 }

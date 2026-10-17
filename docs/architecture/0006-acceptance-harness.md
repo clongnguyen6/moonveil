@@ -59,3 +59,11 @@ Status: foundation, 2026-10-16. The harness is ready now; the UI-driven layer wa
   Phones reuse the 7-seat seeds. Every browser suite asserts each match's expected outcome. `acceptance-seeds.test.ts` re-simulates the table in-process, so a rules change that shifts an outcome fails a light test, not only the heavy suites.
 - **Q14 zero survivors:** reachable. Found within seats + 3 days for automatic 9 and 10, and moderator 7, 8 and 9; none in 2,000 seeds for automatic 7/8 or moderator 10. Added as extra matches: `a9-1025` (automatic, 9, day 5) and `m7-1124` (moderator, 7, day 3), so each mode covers all four end paths (`EXTRA_SEEDS`, required by `acceptance-seeds.test.ts`). Phones run the 7-seat cases (`a7-0`, `m7-2`, `m7-1124`).
 - **Search scripts must yield to the event loop between simulated matches.** Otherwise pending voice-sync callbacks hold every room and memory grows about 0.5 MB per match. Measured: flat at 10–14 MB over 400 matches with yields. Not a server leak.
+
+## Strict pacing: no skipped steps (foundation-9)
+- **Why:** on foundation-8 (`5b081c4`) the protocol suite at ×20 acted in fewer steps under load. `a7-0`: 14 loop iterations without voice, 13 with. `a9-3`: 34 vs 25. A step that passes between two loop iterations gets no bot action, so later bot choices diverge from the in-process simulation. The outcomes still matched, by luck of the path.
+- **Check:** `skippedSteps(m)` (`e2e/harness/match.ts`) = step keys (`night/day/kind`) that the driver's socket saw while playing but the loop never acted in. `withActions` marks steps where some seat's own view offered actions. Same-key collisions merge, so it can only under-count. Unit test: `e2e/harness/match.test.ts`.
+  - `real-match.spec.ts` (protocol, with and without voice) **fails** on any skipped step and logs `STEPS {seed, acted, skipped}` first.
+  - `real-match-ui.spec.ts` logs `skipped` in `UIMATCH` (not yet a failure; proposal: make it one once a locked run shows 0 at ×5/×2).
+  - Step-change polls run every 20 ms (views are local frames, so polling is cheap).
+- **Protocol suite time scale:** _pending the locked run_. The highest (fastest) scale ≤ ×10 with 0 skipped steps in all 10 matches, with and without voice, recorded here and set as the `e2e:matches*` default.
