@@ -52,6 +52,7 @@ export class Registry {
     return {
       engine: this.opts.engine(),
       voice: this.opts.voice ?? nullVoiceGateway,
+      voiceAvailable: this.opts.voice !== undefined,
       scheduler: this.opts.scheduler ?? realScheduler,
       now: this.opts.now ?? Date.now,
       seed: this.opts.seed ?? (() => randomBytes(16).toString('hex')),
