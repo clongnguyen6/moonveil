@@ -1,0 +1,315 @@
+{
+ "seatIds": [
+  "a",
+  "b",
+  "c",
+  "d",
+  "e",
+  "f",
+  "g"
+ ],
+ "match": {
+  "v": 1,
+  "config": {
+   "firstNightKill": true,
+   "reveal": {
+    "causeAtDawn": false,
+    "historyAtEnd": true
+   },
+   "wolves": {
+    "canTargetWolf": false,
+    "mayPass": true,
+    "passHandling": "counted"
+   },
+   "seer": {
+    "result": "wolfOrNot"
+   },
+   "guard": {
+    "canProtectSelf": true,
+    "noRepeatTarget": true,
+    "passResetsRepeat": true
+   },
+   "protection": {
+    "guardBlocksPoison": false,
+    "doubleProtectionKills": false
+   },
+   "day": {
+    "selfVote": false,
+    "accusedVotesOnConfirm": true
+   },
+   "moderator": {
+    "mayBreakRules": false,
+    "canActForSeats": true,
+    "canSetWolfTarget": true,
+    "speaksInPublic": false
+   },
+   "removal": {
+    "systemDuringSecret": false
+   },
+   "timing": {
+    "nightMain": 40,
+    "discussionBase": 60,
+    "discussionPerAlive": 15,
+    "discussionMin": 90,
+    "discussionMax": 240,
+    "vote": 30,
+    "confirm": 15,
+    "hunter": 20
+   }
+  },
+  "seats": [
+   {
+    "seat": 0,
+    "role": "wolf",
+    "alive": true,
+    "death": null,
+    "heal": true,
+    "poison": true,
+    "guardLast": null
+   },
+   {
+    "seat": 1,
+    "role": "hunter",
+    "alive": true,
+    "death": null,
+    "heal": true,
+    "poison": true,
+    "guardLast": null
+   },
+   {
+    "seat": 2,
+    "role": "witch",
+    "alive": true,
+    "death": null,
+    "heal": true,
+    "poison": true,
+    "guardLast": null
+   },
+   {
+    "seat": 3,
+    "role": "seer",
+    "alive": true,
+    "death": null,
+    "heal": true,
+    "poison": true,
+    "guardLast": null
+   },
+   {
+    "seat": 4,
+    "role": "wolf",
+    "alive": true,
+    "death": null,
+    "heal": true,
+    "poison": true,
+    "guardLast": null
+   },
+   {
+    "seat": 5,
+    "role": "villager",
+    "alive": true,
+    "death": null,
+    "heal": true,
+    "poison": true,
+    "guardLast": null
+   },
+   {
+    "seat": 6,
+    "role": "guard",
+    "alive": true,
+    "death": null,
+    "heal": true,
+    "poison": true,
+    "guardLast": null
+   }
+  ],
+  "rng": 3669449636,
+  "night": 1,
+  "day": 1,
+  "step": {
+   "kind": "day.defense",
+   "day": 1,
+   "accused": 0
+  },
+  "stepSeq": 5,
+  "quietCycles": 0,
+  "cycleHadDeath": false,
+  "nightRec": null,
+  "publicLog": [
+   {
+    "t": "nightStart",
+    "night": 1
+   },
+   {
+    "t": "dawn",
+    "night": 1,
+    "dead": [],
+    "causes": null
+   },
+   {
+    "t": "dayStart",
+    "day": 1
+   },
+   {
+    "t": "nomination",
+    "day": 1,
+    "accused": 0,
+    "tally": [
+     {
+      "target": 0,
+      "count": 5
+     }
+    ],
+    "votes": [
+     null,
+     0,
+     0,
+     0,
+     null,
+     0,
+     0
+    ]
+   }
+  ],
+  "knowledge": [
+   [
+    {
+     "k": "role",
+     "seat": 0,
+     "role": "wolf"
+    },
+    {
+     "k": "role",
+     "seat": 4,
+     "role": "wolf"
+    },
+    {
+     "k": "packTarget",
+     "night": 1,
+     "target": null
+    }
+   ],
+   [
+    {
+     "k": "role",
+     "seat": 1,
+     "role": "hunter"
+    }
+   ],
+   [
+    {
+     "k": "role",
+     "seat": 2,
+     "role": "witch"
+    },
+    {
+     "k": "victim",
+     "night": 1,
+     "target": null
+    }
+   ],
+   [
+    {
+     "k": "role",
+     "seat": 3,
+     "role": "seer"
+    }
+   ],
+   [
+    {
+     "k": "role",
+     "seat": 4,
+     "role": "wolf"
+    },
+    {
+     "k": "role",
+     "seat": 0,
+     "role": "wolf"
+    },
+    {
+     "k": "packTarget",
+     "night": 1,
+     "target": null
+    }
+   ],
+   [
+    {
+     "k": "role",
+     "seat": 5,
+     "role": "villager"
+    }
+   ],
+   [
+    {
+     "k": "role",
+     "seat": 6,
+     "role": "guard"
+    }
+   ]
+  ],
+  "history": [
+   {
+    "t": "night",
+    "night": 1,
+    "record": {
+     "night": 1,
+     "wolfPicks": [
+      "pass",
+      null,
+      null,
+      null,
+      "pass",
+      null,
+      null
+     ],
+     "wolfDecision": null,
+     "inspections": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+     ],
+     "guards": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+     ],
+     "heals": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+     ],
+     "poisons": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+     ],
+     "victim": null,
+     "byModerator": []
+    },
+    "deaths": []
+   }
+  ],
+  "outcome": null
+ },
+ "clock": {
+  "stepSeq": 5,
+  "durationMs": 30000,
+  "remainingMs": 30000,
+  "runningSince": 4000
+ }
+}

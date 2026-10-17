@@ -1,6 +1,7 @@
 // Engine: createMatch + apply. Pure: apply clones the input state and returns a new one.
 import { clone } from './clone.ts';
 import { type DeckCounts, type DeepPartial, type RulesConfig, resolveConfig, STALEMATE_CYCLES } from './config.ts';
+import { STATE_VERSION } from './version.ts';
 import {
   defaultDeck,
   evaluateVictory,
@@ -82,7 +83,7 @@ function build(opts: CreateOptions, validate: boolean): CreateResult {
   }
   const n = roles.length;
   const state: MatchState = {
-    v: 1,
+    v: STATE_VERSION,
     config,
     seats: roles.map((role, seat) => ({ seat, role, alive: true, death: null, heal: true, poison: true, guardLast: null })),
     rng,

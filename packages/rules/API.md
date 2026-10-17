@@ -31,6 +31,7 @@ const engine = createRulesEngine({ config?, deck? });   // RulesEngine<HostState
 |---|---|
 | `id`, `minPlayers`, `maxPlayers` | approved Batch A: 7 and 15 (fixed; `PLAYERS_MIN`/`PLAYERS_MAX`) |
 | `setup({seats, seed})` | seeded role assignment; `clock` starts `null`. Call `sync(now)` next in automatic mode |
+| `restoreCheck(state) -> string \| null` | call before restoring a saved state: `null` = restore; a string = refuse, with the reason (see Saved matches). Never throws |
 | `phase(s) -> {name, secret, durationMs, earlyClose, ended}` | `secret` = night steps. `earlyClose` is true only for the Hunter step once all shots are in; never for night or votes (approved) |
 | `submit(s, seatId, action)` | player action = Command without `seat` (the engine injects the actor). Strictly parsed |
 | `moderate(s, action)` | moderator Command (seat indices). Approved: `day.confirmCount {yes}` (the engine applies `yes*2 > living`; `yes` must be an integer 0..living at apply time, else `bad_value`); no direct day-result command. Approved: `match.end {confirm: 'end-match'}`, which ends the match with no winner (`outcome {winner:'aborted', reason:'aborted'}`); a missing or wrong confirm gives `bad_value`; moderator only. Provisional: acting for seats (`moderator.canActForSeats`), `wolf.decide` (`moderator.canSetWolfTarget`), `player.remove`, `step.close`. `match.abort` was removed |
@@ -56,12 +57,20 @@ Seats inside the game are **indices**; `view().seatIds[i]` is the SeatId, and cl
 4. Views: per seat `view(s, {kind:'seat', seat})`; moderator `{kind:'moderator'}`; spectators `{kind:'public'}`. Never send `HostState`.
 5. Grants: `channels(s, seatId)` for players and `channels(s, {kind:'moderator'})` for the moderator. Recompute them after every change.
 6. Host removal of a long-disconnected player → `remove()`. It's refused at night; retry in the day.
+7. **Restore** (see Saved matches): lobby rooms (`game === null`) restore as today; for a room with a game, call `restoreCheck(game)` and, if it returns a reason, don't restore that room (treat it like an engine-id mismatch: skip and log the reason).
 
 ### Channel enforcement the server and voice must provide (approved Q25 and Q06)
 - **Live voice, text and emotes:** deliver on a channel only to seats whose *current* grant has `listen`, and accept only from `speak`.
 - **History** (ghost chat, wolf chat): filter by the grant **at read time** (open, reconnect, scroll-back). A pending Hunter gets no ghost history until the shot resolves.
 - **Membership, rosters and speaking indicators** for a channel go only to seats with `listen` on it.
 - `isPendingHunter(state, seat)` is exported. While pending, the Hunter's grants are public-listen only; they change to ghost access when the turn resolves.
+
+## Saved matches (versioning)
+- `id` stays `'moonveil-werewolf'` in every revision (clients select the game view by it). The rules version is `match.v` = `STATE_VERSION` (`src/version.ts`), set at creation.
+- `restoreCheck(state)`: an **in-progress** match restores only if `match.v === STATE_VERSION`. A **finished** match restores if `match.v` is in `ENDED_READABLE_VERSIONS` (no rules run after the end; only views and grants). Anything else is refused.
+- Versions: 1 = up to and including 35151f2 (deployed); 2 = open defense speech (2026-10-18), current.
+- **Bump `STATE_VERSION`** when a change would alter the meaning of a saved in-progress match. That means any rule behaviour reachable mid-match (step order or durations, legal actions, tallies, deaths, victory, grants, what a view reveals), or a change to the state shape the engine reads. **No bump** for docs, tests, setup-only rules (deck validation, table size), or refactors with identical behaviour. A bump must keep the previous version in `ENDED_READABLE_VERSIONS` unless its ended states no longer project; add a fixture test when you drop one.
+- Guard: `test/restore.test.ts` hashes `src/`. Any src change fails it until you decide: bump if needed, then record the new version and hash in `REVIEWED`.
 
 ## Core calls (engine level)
 ```ts

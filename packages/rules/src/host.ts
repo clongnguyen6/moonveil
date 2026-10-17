@@ -4,6 +4,7 @@ import { type ChannelGrant, channelsFor } from './channels.ts';
 import { type DeepPartial, type DeckCounts, PLAYERS_MAX, PLAYERS_MIN, type RulesConfig, resolveConfig } from './config.ts';
 import { apply, createMatch, isSecretStep } from './engine.ts';
 import { stepTiming } from './policies.ts';
+import { restoreCheck } from './version.ts';
 import { deadlineOf, isExpired, type PhaseClock, pauseClock, remainingMs, resumeClock, startClock } from './clock.ts';
 import { type Projection, project } from './projection.ts';
 import type { Actor, Command, MatchState, Seat } from './types.ts';
@@ -46,6 +47,8 @@ export interface RulesEngine<S> {
   readonly minPlayers: number;
   readonly maxPlayers: number;
   setup(input: { seats: readonly SeatId[]; seed: string }): S;
+  /** ADDED: call before restoring a saved state. null = restore; else the reason to refuse (old rules version). */
+  restoreCheck(state: unknown): string | null;
   phase(state: S): PhaseInfo;
   /** Player action. `action` is a Command without `seat` (the server supplies the actor). */
   submit(state: S, seat: SeatId, action: unknown): HostResult<S>;
@@ -97,6 +100,11 @@ export function createRulesEngine(opts: HostOptions = {}): RulesEngine<HostState
       const r = createMatch({ seed, playerCount: seats.length, config: opts.config, deck: opts.deck?.(seats.length) });
       if (!r.ok) throw new Error(r.error.message);
       return { seatIds: [...seats], match: r.state, clock: null };
+    },
+    restoreCheck(s) {
+      const h = s as Partial<HostState> | null;
+      if (typeof h !== 'object' || h === null || !Array.isArray(h.seatIds)) return 'not a Moonveil host state';
+      return restoreCheck(h.match);
     },
     phase(s) {
       const t = stepTiming(s.match);
