@@ -15,7 +15,7 @@ import { nextInt } from '../src/rng.ts';
 type Viewer = { kind: 'seat'; seat: number } | { kind: 'moderator' };
 const g = (channel: string, listen: boolean, speak: boolean) => ({ channel, listen, speak });
 
-/** Independent oracle, written from the approval text (Human, 2026-10-16), not from channels.ts. */
+/** Independent oracle, written from the approval text (Human, 2026-10-16; defense 2026-10-18), not from channels.ts. */
 function approved(s: MatchState, v: Viewer): ChannelGrant[] | 'moderator' {
   if (s.step.kind === 'ended') return [g('public', true, true)] as ChannelGrant[];
   if (v.kind === 'moderator') return 'moderator'; // listens everywhere; public speech is provisional (checked separately)
@@ -26,8 +26,7 @@ function approved(s: MatchState, v: Viewer): ChannelGrant[] | 'moderator' {
     return (pending ? [g('public', true, false)] : [g('public', true, false), g('ghosts', true, true)]) as ChannelGrant[];
   }
   if (night) return (me.role === 'wolf' ? [g('wolves', true, true)] : []) as ChannelGrant[];
-  if (s.step.kind === 'day.defense') return [g('public', true, me.seat === s.step.accused)] as ChannelGrant[];
-  return [g('public', true, true)] as ChannelGrant[];
+  return [g('public', true, true)] as ChannelGrant[]; // every day step, defense included (2026-10-18)
 }
 
 /** Every config path channelsFor read, across all checked states (structural proof). */
@@ -72,7 +71,6 @@ function domain(path: string): unknown[] {
   const def = get(DEFAULT_CONFIG, path);
   if (ENUMS[path]) return [...ENUMS[path]];
   if (typeof def === 'boolean') return [def, !def];
-  if (path === 'timing.nightMain') return [def, 1, 59];
   if (typeof def === 'number') return [def, def + 15];
   return [def];
 }
@@ -200,7 +198,9 @@ describe('APPROVED Q25 table holds under every combination of provisional settin
         }
       }
     }
-    assert.ok(list.length > 60, `${list.length} combinations`);
+    // Defaults + all flipped + every single flip + 25 random rows, plus a non-empty pairwise array (scales with the registry).
+    const singles = PARAMS.reduce((n, p) => n + p.values.length - 1, 0);
+    assert.ok(list.length > 2 + singles + 25, `${list.length} combinations`);
     assert.ok(checks > 1000, `${checks} checked states`);
     // Structural proof over every checked state: the grant function reads no other setting.
     assert.deepEqual([...READS], ['moderator.speaksInPublic']);
@@ -219,6 +219,7 @@ describe('APPROVED Q25 table holds under every combination of provisional settin
       { wolves: { passHandling: 'whatever' } },
       { witch: { seesVictim: 'always' } },
       { timing: { nightTotal: 30 } },
+      { timing: { nightMain: 30 } }, // Batch B approved: durations are no longer settings
     ]) {
       assert.throws(() => resolveConfig(bad as never), /invalid rules config/, JSON.stringify(bad));
       const r = createMatch({ seed: 1, playerCount: 7, config: bad as never });

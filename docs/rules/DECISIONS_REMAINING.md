@@ -1,6 +1,6 @@
 # Rules still to decide — one page
 
-Status: 2026-10-16, for the decision-maker. Batches A and F are decided; everything else below (Batches B–E) is **provisional**. The app already runs on the "Recommend" column, except rows marked ⚠, where a "yes" changes a setting. Details and sky2 evidence: `PROPOSAL.md` (Qxx). Bot results: `BALANCE.md`. Bots are not players.
+Status: 2026-10-17, for the decision-maker. Batches A, B and F are decided; everything else below (Batches C–E) is **provisional**. The app already runs on the "Recommend" column, except rows marked ⚠, where a "yes" changes a setting. Details and sky2 evidence: `PROPOSAL.md` (Qxx). Bot results: `BALANCE.md`. Bots are not players.
 
 **Reply format:** "Batch A yes", or "Batch A yes except A3: alternative".
 **Blocks first playtest** = needs an answer before colleagues play; everything else can wait for playtest feedback.
@@ -12,20 +12,23 @@ Approved as recommended:
 - exactly one each of Seer, Witch, Guard and Hunter, the rest Villagers;
 - the host may customize within limits.
 
-Now fixed in the engine (`PROPOSAL.md` Q17/Q18). **Batches B–E below are still pending.**
+Now fixed in the engine (`PROPOSAL.md` Q17/Q18).
 
 *Follow-up evidence (bots, `BALANCE.md`): at 13–15 players, 3 Wolves screens wolf-favoured even with smarter village bots (Village 35–39%), while 2 Wolves screens village-favoured (64–71%). Watch this in playtests; no decision is requested now.*
 
-## Batch B — Pace (blocks first playtest)
-| # | Question | Recommend | Alternative | Evidence |
-|---|---|---|---|---|
-| B1 (Q11) | Split of the fixed 60 s night | 40 s for Wolves/Seer/Guard + 20 s for the Witch | 45 + 15 | The total is approved; only the split is open |
-| B2 (Q19) | Discussion length | 60 s + 15 s per living player, between 1.5 and 4 min | A flat 3 min | Gives about 3 min with 8 alive |
-| B3 (Q19) | Nomination / Yes-No / Hunter | 30 s / 15 s / 20 s | 45 s / 20 s / 20 s (more time to react, since ballots are public) | Bot match length (upper bound, median): 11–16 min at 7–9 players, 20–26 at 10–12, 24–30 at 13–15 |
-| B4 | May the Hunter's turn end as soon as the shot is taken? | Yes | Always wait the full 20 s | One person's choice; nothing else is pending, so ending early hides nothing |
+## Batch B — Pace — DECIDED 2026-10-17
+Approved as recommended:
+- B1 night: 40 s for Wolves/Seer/Guard + 20 s for the Witch (60 s total);
+- B2 discussion: 60 s + 15 s per living player, between 90 and 240 s;
+- B3 nomination 30 s, defense 30 s, Yes/No 15 s, Hunter 20 s;
+- B4 the Hunter's turn ends as soon as the shot is taken.
+
+Now fixed in the engine (`PROPOSAL.md` Q11/Q19); the timing settings were removed. **Batches C–E below are still pending.**
+
+*Rejected alternatives: 45 + 15 night split; a flat 3 min discussion; 45 s / 20 s / 20 s; always waiting the full 20 s for the Hunter.*
 
 ## Batch C — Moderated games (blocks a *moderated* playtest only)
-*Decided separately on 2026-10-16: the moderator may end the match with no winner. The rows below are still pending.*
+*Decided separately on 2026-10-16: the moderator may end the match with no winner. The rows below are still pending. The first playtest is automatic mode (2026-10-17), so this batch doesn't block it.*
 | # | Question | Recommend | Alternative | Evidence |
 |---|---|---|---|---|
 | C1 (Q16) ⚠ | Moderator speaks aloud in the app | **Yes, in public** (they narrate) | No; text cues only (today's setting) | They already hear everything (approved); in a room they speak anyway |

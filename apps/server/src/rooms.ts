@@ -26,7 +26,11 @@ export interface RegistryOptions {
   seed?: (ctx: { hostName: string; players: number }) => string;
   // Restart recovery: rooms are saved here and restored by restoreAll().
   store?: RoomStore;
+  // Room event lines (Room.deps.log). Default: no-op; the server entry passes console.log.
+  log?: (line: string) => void;
 }
+
+const noLog = () => {};
 
 export class Registry {
   private rooms = new Map<string, Room>();
@@ -52,6 +56,7 @@ export class Registry {
       now: this.opts.now ?? Date.now,
       seed: this.opts.seed ?? (() => randomBytes(16).toString('hex')),
       ...(this.opts.store ? { store: this.opts.store } : {}),
+      log: this.opts.log ?? noLog,
     };
   }
 
@@ -59,6 +64,7 @@ export class Registry {
     const code = this.newCode();
     const room = new Room(code, mode, creator, this.deps(), voiceMode);
     this.rooms.set(code, room);
+    (this.opts.log ?? noLog)(`room ${code} created mode=${mode} voice=${voiceMode}`);
     room.flush();
     return room;
   }
@@ -69,7 +75,9 @@ export class Registry {
     for (const snap of this.opts.store?.loadAll() ?? []) {
       if (this.rooms.has(snap.code)) continue;
       try {
-        this.rooms.set(snap.code, Room.restore(snap, this.deps()));
+        const room = Room.restore(snap, this.deps());
+        this.rooms.set(snap.code, room);
+        (this.opts.log ?? noLog)(`room ${snap.code} restored status=${room.status} seats=${room.seatCount()}`);
         n++;
       } catch (e) {
         console.error(`room ${snap.code} not restored:`, (e as Error).message);
@@ -89,7 +97,7 @@ export class Registry {
     const idle = this.opts.idleMs ?? 30 * 60_000;
     for (const [code, r] of this.rooms) {
       if (r.closed || (!r.hasConnections() && now - r.lastActive > idle)) {
-        r.close();
+        r.close(r.closed ? 'closed' : 'idle');
         this.rooms.delete(code);
       }
     }

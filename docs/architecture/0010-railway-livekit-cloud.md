@@ -203,3 +203,43 @@ For the person holding the Railway account; no programming needed. Do the parts 
 ## 8. Open items
 - **LiveKit Cloud compatibility and testing plan:** voice owner (link pending, as in 0009 §5). LiveKit Cloud probes and credentials remain unapproved.
 - **Decisions for Human:** IaC (`railway` npm package, a deploy-time step) vs. dashboard-only settings; deploy approval with the package above.
+
+## 9. Playtest-readiness gates (draft, 2026-10-17)
+A playtest runs only when every gate in G1–G4 is **met** or explicitly waived by the decision-maker. Status is as of 2026-10-17 from the repo and `ROOM_STATE.md`; "open" means not met.
+
+### G1. Deploy revision
+| Gate | Status | Evidence / owner |
+|---|---|---|
+| G1.1 One exact `dev` revision is named for deploy | open: Lead names it in the deploy presentation | Lead |
+| G1.2 That exact revision passed the full acceptance sequence under the lock (`npm ci`, `check`, matches ×10, matches with voice ×10, strict UI) | met for the current `dev` head; any later `dev` change needs a new run before deploy | foundation; `.cache/runs/full-<sha>/summary.txt` (DONE, every step rc=0) |
+| G1.3 It contains the host-neutral deploy config (`MOONVEIL_PUBLIC_ORIGIN`), the 1012 restart notice, D2 (explicit voice join) and D5 (lobby voice-mode switch) | met since foundation-10 | `apps/server/src/deploy.ts`, `server.ts`, `apps/web/src/client.ts`; tests `deploy`, `shutdown`, `client-close`, `client-voice`, `voice-mode` |
+
+### G2. Human decisions still needed
+| Gate | Status | Evidence / owner |
+|---|---|---|
+| G2.1 **Batch B, pace** (B1 night split, B2 discussion length, B3 nomination/Yes-No/Hunter times, B4 Hunter turn ends on shot). Blocks the first playtest | open; the app runs on the "Recommend" column meanwhile | Human; recorded by the rules owner (`docs/rules/DECISIONS_REMAINING.md`) |
+| G2.2 **Batch C, moderator powers** (C1 moderator speaks, C2 act for a player, C3 set the Wolves' target, C4 removal, C5 no rule-breaking). Blocks a *moderated* playtest only; D7 waits on C1 | open; an automatic-mode playtest doesn't need it | Human; rules owner |
+| G2.3 **LiveKit Cloud** probes and credentials. Needed for voice and for the §7 step 5 outbound probe | not approved | Human; the voice owner owns the Cloud compatibility doc and test plan (link pending, §8) |
+| G2.4 **Voice-off first playtest** (if G2.3 isn't granted in time): an explicit yes, since §7 step 5 otherwise stops the deploy | open | Human |
+| G2.5 **Deploy approval** for the §7 package: Railway Trial only; how the revision is pinned (`railway up` from a clean checkout, or a branch at the SHA; a merge into `main` needs its own approval) | not approved | Human; Lead presents |
+| G2.6 Hosting trust: the server host can read secrets (accept, and guide a non-player host) | asked | Human (`ROOM_STATE.md`) |
+| Not blocking | Batches D–E rule details, balance follow-ups, the `railway` npm package (dashboard-only settings avoid it) | as listed in their docs |
+
+### G3. Known limitations (stated to the decision-maker before the playtest; not gates to clear)
+| Limitation | Fact | Owner of the follow-up |
+|---|---|---|
+| L1 Scene performance is measured only in test conditions | Headless Chromium renders the scene in software. One `low` scene at laptop size cost ~850 % CPU in its GPU process (A/B on `4408c64`). No real-device numbers yet | visual owner: phone performance on a GPU path |
+| L2 Acceptance runs the scene at 4 fps on one observer per match | Reduced-motion emulation, a test-environment mitigation. It shows the UI works with a scene mounted; it is not performance evidence | foundation (harness); visual owner (product performance) |
+| L3 LiveKit Cloud is untested | Voice is verified only against local LiveKit OSS (grant d). Gateway compatibility on Cloud, revocation, room rotation minutes and the 5,000-minute cap are unverified | voice owner |
+| L4 No real devices | All phone results are browser emulation (Pixel 7 Chromium, iPhone 15 WebKit). No real iPhone or Android, and no real microphone or speaker audio in foundation's suites | first playtest; voice and visual owners for their device checks |
+| L5 Railway facts not confirmed by docs | `Host` preservation, Serverless default off, volume survival wording, trial-type indicator, card requirement, several dashboard labels | checked by §7a; account holder |
+| L6 Restarts interrupt play | A redeploy, restart or host migration drops every player. They see the reconnect overlay and resume with the room restored and paused. The 1012 notice is best effort; crashes give none | foundation (documented, §4) |
+| L7 Costs and bandwidth are estimates | ~$1.5–2.5/month and ~20 MB per match come from rates and local measurements, not from Railway's usage page | account holder measures during the trial (§6) |
+| L8 Balance evidence is from bots | `docs/rules/BALANCE.md`; bots aren't players | rules owner; playtest feedback |
+
+### G4. After deploy, before players join
+| Gate | Status | Evidence / owner |
+|---|---|---|
+| G4.1 §7a parts A–G pass (trial type, settings, variables, volume, first log line, connection and idle, restart and redeploy recovery) | open: needs deploy | account holder; screenshots to Lead |
+| G4.2 §7a part H (voice reachability) passes, or G2.4 says voice off | open | account holder after G2.3 |
+| G4.3 §7a part I usage baseline recorded; stop rules (§6: under $1 or 5 days) in force | open | account holder |

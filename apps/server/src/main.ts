@@ -3,6 +3,7 @@
 // MOONVEIL_ROOM_IDLE_MS (close rooms with no connection for this long; default 30 min),
 // MOONVEIL_ENGINE (default real rules engine; `fixture` = test stub, used by browser e2e until the real-game UI exists),
 // MOONVEIL_DATA_DIR (restart recovery, default <repo>/.data/rooms, gitignored; MOONVEIL_PERSIST=0 disables),
+// MOONVEIL_REVISION (reported by GET /api/status; else RAILWAY_GIT_COMMIT_SHA, else 'unknown'),
 // MOONVEIL_TEST_TIME_SCALE (TESTS ONLY: server clock + timers run k× faster; rules and approved timings unchanged),
 // MOONVEIL_TEST_SEED (TESTS ONLY: deterministic match seed `<base>:<host name>`, logged to stdout server-side only;
 //   a trailing `!` = that exact seed for every room, for reproducing one match),
@@ -14,7 +15,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { RulesEngine } from './rules/engine.ts';
 import { LiveKitBackend, LiveKitVoiceGateway } from '@moonveil/voice';
-import { allowedOrigins, lanEnabled, warnPort } from './deploy.ts';
+import { allowedOrigins, lanEnabled, persistInfo, revision, warnPort } from './deploy.ts';
 import { createHostedRulesEngine } from './rules/decks.ts';
 import { createFixtureEngine } from './rules/fixture-engine.ts';
 import { fileRoomStore } from './store.ts';
@@ -88,12 +89,22 @@ const seed = testSeed
   : undefined;
 if (testSeed) console.warn('TEST SEEDS: not for play');
 
+// GET /api/status: what's deployed and how it runs. No secrets, no LiveKit host: voice is only 'configured' or 'off'.
+const bootAt = Date.now();
+const status = {
+  revision: revision(process.env),
+  engine: engineKind,
+  persist: persistInfo(process.env, dataDir, store !== undefined),
+  voice: voice ? 'configured' : 'off',
+};
 const { http, stop, registry } = createMoonveilServer({
+  status: () => ({ ...status, uptimeSec: Math.floor((Date.now() - bootAt) / 1000) }),
   engine,
   ...(seed ? { seed } : {}),
   ...(voice ? { voice } : {}),
   ...clock,
   lanUrls,
+  log: (line: string) => console.log(line),
   allowedOrigins: allowedOrigins(process.env),
   ...(store ? { store } : {}),
   staticDir: process.env.STATIC_DIR ?? join(here, '../../web/dist'),
