@@ -7,9 +7,8 @@ import type { ChatEntry } from './types.ts';
 
 export type ConnStatus = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'replaced' | 'ended';
 
-/** Wire messages (foundation protocol): moderator commands travel as `act`; chat is `say`.
- *  PROPOSED (P17, foundation): host switches the room's voice mode in the lobby. */
-export type OutMessage = ClientMessageInput | { t: 'voiceMode'; ref?: string; voiceMode: VoiceMode };
+/** Wire messages (foundation protocol): moderator commands travel as `act`; chat is `say`; D5 `voiceMode` is host-only. */
+export type OutMessage = ClientMessageInput;
 
 export interface SessionState {
   status: ConnStatus;
@@ -44,7 +43,7 @@ export interface Session {
   inviteBase?(): Promise<string>;
   /** The one VoiceClient (client.ts creates it lazily); null until voice sessions arrive. Absent on the stub. */
   voice?(): VoiceClient | null;
-  /** D2: explicit join/leave (P16: client.joinVoice / client.leaveVoice). */
+  /** D2: explicit join/leave (client.joinVoice / client.leaveVoice, foundation-10). */
   voiceJoin?(): Promise<void> | void;
   voiceLeave?(): Promise<void> | void;
   /** Pose frames (≤ 10 Hz) for the scene; absent on the stub. */

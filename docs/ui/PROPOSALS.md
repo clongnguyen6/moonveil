@@ -56,8 +56,8 @@ Batch A: decks are engine config and host customization is engine-validated. The
 ## P15. Expose the close code for the reconnect overlay — DONE in dev 36bdafd (`ClientState.lastCloseCode`); the adapter reads it directly.
 Server restarts close sockets with 1012 (SIGTERM) and the match is paused and restored; a local drop keeps timers running. Request: `ClientState.lastCloseCode: number | null` (the last `onclose` code while `status === 'reconnecting'`). The UI adapter already maps `lastCloseCode === 1012` to `SessionState.serverRestart`, which switches the overlay copy to "Your match is saved and paused until the server is back." Until then the overlay shows the neutral "Your seat and progress are saved."
 
-## P16. Explicit voice join (foundation `client.ts` + voice) — D2
+## P16. Explicit voice join — DONE in foundation-10 (`client.joinVoice/leaveVoice`, `ClientState.voiceJoined`)
 `client.joinVoice(): Promise<void>` (connect the already-received sessions, acquire the mic), `client.leaveVoice(): Promise<void>` (disconnect, release the mic), `ClientState.voiceJoined: boolean`. Until these exist the UI's Join voice button is a no-op on the real client (stub implements it).
 
-## P17. Host switches voice mode in the lobby (foundation protocol + server) — D5
+## P17. Host switches voice mode in the lobby — DONE in foundation-10 (`{ t: 'voiceMode' }`)
 C→S `{ t: 'voiceMode', ref?, voiceMode: 'remote' | 'inPerson' }`, host only, lobby only; `SeatView.voiceMode` updates for everyone; remote → inPerson revokes voice sessions for all seats.

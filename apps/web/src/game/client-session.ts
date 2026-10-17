@@ -1,14 +1,10 @@
 // Session over the real socket client (apps/web/src/client.ts, foundation-4): chat/speaking/voiceMode/server
 // clock come from ClientState; poses are delivered through client.onPoses (not stored, ≤ 10 Hz).
-import type { ChatMessage, ClientMessageInput, Mode, Pose, Profile, VoiceMode } from '@moonveil/protocol';
+import type { ChatMessage, Mode, Pose, Profile, VoiceMode } from '@moonveil/protocol';
 import { type Client, inviteBase } from '../client.ts';
 import { setServerOffset } from './clock.ts';
 import type { OutMessage, Session, SessionState } from './session.ts';
 import type { ChannelId, ChatEntry } from './types.ts';
-
-// P16 (foundation/voice, D2): the client keeps sessions but connects only after joinVoice(); leaveVoice() disconnects.
-type VoiceJoinable = { joinVoice?: () => Promise<void> | void; leaveVoice?: () => Promise<void> | void };
-const joinable = (c: Client): VoiceJoinable => c as unknown as VoiceJoinable;
 
 export function clientSession(client: Client): Session {
   let cached: SessionState | null = null;
@@ -26,7 +22,7 @@ export function clientSession(client: Client): Session {
         chat = Object.entries(s.chat).filter(([ch]) => listen.has(ch)).flatMap(([ch, msgs]) => msgs.map((msg) => ({ channel: ch as ChannelId, msg })));
       }
       // Server restart closes with 1012 (SIGTERM; the match is paused and restored): the overlay says "saved and paused".
-      cached = { status: s.status, code: s.code, view: s.view, error: s.error, chat, speaking: s.speaking, poses: [], voiceMode: s.voiceMode, serverRestart: s.status === 'reconnecting' && s.lastCloseCode === 1012, voiceJoined: (s as unknown as { voiceJoined?: boolean }).voiceJoined ?? false };
+      cached = { status: s.status, code: s.code, view: s.view, error: s.error, chat, speaking: s.speaking, poses: [], voiceMode: s.voiceMode, serverRestart: s.status === 'reconnecting' && s.lastCloseCode === 1012, voiceJoined: s.voiceJoined };
       return cached;
     },
     create: (mode: Mode, profile: Profile, voiceMode: VoiceMode = 'remote') => client.create(mode, profile, voiceMode),
@@ -34,12 +30,11 @@ export function clientSession(client: Client): Session {
     resume: (code: string) => client.resume(code),
     reclaim: () => client.reclaim(),
     leave: () => client.leave(),
-    // `voiceMode` (P17) is validated server-side once foundation adds it; until then the server answers bad-message.
-    send: (msg: OutMessage) => client.send(msg as ClientMessageInput),
+    send: (msg: OutMessage) => client.send(msg),
     onPoses: (fn: (poses: Pose[]) => void) => client.onPoses(fn),
     inviteBase,
     voice: () => client.voice,
-    voiceJoin: () => joinable(client).joinVoice?.(),
-    voiceLeave: () => joinable(client).leaveVoice?.(),
+    voiceJoin: () => client.joinVoice(),
+    voiceLeave: () => client.leaveVoice(),
   };
 }
