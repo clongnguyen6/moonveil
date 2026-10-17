@@ -168,7 +168,10 @@ export async function uiCloseStep(mod: Player) {
 // every other context is 'off'. On a device each player renders one scene; 7-10 on one machine is a test artifact.
 export async function seatRealMatchUi(table: Table, opts: { mode: Mode; seats: number; baseURL: string; hostName?: string; scene: SceneMode }): Promise<BrowserMatch> {
   const ctx = { baseURL: opts.baseURL };
-  const host = await table.player(opts.hostName ?? (opts.mode === 'moderator' ? 'Mod' : 'P0'), ctx);
+  // The observer's context emulates prefers-reduced-motion (the quiet settings' intent; the scene reads only the media
+  // query) so the scene caps at 4 fps: one software-WebGL scene at laptop size otherwise cost ~850 % CPU in its GPU
+  // process and starved the observer's own clicks (A/B on 4408c64, .cache/runs/ab-4408c64; 0006).
+  const host = await table.player(opts.hostName ?? (opts.mode === 'moderator' ? 'Mod' : 'P0'), opts.scene === 'off' ? ctx : { ...ctx, reducedMotion: 'reduce' });
   await quietUi(host, opts.scene);
   await host.page.goto('/');
   await tid(host, 'name').fill(host.name);
