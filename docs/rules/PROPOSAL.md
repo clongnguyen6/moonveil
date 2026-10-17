@@ -1,6 +1,6 @@
 # Moonveil rules proposal
 
-Status: **proposal, v0.10, 2026-10-16**. v0.2 was revised after an independent review of 9af74b8; v0.3 to v0.10 record your decisions. Owner: rules scope (`packages/rules`, `docs/rules`).
+Status: **proposal, v0.11, 2026-10-17**. v0.2 was revised after an independent review of 9af74b8; v0.3 to v0.11 record your decisions (v0.11: Batch B pace). Owner: rules scope (`packages/rules`, `docs/rules`).
 Only what is listed under "Approved rules" is accepted. Everything else is **provisional** until you approve it.
 The engine implements each provisional recommendation as a named setting (`config.*`) or one isolated function.
 Approved rules are fixed engine behaviour, no longer settings.
@@ -14,11 +14,10 @@ Plain language. "Recommend" is only my suggestion.
 |---|---|---|
 | Q15/Q26 (removal) | Removing a disconnected player | Only the moderator (any time) or the host after a 2-minute disconnect (not during the night) may remove; removal is a death with no Hunter shot |
 | Q16 (rest) | Moderator powers beyond listening and the Yes count | Runs the pace, can act for a player, can set the wolves' target, can remove a player or stop the match. Speaking in public: recommend allowing it; currently **off** until you decide. Cannot break the rules, bring anyone back or undo |
-| Q11 (rest) | Durations other than night (60 s) and defense (30 s) | Main night 40 s / Witch 20 s; nomination 30 s; Yes/No 15 s; Hunter 20 s; discussion 60 s + 15 s per living player (90–240 s) |
 | Q08 | Wolves choosing "nobody" | Allowed. "Nobody" wins only if it alone has the most wolf choices |
 | Q10 (rest) | May the accused vote in their own Yes/No round? | Yes |
 
-Low-stakes defaults you could accept as a group: Q01, Q02, Q04, Q05, Q12, Q13, Q19, Q21, Q23.
+Low-stakes defaults you could accept as a group: Q01, Q02, Q04, Q05, Q12, Q13, Q21, Q23.
 
 ## Approved rules (binding)
 
@@ -48,7 +47,7 @@ Low-stakes defaults you could accept as a group: Q01, Q02, Q04, Q05, Q12, Q13, Q
   - Executed only if `Yes × 2 > number of living players`. Abstentions and disconnected players still count as living; players removed from the match don't.
   - Examples: with 10 living, 6 Yes executes; 5 Yes doesn't; 3 Yes + 2 No doesn't. With 7 living, 4 Yes are needed.
 - **Moderator Yes count (Q16).** For a show of hands, the moderator may enter the Yes count, and the engine applies the threshold. The moderator can't override it; there's no "set the result" command. The count must be a whole number from 0 to the current number of living players.
-- **Night timing (Q11).** Every night lasts a fixed 60 s, whatever roles survive and however early actions finish, so timing reveals no roles. The split between the two night steps isn't decided (currently 40 s + 20 s); both steps always run their full length, even if the Witch is dead, her heal is spent, or the setup has no Witch.
+- **Night timing (Q11).** Every night lasts a fixed 60 s, whatever roles survive and however early actions finish, so timing reveals no roles. Both night steps always run their full length, even if the Witch is dead, her heal is spent, or the setup has no Witch.
 - **Day votes (Q11/Q22).**
   - Nomination and the Yes/No round both run to their deadline; nothing ends early.
   - **Open ballots, shown live (approved 2026-10-16; this correction supersedes the earlier ballot-secrecy approval and the "voted status only" approval of the same day).**
@@ -57,6 +56,12 @@ Low-stakes defaults you could accept as a group: Q01, Q02, Q04, Q05, Q12, Q13, Q
     - Changed votes and reconnects show the current choices. Counts follow from the public choices; nothing about the tally is secret.
   - Unchanged: fixed deadlines (no early close), the execution threshold, the nomination rule and the defense. Night actions stay private, and wolf picks stay wolf-only.
   - *Not covered:* what the moderator sees mid-vote (provisional, currently everything).
+- **Pace (Q11/Q19, Batch B, approved 2026-10-17).** Fixed durations, not settings:
+  - Night: 40 s for Wolves, Seer and Guard, then 20 s for the Witch (60 s in total).
+  - Discussion: 60 s + 15 s per living player, at least 90 s and at most 240 s (7 alive: 165 s; 12 or more: 240 s).
+  - Nomination 30 s; defense 30 s; Yes/No 15 s.
+  - Hunter: 20 s. The turn ends as soon as the shot is taken (or the Hunter holds fire); otherwise at 20 s with no shot.
+  - Tests: `test/batch-b.test.ts`.
 - **Hunter (Q06).**
   - Any gameplay death (night attack, poison, execution, another Hunter's shot) gives a 20 s turn to shoot one living player. On timeout, there is no shot.
   - The shot and any chain it causes resolve before victory is checked.
@@ -180,20 +185,20 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 - **sky2 doc and code**: no defense step. The Yes/No vote is on by default (`isNeedVote=true`, AV1:98). Execution needs Yes from more than 50% of living players (AV1:955), so not voting counts against.
 - **DECIDED (Human, 2026-10-16): execution threshold.** `Yes × 2 > all living players` (see Approved rules). The other options I offered after review F4 ("Yes > No plus half participation", "Yes > No among votes cast") are rejected. Fixed in the engine; not a setting.
 - **DECIDED (2026-10-16)**: the accused always gets a 30 s defense (only they speak, Q25), always followed by the Yes/No round.
-- **Still open**: whether the accused may vote in their own round (recommend yes; either way they count as living). The Yes/No duration (15 s) is provisional (Q11).
+- **Still open**: whether the accused may vote in their own round (recommend yes; either way they count as living). The Yes/No duration (15 s) is approved (Batch B).
 - **Effect of the decision:** silent, absent and disconnected players now count against execution. Expect more days without an execution than under v0.2, which tends to help the Wolves; balance screening will measure this.
 - **Engine**: fixed `tallyConfirm()`, `DEFENSE_SECONDS = 30`, defense → confirm always; provisional: `day.accusedVotesOnConfirm`.
 
-## Q11 Secret-phase timing — DECIDED 2026-10-16 (60 s nights; votes run to deadline); split and other durations open
+## Q11 Secret-phase timing — DECIDED 2026-10-16 (60 s nights; votes run to deadline); split DECIDED 2026-10-17 (Batch B)
 - **sky2 code**: defaults are day 90 s, night 120 s, wolf choice 40 s and vote 45 s (AV1:60-77). When everyone has acted, the timer drops to 5 s (AV1:375-377, 453-465). When a role is dead, sky2 adds a random fake delay so that nobody can tell (AV1:761-769, 816-821, 828-831).
 - **Server today (foundation, ADR 0001)**: automatic mode never closes a secret phase early, so every phase runs a fixed deadline.
-- **DECIDED**: every night is a fixed 60 s, never ending early, whoever survives. Both night steps always run their full length (even with no Witch in the setup). **Still open**: the split (recommend 40 s main + 20 s Witch). Anything not submitted is a pass. The discussion runs its full time unless the moderator ends it. Votes: see the ★ part below. In moderator mode the moderator sets the pace and accepts that their own timing is a cue (ADR 0001).
+- **DECIDED**: every night is a fixed 60 s, never ending early, whoever survives. Both night steps always run their full length (even with no Witch in the setup). **DECIDED 2026-10-17 (B1)**: 40 s main + 20 s Witch (rejected: 45 + 15). Anything not submitted is a pass. The discussion runs its full time unless the moderator ends it. Votes: see the ★ part below. In moderator mode the moderator sets the pace and accepts that their own timing is a cue (ADR 0001).
 - **Trade-off**: fixed nights cost about 20–40 s per night when everyone is quick, which over 4–6 nights is 2–4 min per match. Ending early in any form leaks information. "Night ended fast" means that every night actor is done or dead, which over a few nights reveals that the Witch or Seer is dead. Even sky2's random delay leaks statistically, because the extra time depends on hidden state.
 - **Alternatives**: (a) adaptive: end once all *living* actors are done, plus a random 5–15 s (sky2), which is faster but leaks; (b) fixed but shorter (30 s + 15 s), which is faster with more players timing out; (c) players may tap "ready", with the night still fixed.
 - **★ Ending votes early (review finding F6).** Votes are open and changeable (Q22). If a vote closes the moment everyone has voted, the last person to vote sees everyone else's choice and settles the outcome with no chance to react (with open ballots this matters even more). Options:
-  - **A (DECIDED 2026-10-16)**: votes stay open and changeable until their fixed deadline. Ballots are public and live (Q22). The Hunter's shot may still end early once taken (provisional). Cost: up to about 45 s per day.
+  - **A (DECIDED 2026-10-16)**: votes stay open and changeable until their fixed deadline. Ballots are public and live (Q22). The Hunter's turn may still end early once the shot is taken (approved, B4). Cost: up to about 45 s per day.
   - **B**: end early once everyone has voted, and tell players plainly that the last vote decides. Optionally, a 5 s grace period restarts whenever anyone changes their vote.
-- **Engine**: `NIGHT_TOTAL_SECONDS = 60` (fixed), `timing.nightMain` (provisional split), other `timing.*` provisional; `stepTiming()` never reports early close for night or vote steps. The host contract reports `secret=true` and `earlyClose=false` for night steps. This covers only the engine's own signals; server timers, moderator pacing and network traffic are tested separately (by foundation).
+- **Engine**: fixed constants `NIGHT_TOTAL_SECONDS = 60`, `NIGHT_MAIN_SECONDS = 40` (Q19 for the rest); the `timing.*` settings were removed; `stepTiming()` never reports early close for night or vote steps. The host contract reports `secret=true` and `earlyClose=false` for night steps. This covers only the engine's own signals; server timers, moderator pacing and network traffic are tested separately (by foundation).
 
 ## Q12 When victory is checked — low-stakes default (follows the approved rules)
 - **sky2 code**: victory is checked after the night (AV1:1001) and after an execution (AV1:1170). Moderator mode never checks it; the moderator ends the match by hand (MSC:130-146).
@@ -241,11 +246,12 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 - **Decision**: 7 to 15 players. 6 was lopsided either way in the bot screen (Village 21% with 2 Wolves, 65% with 1); 16 was strongly wolf-favoured (3–12%). sky2 only checked that the total was above 0 (MSS:126).
 - **Engine**: fixed `PLAYERS_MIN = 7`, `PLAYERS_MAX = 15`; the host engine reports them as `minPlayers`/`maxPlayers`; the `players.*` settings were removed.
 
-## Q19 Expected match duration — low-stakes default (numbers are tunable)
+## Q19 Expected match duration — DECIDED 2026-10-17 (Batch B)
 - **sky2 code**: about 4.5 min per cycle with its defaults (AV1:60-77).
-- **Recommend timers**: night main 40 s, Witch 20 s, discussion 60 s + 15 s per living player (90–240 s), nomination 30 s, defense 30 s, Yes/No 15 s, Hunter 20 s. One cycle is about 5–6 min with 8 alive. Expected matches are 15–30 min for 7–10 players and 30–45 min for 12–16.
+- **DECIDED (B1–B4, as recommended)**: night main 40 s, Witch 20 s, discussion 60 s + 15 s per living player (90–240 s), nomination 30 s, defense 30 s, Yes/No 15 s, Hunter 20 s, ending once the shot is taken. One cycle is about 5–6 min with 8 alive. Expected matches are 15–30 min for 7–10 players and 30–45 min for 12–16.
 - **Measured by bots (`BALANCE.md`, upper bound; votes and nights always run their full time)**: median 11–16 min at 7–9 players, 20–26 min at 10–12, 24–30 min at 13–16.
-- **Engine**: `timing.*`, `stepTiming()`.
+- **Rejected alternatives**: a flat 3 min discussion (B2); 45 s / 20 s / 20 s for nomination / Yes/No / Hunter (B3); always waiting the full 20 s for the Hunter (B4).
+- **Engine**: fixed constants in `config.ts` (`NIGHT_MAIN_SECONDS`, `DISCUSSION_*_SECONDS`, `VOTE_SECONDS`, `CONFIRM_SECONDS`, `HUNTER_SECONDS`), `discussionSeconds()`, `stepTiming()`; the `timing.*` settings were removed and are rejected as unknown. Tests: `test/batch-b.test.ts`.
 
 ## Q20 Reveal a role on death? — DECIDED 2026-10-16
 - **Decision**: no reveal on death; all roles at match end. Hunter exception: the Hunter is revealed when the shot turn opens, even on timeout (approved 2026-10-16). The engine publishes `roleRevealed` for the Hunter at that moment. The uniform post-death window was the rejected alternative (about 20 s per death batch).

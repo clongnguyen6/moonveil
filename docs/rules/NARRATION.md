@@ -12,7 +12,7 @@ Vietnamese is my draft and needs a native read-through. Role names follow sky2 (
 - Never say *how* someone died at night, or in what order the night actions happened.
 - **Private** lines appear only on that seat's own device, and only while it is entitled to them (a ghost gets no new night prompts).
 - Day votes are **open ballots** (approved): who voted for whom is public and live. Night actions stay private.
-- Timers, counts and name lists come from the engine (`{t}`, `{mm:ss}`, `{k}`, `{need}`, `{names}`), so a line never hard-codes a provisional duration.
+- Timers, counts and name lists come from the engine (`{t}`, `{mm:ss}`, `{k}`, `{need}`, `{names}`). Durations are approved (Batch B), but timers still come from the engine (pauses, clock).
 - `{name}` = seat name; `{n}` = night or day number.
 
 ## Match start and roles
@@ -43,7 +43,7 @@ Vietnamese is my draft and needs a native read-through. Role names follow sky2 (
 |---|---|---|---|---|
 | D1 | public | Morning. **{names}** did not survive the night. | Trời sáng. **{names}** đã không qua khỏi đêm qua. | approved-consistent: the wording says nothing about causes (**E1** decides only whether causes are added). List names in the engine's order |
 | D2 | public | Morning. Everyone survived the night. | Trời sáng. Đêm qua không ai thiệt mạng. | approved-consistent |
-| H1 | public | **{name} was the Hunter.** They have 20 seconds for a final shot. | **{name} là Thợ săn.** Có 20 giây để bắn phát cuối. | pending: **B4** (the turn may end once the shot is taken). Neutral: "**{name} was the Hunter.** They have up to 20 seconds for a final shot." / "**{name} là Thợ săn.** Có tối đa 20 giây để bắn phát cuối." |
+| H1 | public | **{name} was the Hunter.** They have up to 20 seconds for a final shot. | **{name} là Thợ săn.** Có tối đa 20 giây để bắn phát cuối. | approved-consistent (B3 20 s; B4 the turn ends once the shot is taken, hence "up to") |
 | H2 | private (Hunter) | Choose someone to shoot, or hold your fire. | Chọn người để bắn, hoặc không bắn. | approved-consistent |
 | H3 | public | {hunter} shot **{target}**. | {hunter} đã bắn **{target}**. | approved-consistent |
 | H4 | public | {hunter} held their fire. | {hunter} đã không bắn. | approved-consistent (pass or timeout) |
@@ -51,7 +51,7 @@ Vietnamese is my draft and needs a native read-through. Role names follow sky2 (
 ## Day
 | ID | Audience | English | Tiếng Việt | Status |
 |---|---|---|---|---|
-| Y1 | public | Day {n}. Talk it over: {mm:ss}. | Ngày {n}. Thảo luận: {mm:ss}. | approved-consistent (`{mm:ss}` from the engine; the length itself is **B2**) |
+| Y1 | public | Day {n}. Talk it over: {mm:ss}. | Ngày {n}. Thảo luận: {mm:ss}. | approved-consistent (`{mm:ss}` from the engine; length approved, B2) |
 | Y2 | public | Vote for who goes on trial, or Skip. Everyone sees each vote as it's cast. | Bỏ phiếu đưa ai ra xét xử, hoặc Bỏ qua. Mọi người đều thấy từng phiếu ngay khi bỏ. | approved-consistent (Q09, open ballots) |
 | Y3 | public (live) | {voter} → {name} / {voter} → Skip / {voter}: Yes / {voter}: No | {voter} → {name} / {voter} → Bỏ qua / {voter}: Đồng ý / {voter}: Không | approved-consistent |
 | Y3b | private (voter) | You can change your vote until time is up. | Bạn có thể đổi phiếu đến khi hết giờ. | approved-consistent |

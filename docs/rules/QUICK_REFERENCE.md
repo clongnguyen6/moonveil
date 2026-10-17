@@ -1,6 +1,6 @@
 # Moonveil — quick rules (for in-game help)
 
-Status: player-facing summary, 2026-10-16. ✅ = approved rule. 🟡 = provisional (may change; see `PROPOSAL.md`).
+Status: player-facing summary, 2026-10-17. ✅ = approved rule. 🟡 = provisional (may change; see `PROPOSAL.md`).
 Short sentences, for the in-game help screen. The source of truth is `PROPOSAL.md`.
 
 ## Goal
@@ -17,13 +17,13 @@ Short sentences, for the in-game help screen. The source of truth is `PROPOSAL.m
 | **Seer** | Village | Each night, check one other player: you learn "Wolf" or "not a Wolf" right away. 🟡 |
 | **Guard** | Village | Each night, protect one player from the Wolves' attack; you may protect yourself. You can't protect the same player two nights in a row. 🟡 Protection doesn't stop the Witch's poison. 🟡 |
 | **Witch** | Village | One healing potion and one poison for the whole game; you may use both on the same night. While you still have the heal, you're told who the Wolves attacked. You may heal yourself, but not poison yourself. ✅ |
-| **Hunter** | Village | When you die in play (attack, poison, execution or another Hunter's shot), you get 20 s to shoot one living player. Everyone learns you were the Hunter when your turn starts. Being removed from the match gives no shot. ✅ |
+| **Hunter** | Village | When you die in play (attack, poison, execution or another Hunter's shot), you get 20 s to shoot one living player; your turn ends as soon as you shoot or hold fire. Everyone learns you were the Hunter when your turn starts. Being removed from the match gives no shot. ✅ |
 
 How many of each role: 7–15 players. 2 Wolves at 7–12 players and 3 at 13–15, plus one Seer, Witch, Guard and Hunter; everyone else is a Villager. The host may change this within limits. ✅
 
 ## A night (always exactly 60 s) ✅
-1. Everyone's eyes are closed. Wolves, Seer and Guard choose in secret.
-2. Then the Witch's turn. This part always happens and always takes the same time, even if there's no Witch.
+1. Everyone's eyes are closed. Wolves, Seer and Guard choose in secret (40 s).
+2. Then the Witch's turn (20 s). This part always happens and always takes the same time, even if there's no Witch.
 3. Living Wolves can talk privately; nobody else can talk. ✅
 4. Anything you don't choose in time counts as "do nothing". ✅
 
@@ -31,11 +31,11 @@ How many of each role: 7–15 players. 2 Wolves at 7–12 players and 3 at 13–
 - The names of anyone who died are announced, but not how they died 🟡, and no roles ✅.
 - A Hunter who died shoots first, and nothing is decided until the shot is done. ✅
 
-## A day ✅ (timings 🟡)
-1. **Talk** (about 1.5–4 min, depending on how many are alive). Everyone alive can speak.
+## A day ✅
+1. **Talk** (1 min plus 15 s per living player, between 1.5 and 4 min). Everyone alive can speak.
 2. **Trial vote (30 s):** vote for one player or **Skip**. Votes are public: everyone sees who voted for whom as it happens, and you can change yours until time is up. The vote always runs the full 30 s. Whoever has the most votes goes on trial; a tie, or Skip on top, means no trial today.
 3. **Defense (30 s):** only the accused speaks.
-4. **Yes/No vote (15 s 🟡):** everyone sees each Yes and No as it's cast. The accused is executed only if **more than half of all living players vote Yes**. Not voting, or being offline, counts as not Yes. Example: with 10 alive, 6 Yes are needed.
+4. **Yes/No vote (15 s):** everyone sees each Yes and No as it's cast. The accused is executed only if **more than half of all living players vote Yes**. Not voting, or being offline, counts as not Yes. Example: with 10 alive, 6 Yes are needed.
 5. Night falls.
 
 ## When you die ✅

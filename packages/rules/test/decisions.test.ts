@@ -146,14 +146,13 @@ describe('APPROVED night timing: fixed 60 s, never early', () => {
     const b = stepTiming(w);
     return { total: a.seconds + b.seconds, early: a.earlyCloseReady || b.earlyCloseReady };
   };
-  it('identical across role and death combinations, and with the provisional split changed', () => {
+  it('identical across role and death combinations', () => {
     const cases: [string, MatchState][] = [
       ['default 7', match()],
       ['6-player preset, no Witch in deck', match(['wolf', 'wolf', 'seer', 'guard', 'hunter', 'villager'])],
       ['Witch dead', day(night(match(), { bite: 4 }), 'skip')],
       ['heal spent', day(night(match(), { bite: 6, heal: true }), 'skip')],
       ['Seer and Guard dead', day(night(match(), { bite: 2, poison: 3 }), 'skip')],
-      ['split 30/30', match(undefined, { timing: { nightMain: 30 } })],
     ];
     for (const [name, s] of cases) assert.deepEqual(nightSeconds(s), { total: 60, early: false }, name);
   });

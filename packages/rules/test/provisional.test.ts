@@ -1,7 +1,7 @@
 // Every PROVISIONAL config key must be swappable: changing it changes behavior, with no engine edits.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { apply, channelsFor, createMatch, project, PROVISIONAL, stepTiming, type DeepPartial, type Role, type RulesConfig } from '../src/index.ts';
+import { apply, channelsFor, createMatch, project, PROVISIONAL, type DeepPartial, type Role, type RulesConfig } from '../src/index.ts';
 import { close, day, match, MOD, night, ok, S, SYS } from './helpers.ts';
 
 type Cfg = DeepPartial<RulesConfig>;
@@ -48,8 +48,6 @@ const SWAPS: Record<string, [Cfg, (cfg: Cfg) => unknown]> = {
   ],
   'moderator.mayBreakRules': [{ moderator: { mayBreakRules: true } }, (c) => apply(match(undefined, c), MOD, { type: 'seer.inspect', seat: 2, target: 2 }).ok],
   'removal.systemDuringSecret': [{ removal: { systemDuringSecret: true } }, (c) => apply(match(undefined, c), SYS, { type: 'player.remove', seat: 6 }).ok],
-  // Q11-split: only the split moves; the approved 60 s total is unchanged (asserted in timing tests).
-  'timing.nightMain': [{ timing: { nightMain: 30 } }, (c) => [stepTiming(match(undefined, c)).seconds, stepTiming(close(match(undefined, c))).seconds]],
   'wolves.passHandling': [
     { wolves: { passHandling: 'ignored' } },
     (c) => {
@@ -64,13 +62,6 @@ const SWAPS: Record<string, [Cfg, (cfg: Cfg) => unknown]> = {
   'moderator.canActForSeats': [{ moderator: { canActForSeats: false } }, (c) => apply(match(undefined, c), MOD, { type: 'guard.protect', seat: 3, target: 6 }).ok],
   'moderator.canSetWolfTarget': [{ moderator: { canSetWolfTarget: false } }, (c) => apply(match(undefined, c), MOD, { type: 'wolf.decide', target: 6 }).ok],
   'moderator.speaksInPublic': [{ moderator: { speaksInPublic: true } }, (c) => channelsFor(match(undefined, c), { kind: 'moderator' })],
-  'timing.discussionBase': [{ timing: { discussionBase: 30 } }, (c) => stepTiming(night(match(undefined, c), { bite: 'pass' })).seconds],
-  'timing.discussionPerAlive': [{ timing: { discussionPerAlive: 20 } }, (c) => stepTiming(night(match(undefined, c), { bite: 'pass' })).seconds],
-  'timing.discussionMin': [{ timing: { discussionMin: 200 } }, (c) => stepTiming(night(match(undefined, c), { bite: 'pass' })).seconds],
-  'timing.discussionMax': [{ timing: { discussionMax: 120 } }, (c) => stepTiming(night(match(undefined, c), { bite: 'pass' })).seconds],
-  'timing.vote': [{ timing: { vote: 45 } }, (c) => stepTiming(close(night(match(undefined, c), { bite: 'pass' }))).seconds],
-  'timing.confirm': [{ timing: { confirm: 25 } }, (c) => stepTiming(close(close(day1Voted(c)))).seconds],
-  'timing.hunter': [{ timing: { hunter: 30 } }, (c) => stepTiming(night(match(undefined, c), { bite: 5 })).seconds],
 };
 
 /** Day 1 at the nomination step with seats 1,2,3 voting for seat 0. */

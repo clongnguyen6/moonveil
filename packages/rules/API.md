@@ -11,6 +11,8 @@ Rules live in `docs/rules/PROPOSAL.md`. **Approved rules are fixed behaviour; ev
 - Q20 reveals; Q24 ghosts; Q25 channels (except moderator speaking, which is provisional and **off** by default);
 - disconnected seats and the automatic-mode pause.
 
+**Approved 2026-10-17 (fixed): Batch B durations.** Night 40 + 20 s; discussion 60 s + 15 s × living, clamped 90–240 s (`discussionSeconds(living)`); nomination 30 s; defense 30 s; Yes/No 15 s; Hunter 20 s, `earlyCloseReady` once every pending Hunter has shot or held fire. Exported constants: `NIGHT_TOTAL_SECONDS`, `NIGHT_MAIN_SECONDS`, `DISCUSSION_{BASE,PER_ALIVE,MIN,MAX}_SECONDS`, `VOTE_SECONDS`, `DEFENSE_SECONDS`, `CONFIRM_SECONDS`, `HUNTER_SECONDS`. The `timing.*` settings were removed.
+
 ## Run
 ```
 npm run check -w @moonveil/rules     # from the repo root via node scripts/env.mjs; typecheck (all + src without host types) + tests
@@ -65,11 +67,11 @@ createMatch({ seed, playerCount } | { seed, roles } | { seed, playerCount, deck 
 apply(state, actor, command) -> {ok:true, state} | {ok:false, error:{code, message}}   // never mutates input
 check(state, actor, command) -> error | null                                         // same validation, no clone
 project(state, viewer) -> Projection
-stepTiming(state) -> {seconds, earlyCloseReady}
+stepTiming(state) -> {seconds, earlyCloseReady}                                   // approved constants; never reads config
 startClock / pauseClock / resumeClock / remainingMs / deadlineOf / isExpired          // pure PhaseClock helpers
 ```
 - `state` is plain JSON. Replaying the same commands on the same seed gives the same state. `state.stepSeq` increments on every new step, but not when a step resumes after a removal.
-- **Config is strict:** `createMatch`/`createRulesEngine` reject unknown keys (including removed settings such as `comms.*` and `witch.*`), wrong types and invalid enum values (`createMatch` returns `bad_value`; `resolveConfig` throws).
+- **Config is strict:** `createMatch`/`createRulesEngine` reject unknown keys (including removed settings such as `comms.*`, `witch.*` and `timing.*`), wrong types and invalid enum values (`createMatch` returns `bad_value`; `resolveConfig` throws).
 - Actors: `{kind:'seat', seat}`, `{kind:'moderator'}`, `{kind:'system'}`. A seat issues only its own seat commands. `step.close` and `player.remove` are moderator or system only; `wolf.decide`, `day.confirmCount` and `match.end` are moderator only (never a seat, the host or the system). Unknown commands are rejected with `bad_value`.
 - Approved rules can't be bypassed by the provisional `moderator.mayBreakRules`.
 - **Stalemate (approved F1-A):** at the end of each day (after Hunter shots, death chains and the win check), a counter of consecutive no-death cycles updates. Any bite, poison, execution or Hunter shot resets it; a removal doesn't. At 2 the engine emits a public `{t:'stalemateWarning', day}` event; show "If nobody dies before the end of the next day, the match ends in a draw." At 3 the match ends with `outcome {winner:'draw', reason:'stalemate'}`. State fields: `quietCycles`, `cycleHadDeath`.
@@ -77,8 +79,8 @@ startClock / pauseClock / resumeClock / remainingMs / deadlineOf / isExpired    
 - Errors: `forbidden | wrong_step | bad_seat | bad_target | bad_value | rule | locked | ended`. Return them to the caller only.
 
 ## Steps (`state.step.kind`)
-`night.main` (40 s, provisional split: `wolf.pick`, `seer.inspect`, `guard.protect`) → `night.witch` (the rest of the fixed 60 s; **always runs**, even with no or a dead Witch: `witch.heal {use}`, `witch.poison {target|'pass'}`)
-→ [`hunter` (20 s, `hunter.shoot`) if a Hunter died] → victory check → `day.discussion` → `day.vote` (30 s, `vote.nominate {target|'skip'|null}`)
+`night.main` (40 s: `wolf.pick`, `seer.inspect`, `guard.protect`) → `night.witch` (20 s, the rest of the fixed 60 s; **always runs**, even with no or a dead Witch: `witch.heal {use}`, `witch.poison {target|'pass'}`)
+→ [`hunter` (20 s, ends once shot, `hunter.shoot`) if a Hunter died] → victory check → `day.discussion` (60 s + 15 s × living, 90–240 s) → `day.vote` (30 s, `vote.nominate {target|'skip'|null}`)
 → [trial: `day.defense` (30 s, fixed) → `day.confirm` (15 s, `vote.confirm {choice|null}` or moderator `day.confirmCount`)] → [`hunter`] → victory check → `night.main` … → `ended`.
 Every step closes only on `step.close`/`tick`. Anything not submitted counts as a pass.
 
