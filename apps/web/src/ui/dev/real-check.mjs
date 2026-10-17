@@ -50,8 +50,17 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   ok('dist: production entry renders GameApp (entry + app roots present)', (await ps[0].page.locator('[data-testid=app] [data-testid=entry]').count()) === 1);
   ok('dist: old shell markup absent (.shell/.roomhead)', (await ps[0].page.locator('.shell, .roomhead, .provisional').count()) === 0);
   ok('dist: title and lang from the UI', /Moonveil/.test(await ps[0].page.title()) && /^(vi|en)$/.test(await ps[0].page.locator('html').getAttribute('lang')));
+  ok('create: "Where are you playing?" choice present, online by default', (await ps[0].page.locator('[data-testid=create-card] input[type=radio]').count()) === 2 && (await ps[0].page.getByTestId('where-online').isChecked()));
   const code = await ps[0].create('automatic');
   for (const p of ps.slice(1)) await p.join(code);
+  ok('lobby: grouped cards (invite, room settings for the host, you, start)', (await ps[0].page.locator('[data-testid=invite], [data-testid=room-settings][data-host=true], [data-testid=you-card], [data-testid=start-card]').count()) === 4);
+  ok('lobby: guest sees the read-only Room summary and no host controls', (await ps[1].page.locator('[data-testid=room-settings][data-host=false] [data-testid=room-voice-mode]').count()) === 1 && (await ps[1].page.locator('[data-testid=start-card], [data-testid=voice-mode]').count()) === 0);
+  await ps[1].page.getByTestId('open-settings').click();
+  await ps[1].page.waitForTimeout(250);
+  ok('settings sheet: personal group with switches, no moderator group for a player, opaque sheet', (await ps[1].page.locator('[data-testid=settings-personal] input[role=switch]').count()) === 3 && (await ps[1].page.locator('[data-testid=settings-moderator]').count()) === 0 && (await ps[1].page.evaluate(() => { const c = getComputedStyle(document.querySelector('.sheet')).backgroundColor; return !/rgba\(.*,\s*0?\.\d+\)$/.test(c); })));
+  await ps[1].page.keyboard.press('Escape');
+  await ps[1].page.waitForTimeout(150);
+  ok('settings sheet: Escape closes it', (await ps[1].page.locator('[data-testid=settings-sheet]').count()) === 0);
   // Host deck (P12): default shown; invalid custom deck -> error + start blocked; reset -> default again.
   const host = ps[0];
   ok('deck: lobby shows the engine default deck', (await host.page.locator('[data-testid=deck][data-custom=false]').count()) === 1 && (await host.page.locator('[data-testid=deck-counts] [data-role=wolf]').getAttribute('data-count')) !== '0');
@@ -236,6 +245,11 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
     const step = await mod.step();
     if (step === 'ended') break;
     if (step === 'night.main' || step === 'night.witch' || step === 'hunter') { for (const p of ps) await p.pickFirst().catch(() => {}); if (step === 'night.witch') { const w = ps.find((p) => p.game().me.role === 'witch' && p.game().me.alive); if (w) await w.page.getByTestId('heal-no').click().catch(() => {}); } }
+    if (step === 'day.defense') {
+      const acc = mod.game().step.accused;
+      const other = ps.find((p) => p.game().me.alive && p.game().me.seat !== acc);
+      if (other) ok('defense: living non-accused players may speak (grant + copy "Everyone may speak")', (await other.page.locator('[data-testid=voice][data-speak=public]').count()) === 1 && /Everyone may speak/.test(await other.page.getByTestId('defense-hint').innerText()) && (await other.page.locator('[data-testid=day-defense][data-everyone=true]').count()) === 1);
+    }
     if (step === 'day.vote') { const alive = ps.filter((p) => p.game().me.alive); const target = alive[0]; for (const p of alive) { if (p === target) continue; const b = p.page.locator(`[data-testid=seat-${target.game().me.seat}]`); if (await b.count()) { await b.click(); await p.page.getByTestId('confirm').click(); } } await mod.page.waitForTimeout(300);
       ok('open ballots: a voter sees the live ballot list on day.vote', (await alive[1].page.locator('[data-testid=ballots]').count()) === 1);
       for (const d of ps.filter((p) => !p.game().me.alive)) ok(`${d.name} (dead, moderator mode): ghost panel, no action hooks at day.vote`, (await d.page.locator('[data-testid=ghost-panel]').count()) === 1 && (await d.page.locator('[data-testid=confirm], [data-testid=vote-skip], [data-testid=vote-yes], [data-testid=vote-no]').count()) === 0); }
