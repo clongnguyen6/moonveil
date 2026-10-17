@@ -200,6 +200,66 @@ For the person holding the Railway account; no programming needed. Do the parts 
 3. Send the numbers after each session.
    - STOP if credit left drops under $1 or under 5 days remain. Stop the service between sessions (remove its active deployment; *label unverified*); don't upgrade. We then present the measured usage and the options.
 
+### 7b. Dashboard steps for the approved deploy (Railway Trial, revision `deploy-trial`)
+For the account holder. Approved 2026-10-17: Railway Trial only, revision pinned by branch `deploy-trial`, voice via LiveKit Cloud, automatic-mode playtest first. No upgrade, no card, no spend.
+
+**STOP** means: do nothing more, screenshot, report. Never upgrade or pay to get past one. *(label unverified)* = Railway's docs don't confirm the exact wording; pick the closest match, or STOP and ask.
+
+1. **Project.** Railway → New Project → Deploy from GitHub repo → `clongnguyen6/moonveil`. In the service's Settings → Source, set the branch to **`deploy-trial`** *(label unverified)*.
+   - A first build may start and fail before the steps below are done. Ignore that until step 6.
+2. **Service settings** (service → Settings):
+   - Region: **Southeast Asia (Singapore)** (`asia-southeast1-eqsg3a`).
+   - Replicas: **1** *(label unverified)*.
+   - Settings → Deploy → **Serverless: off**.
+   - Build command: `npm ci --include=dev && npm run build`
+   - Start command: `node apps/server/src/main.ts`
+   - Healthcheck path: `/healthz`
+3. **Volume:** add a volume to this service, mount path **`/data`**, the smallest size, at most 0.5 GB *(label unverified)*. STOP if it asks for an upgrade.
+4. **Domain:** Settings → Networking → **Generate Domain** *(label unverified)*. If it asks for a port, enter **8080**. Write down the domain, e.g. `something.up.railway.app`.
+5. **Variables** (service → Variables; type each name and value exactly):
+
+| Name | Value | Note |
+|---|---|---|
+| `RAILPACK_NODE_VERSION` | `24.20.0` | Node version (Railpack reads this first) |
+| `PORT` | `8080` | same as the domain's port in step 4 |
+| `HOST` | `0.0.0.0` | |
+| `MOONVEIL_ENGINE` | `rules` | |
+| `MOONVEIL_DATA_DIR` | `/data/rooms` | on the volume from step 3 |
+| `MOONVEIL_PUBLIC_ORIGIN` | `https://<domain from step 4>` | `https://`, no trailing slash |
+| `RAILWAY_DEPLOYMENT_DRAINING_SECONDS` | `5` | gives the restart notice time |
+| `LIVEKIT_URL` | `https://<project>.livekit.cloud` | `<project>` = the subdomain in the LiveKit Cloud dashboard |
+| `LIVEKIT_PUBLIC_WS` | `wss://<project>.livekit.cloud` | same `<project>` |
+| `LIVEKIT_API_KEY` | `API…` from LiveKit Cloud | **secret: seal it** |
+| `LIVEKIT_API_SECRET` | from LiveKit Cloud | **secret: seal it** |
+
+   - The four `LIVEKIT_` variables go in all together or not at all; a partial set stops the server at startup.
+   - Type the secrets only into Railway. Never put them in chat, git, screenshots or logs.
+   - **Never set:** `MOONVEIL_PERSIST`, `MOONVEIL_TEST_TIME_SCALE`, `MOONVEIL_TEST_SEED`, `MOONVEIL_FIXTURE_MS`, `MOONVEIL_ENGINE` with any value other than `rules`, any `E2E_…`, `MOONVEIL_LAN`, `NODE_ENV`, or `RAILWAY_RUN_UID` (only if we ask).
+6. **Deploy** (Deploy / Redeploy). STOP if the build fails; send the build log.
+7. **First log line:** Deployments → the latest one → logs *(label unverified)*. Within a minute or two, look for:
+   `moonveil server http://0.0.0.0:8080 engine=rules voice=wss://<project>.livekit.cloud persist=/data/rooms restoredRooms=0`
+   - STOP if: the line never appears; `persist=` isn't `/data/rooms`; it shows `voice=off` although the four `LIVEKIT_` variables are set; you see `voice: set all of LIVEKIT_URL…` (a partial set); or you see `EACCES` / `permission denied`.
+8. **Health:** open `https://<domain>/healthz`. It must show `ok`.
+9. **Full or Limited Trial** (outbound check; the pinned code has no startup probe):
+   1. Open `https://<domain>`, enter a name, **Create & play**. You're now in a lobby.
+   2. Within about 30 s, read the service logs.
+   - Lines starting `voice sync <CODE>:` or `voice <CODE>:` that mention **ENOTFOUND, ECONNREFUSED, ETIMEDOUT or EAI_AGAIN** mean the service can't reach LiveKit, most likely the **Limited Trial**: **STOP and report. Never upgrade.**
+   - `401` or `unauthenticated` means a wrong key or secret: re-type both once, redeploy, re-check; STOP if it repeats.
+   - No `voice` lines means outbound works.
+   - What Limited breaks: only the server's calls to LiveKit. The game and text chat still work; players see "voice unavailable".
+10. **Hand-off:** send Lead the domain (not the secrets). Agents then run `scripts/postdeploy-check.mjs` against it, and will ask you once to **Restart** and once to **Redeploy** (the deployment's ⋮ menu, *label unverified*).
+11. **Usage:** record the workspace Usage page (§7a I) before and after each session.
+    - STOP if credit drops under **$1** or under **5 days** remain.
+    - Never add a card or upgrade.
+    - `deploy-trial` stays pinned at the approved revision; nobody pushes to it, so redeploys rebuild the same commit.
+
+**Validated locally (2026-10-17, clean worktree at the pinned revision, Node 24.20.0, Railway-like env):**
+- The build command passes with `NODE_ENV=production`. A plain `npm ci` under `NODE_ENV=production` omits `vite` and the build fails, hence `--include=dev`.
+- At startup: the startup line shows `persist=<dir>/rooms restoredRooms=0`; `/healthz` → `ok`; `/` and `/r/<CODE>` serve the SPA; `/api/lan` → `[]`.
+- `/ws` opens for the public origin even with a rewritten `Host`, and refuses a foreign origin and the `http:` form of the public origin (403).
+- Create and join work.
+- SIGTERM: both clients get close 1012 and the process exits 0. The restart logs `restoredRooms=1`, and both clients resume the same seats with their lobby state.
+
 ## 8. Open items
 - **LiveKit Cloud compatibility and testing plan:** voice owner (link pending, as in 0009 §5). LiveKit Cloud probes and credentials remain unapproved.
 - **Decisions for Human:** IaC (`railway` npm package, a deploy-time step) vs. dashboard-only settings; deploy approval with the package above.
