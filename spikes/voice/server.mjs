@@ -39,7 +39,7 @@ const CHANNELS = ['public', 'wolves', 'ghosts'];
 // channels(seat) plus the moderator seat; the adapter below only maps grants onto LiveKit rooms.
 //   day:      living publish+listen on public
 //   night:    only living wolves publish+listen, on wolves
-//   defense:  only the accused publishes on public; other living listen
+//   defense:  every living player publishes + listens on public (approved 2026-10-18; earlier: accused only)
 //   ghosts:   publish+listen on ghosts, listen on public (hidden). Never wolves.
 //   pending Hunter (dead, shot unresolved): no ghost access; listens to public hidden (assumption)
 //   moderator (non-player): listens to every channel, hidden; publishing off by default
@@ -57,7 +57,7 @@ function entitlements(p) {
   }
   switch (state.phase) {
     case 'day': return [g('public', true, true)];
-    case 'defense': return [g('public', p.id === state.accused, true)];
+    case 'defense': return [g('public', true, true)];
     case 'night': return p.role === 'wolf' ? [g('wolves', true, true)] : [];
   }
   return [];

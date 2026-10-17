@@ -44,6 +44,7 @@ fs.mkdirSync(browserHome, { recursive: true });
 export default defineConfig({
   testDir: '.',
   testMatch: /.*\.spec\.ts/,
+  testIgnore: /cloud-check\.spec\.ts/, // Cloud-only (needs a deployed app); rotation-gap runs in both
   fullyParallel: false,
   workers: 1,
   timeout: 12 * 60_000,

@@ -8,14 +8,14 @@ const P = (canPublish: boolean, canSubscribe: boolean, hidden = false): RoomPerm
 
 test('grant -> permission follows the approved policy table', () => {
   assert.deepEqual(toPermission(g('public', true, true)), P(true, true)); // day, living
-  assert.deepEqual(toPermission(g('public', false, true)), P(false, true, true)); // defense non-accused, ghost, pending Hunter, moderator: hidden
+  assert.deepEqual(toPermission(g('public', false, true)), P(false, true, true)); // ghost, pending Hunter, moderator: hidden
   assert.deepEqual(toPermission(g('wolves', true, true)), P(true, true)); // night, wolf
   assert.equal(isActive(g('public', false, false)), false); // no grant = not connected
 });
 
 test('visibility (ADR 0004): visible iff speak; explicit bit wins', () => {
   const listenOnly: VoiceGrantLike = { channel: 'public', listen: true, speak: false };
-  assert.equal(visibilityOf(listenOnly), false); // ghost, pending Hunter, moderator, defense listeners: hidden
+  assert.equal(visibilityOf(listenOnly), false); // ghost, pending Hunter, moderator: hidden
   assert.equal(visibilityOf({ ...listenOnly, speak: true }), true);
   assert.equal(visibilityOf({ ...listenOnly, visible: true }), true); // explicit override
   assert.deepEqual(toPermission(listenOnly), P(false, true, true));

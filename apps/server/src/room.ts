@@ -85,6 +85,9 @@ const newToken = () => randomBytes(24).toString('base64url');
 const newSeatId = () => `s_${randomBytes(5).toString('hex')}`;
 const sameName = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'accent' }) === 0;
 
+// A saved room that is deliberately not restored (engine or rules version). The reason is engine text, never data.
+export class RestoreSkip extends Error {}
+
 export interface RoomDeps<S> {
   engine: RulesEngine<S>;
   voice: VoiceGateway;
@@ -627,8 +630,11 @@ export class Room<S = unknown> {
   // Rebuild after a restart. Nobody is connected, so an automatic match is paused at the last save:
   // server downtime counts as paused wall time (approved pause rule); the first player back resumes it.
   static restore<S>(snap: RoomSnapshot, deps: RoomDeps<S>): Room<S> {
-    if (snap.engine !== deps.engine.id) throw new Error(`room ${snap.code}: saved with engine ${snap.engine}, running ${deps.engine.id}`);
+    if (snap.engine !== deps.engine.id) throw new RestoreSkip(`engine ${snap.engine}, running ${deps.engine.id}`);
     const r = snap.room as StoredRoom;
+    // Saved under other rules: an in-progress match may not mean the same thing now (rules decide; never throws).
+    const why = r.game !== null ? (deps.engine.restoreCheck?.(r.game as S) ?? null) : null;
+    if (why) throw new RestoreSkip(why);
     const room = new Room<S>(snap.code, r.mode, { name: 'restore', appearance: { color: 'moss', hat: 'none' } }, deps, r.voiceMode);
     const seat = (s: StoredSeat): Seat => ({ ...s, conn: null });
     room.players = r.players.map(seat);
