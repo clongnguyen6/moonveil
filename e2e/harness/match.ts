@@ -138,3 +138,19 @@ export function skippedSteps(m: BrowserMatch): { key: string; withActions: boole
       ),
     }));
 }
+
+// D2: voice connects only after an explicit join. Checks that nothing connected before it, then joins every page
+// (not awaited in the page: a mic request may wait on the browser; voiceJoined is set synchronously).
+type VoiceHandle = { __moonveil: { joinVoice(): Promise<void>; state: { voiceJoined: boolean }; voice: { getSnapshot(): { joined: boolean; channels: Record<string, unknown> } } | null } };
+export async function joinVoiceAll(m: BrowserMatch) {
+  for (const p of [...m.players, ...(m.moderator ? [m.moderator] : [])]) {
+    const before = await p.page.evaluate(() => {
+      const v = (globalThis as unknown as VoiceHandle).__moonveil.voice?.getSnapshot();
+      return v ? { joined: v.joined, channels: Object.keys(v.channels).length } : null;
+    });
+    expect(before === null || (!before.joined && before.channels === 0), `${p.name}: voice connected before join: ${JSON.stringify(before)}`).toBe(true);
+    await p.page.evaluate(() => void (globalThis as unknown as VoiceHandle).__moonveil.joinVoice());
+    await expect.poll(() => p.page.evaluate(() => (globalThis as unknown as VoiceHandle).__moonveil.state.voiceJoined)).toBe(true);
+  }
+}
+

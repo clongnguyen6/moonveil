@@ -5,7 +5,7 @@ import type { GameView, SeatView } from '@moonveil/protocol';
 import { assertOpenBallotsViews, assertOutcome, assertSeatIsolationViews } from '../../apps/server/test/assertions.ts';
 import { ALL_ACCEPTANCE } from '../../apps/server/test/acceptance-seeds.ts';
 import { expect, type Player, test } from '../harness/index.ts';
-import { game, protocolActor, runRealMatch, seatRealMatch, send, skippedSteps } from '../harness/match.ts';
+import { game, joinVoiceAll, protocolActor, runRealMatch, seatRealMatch, send, skippedSteps } from '../harness/match.ts';
 import { sceneMode } from '../harness/ui.ts';
 
 // Protocol and voice suites assert the wire, not the scene: scene off (visual-7 cost knob; MOONVEIL_SCENE overrides).
@@ -45,6 +45,7 @@ for (const seed of ALL_ACCEPTANCE) {
     test(`real match, ${mode}, ${seats} browsers, seed ${seed.S} (${seed.expect.winner}/${seed.expect.reason}): isolation, open ballots, wolf chat, outcome`, async ({ table }) => {
       test.setTimeout(240_000);
       const m = await seatRealMatch(table, { mode, seats, baseURL: `http://127.0.0.1:${REAL_PORT}`, hostName: seed.S, scene: SCENE });
+      if (VOICE) await joinVoiceAll(m); // D2: explicit join on every page (nothing connected before)
       let ballotSteps = 0;
       let wolfChat = false;
       await runRealMatch(m, seed.S, async (mm) => {

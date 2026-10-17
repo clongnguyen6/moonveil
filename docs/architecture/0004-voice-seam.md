@@ -91,3 +91,9 @@ Accepted from the recommendation: self-hosted LiveKit OSS (grant d), room per ch
 - The room's `voiceMode` updates every `SeatView` and is persisted. The next flush syncs voice grants: `[]` for every seat when in person, so the gateway closes the sessions and mints nothing; the normal grants when remote.
 - Text channels don't depend on `voiceMode`. Tests: `apps/server/test/voice-mode.test.ts`, including the real `LiveKitVoiceGateway` on its `FakeBackend`.
 
+## Explicit voice join (D2, foundation-10)
+- `client.ts`: `joinVoice()` / `leaveVoice()` / `ClientState.voiceJoined` (UI P16), over voice's `VoiceClient.join()` / `leave()`.
+  - `voice` sessions are always passed to the VoiceClient, which holds them. Nothing connects and the mic isn't requested until `joinVoice()`, which the UI calls from the "Join voice" tap. Never auto-joined.
+  - Leaving the room leaves voice. The VoiceClient is still created lazily; `Client`'s second constructor argument passes `VoiceClientOptions` (tests inject a fake room).
+- Tests: `apps/server/test/client-voice.test.ts` (the real client in Node, fake room and mic). `e2e:matches:voice` checks that nothing connected before join, then joins every page (`joinVoiceAll`).
+
