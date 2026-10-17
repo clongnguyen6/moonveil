@@ -27,6 +27,7 @@ for (const [size, opts] of Object.entries(sizes)) {
     if (await settingsBtn.count()) { await settingsBtn.click(); await page.waitForTimeout(200); await shot('settings'); await page.keyboard.press('Escape'); }
     await page.goto(`${base}?scenario=day&lang=${lang}&bar=0&sound=0`); await page.waitForSelector('[data-testid=match]');
     await page.locator('.topbar .tools .btn').last().click(); await page.waitForTimeout(200); await shot('settings-match'); await page.keyboard.press('Escape');
+    for (const [name, tid] of [['help', 'open-help'], ['chat', 'open-chat'], ['role', 'open-role']]) { await page.getByTestId(tid).click(); await page.waitForTimeout(200); if (name === 'role') await page.getByTestId('role-card').click(); await shot(`sheet-${name}`); await page.keyboard.press('Escape'); }
     await page.evaluate(() => globalThis.__stub.setViewer(globalThis.__stub.players[1].id)); await page.goto(`${base}?scenario=lobby&lang=${lang}&bar=0&sound=0`); await page.waitForSelector('[data-testid=lobby]');
     await page.evaluate(() => globalThis.__stub.setViewer(globalThis.__stub.players[1].id)); await page.waitForTimeout(150); await shot('lobby-player');
     for (let i = 2; i <= 3; i++) { const more = await page.evaluate(() => { const d = document.querySelector('.dock'); if (!d) return false; const before = d.scrollTop; d.scrollTop += d.clientHeight - 40; return d.scrollTop > before; }); if (!more) break; await page.waitForTimeout(120); await shot(`lobby-player-${i}`); }
