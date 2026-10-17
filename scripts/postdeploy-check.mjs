@@ -28,6 +28,9 @@ const VOICE_CAP_MIN = Number(opt('voice-cap-min', '10'));
 // --then-origin=<url>: after the last action (a redeploy carrying MOONVEIL_PUBLIC_ORIGIN=<url> plus
 // MOONVEIL_ALLOWED_ORIGINS=<this url>), check /ws on both hosts and origins, and a fresh create + join on <url>.
 const THEN = (opt('then-origin', '') || '').replace(/\/+$/, '');
+// --expect-revision=<sha>: at the end, GET /api/status must report this revision, persistence on the volume and voice
+// configured (servers older than /api/status fail this check).
+const EXPECT_REV = opt('expect-revision', '');
 const OUT = opt('out', `.cache/postdeploy/check-${new Date().toISOString().replace(/[:.]/g, '-')}.jsonl`);
 if (!/^https?:\/\/[^/]+$/.test(url)) {
   console.error('usage: postdeploy-check.mjs https://<domain> [--idle-min=16] [--actions=2] [--no-voice]');
@@ -230,6 +233,18 @@ try {
     const pageOrigin = await h2.page.evaluate(() => location.origin);
     log({ check: 'fresh create + join on new origin', code: code2, players: (await st(h2.page)).players, inviteOrigin: pageOrigin, ok: pageOrigin === new URL(THEN).origin });
     for (const p of fresh) await p.page.getByTestId('leave').click({ timeout: 5_000 }).catch(() => {});
+  }
+  if (EXPECT_REV) {
+    const base = THEN || url;
+    const s = await fetch(`${base}/api/status`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    log({
+      check: '/api/status after deploy',
+      revision: s?.revision,
+      persist: s?.persist,
+      voice: s?.voice,
+      uptimeSec: s?.uptimeSec,
+      ok: !!s && String(s.revision).startsWith(EXPECT_REV.toLowerCase().slice(0, 7)) && s.persist?.mode === 'volume' && s.voice === 'configured',
+    });
   }
   for (const p of pages) await p.page.getByTestId('leave').click({ timeout: 5_000 }).catch(() => {});
 } catch (e) {

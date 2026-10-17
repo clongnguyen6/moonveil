@@ -314,6 +314,38 @@ For the account holder. Approved 2026-10-17: Railway Trial only, revision pinned
 
 **Later (optional):** after a session on `www`, remove `MOONVEIL_ALLOWED_ORIGINS`, between sessions.
 
+### 7e. Next deploy request: release bundle (draft; the revision is filled in after its full acceptance)
+**Config deltas** (dashboard; everything else stays as §7b)
+
+| Variable | Now | New | Why |
+|---|---|---|---|
+| `MOONVEIL_PUBLIC_ORIGIN` | `https://moonveil-production-b733.up.railway.app` | `https://www.moonveil.id.vn` | the setting names the real domain (§7c/§7d) |
+| `MOONVEIL_ALLOWED_ORIGINS` | unset | `https://moonveil-production-b733.up.railway.app` | pages still open on railway.app keep connecting |
+| `MOONVEIL_ROOM_IDLE_MS` | unset (30 min) | `7200000` (2 h) | a break doesn't close the room (decision-maker to approve) |
+| `MOONVEIL_REVISION` | unset | `<bundle SHA>` | `/api/status` reports the revision even if `RAILWAY_GIT_COMMIT_SHA` isn't set at runtime (unverified). Update it on every deploy |
+
+**Revision move** (agent, after approval): `git push origin <bundle SHA>:refs/heads/deploy-trial`, a fast-forward from `35151f2`. Then verify `git rev-parse origin/deploy-trial`.
+- Railway may build on push. If it doesn't, the account holder clicks Deploy.
+- **Rollback:** Railway's previous deployment (⋮ → Rollback, *label unverified*). The branch can't be moved back without a force push (forbidden).
+
+**Precondition: no match running.** The engine id is the same in every revision (`moonveil-werewolf`), so a match saved under the old rules would be restored under the new ones without a check. Lobby and ended rooms restore safely. Deploy between sessions, when nobody is mid-match.
+- Proposal for the rules owner: version the engine id or state, so an incompatible snapshot is skipped instead of misread. The server already skips a mismatched id.
+
+**Sequence with the persistence check** (each wait ≤ 30 min; agents never trigger a deploy)
+1. **Agents** start run A on the *current* revision:
+   `postdeploy-check.mjs https://moonveil-production-b733.up.railway.app --no-voice --idle-min=0 --actions=2 --then-origin=https://www.moonveil.id.vn`
+   3 pages on railway.app, in a lobby. Then agents send "READY FOR RESTART".
+2. **Account holder: Restart.** Run A checks resume, the 1012 or 1006 close code, the gap and the same seats. Agents send "RESTART OK, READY FOR VARIABLES".
+3. **Account holder:** apply the four variable deltas. That redeploys the current revision with the new config; it already supports these variables. Run A checks resume, then that `/ws` works on both hosts and origins, foreign origins are refused, and a fresh create + join works on `www`.
+4. **Agents** start run B, then move `deploy-trial` to the bundle SHA. That push, or the account holder's Deploy, is run B's one action:
+   `postdeploy-check.mjs https://www.moonveil.id.vn --no-voice --idle-min=0 --actions=1 --expect-revision=<bundle SHA>`
+   Run B checks that its lobby survives the revision change, then that `/api/status` reports the revision, `persist.mode=volume` and `voice=configured`.
+5. **Account holder:** the first log line of the new revision shows `persist=/data/rooms restoredRooms≥1` and the `room … restored` lines. Usage snapshot (§7a I).
+
+**Stop rules**
+- Any check fails: stop, report, and revert the variables (step 3) or roll back the deployment (step 4).
+- No upgrades, and no switch of host.
+
 ## 8. Open items
 - **LiveKit Cloud compatibility and testing plan:** voice owner (link pending, as in 0009 §5). LiveKit Cloud probes and credentials remain unapproved.
 - **Decisions for Human:** IaC (`railway` npm package, a deploy-time step) vs. dashboard-only settings; deploy approval with the package above.
