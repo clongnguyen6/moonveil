@@ -37,6 +37,7 @@ export const vi: Strings = {
   micTitle: 'Micro', micIdle: 'Kiểm tra mic trước khi chơi.', micCheck: 'Kiểm tra micro', micChecking: 'Đang nghe…', micOk: 'Mic hoạt động. Nói thử để thấy vạch nhảy.',
   micDenied: 'Micro bị chặn.', micDeniedHelp: 'Cho phép mic trong cài đặt trình duyệt, hoặc chơi bằng chat chữ.', micUnsupported: 'Trình duyệt này không thu được âm thanh.',
   micInsecure: 'Thoại cần kết nối bảo mật (https).', micRetry: 'Thử lại', micText: 'Chơi bằng chữ', micTextOn: 'Chỉ chat chữ. Bạn vẫn nghe được người khác.',
+  voiceConnecting: 'Đang kết nối thoại… khoảng 10 giây', voiceConnectingLine: 'Đang lấy micro và kết nối. Mọi người sẽ nghe thấy bạn ngay.', voiceReconnecting: 'Đang kết nối lại thoại…', voiceReconnectingLine: 'Chờ chút; âm thanh sẽ trở lại sau vài giây.', voiceLive: 'Thoại đang bật', voiceFailed: 'Không kết nối được thoại', voiceFailedLine: 'Rời thoại rồi vào lại. Chat chữ vẫn dùng được.',
   voiceJoin: 'Vào thoại', voiceJoining: 'Đang vào thoại…', voiceLeave: 'Rời thoại', voiceJoinHint: 'Trình duyệt sẽ hỏi quyền micro khi bạn vào.', voiceNotJoined: 'Thoại: chưa vào',
   micGuideIosSafari: 'iPhone/iPad: Cài đặt → Safari → Micrô → Cho phép cho trang này, rồi tải lại.', micGuideAndroidChrome: 'Android Chrome: chạm biểu tượng khóa trên thanh địa chỉ → Quyền → Micrô → Cho phép, rồi tải lại.',
   micGuideDesktopChrome: 'Chrome/Edge: bấm biểu tượng camera/khóa trên thanh địa chỉ → Micrô → Cho phép, rồi tải lại.', micGuideDesktopSafari: 'Safari: menu Safari → Cài đặt cho trang web này → Micrô → Cho phép, rồi tải lại.',

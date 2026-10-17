@@ -11,6 +11,7 @@ import { useVoiceClient } from '../voice/useVoiceClient.ts';
 import { ROLES, type Role } from '@moonveil/rules';
 import { qrMatrix, qrPath } from '../qr.ts';
 import { platform } from '../voice/guidance.ts';
+import { voicePhase } from '../voice/phase.ts';
 import { copyText } from '../lan.ts';
 import { errorText } from '../errors.ts';
 import { ProfileEditor, saveProfile } from './Entry.tsx';
@@ -250,18 +251,21 @@ export function MicCheck({ mic, voiceMode, joined }: { mic: Mic; voiceMode: 'rem
     );
   }
   if (snap && voiceMode !== 'inPerson') {
-    // Real voice: state comes from the single VoiceClient (mic acquired when a speak session exists).
+    // Real voice: state comes from the single VoiceClient. Joining takes ~10 s on Cloud: say so while it connects.
     const st = snap.mic;
+    const phase = voicePhase(snap, { off: false, joined, canSpeak: true });
+    const busy = phase === 'connecting' || phase === 'reconnecting';
     return (
-      <section className="card stack" data-testid="mic" data-status={st === 'granted' ? 'ok' : st === 'requesting' ? 'checking' : st}>
+      <section className="card stack" data-testid="mic" data-status={st === 'granted' ? 'ok' : st === 'requesting' ? 'checking' : st} data-voice={phase}>
         <div className="row between">
           <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('micTitle')}</h2>
-          {st === 'granted' && <span className="pill ok">{t('ok')}</span>}
-          {(st === 'denied' || st === 'failed') && <span className="pill danger">{t('off')}</span>}
+          {phase === 'live' && <span className="pill ok">{t('voiceLive')}</span>}
+          {busy && <span className="pill warn pulse" data-testid="voice-busy">⟳ {phase === 'connecting' ? t('voiceConnecting') : t('voiceReconnecting')}</span>}
+          {(st === 'denied' || st === 'failed' || phase === 'failed') && <span className="pill danger">{t('off')}</span>}
         </div>
-        {st === 'idle' && <p className="hint">{t('micWaitingSession')}</p>}
-        {st === 'requesting' && <p className="hint">{t('micChecking')}</p>}
-        {st === 'granted' && <p className="hint">{snap.muted ? t('voiceMuted') : t('micOkVoice')}</p>}
+        {busy && <p className="hint">{phase === 'connecting' ? t('voiceConnectingLine') : t('voiceReconnectingLine')}</p>}
+        {phase === 'failed' && st !== 'denied' && st !== 'failed' && (<><p className="danger">{t('voiceFailed')}</p><p className="hint">{t('voiceFailedLine')}</p></>)}
+        {phase === 'live' && <p className="hint">{snap.muted ? t('voiceMuted') : t('micOkVoice')}</p>}
         {st === 'denied' && (<><p className="danger">{t('micDenied')}</p><MicGuide /></>)}
         {st === 'failed' && (<><p className="danger">{t('micFailed')}</p>{snap.micError && <p className="muted" style={{ fontSize: 'var(--fs-0)' }}>{snap.micError}</p>}<MicGuide /></>)}
         {snap.audioBlocked && <Button kind="secondary" testId="audio-unlock" onClick={() => void vc?.unlockAudio()}>{t('voiceUnlock')}</Button>}

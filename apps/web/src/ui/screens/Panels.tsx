@@ -11,6 +11,7 @@ import { type T, useT } from '../i18n/index.ts';
 import { useSession } from '../session-context.ts';
 import type { Mic } from '../voice/mic.ts';
 import { useVoiceClient } from '../voice/useVoiceClient.ts';
+import { voicePhase } from '../voice/phase.ts';
 
 const roleDesc = (t: T, r: Role) => t(`roleDesc${r[0]!.toUpperCase()}${r.slice(1)}` as 'roleDescWolf');
 const teamOf = (r: Role) => (r === 'wolf' ? 'wolves' : 'village');
@@ -256,13 +257,15 @@ export function VoiceBar({ s, view, mic, night }: { s: SessionState; view: SeatV
   const micBad = snap ? snap.mic === 'denied' || snap.mic === 'failed' : mic.status === 'denied' || mic.status === 'error';
   const toggle = () => (vc && snap ? void vc.setMuted(!snap.muted) : mic.setMuted(!mic.muted));
   const notJoined = !off && !s.voiceJoined;
-  const label = off ? t('voiceOff') : notJoined ? t('voiceJoin') : listenOnly ? t('voiceListen') : micBad ? t('voiceMicOff') : muted ? t('voiceMuted') : t(CHANNEL_LABEL[speakOn[0]!]);
+  const phase = vc ? voicePhase(snap, { off, joined: s.voiceJoined, canSpeak: !listenOnly }) : off ? 'off' : notJoined ? 'notJoined' : micBad ? 'failed' : listenOnly ? 'listening' : 'live';
+  const busy = phase === 'connecting' || phase === 'reconnecting';
+  const label = off ? t('voiceOff') : notJoined ? t('voiceJoin') : phase === 'connecting' ? t('voiceConnecting') : phase === 'reconnecting' ? t('voiceReconnecting') : phase === 'failed' ? t('voiceFailed') : listenOnly ? t('voiceListen') : micBad ? t('voiceMicOff') : muted ? t('voiceMuted') : t(CHANNEL_LABEL[speakOn[0]!]);
   const unlock = snap?.audioBlocked ? <Button kind="secondary" testId="audio-unlock" onClick={() => void vc?.unlockAudio()}>{t('voiceUnlock')}</Button> : null;
   // Night: one neutral button for every seat, no channel label, so the top bar gives no role tell at a glance.
   // A wolf's tap still toggles mute (grant-driven); the label is in the aria text only.
   if (night) {
     return (
-      <div className="mic-bar" data-testid="voice" data-speak={speakOn.join(',')} data-mic={snap?.mic ?? mic.status}>
+      <div className="mic-bar" data-testid="voice" data-speak={speakOn.join(',')} data-mic={snap?.mic ?? mic.status} data-voice={phase}>
         {/* never `disabled` here: a dimmed button would mark the seats that cannot speak */}
         <Button kind="icon" label={label} onClick={() => (notJoined ? void session.voiceJoin?.() : !off && !listenOnly && toggle())}>🎙️</Button>
         {unlock}
@@ -270,11 +273,11 @@ export function VoiceBar({ s, view, mic, night }: { s: SessionState; view: SeatV
     );
   }
   return (
-    <div className="mic-bar" data-testid="voice" data-speak={speakOn.join(',')} data-mic={snap?.mic ?? mic.status} data-muted={muted} data-joined={!notJoined && !off}>
+    <div className="mic-bar" data-testid="voice" data-speak={speakOn.join(',')} data-mic={snap?.mic ?? mic.status} data-muted={muted} data-joined={!notJoined && !off} data-voice={phase}>
       <Button kind="icon" label={notJoined ? t('voiceJoin') : muted ? t('voiceUnmute') : t('voiceMute')} pressed={!off && !notJoined && !listenOnly && !muted && !micBad} disabled={off || (!notJoined && (listenOnly || micBad))} testId={notJoined ? 'voice-join' : 'voice-mute'} onClick={() => (notJoined ? void session.voiceJoin?.() : toggle())}>
         {off || notJoined || listenOnly || muted || micBad ? '🔇' : '🎙️'}
       </Button>
-      <span className="pill voice-label">{label}</span>
+      <span className={`pill voice-label ${busy ? 'pulse' : ''}`} data-testid="voice-label">{busy ? '⟳ ' : ''}{label}</span>
       {unlock}
     </div>
   );
