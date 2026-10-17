@@ -6,12 +6,15 @@
 // MOONVEIL_TEST_TIME_SCALE (TESTS ONLY: server clock + timers run k× faster; rules and approved timings unchanged),
 // MOONVEIL_TEST_SEED (TESTS ONLY: deterministic match seed `<base>:<host name>`, logged to stdout server-side only;
 //   a trailing `!` = that exact seed for every room, for reproducing one match),
+// MOONVEIL_ALLOWED_ORIGINS (extra /ws origins, comma-separated), MOONVEIL_LAN=0 (no /api/lan addresses); on Render
+//   (RENDER=true) RENDER_EXTERNAL_URL is allowed, LAN addresses are off and the port-range warning is skipped (ADR 0009),
 // LIVEKIT_URL + LIVEKIT_PUBLIC_WS + LIVEKIT_API_KEY + LIVEKIT_API_SECRET (all four = voice via LiveKit; none = no voice).
 import { networkInterfaces } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { RulesEngine } from './rules/engine.ts';
 import { LiveKitBackend, LiveKitVoiceGateway } from '@moonveil/voice';
+import { allowedOrigins, lanEnabled, warnPort } from './deploy.ts';
 import { createHostedRulesEngine } from './rules/decks.ts';
 import { createFixtureEngine } from './rules/fixture-engine.ts';
 import { fileRoomStore } from './store.ts';
@@ -20,7 +23,7 @@ import { createMoonveilServer } from './server.ts';
 const here = dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT ?? 4100);
 const host = process.env.HOST ?? '127.0.0.1';
-if (port < 4100 || port > 4199) console.warn(`port ${port} is outside Moonveil's 4100-4199 range`);
+if (warnPort(process.env, port)) console.warn(`port ${port} is outside Moonveil's 4100-4199 range`);
 const phaseMs = process.env.MOONVEIL_FIXTURE_MS ? Number(process.env.MOONVEIL_FIXTURE_MS) : undefined;
 
 const engineKind = process.env.MOONVEIL_ENGINE ?? 'rules';
@@ -64,8 +67,9 @@ const store =
   process.env.MOONVEIL_PERSIST === '0' ? undefined : fileRoomStore(process.env.MOONVEIL_DATA_DIR ?? join(here, '../../../.data/rooms'));
 
 // Reachable LAN URLs, only when bound beyond loopback (HOST=0.0.0.0 or a LAN IP). http until TLS is chosen (ADR 0002).
+const lan = lanEnabled(process.env);
 const lanUrls = (): string[] => {
-  if (host === '127.0.0.1' || host === 'localhost' || host === '::1') return [];
+  if (!lan || host === '127.0.0.1' || host === 'localhost' || host === '::1') return [];
   const addrs = Object.values(networkInterfaces())
     .flat()
     .filter((a) => a && a.family === 'IPv4' && !a.internal)
@@ -90,6 +94,7 @@ const { http, stop, registry } = createMoonveilServer({
   ...(voice ? { voice } : {}),
   ...clock,
   lanUrls,
+  allowedOrigins: allowedOrigins(process.env),
   ...(store ? { store } : {}),
   staticDir: process.env.STATIC_DIR ?? join(here, '../../web/dist'),
   ...(process.env.MOONVEIL_ROOM_IDLE_MS ? { idleMs: Number(process.env.MOONVEIL_ROOM_IDLE_MS) } : {}),
