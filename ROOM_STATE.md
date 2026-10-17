@@ -120,6 +120,10 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Next release items: harness click wait 3 s + SeatView.voiceAvailable (foundation); voice-unavailable timeout/retry (game-ui-voice c078801).
 - Cloud participant-minutes used ≈15.7 / 100.
 
+## Morning handoff (sent to Supervisor 2026-10-18)
+- Live 35151f2; candidate f12761a (accepted); dev a11737d (+ low scene profile for next release).
+- Deploy request for f12761a: docs/architecture/0010 §7f (foundation-15 8a73d3d). Decisions asked: approve deploy + timing; 2 h idle timeout yes/no.
+
 ## Lead message queue (deliver at owner's next turn end)
 - (cleared)
 - (cleared)
