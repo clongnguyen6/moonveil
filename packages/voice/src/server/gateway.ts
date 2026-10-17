@@ -26,6 +26,9 @@ export interface LiveKitVoiceGatewayOptions {
   random?: () => number;
   // Clock for revocation timestamps (unix ms). Default Date.now.
   now?: () => number;
+  // Remove each present participant (with revokeTokenTs) before deleting a room generation. Default true.
+  // TEST-ONLY override: env VOICE_REVOKE_ON_CLOSE=0 disables it, for A/B runs of the e2e suite.
+  revokeOnClose?: boolean;
 }
 
 interface RoomState {
@@ -39,11 +42,11 @@ interface RoomState {
 
 export class LiveKitVoiceGateway {
   private readonly rooms = new Map<string, RoomState>();
-  private readonly opts: Required<Pick<LiveKitVoiceGatewayOptions, 'tokenTtlSeconds' | 'roomEmptyTimeoutSeconds' | 'autoCommit' | 'random' | 'now'>> &
+  private readonly opts: Required<Pick<LiveKitVoiceGatewayOptions, 'tokenTtlSeconds' | 'roomEmptyTimeoutSeconds' | 'autoCommit' | 'random' | 'now' | 'revokeOnClose'>> &
     LiveKitVoiceGatewayOptions;
 
   constructor(opts: LiveKitVoiceGatewayOptions) {
-    this.opts = { tokenTtlSeconds: 15 * 60, roomEmptyTimeoutSeconds: 10 * 60, autoCommit: true, random: Math.random, now: Date.now, ...opts };
+    this.opts = { tokenTtlSeconds: 15 * 60, roomEmptyTimeoutSeconds: 10 * 60, autoCommit: true, random: Math.random, now: Date.now, revokeOnClose: process.env.VOICE_REVOKE_ON_CLOSE !== '0', ...opts };
   }
 
   // --- VoiceGateway (ADR 0004) ---
@@ -82,9 +85,11 @@ export class LiveKitVoiceGateway {
   // then the room is deleted. The cutoff is one second in the past so the fresh tokens minted later in
   // the same reconcile (nbf = now) are never "before" it, while every earlier token is.
   private async closeLiveKitRoom(name: string): Promise<void> {
-    const present = await this.opts.backend.listParticipants(name);
-    const revokeTs = Math.floor(this.opts.now() / 1000) - 1;
-    await Promise.all(present.map((p) => this.opts.backend.removeParticipant(name, p.identity, revokeTs)));
+    if (this.opts.revokeOnClose) {
+      const present = await this.opts.backend.listParticipants(name);
+      const revokeTs = Math.floor(this.opts.now() / 1000) - 1;
+      await Promise.all(present.map((p) => this.opts.backend.removeParticipant(name, p.identity, revokeTs)));
+    }
     await this.opts.backend.deleteRoom(name);
   }
 

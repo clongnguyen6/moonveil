@@ -181,6 +181,16 @@ test('rotation: every participant of the old room generation is removed with rev
   assert.ok(nbf > 1_699_999_999, `new token nbf ${nbf} must be after the revocation cutoff`);
 });
 
+test('revokeOnClose=false (A/B knob): rotation deletes the room without RemoveParticipant calls', async () => {
+  const backend = new FakeBackend();
+  const gw = new LiveKitVoiceGateway({ backend, keys, publicWsUrl: 'wss://x', autoCommit: false, revokeOnClose: false });
+  await gw.sync('AB', new Map([['p1', [g('public', true, true)]], ['p4', [g('public', true, true)]]]));
+  await joinAll(gw, backend, 'AB', ['p1', 'p4']);
+  await gw.sync('AB', new Map([['p1', [g('public', true, true)]], ['p4', [g('public', false, true), g('ghosts', true, true)]]]));
+  assert.deepEqual(backend.deleted, ['AB-public-g1']);
+  assert.equal(backend.calls.filter((c) => c.op === 'remove').length, 0);
+});
+
 test('rotation after a seat loses every grant (night villager): it is revoked; wolves keep theirs', async () => {
   const backend = new FakeBackend();
   const gw = new LiveKitVoiceGateway({ backend, keys, publicWsUrl: 'wss://x', autoCommit: false, random: () => 0.5, now: () => 1_700_000_000_000 });

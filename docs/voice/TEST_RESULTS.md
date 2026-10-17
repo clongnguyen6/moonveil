@@ -19,6 +19,23 @@ The 4 skipped windows are all whole-table step boundaries: in each, every page m
 
 **Token / channel checks (separate from the audio measurement), all pass:** every page holds exactly the channels of its grants and each is connected; rosters contain only granted seats and never a listen-only one; every `voice` frame carries only channels the seat is granted at that moment, with `speak` never beyond the state grant; LiveKit's participant list shows the moderator hidden while listen-only and visible at `ended`; in-person room (1.7 min): no sessions in any `voice` frame, no LiveKit room for the code, no voice channel in any page, public text delivered in the lobby.
 
+### Runs 15–16 (2026-10-17 12:33–13:24, window + lock; candidate 7320503 = 2f38c5f + dev 5b081c4): FAILED, under analysis
+
+First full run with revoke-before-delete (70d5bb2). Kept artifacts: `.cache/voice-e2e/keep/voice-e2e-run15.log`, `.cache/voice-e2e/keep/voice-e2e-run16.log`, `.cache/voice-e2e/keep/run16-results-final/` (run 16 error context + trace), `.cache/voice-e2e/livekit.log` (append-only server log covering runs 10–16), `.cache/voice-e2e/conditions-run15.log`. Run 15's own Playwright artifacts were lost: Playwright wipes `outputDir` when the next run starts, and run 16 started in the same chain; artifact directories are now per run (`VOICE_E2E_RUN`).
+
+| Run | Match | Conditions (load 1-min start / peak / end; idle at peak) | Result |
+|---|---|---|---|
+| 15 | moderator, 7 + mod, scale 2 | 4.0 / 24.0 / 16.7; 0 % idle | 1 window measured (night.main#0: 35 checks, 0 failures), then stuck inside `voiceSettled` until the 12-min test timeout; a `page.evaluate` was still pending when Playwright closed the browser |
+| 15 | automatic, 10 seats, scale 2 | same window | "Ann: voice settle" after 40 s (channels never matched grants) |
+| 15 | in-person | same window | pass (1.5 min) |
+| 16 | automatic, 10 seats, real time, 10-min budget | 10.0 / 17.6 / 12.9; 1.6 % idle | 3 windows: night.main skipped (whole-table step change), day.discussion 18 checks 0 failures, night.main 99 checks 0 failures; at day.discussion one page (Ivy) had no subscribed track from any of 9 speakers; then "Bao: publishing" never became true until the 18-min test timeout |
+
+**Analysis so far (evidence, not conclusion):**
+- LiveKit server log, every rotation in runs 15/16: `ListParticipants`, N × `RemoveParticipant` (all N participants closed with `SERVICE_REQUEST_REMOVE_PARTICIPANT`), `DeleteRoom` ~10 ms later, `CreateRoom` of the next generation; every seat of each new generation joins and becomes active; zero stale-token join errors, zero duplicate-identity events; "2 RTC sessions per seat per generation" is identical in the healthy runs 10–14. The server-side rotation therefore behaves; nothing points at `RemoveParticipant` breaking reconnects.
+- Server log, run 16 room `BET4EW-public-g3`: nine seats show two track-publish events, one seat (`s_49b0643a1e`) only one: one browser's microphone publish never completed. In `VoiceClient` (code at 70d5bb2) the mic publish was awaited inside the same promise chain that applies new sessions, with no timeout (livekit-client's `publishTrack` waits for the server's acknowledgement), so one stuck publish freezes that page's voice state: later `voice` messages are never applied, channels no longer match grants, and the page never settles. This matches both run 15 symptoms and run 16's "publishing"/"hears nobody" symptoms. The same "Ann: voice settle" signature appeared in run 11 on product code without 70d5bb2.
+- Fix applied to `VoiceClient` (next candidate): mic capture and publish bounded (10 s each), detached from session application, retried with backoff while the channel still grants speak; a dropped channel discards a late track. Unit-tested against the fake Room.
+- Still open, needs the A/B under one lock slot (`packages/voice/e2e/ab.sh`: same test files, same `MOONVEIL_TEST_SEED`, same scale, back-to-back, conditions recorded; the only difference `VOICE_REVOKE_ON_CLOSE=0|1`): whether revoke-before-delete changes anything observable on the page side. A green rerun does not cancel runs 15/16; both stay recorded here.
+
 ### Runs 11–14 (2026-10-17 03:03–04:08, heavy-run lock held; dev merged at ca23197): real-time follow-up
 
 Purpose: strengthen automatic-mode audio evidence (`MOONVEIL_TEST_TIME_SCALE=1`, `VOICE_E2E_AUTO_BUDGET_MS=600000`). Conditions sampled every 30 s (`.cache/voice-e2e/conditions-run11.log`); the load came from other projects on the shared machine (two long-running Python jobs, an iOS Simulator with ~200 processes, a Codex session), plus one Moonveil CPU job (`apps/server/test/seed-search-zero.ts`, ~100 % of a core, 03:09–03:40).
