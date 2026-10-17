@@ -43,4 +43,5 @@ export {
   type SeatId,
   type TimerInfo,
 } from './host.ts';
+export { STATE_VERSION, ENDED_READABLE_VERSIONS, restoreCheck } from './version.ts';
 export { startClock, pauseClock, resumeClock, remainingMs, deadlineOf, isExpired, type PhaseClock } from './clock.ts';

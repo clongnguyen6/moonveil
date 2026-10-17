@@ -91,7 +91,8 @@ export type HistoryEntry =
   | { t: 'moderator'; command: Command };
 
 export interface MatchState {
-  v: 1;
+  /** STATE_VERSION at creation (src/version.ts). Restore only via restoreCheck(). */
+  v: number;
   config: RulesConfig;
   seats: SeatState[];
   rng: number;
