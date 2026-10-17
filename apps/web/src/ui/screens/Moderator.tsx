@@ -43,7 +43,7 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
         <div className="stack">
           <p><strong data-testid="mod-step">{stepName}</strong> · {g.step.kind.startsWith('night') ? t('phaseNight', { n: g.night }) : t('phaseDiscuss', { d: g.day }).split(' ·')[0]} · {t('livingCount', { n: living })}</p>
           <p className="hint">{view.phaseEndsAt === null ? t('modNoTimer') : ''}</p>
-          {narration && <p className="card" style={{ padding: 10 }} data-testid="mod-say">🗣 {narrate(t, g, view)} <span className="pill warn">{t('provisional')}</span></p>}
+          {narration && <p className="card" style={{ padding: 10 }} data-testid="mod-say"><strong>{t('modSay')}:</strong> {narrate(t, g, view)} <span className="pill warn">{t('provisional')}</span></p>}
           {m?.nightRec && g.step.kind.startsWith('night') && <p className="hint">{t('modSubmitted', { n: submittedCount(g), total: expectedCount(g) })}</p>}
           {g.step.kind === 'hunter' && <p className="hint">{t('hunterOthers', { name: g.step.pending.map((p) => nameAt(view, g, p)).join(', ') })}</p>}
           {g.step.kind === 'day.confirm' && (

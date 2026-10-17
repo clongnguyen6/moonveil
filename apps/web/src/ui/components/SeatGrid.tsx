@@ -5,6 +5,7 @@ import { playerAt } from '../../game/select.ts';
 import type { GameView, SeatId, SeatView } from '../../game/types.ts';
 import { useT } from '../i18n/index.ts';
 import { Avatar } from './index.tsx';
+import { Icon } from './Icon.tsx';
 
 export interface SeatGridProps {
   view: SeatView;
@@ -70,7 +71,7 @@ export function SeatGrid({ view, g, enabled, selected, onSelect, seats, tags, sp
             </span>
             <span className="right">
               {tag && <span className={`tag ${tag.accent ? 'accent' : ''}`}>{tag.text}</span>}
-              {!sv.alive && <span className="pill ghost">✝</span>}
+              {!sv.alive && <span className="pill ghost" title={t('a11yDead')}><Icon name="dead" size={14} /></span>}
             </span>
           </button>
         );

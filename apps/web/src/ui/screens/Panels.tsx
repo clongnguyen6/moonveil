@@ -6,6 +6,7 @@ import { canListen, canSpeak, nameAt, nameOf, playerAt, rolesInPlay } from '../.
 import { endReason } from '../../game/approved.ts';
 import type { ChannelId, GameView, SeatView } from '../../game/types.ts';
 import { Avatar, Button, Sheet, Tabs } from '../components/index.tsx';
+import { Icon } from '../components/Icon.tsx';
 import { SeatGrid } from '../components/SeatGrid.tsx';
 import { type T, useT } from '../i18n/index.ts';
 import { useSession } from '../session-context.ts';
@@ -237,7 +238,7 @@ export function GhostBar({ view, g }: { view: SeatView; g: GameView }) {
   const pending = g.step.kind === 'hunter' && g.step.pending.includes(me.seat);
   return (
     <div className="card ghost-bar fade-in" data-testid="ghost-bar">
-      <span className="pill ghost">👻 {t('ghostTitle')}</span>
+      <span className="pill ghost"><Icon name="ghost" size={16} /> {t('ghostTitle')}</span>
       <span className="hint grow">{why} {pending ? t('hunterIso') : canListen(view, 'ghosts') ? t('ghostHint') : ''}</span>
     </div>
   );
@@ -263,7 +264,7 @@ export function VoiceBar({ s, view, mic, night }: { s: SessionState; view: SeatV
     return (
       <div className="mic-bar" data-testid="voice" data-speak={speakOn.join(',')} data-mic={snap?.mic ?? mic.status}>
         {/* never `disabled` here: a dimmed button would mark the seats that cannot speak */}
-        <Button kind="icon" label={label} onClick={() => !off && !listenOnly && toggle()}>🎙️</Button>
+        <Button kind="icon" label={label} onClick={() => !off && !listenOnly && toggle()}><Icon name="mic" /></Button>
         {unlock}
       </div>
     );
@@ -271,7 +272,7 @@ export function VoiceBar({ s, view, mic, night }: { s: SessionState; view: SeatV
   return (
     <div className="mic-bar" data-testid="voice" data-speak={speakOn.join(',')} data-mic={snap?.mic ?? mic.status} data-muted={muted}>
       <Button kind="icon" label={muted ? t('voiceUnmute') : t('voiceMute')} pressed={!off && !listenOnly && !muted && !micBad} disabled={off || listenOnly || micBad} onClick={toggle}>
-        {off || listenOnly || muted || micBad ? '🔇' : '🎙️'}
+        {off || listenOnly || muted || micBad ? <Icon name="micOff" /> : <Icon name="mic" />}
       </Button>
       <span className="pill voice-label">{label}</span>
       {unlock}

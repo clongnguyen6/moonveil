@@ -1,45 +1,45 @@
 /* THEME LAYER — the only place with colours, type, radii, shadows and motion timings.
-   Visual direction (camping: forest green, warm firelight, blue/purple moonlight) is approved in principle;
-   the final look awaits a decision. Swap values here, not in components. Phase skins via [data-phase]. */
+   Revised art direction (Human, 2026-10-17): mature nighttime camping; muted forest green, charcoal, amber; clean readable
+   type; less rounded framing; no glow, no emoji decoration. For review, not approved final UI. Phase skins via [data-phase]. */
 :root {
   color-scheme: dark;
-  --font: ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font: "Inter", "SF Pro Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
   --font-display: var(--font);
-  --fs-0: 0.85rem; --fs-1: 0.92rem; --fs-2: 1rem; --fs-3: 1.15rem; --fs-4: 1.4rem; --fs-5: 1.9rem;
-  --r-1: 10px; --r-2: 16px; --r-3: 24px; --r-pill: 999px;
+  --fs-0: 0.85rem; --fs-1: 0.92rem; --fs-2: 1rem; --fs-3: 1.125rem; --fs-4: 1.35rem; --fs-5: 1.75rem;
+  --r-1: 4px; --r-2: 6px; --r-3: 8px; --r-pill: 4px;
   --tap: 44px;
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
-  --dur-1: 120ms; --dur-2: 220ms; --dur-3: 420ms; --dur-phase: 1400ms;
-  --ease: cubic-bezier(.2,.8,.2,1);
-  --shadow-1: 0 2px 8px rgba(0,0,0,.25); --shadow-2: 0 10px 30px rgba(0,0,0,.35);
+  --dur-1: 120ms; --dur-2: 200ms; --dur-3: 360ms; --dur-phase: 1400ms;
+  --ease: cubic-bezier(.2,.7,.2,1);
+  --shadow-1: 0 1px 2px rgba(0,0,0,.35); --shadow-2: 0 8px 24px rgba(0,0,0,.4);
 
-  /* Day: warm camp daylight */
-  --bg: #1c2b22; --bg-2: #16231b; --scene: linear-gradient(180deg, #7cb6d9 0%, #a9d0b0 45%, #4b7a4e 100%);
-  --surface: rgba(28, 40, 34, .92); --surface-2: rgba(44, 62, 52, .92); --surface-3: rgba(60, 82, 70, .95);
-  --line: rgba(255,255,255,.12); --line-strong: rgba(255,255,255,.28);
-  --ink: #f3f1e8; --ink-2: #cfd6c8; --ink-3: #a3b3a6; --ink-on-accent: #1d1208;
-  --accent: #f2a65a; --accent-2: #ffc784; --accent-soft: rgba(242,166,90,.18);
-  --ok: #8fd6a5; --warn: #ffd08a; --danger: #ff8f7c; --danger-soft: rgba(255,143,124,.16);
-  --wolves: #f0907f; --village: #92d39e; --ghost: #b8c9ff; --ghost-soft: rgba(184,201,255,.16);
-  --focus: 0 0 0 3px rgba(255,199,132,.65);
+  /* Day: overcast forest, charcoal surfaces, amber accent */
+  --bg: #151c18; --bg-2: #101613; --scene: linear-gradient(180deg, #2b3a33 0%, #1f2d26 55%, #182219 100%);
+  --surface: #1b2420; --surface-2: #222d28; --surface-3: #2a3630;
+  --line: rgba(232,228,216,.10); --line-strong: rgba(232,228,216,.22);
+  --ink: #e8e4d8; --ink-2: #c3c8bb; --ink-3: #a3ab9f; --ink-on-accent: #1a1409;
+  --accent: #d9a053; --accent-2: #e9bb6f; --accent-soft: rgba(217,160,83,.14);
+  --ok: #9fc9a3; --warn: #e3b86d; --danger: #e08a7a; --danger-soft: rgba(224,138,122,.14);
+  --wolves: #e3998a; --village: #a7cfa9; --ghost: #b9c4c9; --ghost-soft: rgba(185,196,201,.12);
+  --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-2);
   --meter: var(--ok);
 }
 [data-phase="night"] {
-  --bg: #0d1424; --bg-2: #0a1020; --scene: linear-gradient(180deg, #0b1230 0%, #1b2748 55%, #1a2a3a 100%);
-  --surface: rgba(18, 26, 46, .93); --surface-2: rgba(30, 40, 68, .93); --surface-3: rgba(44, 56, 90, .95);
-  --ink: #e9ecff; --ink-2: #b8c0e6; --ink-3: #99a3cc;
-  --accent: #c9b2ff; --accent-2: #e3d6ff; --accent-soft: rgba(201,178,255,.16); --ink-on-accent: #150f2b;
-  --focus: 0 0 0 3px rgba(201,178,255,.6);
+  --bg: #0f1315; --bg-2: #0a0d0f; --scene: linear-gradient(180deg, #0c1114 0%, #141b1d 55%, #1a1f1b 100%);
+  --surface: #151b1e; --surface-2: #1c2427; --surface-3: #242d31;
+  --ink: #e2e5e3; --ink-2: #b7bfbd; --ink-3: #9aa5a6;
+  --accent: #cf9a52; --accent-2: #e2b36a; --accent-soft: rgba(207,154,82,.14); --ink-on-accent: #17110a;
+  --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-2);
 }
 [data-phase="ghost"] {
-  --bg: #0e1620; --bg-2: #0a1118; --scene: linear-gradient(180deg, #16263a 0%, #24405a 60%, #1c3344 100%);
-  --surface: rgba(20, 32, 46, .92); --surface-2: rgba(32, 50, 70, .92); --surface-3: rgba(46, 70, 96, .95);
-  --ink: #e6f0ff; --ink-2: #b7c9e6; --ink-3: #97accb;
-  --accent: #9fd3ff; --accent-2: #c9e6ff; --accent-soft: rgba(159,211,255,.16); --ink-on-accent: #07202e;
-  --focus: 0 0 0 3px rgba(159,211,255,.6);
+  --bg: #111517; --bg-2: #0c0f11; --scene: linear-gradient(180deg, #171c1f 0%, #1e2528 55%, #1b2220 100%);
+  --surface: #171d20; --surface-2: #1f2629; --surface-3: #283033;
+  --ink: #dfe4e6; --ink-2: #b6bfc3; --ink-3: #9ba6ab;
+  --accent: #a9b7bf; --accent-2: #c6d1d6; --accent-soft: rgba(169,183,191,.14); --ink-on-accent: #121719;
+  --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-2);
 }
 [data-phase="ended"] {
-  --bg: #1a1d2a; --scene: linear-gradient(180deg, #2a2e4a 0%, #4a3a5a 55%, #2f3a3a 100%);
+  --bg: #131716; --scene: linear-gradient(180deg, #1c2322 0%, #232b28 55%, #1a211d 100%);
 }
 @media (prefers-reduced-motion: reduce) {
   :root:not([data-motion="full"]) { --dur-1: 0ms; --dur-2: 0ms; --dur-3: 0ms; --dur-phase: 0ms; }

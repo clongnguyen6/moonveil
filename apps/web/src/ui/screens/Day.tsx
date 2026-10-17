@@ -7,6 +7,7 @@ import { act } from '../../game/commands.ts';
 import { action, aliveSeats, nameAt } from '../../game/select.ts';
 import type { GameView, SeatId, SeatView } from '../../game/types.ts';
 import { Button, Timer } from '../components/index.tsx';
+import { Icon } from '../components/Icon.tsx';
 import { SeatGrid } from '../components/SeatGrid.tsx';
 import { useT } from '../i18n/index.ts';
 import { useSession } from '../session-context.ts';
@@ -147,8 +148,8 @@ export function ConfirmPanel({ view, g }: P) {
       <p data-testid="confirm-tally"><strong>{t('confirmResult', { yes, no })}</strong></p>
       <SeatGrid view={view} g={g} tags={tags} showDead={false} />
       <div className="btn-row" style={{ minHeight: 64 }}>
-        <Button kind={cur === 'no' ? 'primary' : 'secondary'} haptic testId="vote-no" disabled={!a} pressed={cur === 'no'} onClick={() => session.send({ t: 'act', action: act.confirm('no') })}>{cur === 'no' ? '✓ ' : ''}{t('confirmNo')}</Button>
-        <Button kind={cur === 'yes' ? 'danger' : 'secondary'} haptic testId="vote-yes" disabled={!a} pressed={cur === 'yes'} onClick={() => session.send({ t: 'act', action: act.confirm('yes') })}>{cur === 'yes' ? '✓ ' : ''}{t('confirmYes')}</Button>
+        <Button kind={cur === 'no' ? 'primary' : 'secondary'} haptic testId="vote-no" disabled={!a} pressed={cur === 'no'} onClick={() => session.send({ t: 'act', action: act.confirm('no') })}>{cur === 'no' && <Icon name="check" size={16} />}{t('confirmNo')}</Button>
+        <Button kind={cur === 'yes' ? 'danger' : 'secondary'} haptic testId="vote-yes" disabled={!a} pressed={cur === 'yes'} onClick={() => session.send({ t: 'act', action: act.confirm('yes') })}>{cur === 'yes' && <Icon name="check" size={16} />}{t('confirmYes')}</Button>
       </div>
       <p className="muted" style={{ fontSize: 'var(--fs-0)' }} aria-live="polite" data-testid="my-ballot">
         {a ? (cur === null ? t('confirmNone') : t('confirmYours', { choice: cur === 'yes' ? t('confirmYes') : t('confirmNo') })) : t('confirmDead')} · {t('voteCloses')}

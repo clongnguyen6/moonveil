@@ -1,18 +1,18 @@
 // Shared building blocks. Looks come from theme/skin.css classes; nothing here hard-codes colours.
-import type { Appearance, PublicSeat } from '@moonveil/protocol';
+import type { PublicSeat } from '@moonveil/protocol';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useT } from '../i18n/index.ts';
 import { playCue } from '../audio/cues.ts';
 import { serverNow } from '../../game/clock.ts';
 
-const HAT_GLYPH: Record<Appearance['hat'], string> = { none: '', beanie: '🧢', cap: '🧢', bucket: '👒', flower: '🌼', hood: '🧥' };
+import { Icon } from './Icon.tsx';
 
 export function Avatar({ p, size, dead, ghost, speaking }: { p: Pick<PublicSeat, 'name' | 'appearance'>; size?: 'lg'; dead?: boolean; ghost?: boolean; speaking?: boolean }) {
   const initials = p.name.trim().slice(0, 2).toUpperCase();
   return (
     <span className={`avatar c-${p.appearance.color} ${size ?? ''} ${dead ? 'dead' : ''} ${ghost ? 'ghost' : ''}`} aria-hidden="true">
       {initials}
-      {p.appearance.hat !== 'none' && <span className="hat">{HAT_GLYPH[p.appearance.hat]}</span>}
+      {p.appearance.hat !== 'none' && <span className="hat" data-hat={p.appearance.hat}><Icon name="hat" size={14} /></span>}
       {speaking && <span className="speaking-ring pulse" />}
     </span>
   );
@@ -95,7 +95,7 @@ export function Sheet({ title, onClose, children, testId }: { title: string; onC
         <div className="grip" />
         <div className="sheet-head">
           <h2 className="panel-title">{title}</h2>
-          <Button kind="icon" label={t('close')} onClick={onClose}>✕</Button>
+          <Button kind="icon" label={t('close')} onClick={onClose}><Icon name="close" /></Button>
         </div>
         <div className="sheet-body">{children}</div>
       </div>

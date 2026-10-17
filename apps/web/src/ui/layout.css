@@ -30,8 +30,8 @@ ul { padding: 0; list-style: none; }
 .topbar > * { pointer-events: auto; }
 .topbar .titles { flex: 1 1 auto; min-width: 0; }
 .topbar h1.title { margin: 0; }
-.topbar .title { font-weight: 700; font-size: var(--fs-3); text-shadow: 0 1px 3px rgba(0,0,0,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.topbar .sub { font-size: var(--fs-0); color: var(--ink-2); text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+.topbar .title { font-weight: 600; font-size: var(--fs-3); text-shadow: 0 1px 2px rgba(0,0,0,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar .sub { font-size: var(--fs-0); color: var(--ink-2); text-shadow: 0 1px 2px rgba(0,0,0,.6); }
 .topbar .tools { margin-left: auto; display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
 .topbar .tools .btn.icon { width: 40px; min-height: 40px; }
 .pill { white-space: nowrap; }
@@ -49,21 +49,21 @@ ul { padding: 0; list-style: none; }
 .seat-chip .right { margin-left: auto; display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .avatar { width: 32px; height: 32px; font-size: var(--fs-0); flex-shrink: 0; position: relative; }
 .avatar.lg { width: 56px; height: 56px; font-size: var(--fs-3); }
-.avatar .hat { position: absolute; top: -8px; right: -4px; font-size: .9rem; }
-.speaking-ring { position: absolute; inset: -3px; border-radius: var(--r-pill); pointer-events: none; }
+.avatar .hat { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); color: var(--ink-2); }
+.speaking-ring { position: absolute; inset: -3px; border-radius: 50%; pointer-events: none; }
 
 /* entry / lobby */
 .entry { max-width: 480px; margin: 0 auto; padding: max(var(--sp-5), env(safe-area-inset-top)) var(--sp-4) var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4); }
-.entry .logo { font-size: var(--fs-5); font-weight: 800; letter-spacing: -.02em; }
+.entry .logo { font-size: var(--fs-5); font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--accent-2); }
 .swatches { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
-.swatch { width: var(--tap); height: var(--tap); border-radius: var(--r-pill); border: 3px solid transparent; padding: 0; cursor: pointer; }
+.swatch { width: var(--tap); height: var(--tap); border-radius: 50%; border: 2px solid transparent; padding: 0; cursor: pointer; }
 .swatch[aria-pressed="true"] { border-color: var(--ink); }
 .lobby { max-width: 720px; margin: 0 auto; width: 100%; padding: var(--sp-3) var(--sp-3) max(var(--sp-4), env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: var(--sp-3); }
 .lobby .card { padding: var(--sp-4); }
 .player-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--sp-2); }
 .player-row { display: flex; align-items: center; gap: var(--sp-2); min-height: 48px; padding: 4px 8px; border-radius: var(--r-2); background: var(--surface-2); }
 .player-row .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dot { width: 8px; height: 8px; border-radius: var(--r-pill); background: var(--ok); flex-shrink: 0; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex-shrink: 0; }
 .dot.off { background: var(--danger); }
 .meter { height: 10px; width: 100%; }
 
@@ -89,8 +89,8 @@ ul { padding: 0; list-style: none; }
 .ballots li { display: flex; justify-content: space-between; gap: 8px; min-height: 24px; }
 .tally-row { display: grid; grid-template-columns: 1fr 2fr auto; align-items: center; gap: var(--sp-2); font-size: var(--fs-1); }
 .tally-bar { height: 10px; }
-.role-card { padding: var(--sp-5); border-radius: var(--r-3); text-align: center; cursor: pointer; min-height: 200px; display: flex; flex-direction: column; justify-content: center; gap: var(--sp-2); }
-.role-card .role-name { font-size: var(--fs-5); font-weight: 800; }
+.role-card { padding: var(--sp-5); border-radius: var(--r-3); cursor: pointer; min-height: 180px; display: flex; flex-direction: column; justify-content: center; gap: var(--sp-2); width: 100%; }
+.role-card .role-name { font-size: var(--fs-5); font-weight: 600; }
 .facts { display: grid; gap: 4px; font-size: var(--fs-1); }
 .chat { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .chat-log { flex: 1 1 auto; overflow: auto; display: flex; flex-direction: column; gap: 6px; padding: var(--sp-2) 0; min-height: 160px; }

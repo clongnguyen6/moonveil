@@ -11,6 +11,7 @@ import type { Session, SessionState } from '../game/session.ts';
 import { type GameView, type SeatView, stepFamily as famOf } from '../game/types.ts';
 import { type Cue, playCue, unlockAudio } from './audio/cues.ts';
 import { Button, Timer, type ToastItem, Toasts } from './components/index.tsx';
+import { Icon } from './components/Icon.tsx';
 import { type T, useT } from './i18n/index.ts';
 import { ConfirmPanel, DefensePanel, DiscussionPanel, GhostPanel, VotePanel } from './screens/Day.tsx';
 import { EntryScreen } from './screens/Entry.tsx';
@@ -99,7 +100,7 @@ function Root() {
         <div className="scrim" onClick={closeSheet}>
           <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={t('settings')}>
             <div className="grip" />
-            <div className="sheet-head"><h2 className="panel-title">{t('settings')}</h2><Button kind="icon" label={t('close')} onClick={closeSheet}>✕</Button></div>
+            <div className="sheet-head"><h2 className="panel-title">{t('settings')}</h2><Button kind="icon" label={t('close')} onClick={closeSheet}><Icon name="close" /></Button></div>
             <div className="sheet-body"><SettingsRow /></div>
           </div>
         </div>
@@ -139,10 +140,10 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
           </div>
           <div className="tools">
             {!isMod && <VoiceBar s={s} view={view} mic={mic} night={fam === 'night'} />}
-            <Button kind="icon" label={t('chat')} testId="open-chat" onClick={() => open('chat')}>💬</Button>
-            {!isMod && <Button kind="icon" label={t('roleCard')} testId="open-role" onClick={() => open('role')}>🎭</Button>}
-            <Button kind="icon" label={t('help')} testId="open-help" onClick={() => open('help')}>?</Button>
-            <Button kind="icon" label={t('settings')} onClick={() => open('settings')}>⚙</Button>
+            <Button kind="icon" label={t('chat')} testId="open-chat" onClick={() => open('chat')}><Icon name="chat" /></Button>
+            {!isMod && <Button kind="icon" label={t('roleCard')} testId="open-role" onClick={() => open('role')}><Icon name="card" /></Button>}
+            <Button kind="icon" label={t('help')} testId="open-help" onClick={() => open('help')}><Icon name="help" /></Button>
+            <Button kind="icon" label={t('settings')} onClick={() => open('settings')}><Icon name="gear" /></Button>
           </div>
         </div>
         {overlay && (
@@ -156,7 +157,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
       </div>
       <div className="dock" key={`${g.step.kind}:${g.night}:${g.day}`}>
         {wakeFailed && <p className="muted center" style={{ fontSize: 'var(--fs-0)', margin: '0 0 6px' }} data-testid="wake-hint">{t('wakeHint')}</p>}
-        {stalemateWarning(g) && g.step.kind !== 'ended' && <p className="card warn-banner" role="status" data-testid="stalemate-warning">⚠ {t('stalemateWarning')}</p>}
+        {stalemateWarning(g) && g.step.kind !== 'ended' && <p className="card warn-banner" role="status" data-testid="stalemate-warning"><Icon name="warn" /> {t('stalemateWarning')}</p>}
         {!isMod && <GhostBar view={view} g={g} />}
         {isMod ? (
           <ModeratorConsole view={view} g={g} />

@@ -48,7 +48,7 @@ export function scenario(name: ScenarioName, opts: { speed?: number; autoBots?: 
     room.players.forEach((p, i) => (p.ready = i % 3 !== 2));
     room.players[1]!.connected = false;
     room.chat.push({ channel: 'public', msg: { id: 'c1', from: room.players[2]!.id, name: 'Chi', text: 'Mọi người bật mic chưa?', at: Date.now() - 60_000 } });
-    room.chat.push({ channel: 'public', msg: { id: 'c2', from: room.players[0]!.id, name: 'An', text: 'Ready when you are ✌️', at: Date.now() - 30_000 } });
+    room.chat.push({ channel: 'public', msg: { id: 'c2', from: room.players[0]!.id, name: 'An', text: 'Ready when you are.', at: Date.now() - 30_000 } });
     return room;
   }
   room.start();

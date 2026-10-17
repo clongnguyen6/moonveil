@@ -10,6 +10,7 @@ import { act } from '../../game/commands.ts';
 import { action, nameAt } from '../../game/select.ts';
 import type { GameView, SeatView } from '../../game/types.ts';
 import { Button, Timer } from '../components/index.tsx';
+import { Icon } from '../components/Icon.tsx';
 import { SeatGrid } from '../components/SeatGrid.tsx';
 import { useT } from '../i18n/index.ts';
 import { useSession } from '../session-context.ts';
@@ -27,7 +28,7 @@ function Frame({ title, task, info, children, buttons, status, view, testId, don
       <div className="info-slot" style={{ minHeight: 44 }}>{info}</div>
       {children}
       <div className="btn-row">{buttons}</div>
-      <p className="muted status-line" style={{ fontSize: 'var(--fs-0)', minHeight: 20 }} aria-live="polite" data-testid="status">{done && <span className="check" aria-hidden="true">✓</span>}{status}</p>
+      <p className="muted status-line" style={{ fontSize: 'var(--fs-0)', minHeight: 20 }} aria-live="polite" data-testid="status">{done && <span className="check"><Icon name="check" size={14} /></span>}{status}</p>
     </section>
   );
 }

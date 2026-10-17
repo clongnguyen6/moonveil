@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { SessionState } from '../../game/session.ts';
 import type { SeatView } from '../../game/types.ts';
 import { Avatar, Button, Meter } from '../components/index.tsx';
+import { Icon } from '../components/Icon.tsx';
 import { useT } from '../i18n/index.ts';
 import { useSession } from '../session-context.ts';
 import type { Mic } from '../voice/mic.ts';
@@ -41,8 +42,8 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
           <p className="hint" data-testid="you">{t('youLabel')}: {view.me.kind === 'moderator' ? `${view.moderator?.name ?? ''} (${t('moderator')})` : me?.name}{view.me.host ? ` · ${t('host')}` : ''}</p>
         </div>
         <div className="row">
-          <Button kind="icon" label={t('chat')} onClick={onChat}>💬</Button>
-          <Button kind="icon" label={t('help')} onClick={onHelp}>?</Button>
+          <Button kind="icon" label={t('chat')} onClick={onChat}><Icon name="chat" /></Button>
+          <Button kind="icon" label={t('help')} onClick={onHelp}><Icon name="help" /></Button>
         </div>
       </header>
 
