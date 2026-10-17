@@ -365,7 +365,7 @@ export async function audioArrivalGaps(players: Player[], since: number, maxMs =
       if (a === b) continue;
       const gb = grant(b.view(), g.channel);
       const sb = await voiceSnapshot(b);
-      if (gb?.speak && sb?.mic === 'granted' && !sb.muted) expected.push({ a, b, ch: g.channel, key: `${a.name}<-${b.name}@${g.channel}` });
+      if (gb?.speak && sb?.mic !== 'denied' && sb?.mic !== 'failed' && !sb?.muted) expected.push({ a, b, ch: g.channel, key: `${a.name}<-${b.name}@${g.channel}` });
     }
   }
   const gaps: Record<string, number> = Object.fromEntries(expected.map((e) => [e.key, -1]));

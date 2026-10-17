@@ -60,7 +60,7 @@ async function validateToken(host: string, token: string): Promise<number> {
   return r ? r.status : 0;
 }
 
-test('LiveKit Cloud through the deployed app: connect, region, publish/subscribe, night, death → rotation + revocation, hidden roles', async ({ table }) => {
+test('LiveKit Cloud through the deployed app: connect, region, publish/subscribe, night, death → re-issue + revocation, hidden roles', async ({ table }) => {
   const players: Player[] = [];
   for (const n of NAMES) {
     const p = await table.player(n);

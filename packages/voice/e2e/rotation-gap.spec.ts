@@ -5,7 +5,7 @@
 // day execution (public rotates, ghost joins ghosts), defense (rotates only under the old accused-only rule).
 // Cloud budget: VOICE_CLOUD_CAP_MIN (default 15 here). Tokens never printed.
 import { expect, type Player, test } from '../../../e2e/harness/index.ts';
-import { applySceneSwitch, audioArrivalGaps, botAct, game, gapStats, grants, joinVoice, leaveAllVoice, MinuteBudget, moderatorClose, step, voiceFrames, voiceSettled, waitStepChange } from './helpers.ts';
+import { applySceneSwitch, audioArrivalGaps, botAct, game, gapStats, grants, joinVoice, leaveAllVoice, MinuteBudget, moderatorClose, step, voiceFrames, voiceSettled, voiceSnapshot, waitStepChange } from './helpers.ts';
 
 const NAMES = ['Ann', 'Bao', 'Chi', 'Dan', 'Eve', 'Fay', 'Gia'];
 const SCENE = (process.env.MOONVEIL_SCENE ?? 'off') as 'off' | 'low' | 'high';
@@ -28,11 +28,14 @@ test(`rotation gaps (${TARGET}): audio reappearance after each rotation`, async 
     results[label] = gapStats(gaps);
     console.log(`  gap ${label}: n=${results[label]!.n} never=${results[label]!.never} min=${results[label]!.min}ms median=${results[label]!.median}ms p95=${results[label]!.p95}ms max=${results[label]!.max}ms`);
   };
-  // Measure from the moment the first new session for this step arrived (max over pages = the last page told).
+  // Measure from the first new `voice` frame of this transition, polling immediately (no settle first): the gap
+  // is the time until each listener's received energy from each expected speaker starts to grow.
   const measure = async (label: string) => {
-    await voiceSettled(all, 60_000);
+    // wait only until every page has received its sessions for the new step (grants = channels), not for audio
+    for (const p of all) await expect.poll(async () => { const s = await voiceSnapshot(p); return s ? Object.keys(s.channels).sort().join() === grants(p).filter((g) => g.listen || g.speak).map((g) => g.channel).sort().join() : false; }, { timeout: 60_000 }).toBe(true);
     const since = Math.min(...all.map(lastVoiceAt));
-    record(label, await audioArrivalGaps(all, since));
+    record(label, await audioArrivalGaps(all, since, 25_000));
+    await voiceSettled(all, 60_000);
     budget.log(label);
   };
   try {
@@ -82,5 +85,4 @@ test(`rotation gaps (${TARGET}): audio reappearance after each rotation`, async 
   console.log(`rotation gaps (${TARGET}): ${JSON.stringify(results)}`);
   const never = Object.values(results).reduce((n, r) => n + r.never, 0);
   expect(never, 'every expected speaker was eventually heard within 20 s of each rotation').toBe(0);
-  void grants;
 });

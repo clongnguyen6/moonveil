@@ -50,7 +50,11 @@ Approved: Railway Trial at exactly 35151f2 + LiveKit Cloud; probes ≤ 100 parti
 
 Through the deployed app: config-only compatibility confirmed (signaling host `personal-c15mov1e.livekit.cloud`); nearest offered region Hyderabad (3,122 km), then Osaka, Tokyo; no Singapore region; revocation confirmed (old token `/rtc/validate` 401 after rotation, fresh token 200); hidden moderator/ghost rosters and token/channel checks pass; hear-matrix 0 failures in 4 of 5 windows, the defense window right after a rotation showed no audio yet from the accused (timing on Cloud, to be confirmed). Under the defense rule of 2026-10-18 (every living player speaks) that rotation no longer exists; the gateway unit test covers vote → defense → confirm with no LiveKit change. Details: `TEST_RESULTS.md`.
 
-## 5. Cloud runtime test plan (run 1 done; see 4b)
+## 4c. Rotation gaps through Cloud (2026-10-18)
+
+Measured (see `TEST_RESULTS.md`): audio returns 1.4–2.4 s (median) after a rotation through Cloud versus 0.5–0.9 s locally; p95 ≤ 2.4 s; nobody unheard. Lobby join ≈ 10 s on Cloud (3.6 s local). Judgment: no fix required for v1; rotations happen at scene transitions. Optional optimisation in voice scope if play-feel asks for it: make-before-break rotation (create the next generation and issue its sessions before closing the old room; departing seats are still removed with revocation immediately), which would hide the reconnect gap at the cost of a brief double connection for staying seats; it needs a gateway ordering change and the server to send `voice` before the old room closes. Not implemented.
+
+## 5. Cloud runtime test plan (run 1 done; see 4b, 4c)
 
 What local OSS already proves (and Cloud shares the code path for): grant→permission mapping, hidden sessions, `UpdateParticipant` publish flips, rotation mechanics, token shape, client reconnect, the full-match hear-matrix. What only a real Cloud project can show: revocation timing, `DeleteRoom` vs tokens, the auto-create toggle, error wording, region/latency from Vietnam, TURN fallback, quota behaviour.
 
