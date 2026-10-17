@@ -20,6 +20,7 @@ import { HunterPanel, NightPanel } from './screens/Night.tsx';
 import { ChatSheet, ConnOverlay, EndPanel, GhostBar, HelpSheet, RoleCardSheet, VoiceBar } from './screens/Panels.tsx';
 import { SettingsRow } from './screens/Settings.tsx';
 import { SessionContext, useSession, useSessionState } from './session-context.ts';
+import { errorText } from './errors.ts';
 import { useMic } from './voice/mic.ts';
 
 export function GameApp({ session, children }: { session: Session; children?: React.ReactNode }) {
@@ -61,6 +62,10 @@ function Root() {
   }, []);
   const { toasts, overlay, live } = useAnnouncer(view, g, t);
   const wake = useWakeLock(!!view && view.status === 'playing');
+  // Heavy-run rule: automation sets globalThis.__MOONVEIL_SCENE = 'off' (or MOONVEIL_SCENE for the scene package); the
+  // shell skips the mount entirely so no software WebGL runs. 'low' | 'high' are passed to the scene (visual-7).
+  const sceneKnob = (globalThis as { __MOONVEIL_SCENE?: string }).__MOONVEIL_SCENE;
+  const sceneOn = settings.scene && sceneKnob !== 'off';
 
   return (
     <div className="app" data-testid="app" data-phase={skin}>
@@ -71,7 +76,7 @@ function Root() {
           {view.status === 'lobby' || !g ? (
             <>
               <div className="scene-host">
-                {view.engine !== 'fixture' && settings.scene && <SceneMount s={s} topbarRef={{ current: null }} micOn={mic.status === 'ok' && !mic.muted} />}
+                {view.engine !== 'fixture' && sceneOn && <SceneMount s={s} topbarRef={{ current: null }} micOn={mic.status === 'ok' && !mic.muted} />}
               </div>
               <div className="dock">
                 {view.status === 'lobby' ? (
@@ -85,7 +90,7 @@ function Root() {
               </div>
             </>
           ) : (
-            <Match s={s} view={view} g={g} mic={mic} open={setSheet} overlay={overlay} wakeFailed={wake === 'failed' || wake === 'unsupported'} scene={settings.scene} />
+            <Match s={s} view={view} g={g} mic={mic} open={setSheet} overlay={overlay} wakeFailed={wake === 'failed' || wake === 'unsupported'} scene={sceneOn} />
           )}
         </div>
       )}
@@ -178,7 +183,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
           <ConfirmPanel view={view} g={g} speaking={s.speaking} />
         )}
         {isMod && view.phaseEndsAt !== null && <p className="center"><Timer endsAt={view.phaseEndsAt} totalMs={view.phaseDurationMs} /></p>}
-        {s.error && <p className="danger center" role="alert" data-testid="error">{s.error.message}</p>}
+        {s.error && <p className="danger center" role="alert" data-testid="error" data-code={s.error.code}>{errorText(t, s.error)}</p>}
       </div>
     </main>
   );

@@ -22,6 +22,7 @@ server.stdout.on('data', () => {});
 server.stderr.on('data', (d) => process.stderr.write(d));
 for (let i = 0; i < 100; i++) { try { if ((await fetch(`${base}/healthz`)).ok) break; } catch {} await new Promise((r) => setTimeout(r, 200)); }
 
+console.log('[scene] off');
 const browser = await chromium.launch();
 class P {
   constructor(name, ctx, page) { this.name = name; this.ctx = ctx; this.page = page; this.frames = []; page.on('websocket', (ws) => ws.on('framereceived', ({ payload }) => this.frames.push(JSON.parse(typeof payload === 'string' ? payload : payload.toString('utf8'))))); }
@@ -37,7 +38,7 @@ class P {
   async pickFirst() { const c = this.page.getByTestId('confirm'); if (!(await c.count())) return false; const b = this.page.locator('.seat-grid button[aria-pressed]:not([disabled])').first(); if (!(await b.count())) return false; await b.click(); if (!(await c.isEnabled())) return false; await c.click(); return true; }
 }
 // Scene canvas off: 15 software-rendered WebGL contexts starve the page in headless Chromium; the scene has its own checks (packages/scene).
-const mk = async (name, opts = {}) => { const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce', ...opts }); await ctx.addInitScript(() => localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'en', sound: false, reducedMotion: 'on', modNarration: false, ambience: false, scene: false }))); const page = await ctx.newPage(); return new P(name, ctx, page); };
+const mk = async (name, opts = {}) => { const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce', ...opts }); await ctx.addInitScript(() => { globalThis.__MOONVEIL_SCENE = 'off'; localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'en', sound: false, reducedMotion: 'on', modNarration: true, ambience: false, scene: false })); }); const page = await ctx.newPage(); return new P(name, ctx, page); };
 const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
 
 // ---------- automatic mode: lobby -> night 1 -> dawn/day (real timers) ----------
@@ -65,6 +66,22 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   await host.page.waitForTimeout(300);
   ok('deck: back to default', (await host.page.locator('[data-testid=deck][data-custom=false]').count()) === 1);
   ok('deck: non-host sees the deck but no controls', (await ps[1].page.locator('[data-testid=deck]').count()) === 1 && (await ps[1].page.locator('[data-testid=deck-edit]').count()) === 0);
+  // D1 QR (host only), D2 Join voice (nothing joined until the tap), D5 host voice-mode switch seen by everyone.
+  ok('D1: host lobby shows the invite QR; guest does not', (await host.page.locator('[data-testid=qr] svg path').count()) === 1 && (await ps[1].page.locator('[data-testid=qr]').count()) === 0);
+  ok('D2: remote room starts not joined (Join voice offered, no mic prompt)', (await ps[1].page.locator('[data-testid=mic][data-status=notJoined] [data-testid=voice-join]').count()) === 1 && ps[1].view().voiceMode === 'remote');
+  await ps[1].page.getByTestId('voice-join').click();
+  await ps[1].page.waitForTimeout(400);
+  ok('D2: Join voice flips the client state (voiceJoined) and shows Leave voice', (await ps[1].page.evaluate(() => globalThis.__moonveil.getState().voiceJoined === true)) && (await ps[1].page.getByTestId('voice-leave').count()) === 1);
+  await ps[1].page.getByTestId('voice-leave').click();
+  await ps[1].page.waitForTimeout(300);
+  ok('D2: Leave voice returns to not joined', (await ps[1].page.locator('[data-testid=mic][data-status=notJoined]').count()) === 1);
+  ok('D5: host sees the voice-mode switch; guest does not', (await host.page.locator('[data-testid=voice-mode-inperson]').count()) === 1 && (await ps[1].page.locator('[data-testid=voice-mode]').count()) === 0);
+  await host.page.getByTestId('voice-mode-inperson').click();
+  await ps[1].page.waitForTimeout(500);
+  ok('D5: every seat follows the server to in person (guest mic card says in person, no Join voice)', ps[1].view().voiceMode === 'inPerson' && (await ps[1].page.locator('[data-testid=mic][data-status=inPerson]').count()) === 1 && (await ps[1].page.locator('[data-testid=voice-join]').count()) === 0);
+  await host.page.getByTestId('voice-mode-remote').click();
+  await ps[1].page.waitForTimeout(500);
+  ok('D5: back to remote restores Join voice for the guest', ps[1].view().voiceMode === 'remote' && (await ps[1].page.locator('[data-testid=voice-join]').count()) === 1);
   for (const p of ps) await p.ready();
   await ps[0].page.getByTestId('start').click();
   for (const p of ps) await p.waitStep('night.main', 15_000);
@@ -178,6 +195,7 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   await mod.page.getByTestId('start').click();
   await mod.page.waitForSelector('[data-testid=mod-console]', { timeout: 15_000 });
   ok('moderator: console rendered, no timer', (await mod.page.locator('[data-testid=timer]').count()) === 0);
+  ok('D6: narration cue shown by default (approved N1 line + M1 cue)', /Night 1\. Everyone close your eyes\./.test(await mod.page.getByTestId('mod-say').innerText()) && /Close this step/.test(await mod.page.getByTestId('mod-cue').innerText()));
   ok('moderator: cannot speak (grant-driven: no chat input)', true); // asserted below when chat opens
   await mod.page.getByTestId('open-chat').click();
   ok('moderator: chat is listen-only', (await mod.page.locator('[data-testid=chat-listen-only]').count()) === 1 && (await mod.page.locator('[data-testid=chat-input]').count()) === 0);

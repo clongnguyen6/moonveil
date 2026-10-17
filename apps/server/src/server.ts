@@ -24,6 +24,8 @@ export interface ServerOptions extends RegistryOptions {
   heartbeatMs?: number;
   // LAN base URLs players can reach (empty when bound to loopback). Served at GET /api/lan.
   lanUrls?: () => string[];
+  // GET /api/status body (main.ts: revision, uptime, persistence type, voice configured). No secrets.
+  status?: () => Record<string, unknown>;
   // Origins allowed on /ws in addition to same-origin (deploy.ts allowedOrigins). Exact URL.origin match.
   allowedOrigins?: readonly string[];
 }
@@ -49,6 +51,12 @@ export function createMoonveilServer(opts: ServerOptions): { http: Server; regis
     const url = new URL(req.url ?? '/', 'http://x');
     if (url.pathname === '/healthz') {
       res.writeHead(200, { 'content-type': 'text/plain' }).end('ok');
+      return;
+    }
+    if (url.pathname === '/api/status' && req.method === 'GET') {
+      res
+        .writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' })
+        .end(JSON.stringify(opts.status?.() ?? {}));
       return;
     }
     if (url.pathname === '/api/lan' && req.method === 'GET') {

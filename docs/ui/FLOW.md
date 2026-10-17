@@ -80,6 +80,9 @@ Fixes it drove: `--fs-0` 0.85rem, 24 px checkboxes with 44 px label rows, 44 px 
 ## Polish (theme layer only)
 Dock panel re-enters on every step instance (keyed by step/night/day); announcements fade in and out; timer pulses under 10 s; picked chip pops; confirm turns into a green "Chosen" state with a ✓ status line; haptic tick on confirms (`navigator.vibrate` where available); all motion off under reduced motion. Microcopy: "Chosen. You can still change it until dawn.", "You have not voted yet", consistent night copy in vi/en.
 
+## Scene and the heavy-run rule
+Any browser automation that renders the scene is heavy (software WebGL ≈ 8 cores per page) and needs the lock. The shell honours `globalThis.__MOONVEIL_SCENE = 'off'` (set by every check's init script) and skips the mount; `low` / `high` pass through to the scene. Stub checks run scene-off by default (`SCENE=on` only under the lock); layout and real-server checks are always scene-off; captures are scene-on and need the lock. Each run prints `[scene] …`.
+
 ## Checks (this branch)
 - `node scripts/env.mjs node apps/web/src/ui/dev/check.mjs` (vite on 4401): 30 interaction checks on the stub in Chromium headless shell: night submit/change, panel uniformity, seer result, witch heal, own-ballot-only votes, confirm→close, Hunter lock, ghost/living chat isolation in the DOM, chat send, reconnect overlay, role card hidden-until-tap, moderator close step + Yes count, full automatic match with bots to `ended`, no page errors.
 - `apps/web/src/ui/dev/capture.mjs`: screenshots (phone 390×844 @2x, landscape 844×390, laptop 1440×900; WebKit iPhone 13 emulation for three). All browser emulation.

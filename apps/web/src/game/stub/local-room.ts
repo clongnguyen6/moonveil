@@ -173,6 +173,12 @@ export class LocalRoom implements Session {
           this.chat.push({ channel: msg.channel as ChannelId, msg: { id: Math.random().toString(36).slice(2), from: me.id, name: me.name, text: String(msg.text).slice(0, 500), at: Date.now() } });
           break;
         }
+        case 'voiceMode': {
+          if (this.status !== 'lobby' || me.id !== this.hostId) throw new Error('host, lobby only');
+          this.voiceMode = msg.voiceMode;
+          if (msg.voiceMode === 'inPerson') this.voiceJoined = false; // remote -> in-person drops voice for everyone
+          break;
+        }
         case 'leave':
           this.leave();
           return true;
@@ -192,6 +198,15 @@ export class LocalRoom implements Session {
     this.emit();
   }
   restarting = false;
+  voiceJoined = false;
+  voiceJoin() {
+    if (this.voiceMode === 'remote') this.voiceJoined = true;
+    this.emit();
+  }
+  voiceLeave() {
+    this.voiceJoined = false;
+    this.emit();
+  }
   simulateReconnect(ms = 1800, opts: { restart?: boolean } = {}) {
     this.conn = 'reconnecting';
     this.restarting = !!opts.restart;
@@ -343,6 +358,7 @@ export class LocalRoom implements Session {
       poses: [],
       voiceMode: this.voiceMode,
       serverRestart: this.conn === 'reconnecting' && this.restarting,
+      voiceJoined: this.voiceJoined && this.voiceMode === 'remote',
     };
   }
 }

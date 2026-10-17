@@ -16,7 +16,7 @@ import {
   type VoiceSession,
   WS_PATH,
 } from '@moonveil/protocol';
-import type { VoiceClient } from '@moonveil/voice/client';
+import type { VoiceClient, VoiceClientOptions } from '@moonveil/voice/client';
 
 export type ConnStatus = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'replaced' | 'ended';
 
@@ -40,6 +40,9 @@ export interface ClientState {
   // or the watchdog dropped a silent link. Failed reconnect attempts don't change it; cleared by the next welcome.
   // A crash gives no notice, so `reconnecting` with any other value must also work.
   lastCloseCode: number | null;
+  // D2 (UI P16): true after joinVoice() until leaveVoice() or leaving the room. Nothing connects to voice and the
+  // microphone is never requested before joinVoice(), which the UI calls from the "Join voice" tap. Never auto-joined.
+  voiceJoined: boolean;
 }
 
 type Intent =
@@ -79,9 +82,10 @@ const BACKOFF = [250, 500, 1000, 2000, 4000];
 const WATCHDOG_MS = HEARTBEAT_MS * 2.5;
 
 export class Client {
-  state: ClientState = { status: 'idle', code: null, view: null, error: null, chat: {}, speaking: [], voiceMode: 'remote', serverOffsetMs: 0, voiceSessions: [], lastCloseCode: null };
-  // LiveKit voice client (@moonveil/voice), created on the first non-empty `voice` message (lazy import: in-person
-  // and text-only sessions never load livekit-client). UI: unlockAudio() from a tap, setMuted(), subscribe/getSnapshot.
+  state: ClientState = { status: 'idle', code: null, view: null, error: null, chat: {}, speaking: [], voiceMode: 'remote', serverOffsetMs: 0, voiceSessions: [], lastCloseCode: null, voiceJoined: false };
+  // LiveKit voice client (@moonveil/voice), created on the first non-empty `voice` message or joinVoice() (lazy import:
+  // in-person and text-only sessions never load livekit-client). It holds sessions until joinVoice() (D2).
+  // UI: joinVoice()/leaveVoice() from taps, unlockAudio(), setMuted(), subscribe/getSnapshot.
   // Also reachable as globalThis.__moonveil.voice for e2e.
   voice: VoiceClient | null = null;
   private voiceApply: Promise<void> = Promise.resolve();
@@ -95,8 +99,12 @@ export class Client {
   private listeners = new Set<() => void>();
   private url: string;
 
-  constructor(url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${WS_PATH}`) {
+  private voiceOpts: VoiceClientOptions;
+
+  // voiceOpts: passed to the lazily created VoiceClient (tests inject a fake room; the app passes nothing).
+  constructor(url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${WS_PATH}`, voiceOpts: VoiceClientOptions = {}) {
     this.url = url;
+    this.voiceOpts = voiceOpts;
     // Debug/e2e handle (owned here so it survives UI changes). Holds only this seat's own data.
     (globalThis as { __moonveil?: Client }).__moonveil ??= this;
     // A socket may look open after a network change or a frozen tab; don't trust it.
@@ -216,19 +224,45 @@ export class Client {
     };
   }
 
-  // Serialized so sessions are applied in arrival order (each message replaces all sessions).
+  // D2: connect the held sessions and request the mic (VoiceClient.join). Call from a user gesture. Idempotent.
+  joinVoice(): Promise<void> {
+    this.set({ voiceJoined: true });
+    return this.voiceChain(async () => {
+      await (await this.ensureVoice()).join();
+    });
+  }
+
+  // D2: disconnect every voice channel and release the mic; sessions keep arriving and are held for a later join.
+  leaveVoice(): Promise<void> {
+    this.set({ voiceJoined: false });
+    return this.voiceChain(async () => {
+      await this.voice?.leave();
+    });
+  }
+
+  private async ensureVoice(): Promise<VoiceClient> {
+    if (!this.voice) {
+      const { VoiceClient } = await import('@moonveil/voice/client');
+      this.voice = new VoiceClient(this.voiceOpts);
+      await this.voice.applySessions(this.state.voiceSessions);
+      this.set({});
+    }
+    return this.voice;
+  }
+
+  // Serialized so sessions, join and leave apply in order.
+  private voiceChain(fn: () => Promise<void>): Promise<void> {
+    this.voiceApply = this.voiceApply.then(fn).catch((e) => console.error('voice:', e));
+    return this.voiceApply;
+  }
+
+  // Each `voice` message replaces all sessions. VoiceClient holds them until join (D2); text-only rooms with no
+  // sessions never load livekit-client.
   private applyVoice(sessions: VoiceSession[]) {
-    this.voiceApply = this.voiceApply
-      .then(async () => {
-        if (!this.voice && sessions.length === 0) return;
-        if (!this.voice) {
-          const { VoiceClient } = await import('@moonveil/voice/client');
-          this.voice = new VoiceClient();
-          this.set({});
-        }
-        await this.voice.applySessions(sessions);
-      })
-      .catch((e) => console.error('voice:', e));
+    void this.voiceChain(async () => {
+      if (!this.voice && sessions.length === 0) return;
+      await (await this.ensureVoice()).applySessions(sessions);
+    });
   }
 
   // Watchdog: a frozen/half-open socket shows no close event; server sends `hb` every HEARTBEAT_MS.
@@ -291,6 +325,7 @@ export class Client {
           this.intent = null;
           this.set({ status: 'ended', view: null, voiceSessions: [] });
           this.applyVoice([]);
+          if (this.state.voiceJoined) void this.leaveVoice();
         }
         return;
       case 'hb':

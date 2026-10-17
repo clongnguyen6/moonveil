@@ -14,7 +14,7 @@ visual changes. Text is localized (vi/en) and must not be asserted on. Everythin
 | `[data-testid=room][data-status=lobby\|playing\|ended][data-kind=player\|moderator][data-step=<step.kind>][data-wake=on\|off\|failed\|unsupported]` | frame | room state (present in lobby and match) |
 | `[data-testid=conn][data-status=open\|connecting\|reconnecting\|replaced\|ended]` | one element | connection; `open` = chip, others = overlay |
 | `[data-testid=you]` | lobby header / match top bar | this seat's display name (moderator shows the moderator name) |
-| `[data-testid=error]` | entry/lobby/match | last server error text |
+| `[data-testid=error][data-code=<server error code>]` | entry/lobby/match | last server error; assert on `data-code`, the text is localized copy |
 | `[data-testid=scene-slot]` | scene host | canvas mount (absent when Settings → scene is off) |
 | `localStorage['moonveil.ui.settings']` | init script | `{ lang, sound, reducedMotion, modNarration, ambience, scene }`; set `scene:false, sound:false, reducedMotion:'on'` for many-context runs |
 

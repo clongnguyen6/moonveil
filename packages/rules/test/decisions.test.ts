@@ -146,14 +146,13 @@ describe('APPROVED night timing: fixed 60 s, never early', () => {
     const b = stepTiming(w);
     return { total: a.seconds + b.seconds, early: a.earlyCloseReady || b.earlyCloseReady };
   };
-  it('identical across role and death combinations, and with the provisional split changed', () => {
+  it('identical across role and death combinations', () => {
     const cases: [string, MatchState][] = [
       ['default 7', match()],
       ['6-player preset, no Witch in deck', match(['wolf', 'wolf', 'seer', 'guard', 'hunter', 'villager'])],
       ['Witch dead', day(night(match(), { bite: 4 }), 'skip')],
       ['heal spent', day(night(match(), { bite: 6, heal: true }), 'skip')],
       ['Seer and Guard dead', day(night(match(), { bite: 2, poison: 3 }), 'skip')],
-      ['split 30/30', match(undefined, { timing: { nightMain: 30 } })],
     ];
     for (const [name, s] of cases) assert.deepEqual(nightSeconds(s), { total: 60, early: false }, name);
   });
@@ -226,9 +225,10 @@ describe('APPROVED Q25 channel grants (engine side)', () => {
     assert.deepEqual(at(s).villager, [PUB_TALK]);
     for (const v of [1, 2, 3]) s = ok(s, S(v), { type: 'vote.nominate', seat: v, target: 7 });
     s = close(s); // day.defense, accused 7
+    // 2026-10-18: every living seat speaks during defense (supersedes accused-only).
     assert.deepEqual(g(s, { kind: 'seat', seat: 7 }), [PUB_TALK], 'accused speaks');
-    assert.deepEqual(g(s, { kind: 'seat', seat: 9 }), [PUB_LISTEN], 'non-accused listens');
-    assert.deepEqual(g(s, { kind: 'seat', seat: 1 }), [PUB_LISTEN], 'living wolf listens, no wolf channel by day');
+    assert.deepEqual(g(s, { kind: 'seat', seat: 9 }), [PUB_TALK], 'non-accused speaks');
+    assert.deepEqual(g(s, { kind: 'seat', seat: 1 }), [PUB_TALK], 'living wolf speaks in public, no wolf channel by day');
     assert.deepEqual(at(s).ghost, [PUB_LISTEN, GHOSTS]);
     s = close(s); // day.confirm
     assert.deepEqual(at(s).villager, [PUB_TALK]);

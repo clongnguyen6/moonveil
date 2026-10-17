@@ -1,6 +1,23 @@
 // Isolated rule policies: one decision per function. Approved ones are fixed; provisional ones are selected by config.
 // Pure: no state mutation, no IO.
-import { DEFAULT_DECKS, DEFENSE_SECONDS, type DeckCounts, MAX_PER_SPECIAL_ROLE, NIGHT_TOTAL_SECONDS, PLAYERS_MAX, PLAYERS_MIN, type RulesConfig } from './config.ts';
+import {
+  CONFIRM_SECONDS,
+  DEFAULT_DECKS,
+  DEFENSE_SECONDS,
+  DISCUSSION_BASE_SECONDS,
+  DISCUSSION_MAX_SECONDS,
+  DISCUSSION_MIN_SECONDS,
+  DISCUSSION_PER_ALIVE_SECONDS,
+  type DeckCounts,
+  HUNTER_SECONDS,
+  MAX_PER_SPECIAL_ROLE,
+  NIGHT_MAIN_SECONDS,
+  NIGHT_TOTAL_SECONDS,
+  PLAYERS_MAX,
+  PLAYERS_MIN,
+  type RulesConfig,
+  VOTE_SECONDS,
+} from './config.ts';
 import { nextInt } from './rng.ts';
 import type { DeathCause, MatchState, Outcome, Pick, Role, Seat, SeatState } from './types.ts';
 import { ROLES } from './types.ts';
@@ -149,39 +166,36 @@ export function validateDeck(deck: DeckCounts, playerCount: number, config: Rule
 export type TimedStep = MatchState['step']['kind'];
 
 /**
- * Step duration for the automatic orchestrator, and whether the server may close early.
- * APPROVED: night = NIGHT_TOTAL_SECONDS in total, never early; votes run to their deadline; defense = DEFENSE_SECONDS.
- * Provisional (Q11-split/Q19): the main/Witch split and the other durations. The Hunter step may close once all shots are in.
+ * Step duration for the automatic orchestrator, and whether the server may close early. All APPROVED, not config:
+ * night = NIGHT_TOTAL_SECONDS (main + Witch), never early; votes run to their deadline; defense = DEFENSE_SECONDS;
+ * Batch B (2026-10-17) durations; the Hunter step may close once every pending Hunter has shot or held fire.
  */
 export function stepTiming(state: MatchState): { seconds: number; earlyCloseReady: boolean } {
-  const t = state.config.timing;
   const step = state.step;
-  const alive = state.seats.filter((s) => s.alive);
   switch (step.kind) {
     case 'night.main':
-      return { seconds: nightMainSeconds(t.nightMain), earlyCloseReady: false };
+      return { seconds: NIGHT_MAIN_SECONDS, earlyCloseReady: false };
     case 'night.witch':
-      return { seconds: NIGHT_TOTAL_SECONDS - nightMainSeconds(t.nightMain), earlyCloseReady: false };
-    case 'day.discussion': {
-      const raw = t.discussionBase + t.discussionPerAlive * alive.length;
-      return { seconds: Math.min(t.discussionMax, Math.max(t.discussionMin, raw)), earlyCloseReady: false };
-    }
+      return { seconds: NIGHT_TOTAL_SECONDS - NIGHT_MAIN_SECONDS, earlyCloseReady: false };
+    case 'day.discussion':
+      return { seconds: discussionSeconds(state.seats.filter((s) => s.alive).length), earlyCloseReady: false };
     case 'day.vote':
-      return { seconds: t.vote, earlyCloseReady: false };
+      return { seconds: VOTE_SECONDS, earlyCloseReady: false };
     case 'day.defense':
       return { seconds: DEFENSE_SECONDS, earlyCloseReady: false };
     case 'day.confirm':
-      return { seconds: t.confirm, earlyCloseReady: false };
+      return { seconds: CONFIRM_SECONDS, earlyCloseReady: false };
     case 'hunter':
-      return { seconds: t.hunter, earlyCloseReady: step.pending.every((s) => step.shots[s] !== null) };
+      return { seconds: HUNTER_SECONDS, earlyCloseReady: step.pending.every((s) => step.shots[s] !== null) };
     case 'ended':
       return { seconds: 0, earlyCloseReady: false };
   }
 }
 
-/** Clamp the provisional split so both night steps always exist and the approved total holds. */
-function nightMainSeconds(main: number): number {
-  return Math.min(NIGHT_TOTAL_SECONDS - 1, Math.max(1, Math.round(main)));
+/** APPROVED B2: 60 s + 15 s per living player, clamped to 90..240 s. */
+export function discussionSeconds(living: number): number {
+  const raw = DISCUSSION_BASE_SECONDS + DISCUSSION_PER_ALIVE_SECONDS * living;
+  return Math.min(DISCUSSION_MAX_SECONDS, Math.max(DISCUSSION_MIN_SECONDS, raw));
 }
 
 /** True when every living night actor has submitted for the current night step. */

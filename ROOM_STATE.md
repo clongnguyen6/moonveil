@@ -72,7 +72,33 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Heavy-run lock covers any browser automation that renders the scene (stub checks included); scene off otherwise. Acceptance runs use one scene observer at 4 fps reduced motion = test mitigation, not product performance evidence.
 - Paseo installed source reference: /Users/long/repo/agent-workflow/paseo-v0.11.2/ (read-only).
 
+## Deploy candidate (2026-10-17)
+- **35151f2** (dev). Owner full acceptance on exact SHA (Lead read summary, all rc=0): check (rules 206, scene 28, voice 53, server 100, e2e 13); matches x10 10/10, voice matches x10 10/10 (token/channel, scene off, explicit join); strict UI 16/16 on new screens (laptop 7–10 both modes, Pixel 7 + iPhone 15 emulation 7 seats), 0 misses/skips, reload + network drop per match. Measured audio (voice owner, identical voice code, scene off): 2,917 pair-channel checks, 0 fails.
+- Limitations: 4 fps single scene observer = test mitigation, not perf evidence; emulation only (no real devices/players/mics); LiveKit Cloud untested (local OSS); Railway facts verified only post-deploy (§7a); restarts interrupt; cost/bandwidth estimates; bot balance.
+- Gates (0010 §9) sent to Human: Batch B; Batch C (moderated only); voice (Cloud probes+credentials) or explicit voice-off; deploy approval Railway Trial at 35151f2 (dev vs main?); hosting trust ack.
+- Merges since 36bdafd: rules-13 2ea3952 (narration statuses), visual-7 24f4ae8 (scene quality/pause), game-ui 56dd4ed, visual-8 758c44a + visual-9 d3fa535 (labels), voice ce2dadc (join/leave, publish-hang fix, revoke-before-delete, CLOUD.md), foundation-10 8d6c7d9 (D2/D5, 1012 notice, lastCloseCode, scene knob, strict skip-fail), game-ui 84795d0 (D1–D6), foundation-11 35151f2 (gates §9, P18). Evidence in owners' reports/.cache/runs.
+- Unmerged by design: visual-6 (mature scene redo), game-ui-art (UI restyle).
+
+## Approved 2026-10-17 (Human "Ok" to deploy-trial-with-voice package)
+- Deploy Railway Trial from dev at exact 35151f2 (service tracks branch `deploy-trial` pinned to 35151f2). No main merge, no paid upgrade/spend.
+- Batch B as recommended (night 40+20; discussion 60+15/living clamped 90–240 s; nomination 30; defense 30; Yes/No 15; Hunter 20, ends on shot).
+- Automatic-mode playtest first; Batch C pending.
+- LiveKit Cloud probes < 100 free participant-minutes total; secrets entered by Human only in Railway dashboard (never chat/git/logs).
+- Hosting trust accepted.
+- Trial type (Full vs Limited) unknown: verify via outbound probe; if Limited, stop and report, never upgrade.
+- Not deployed until a real URL + post-deploy evidence exist.
+- Status: deploy-trial = 35151f2 (verified). Dashboard steps (0010 §7b, foundation-12) sent to Human via Supervisor. Post-deploy script dry-run passed locally (restart 1012 ~4.5 s, kill 1006 ~8.5 s, same seats). Voice Cloud check ready (~45 p-min, cap 60). Waiting for Human's dashboard steps + domain.
+- Batch B made fixed in engine (rules-14 ad2429f, merged to dev); 35151f2 already runs identical defaults.
+- Outside writes (rules, 2026-10-17): /tmp/moonveil-unused (created+deleted ~21:58), /tmp/.none (471 B, 22:01, left in place). No cleanup authorized.
+
+## Decisions 2026-10-18 (Human)
+- Direction: finish the game; deploy considered OK for now. Not acceptance of unverified Cloud audio / Railway persistence; no blanket future deploy/main merge.
+- Rule change: during the 30 s defense ALL living players may speak publicly (accused keeps focus/timer; no PTT queue). Supersedes accused-only defense speech. Ghost/public separation, Hunter pending isolation, moderator powers unchanged.
+- Settings UX: users find Settings confusing → game-UI audit + reversible clarity fixes within original style (personal vs room/host controls, plain labels, grouping, advanced collapsed).
+- Live status: railway.app URL verified reachable/UI/idle 76 min/voice reach; persistence restart/redeploy untested live (retry script ready, on hold); www.moonveil.id.vn TLS ok but origin switch NOT applied (server 403s www origin); voice Cloud measured check running 00:17.
+
 ## Lead message queue (deliver at owner's next turn end)
+- voice (after Cloud run): update defense assertions (all living speak publicly) after rules merge.
 - (cleared)
 
 ## Approved rules (Human, 2026-10-16) — rules owner records in docs/rules/PROPOSAL.md

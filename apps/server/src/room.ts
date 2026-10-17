@@ -92,6 +92,9 @@ export interface RoomDeps<S> {
   now: () => number;
   seed: (ctx: { hostName: string; players: number }) => string;
   store?: RoomStore;
+  // Room event lines for playtest diagnosis (room code, mode, counts, public outcome only; never names, roles,
+  // tokens or chat). Registry passes a no-op unless the server wires console.log.
+  log: (line: string) => void;
 }
 
 type StoredSeat = Omit<Seat, 'conn'>;
@@ -112,9 +115,11 @@ interface StoredRoom {
 export class Room<S = unknown> {
   readonly code: string;
   readonly mode: Mode;
-  readonly voiceMode: VoiceMode;
+  voiceMode: VoiceMode;
   status: 'lobby' | 'playing' | 'ended' = 'lobby';
   closed = false;
+  // Resumes per seat since this process started (volatile; for the event log only).
+  private reconnects = new Map<SeatId, number>();
   lastActive: number;
 
   private players: Seat[] = [];
@@ -200,6 +205,7 @@ export class Room<S = unknown> {
   // Binds a connection to a seat. A newer connection replaces an older one (reload, second tab).
   attach(seat: Seat, conn: Conn, issueToken: boolean) {
     const old = seat.conn;
+    if (!issueToken) this.reconnects.set(seat.id, (this.reconnects.get(seat.id) ?? 0) + 1);
     seat.conn = conn;
     if (old && old !== conn) {
       this.outbox.delete(old);
@@ -234,6 +240,10 @@ export class Room<S = unknown> {
 
   isAttached(seatId: SeatId, conn: Conn): boolean {
     return this.allSeats().some((s) => s.id === seatId && s.conn === conn);
+  }
+
+  seatCount(): number {
+    return this.players.length;
   }
 
   hasConnections(): boolean {
@@ -291,6 +301,11 @@ export class Room<S = unknown> {
         this.customDeck = msg.counts;
         break;
       }
+      case 'voiceMode':
+        // D5: flush() re-syncs voice grants ([] for every seat when inPerson), so sessions close or return.
+        if (this.status !== 'lobby' || seat.id !== this.hostId) throw new RoomError('not-allowed', 'host, lobby only');
+        this.voiceMode = msg.voiceMode;
+        break;
       case 'say':
         this.say(seat, msg.channel, msg.text);
         return;
@@ -325,6 +340,7 @@ export class Room<S = unknown> {
       ...(this.customDeck ? { deck: this.customDeck } : {}),
     });
     this.status = 'playing';
+    this.deps.log(`room ${this.code} started mode=${this.mode} seats=${this.players.length} voice=${this.voiceMode}`);
     // Lobby positions end with the lobby; during play only ghosts move.
     this.poses.clear();
     this.afterChange();
@@ -347,7 +363,12 @@ export class Room<S = unknown> {
       this.game = this.players.some((p) => p.conn !== null) ? eng.resume(this.game, now) : eng.pause(this.game, now);
     }
     const ph = eng.phase(this.game);
-    if (ph.ended) this.status = 'ended';
+    if (ph.ended && this.status !== 'ended') {
+      this.status = 'ended';
+      // Public end facts only, read from a player's own view (outcome and day are public once the match ends).
+      const v = (this.players[0] ? eng.view(this.game, this.viewerOf(this.players[0])) : null) as { outcome?: { winner?: string; reason?: string } | null; day?: number } | null;
+      this.deps.log(`room ${this.code} ended outcome=${v?.outcome?.winner ?? '?'}/${v?.outcome?.reason ?? '?'} day=${v?.day ?? '?'} reconnects=${this.reconnectList()}`);
+    }
     this.scheduleEarlyClose(ph);
     this.scheduleWake();
   }
@@ -505,7 +526,7 @@ export class Room<S = unknown> {
     if (this.status === 'playing') throw new RoomError('not-allowed', 'cannot leave a running game');
     const conn = seat.conn;
     if (seat.kind === 'moderator') {
-      this.close();
+      this.close('moderator-left');
       return;
     }
     this.players = this.players.filter((p) => p !== seat);
@@ -520,7 +541,7 @@ export class Room<S = unknown> {
     if (seat.id === this.hostId) {
       const next = this.players[0];
       if (!next) {
-        this.close();
+        this.close('empty');
         return;
       }
       this.hostId = next.id;
@@ -529,9 +550,16 @@ export class Room<S = unknown> {
     this.flush();
   }
 
-  close() {
+  // Resumes per seat in seat order (players, then `mod=` for the moderator). Counts only, no identities.
+  private reconnectList(): string {
+    const n = (s: Seat) => this.reconnects.get(s.id) ?? 0;
+    return this.players.map(n).join(',') + (this.moderator ? ` mod=${n(this.moderator)}` : '');
+  }
+
+  close(reason = 'closed') {
     if (this.closed) return;
     this.closed = true;
+    this.deps.log(`room ${this.code} closed reason=${reason} status=${this.status} reconnects=${this.reconnectList()}`);
     if (this.timer !== null) this.deps.scheduler.clear(this.timer);
     if (this.earlyTimer !== null) this.deps.scheduler.clear(this.earlyTimer);
     if (this.poseTimer !== null) this.deps.scheduler.clear(this.poseTimer);

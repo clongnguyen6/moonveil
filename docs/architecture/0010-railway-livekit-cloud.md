@@ -128,6 +128,118 @@ In `deploy/railway.ts` (IaC draft), or set by hand in the dashboard with the sam
   - [ ] **Voice reachability** (after step 8): sessions issued per seat, audio both ways, wolves-only at night.
   - [ ] Usage before and after the session recorded (§6).
 
+### 7a. Appendix (draft): checks after a deploy, in the Railway dashboard
+For the person holding the Railway account; no programming needed. Do the parts in order. **If any check says STOP:** do nothing further, take a screenshot, and send it with the part number. Never upgrade, add a card or switch hosts to get past a STOP. Dashboard wording that Railway's docs don't confirm is marked *(label unverified)*; if the screen differs, look for the closest match or STOP and ask.
+
+**A. Before anything: trial type and time left**
+1. Open railway.com and sign in. Look at your account or workspace plan *(label unverified)*.
+2. It must say **Trial** and must **not** say "Limited" anywhere (for example "Limited Trial" or "Limited access"). Railway's docs don't say where this is shown; railway.com/verify is the documented route from Limited to Full.
+   - STOP if you see "Limited", or if a payment or upgrade screen appears.
+3. Note the credit left and the days left.
+   - STOP if under $1 or under 5 days.
+
+**B. Service settings** (open the project, click the **moonveil** service, then its **Settings**)
+1. **Region:** Southeast Asia (Singapore).
+2. **Replicas:** 1 *(label unverified)*. Never more.
+3. **Serverless:** Settings → Deploy → Serverless. It must be **off**. If it's on, switch it off.
+4. **Public domain:** generate a Railway domain *(Networking section; label unverified)*. Write it down. It looks like `something.up.railway.app`.
+
+**C. Variables** (service → **Variables** *(label unverified)*; add each name with exactly this value)
+
+| Name | Value |
+|---|---|
+| `RAILPACK_NODE_VERSION` | `24.20.0` |
+| `RAILPACK_NODE_NPM_INSTALL` | `npm ci --include=dev` |
+| `RAILWAY_DEPLOYMENT_DRAINING_SECONDS` | `5` |
+| `HOST` | `0.0.0.0` |
+| `MOONVEIL_ENGINE` | `rules` |
+| `MOONVEIL_DATA_DIR` | `/data/rooms` |
+| `MOONVEIL_PUBLIC_ORIGIN` | `https://${{RAILWAY_PUBLIC_DOMAIN}}`, typed exactly, braces included |
+
+- **Do not add** any name starting with `MOONVEIL_TEST`, `E2E_` or `MOONVEIL_PERSIST`, and not `MOONVEIL_FIXTURE_MS`.
+- **Voice, only after LiveKit is approved:** `LIVEKIT_URL`, `LIVEKIT_PUBLIC_WS`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`. Mark the last two as **sealed** (Railway hides sealed values for good). Add all four or none. Never paste these values into chat, issues or the repo.
+
+**D. Volume**
+1. Add a volume to the moonveil service *(how: label unverified; Railway's docs describe it, and the CLI form is `railway volume add --mount-path /data`)*.
+2. **Mount path:** `/data`. **Size:** the smallest offered, at most 0.5 GB (the Trial limit).
+   - STOP if it asks for a plan upgrade.
+
+**E. Deploy and read the first log line**
+1. Deploy the revision named in the deploy request (Lead provides it).
+2. Open the deployment's **logs**. Within a minute or two you should see one line starting `moonveil server`. It must contain all of these:
+   - `engine=rules`
+   - `voice=off` (or `voice=wss://…` once voice is set up)
+   - `persist=/data/rooms`
+   - `restoredRooms=0` on the very first deploy
+   - STOP if the deploy fails, if the line never appears, or if it shows `persist=off` or another path.
+   - STOP if you see `EACCES` or `permission denied`: report it; the likely fix, `RAILWAY_RUN_UID=0`, is decided by us, not tried blind.
+3. Open `https://<your domain>/healthz` in a browser. It must show `ok`. STOP otherwise.
+
+**F. Game page and connection**
+1. Open `https://<your domain>` on a laptop and on a phone. Both show the start screen.
+2. Laptop: enter a name, then **Create & play**. A small **Connected** label appears. STOP if it keeps showing "Reconnecting…".
+3. Phone: open the invite link the laptop shows. It must start with `https://<your domain>/r/`. Join with another name; both see each other in the lobby.
+4. **Idle test:** leave both on the lobby for **20 minutes** without touching them (screens on). Afterwards both still show Connected, and no "Reconnecting…" screen has appeared. If one did, write down roughly when and STOP.
+
+**G. Restart check (rooms survive on the volume)**
+1. Keep the lobby from F open on both devices. Each player taps **Ready**.
+2. In the dashboard, restart the service: the deployment's **⋮** menu → **Restart** *(label unverified)*.
+3. On both devices a "Reconnecting…" screen appears, then within about a minute both are back in **the same lobby**, with the same names and ready marks. STOP if either lands on the start screen or sees "room not found".
+4. In the logs, the new `moonveil server` line shows `restoredRooms=1` (or more).
+5. Repeat steps 2–4 with **Redeploy** instead of Restart (same menu). Expect a slightly longer gap.
+6. Mid-match version (needs at least 7 players, so do it at the first real playtest only if everyone agrees): restart during a day phase. Everyone returns to the same seat and role, and the timer continues from where it paused.
+
+**H. Voice reachability** (only after LiveKit is approved and the four `LIVEKIT_` variables are set)
+1. Redeploy. The `moonveil server` line now shows `voice=wss://…`.
+2. Create a room with the laptop and a phone, allow the microphone, and speak: each hears the other in the lobby.
+3. In the logs, look for lines starting with `voice ` that mention `fetch failed`, `ETIMEDOUT`, `ECONNREFUSED` or `ENOTFOUND`. If any appear, the service can't reach LiveKit Cloud (this is what a Limited Trial would cause): **STOP**.
+
+**I. Usage page** (before and after every session, and once after an idle day)
+1. Open your workspace settings → **Usage**.
+2. Write down the date and time, the total used so far, and the moonveil project's CPU, memory, network (egress) and volume figures. The CLI `railway usage projects --project moonveil` shows the same.
+3. Send the numbers after each session.
+   - STOP if credit left drops under $1 or under 5 days remain. Stop the service between sessions (remove its active deployment; *label unverified*); don't upgrade. We then present the measured usage and the options.
+
 ## 8. Open items
 - **LiveKit Cloud compatibility and testing plan:** voice owner (link pending, as in 0009 §5). LiveKit Cloud probes and credentials remain unapproved.
 - **Decisions for Human:** IaC (`railway` npm package, a deploy-time step) vs. dashboard-only settings; deploy approval with the package above.
+
+## 9. Playtest-readiness gates (draft, 2026-10-17)
+A playtest runs only when every gate in G1–G4 is **met** or explicitly waived by the decision-maker. Status is as of 2026-10-17 from the repo and `ROOM_STATE.md`; "open" means not met.
+
+### G1. Deploy revision
+| Gate | Status | Evidence / owner |
+|---|---|---|
+| G1.1 One exact `dev` revision is named for deploy | open: Lead names it in the deploy presentation | Lead |
+| G1.2 That exact revision passed the full acceptance sequence under the lock (`npm ci`, `check`, matches ×10, matches with voice ×10, strict UI) | met for the current `dev` head; any later `dev` change needs a new run before deploy | foundation; `.cache/runs/full-<sha>/summary.txt` (DONE, every step rc=0) |
+| G1.3 It contains the host-neutral deploy config (`MOONVEIL_PUBLIC_ORIGIN`), the 1012 restart notice, D2 (explicit voice join) and D5 (lobby voice-mode switch) | met since foundation-10 | `apps/server/src/deploy.ts`, `server.ts`, `apps/web/src/client.ts`; tests `deploy`, `shutdown`, `client-close`, `client-voice`, `voice-mode` |
+
+### G2. Human decisions still needed
+| Gate | Status | Evidence / owner |
+|---|---|---|
+| G2.1 **Batch B, pace** (B1 night split, B2 discussion length, B3 nomination/Yes-No/Hunter times, B4 Hunter turn ends on shot). Blocks the first playtest | open; the app runs on the "Recommend" column meanwhile | Human; recorded by the rules owner (`docs/rules/DECISIONS_REMAINING.md`) |
+| G2.2 **Batch C, moderator powers** (C1 moderator speaks, C2 act for a player, C3 set the Wolves' target, C4 removal, C5 no rule-breaking). Blocks a *moderated* playtest only; D7 waits on C1 | open; an automatic-mode playtest doesn't need it | Human; rules owner |
+| G2.3 **LiveKit Cloud** probes and credentials. Needed for voice and for the §7 step 5 outbound probe | not approved | Human; the voice owner owns the Cloud compatibility doc and test plan (link pending, §8) |
+| G2.4 **Voice-off first playtest** (if G2.3 isn't granted in time): an explicit yes, since §7 step 5 otherwise stops the deploy | open | Human |
+| G2.5 **Deploy approval** for the §7 package: Railway Trial only; how the revision is pinned (`railway up` from a clean checkout, or a branch at the SHA; a merge into `main` needs its own approval) | not approved | Human; Lead presents |
+| G2.6 Hosting trust: the server host can read secrets (accept, and guide a non-player host) | asked | Human (`ROOM_STATE.md`) |
+| Not blocking | Batches D–E rule details, balance follow-ups, the `railway` npm package (dashboard-only settings avoid it) | as listed in their docs |
+
+### G3. Known limitations (stated to the decision-maker before the playtest; not gates to clear)
+| Limitation | Fact | Owner of the follow-up |
+|---|---|---|
+| L1 Scene performance is measured only in test conditions | Headless Chromium renders the scene in software. One `low` scene at laptop size cost ~850 % CPU in its GPU process (A/B on `4408c64`). No real-device numbers yet | visual owner: phone performance on a GPU path |
+| L2 Acceptance runs the scene at 4 fps on one observer per match | Reduced-motion emulation, a test-environment mitigation. It shows the UI works with a scene mounted; it is not performance evidence | foundation (harness); visual owner (product performance) |
+| L3 LiveKit Cloud is untested | Voice is verified only against local LiveKit OSS (grant d). Gateway compatibility on Cloud, revocation, room rotation minutes and the 5,000-minute cap are unverified | voice owner |
+| L4 No real devices | All phone results are browser emulation (Pixel 7 Chromium, iPhone 15 WebKit). No real iPhone or Android, and no real microphone or speaker audio in foundation's suites | first playtest; voice and visual owners for their device checks |
+| L5 Railway facts not confirmed by docs | `Host` preservation, Serverless default off, volume survival wording, trial-type indicator, card requirement, several dashboard labels | checked by §7a; account holder |
+| L6 Restarts interrupt play | A redeploy, restart or host migration drops every player. They see the reconnect overlay and resume with the room restored and paused. The 1012 notice is best effort; crashes give none | foundation (documented, §4) |
+| L7 Costs and bandwidth are estimates | ~$1.5–2.5/month and ~20 MB per match come from rates and local measurements, not from Railway's usage page | account holder measures during the trial (§6) |
+| L8 Balance evidence is from bots | `docs/rules/BALANCE.md`; bots aren't players | rules owner; playtest feedback |
+
+### G4. After deploy, before players join
+| Gate | Status | Evidence / owner |
+|---|---|---|
+| G4.1 §7a parts A–G pass (trial type, settings, variables, volume, first log line, connection and idle, restart and redeploy recovery) | open: needs deploy | account holder; screenshots to Lead |
+| G4.2 §7a part H (voice reachability) passes, or G2.4 says voice off | open | account holder after G2.3 |
+| G4.3 §7a part I usage baseline recorded; stop rules (§6: under $1 or 5 days) in force | open | account holder |

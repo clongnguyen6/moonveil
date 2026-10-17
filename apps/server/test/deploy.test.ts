@@ -1,11 +1,14 @@
 // ADR 0010 deploy switches (host-neutral): env -> allowed /ws origins, LAN listing, port warning. Unset = local.
 // Plus the server (an allowed origin passes even when a proxy rewrites Host) and the deploy/ drafts.
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { createServer as netServer } from 'node:net';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { WebSocket as WsClient } from 'ws';
-import { allowedOrigins, lanEnabled, publicOrigin, warnPort } from '../src/deploy.ts';
+import { allowedOrigins, lanEnabled, persistInfo, publicOrigin, revision, warnPort } from '../src/deploy.ts';
 import type { RulesEngine } from '../src/rules/engine.ts';
 import { createFixtureEngine } from '../src/rules/fixture-engine.ts';
 import { createMoonveilServer } from '../src/server.ts';
@@ -92,3 +95,60 @@ test('deploy/render.yaml draft (alternative): no test-only vars or persistence s
   assert.match(y, /numInstances: 1\b/);
   assert.match(y, /healthCheckPath: \/healthz\b/);
 });
+
+test('revision: MOONVEIL_REVISION, else RAILWAY_GIT_COMMIT_SHA, else unknown; only a hex SHA', () => {
+  assert.equal(revision({}), 'unknown');
+  assert.equal(revision({ RAILWAY_GIT_COMMIT_SHA: '35151F29D0B1A3FB018DD33B6A7B67C6EE037DF3' }), '35151f29d0b1a3fb018dd33b6a7b67c6ee037df3');
+  assert.equal(revision({ MOONVEIL_REVISION: 'abc1234', RAILWAY_GIT_COMMIT_SHA: 'def5678' }), 'abc1234');
+  assert.equal(revision({ MOONVEIL_REVISION: '<script>', RAILWAY_GIT_COMMIT_SHA: 'def5678' }), 'def5678');
+  assert.equal(revision({ MOONVEIL_REVISION: 'main' }), 'unknown');
+});
+
+test('persistInfo: volume (path), temp (Railway without volume), disk (elsewhere), off', () => {
+  const rw = { RAILWAY_SERVICE_ID: 'svc', RAILWAY_VOLUME_MOUNT_PATH: '/data' };
+  assert.deepEqual(persistInfo(rw, '/data/rooms', true), { mode: 'volume', path: '/data/rooms' });
+  assert.deepEqual(persistInfo({ ...rw, RAILWAY_VOLUME_MOUNT_PATH: '/data/' }, '/data/rooms', true), { mode: 'volume', path: '/data/rooms' });
+  assert.deepEqual(persistInfo(rw, '/database/rooms', true), { mode: 'temp' }, 'prefix match is per path segment');
+  assert.deepEqual(persistInfo({ RAILWAY_SERVICE_ID: 'svc' }, '/app/.data/rooms', true), { mode: 'temp' });
+  assert.deepEqual(persistInfo({}, '/home/x/.data/rooms', true), { mode: 'disk' });
+  assert.deepEqual(persistInfo(rw, '/data/rooms', false), { mode: 'off' });
+});
+
+test('GET /api/status from the real entry: revision, uptime, volume persistence, voice configured; no LiveKit host, key or secret', async () => {
+  const port = await new Promise<number>((r) => {
+    const n = netServer().listen(0, '127.0.0.1', () => {
+      const p = (n.address() as { port: number }).port;
+      n.close(() => r(p));
+    });
+  });
+  const vol = mkdtempSync(join(tmpdir(), 'mv-vol-'));
+  const lk = { LIVEKIT_URL: 'https://status-test-project.livekit.cloud', LIVEKIT_PUBLIC_WS: 'wss://status-test-project.livekit.cloud', LIVEKIT_API_KEY: 'APIstatusKEY123', LIVEKIT_API_SECRET: 'status-secret-value-0123456789abcdef' };
+  const p = spawn(process.execPath, ['apps/server/src/main.ts'], {
+    cwd: join(import.meta.dirname, '../../..'),
+    env: { ...process.env, PORT: String(port), HOST: '127.0.0.1', MOONVEIL_ENGINE: 'fixture', MOONVEIL_DATA_DIR: join(vol, 'rooms'), RAILWAY_VOLUME_MOUNT_PATH: vol, RAILWAY_SERVICE_ID: 'svc', MOONVEIL_REVISION: '35151f2', ...lk },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let out = '';
+  p.stdout.on('data', (d) => (out += d));
+  p.stderr.on('data', (d) => (out += d));
+  try {
+    await new Promise<void>((r, j) => {
+      p.stdout.on('data', () => out.includes('moonveil server') && r());
+      p.once('exit', (c) => j(new Error(`exited ${c}: ${out}`)));
+    });
+    const res = await fetch(`http://127.0.0.1:${port}/api/status`);
+    assert.equal(res.headers.get('cache-control'), 'no-store');
+    const text = await res.text();
+    const body = JSON.parse(text) as Record<string, unknown>;
+    assert.equal(body.revision, '35151f2');
+    assert.equal(body.engine, 'fixture');
+    assert.deepEqual(body.persist, { mode: 'volume', path: join(vol, 'rooms') });
+    assert.equal(body.voice, 'configured');
+    assert.ok(typeof body.uptimeSec === 'number' && body.uptimeSec >= 0);
+    assert.deepEqual(Object.keys(body).sort(), ['engine', 'persist', 'revision', 'uptimeSec', 'voice']);
+    for (const v of [...Object.values(lk), 'status-test-project', 'livekit']) assert.ok(!text.includes(v), `status leaks ${v}`);
+  } finally {
+    p.kill('SIGKILL');
+  }
+});
+
