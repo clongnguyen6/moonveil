@@ -39,9 +39,23 @@ Resolve simultaneous deaths and linked effects before deciding the outcome; the 
 - Free movement enriches the lobby and ghost experience; active play centers on conversation and deduction.
 - Early visual preview for Human approval. Final acceptance also requires polished animation, transitions, audio, and UI, not merely a functional prototype.
 
+### Revised art direction (Human, 2026-10-17; approved as direction, execution pending review)
+
+The first preview was judged too cartoonish/childlike and visually dull for colleagues aged ~23–34. Replacement direction:
+- Mature nighttime camping: warm but subtly unsettling after dark; cinematic lighting. No gore or extreme horror.
+- Keep: 2D angled view; camping/stream/tents/campfire; existing gameplay, lobby and ghost semantics.
+- Layered forest and stream depth, light mist; warm fire and tent lamps against dark surroundings.
+- Muted palette (forest green, charcoal, amber); fewer bright colours, no excessive glow.
+- Balanced adult avatar proportions, everyday trekking clothing; no chibi, oversized heads or cutesy treatment.
+- Clean readable typography and layout; less rounded decorative framing and ornamental icons; conversation and player readability first.
+- Ghosts: faint human silhouettes with gentle motion; mysterious, not cute.
+- Landscape with convincing light and materials, not simple assembled geometric shapes.
+- Procedural-only art is not required; no new paid assets or services without approval.
+- Next: one representative polished scene plus representative UI (laptop/phone) for early Human review before building all assets. The earlier preview is not approved.
+
 ## Working proposals, not locked requirements
 
-- Soft illustrated scenery, forest greens, warm firelight, and blue/purple moonlight.
+- (Superseded 2026-10-17 by the revised art direction above) Soft illustrated scenery, forest greens, warm firelight, and blue/purple moonlight.
 - Small idle motions, hand raising, restrained emotes, water/fire/foliage animation, and ambience lowered during conversation.
 - Keyboard controls on laptop and a virtual joystick on phone; Lead may improve these based on usability evidence.
 - In-person play defaults to direct conversation with in-game voice off to avoid feedback; private wolf text at night. Physical speech cannot be controlled by the application.
