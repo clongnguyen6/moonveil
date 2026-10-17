@@ -291,3 +291,102 @@ export const moderatorClose = (mod: Player) => send(mod, { t: 'act', action: { t
 export async function waitStepChange(players: Player[], from: string, timeout = 90_000) {
   for (const p of players) await expect.poll(() => (p.view().status !== 'playing' ? 'ended' : step(p)), { timeout }).not.toBe(from);
 }
+
+// ---- shared by the Cloud specs ----
+
+// Scene switch for test pages (shared name across harnesses; see full-match.spec.ts for the rationale).
+export async function applySceneSwitch(p: Player, scene: 'off' | 'low' | 'high') {
+  await p.context.addInitScript((sc) => {
+    (globalThis as any).__MOONVEIL_SCENE = sc;
+    if (sc === 'off') {
+      globalThis.requestAnimationFrame = () => 0;
+      globalThis.cancelAnimationFrame = () => {};
+    }
+  }, scene);
+}
+
+export const leaveAllVoice = async (pages: Player[]): Promise<void> => {
+  await Promise.all(pages.map((p) => p.page.evaluate(() => (globalThis as any).__moonveil?.voice?.leave?.()).catch(() => undefined)));
+};
+
+// Participant-minute budget: connected channels × elapsed, sampled every 5 s; leaves voice and aborts at the cap.
+export class MinuteBudget {
+  minutes = 0;
+  private timer: ReturnType<typeof setInterval> | null = null;
+  private last = Date.now();
+  private pages: Player[];
+  private cap: number;
+  private onAbort: () => Promise<void>;
+  aborted = false;
+  constructor(pages: Player[], cap: number, onAbort: () => Promise<void>) {
+    this.pages = pages;
+    this.cap = cap;
+    this.onAbort = onAbort;
+  }
+  start() {
+    this.last = Date.now();
+    this.timer = setInterval(() => void this.sample(), 5000);
+  }
+  private async sample() {
+    const now = Date.now();
+    const dt = (now - this.last) / 60_000;
+    this.last = now;
+    let channels = 0;
+    for (const p of this.pages) {
+      const s = await voiceSnapshot(p).catch(() => null);
+      if (s) channels += Object.values(s.channels).filter((c) => c.state === 'connected' || c.state === 'reconnecting').length;
+    }
+    this.minutes += channels * dt;
+    if (this.minutes >= this.cap && !this.aborted) {
+      this.aborted = true;
+      console.log(`  BUDGET: ${this.minutes.toFixed(1)} participant-minutes reached the cap ${this.cap}; leaving voice and aborting`);
+      this.stop();
+      await this.onAbort();
+    }
+  }
+  log(label: string) {
+    console.log(`  budget after ${label}: ~${this.minutes.toFixed(1)} participant-minutes (cap ${this.cap})`);
+  }
+  stop() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+  }
+}
+
+// Time from `since` (ms epoch) until each listener first measures audio energy from each expected speaker on a
+// channel. Polls stats every 250 ms up to `maxMs`. Returns gaps in ms per "listener<-speaker@channel" (-1 = never).
+export async function audioArrivalGaps(players: Player[], since: number, maxMs = 20_000): Promise<Record<string, number>> {
+  const base = new Map<Player, Map<string, number>>();
+  for (const p of players) base.set(p, new Map((await voiceStats(p)).map((s) => [`${s.channel}:${s.trackSid}`, s.totalAudioEnergy ?? 0])));
+  const expected: { a: Player; b: Player; ch: string; key: string }[] = [];
+  for (const a of players) for (const g of grants(a)) {
+    if (!g.listen) continue;
+    for (const b of players) {
+      if (a === b) continue;
+      const gb = grant(b.view(), g.channel);
+      const sb = await voiceSnapshot(b);
+      if (gb?.speak && sb?.mic === 'granted' && !sb.muted) expected.push({ a, b, ch: g.channel, key: `${a.name}<-${b.name}@${g.channel}` });
+    }
+  }
+  const gaps: Record<string, number> = Object.fromEntries(expected.map((e) => [e.key, -1]));
+  const deadline = since + maxMs;
+  while (Date.now() < deadline && Object.values(gaps).some((v) => v < 0)) {
+    for (const a of new Set(expected.filter((e) => gaps[e.key]! < 0).map((e) => e.a))) {
+      const stats = await voiceStats(a).catch(() => []);
+      for (const e of expected) {
+        if (e.a !== a || gaps[e.key]! >= 0) continue;
+        const got = stats.filter((s) => s.channel === e.ch && s.identity === e.b.seat).reduce((n, s) => n + ((s.totalAudioEnergy ?? 0) - (base.get(a)!.get(`${s.channel}:${s.trackSid}`) ?? 0)), 0);
+        if (got > 0.0005) gaps[e.key] = Date.now() - since;
+      }
+    }
+    await sleep(250);
+  }
+  return gaps;
+}
+
+export function gapStats(gaps: Record<string, number>) {
+  const v = Object.values(gaps).filter((x) => x >= 0).sort((x, y) => x - y);
+  const never = Object.values(gaps).filter((x) => x < 0).length;
+  const q = (p: number) => (v.length ? v[Math.min(v.length - 1, Math.floor(p * v.length))]! : -1);
+  return { n: v.length, never, min: v[0] ?? -1, median: q(0.5), p95: q(0.95), max: v[v.length - 1] ?? -1 };
+}

@@ -42,7 +42,7 @@ if (!fs.existsSync(wav)) {
 
 export default defineConfig({
   testDir: '.',
-  testMatch: /cloud-check\.spec\.ts/,
+  testMatch: /(cloud-check|rotation-gap)\.spec\.ts/,
   fullyParallel: false,
   workers: 1,
   timeout: 15 * 60_000,
