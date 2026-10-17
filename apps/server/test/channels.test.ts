@@ -125,12 +125,18 @@ test('day/defense/ghosts/pending Hunter: acceptance, delivery and read-time hist
   for (const p of voters) p.send({ t: 'act', action: { type: 'vote.nominate', target: idx(hunter) } });
   s.toNext();
   assert.equal(stepKind(s.driver), 'day.defense');
-  // Defense: only the accused speaks.
+  // Defense (approved 2026-10-18): every living player may speak publicly, not only the accused; ghosts still can't.
+  for (const p of voters) assert.ok(p.view.voice.some((g) => g.channel === 'public' && g.speak), `living seat ${p.seat} may speak in defense`);
   hunter.send({ t: 'say', channel: 'public', text: 'I am innocent' });
   assert.equal(chats(voters.find((p) => p !== hunter)!).at(-1)!.msg.text, 'I am innocent');
   const other = voters.find((p) => p !== hunter)!;
-  other.send({ t: 'say', channel: 'public', text: 'x' });
-  assert.equal(lastErr(other)!.code, 'not-allowed');
+  other.send({ t: 'say', channel: 'public', text: 'you were seen at night' });
+  assert.equal(chats(hunter).at(-1)!.msg.text, 'you were seen at night', 'a non-accused living player is heard');
+  assert.equal(chats(v2).at(-1)!.msg.text, 'you were seen at night', 'ghosts hear public');
+  const errs = v2.frames.filter((f) => f.t === 'error').length;
+  v2.send({ t: 'say', channel: 'public', text: 'ghost in defense' });
+  assert.equal(lastErr(v2)!.code, 'not-allowed', 'a ghost still cannot speak public');
+  assert.equal(v2.frames.filter((f) => f.t === 'error').length, errs + 1);
   s.toNext();
   for (const p of voters) p.send({ t: 'act', action: { type: 'vote.confirm', choice: 'yes' } });
   const hMark = hunter.frames.length;
@@ -240,4 +246,25 @@ test('poses: lobby all; during play living never receive poses, ghosts move and 
   assert.deepEqual(vp.poses.map((p) => p.seat), [victim.seat]);
   const mp = s.moderator!.frames.filter((f): f is Msg<'poses'> => f.t === 'poses').at(-1)!;
   assert.deepEqual(mp.poses.map((p) => [p.seat, p.x, p.y]), [[victim.seat, 1650, 100]]);
+});
+
+test('moderator mode, defense (approved 2026-10-18): every living player may speak publicly; the moderator stays listen-only', () => {
+  const s = scenario('moderator');
+  s.moderator!.send({ t: 'start' });
+  s.advanceUntil(() => stepKind(s.driver) === 'day.vote');
+  const living = s.P.filter((p) => gv(p).me!.alive);
+  const accused = living[0]!;
+  for (const p of living) p.send({ t: 'act', action: { type: 'vote.nominate', target: idx(accused) } });
+  s.toNext();
+  assert.equal(stepKind(s.driver), 'day.defense');
+  for (const p of living) assert.ok(p.view.voice.some((g) => g.channel === 'public' && g.speak), `living seat ${p.seat} may speak in defense`);
+  const other = living[1]!;
+  other.send({ t: 'say', channel: 'public', text: 'mod-mode defense from a non-accused' });
+  assert.equal(chats(accused).at(-1)!.msg.text, 'mod-mode defense from a non-accused');
+  assert.equal(chats(s.moderator!).at(-1)!.msg.text, 'mod-mode defense from a non-accused', 'the moderator hears it');
+  accused.send({ t: 'say', channel: 'public', text: 'accused answers' });
+  assert.equal(chats(other).at(-1)!.msg.text, 'accused answers');
+  assert.ok(s.moderator!.view.voice.every((g) => g.listen && !g.speak), 'moderator listen-only (Q25)');
+  s.moderator!.send({ t: 'say', channel: 'public', text: 'x' });
+  assert.equal(lastErr(s.moderator!)!.code, 'not-allowed');
 });
