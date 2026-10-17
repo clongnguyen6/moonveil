@@ -81,7 +81,10 @@ Status: foundation, 2026-10-16. The harness is ready now; the UI-driven layer wa
   - `auto`: scene on, no override; the scene picks `low` under `navigator.webdriver`.
   - Env `MOONVEIL_SCENE=off|low|high|auto` overrides a suite's default; any other value is an error.
 - **Protocol and voice suites** (`real-match.spec.ts`): `off`. They assert the wire. Voice measured 11 software-rendered scenes at 600–700 % CPU in the GPU process.
-- **Strict UI suite** (`real-match-ui.spec.ts`): `auto` (resolves to `low`), on every context in all three projects, so the UI is exercised with the scene mounted.
+- **Strict UI suite** (`real-match-ui.spec.ts`): **one scene observer per match.** The host's context gets `auto` (resolves to `low`): the moderator in moderator mode, else the first seat. Every other context gets `off`. This holds in all three projects.
+  - On a device each player renders one scene; 7–10 scenes on one test machine would be a test artifact.
+  - `UIMATCH` logs `scene: {mode, observer, others}`.
+  - The scene's real cost on phones is the visual owner's device measurement, not this suite's.
 - Each match logs its mode (`scene` in `MATCH`, `STEPS`, `UIMATCH`).
 - Before foundation-10, every real-match suite ran with the scene switched off (quiet settings).
 - Not yet run in a locked run. If scene cost breaks pacing (misses or skipped steps), that's a finding to report, not a reason to switch the suite to `off` silently.

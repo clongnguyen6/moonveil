@@ -164,6 +164,8 @@ export async function uiCloseStep(mod: Player) {
   uiStats.done++;
 }
 
+// opts.scene goes to the host's context only (the scene observer: the moderator, or the first seat in automatic mode);
+// every other context is 'off'. On a device each player renders one scene; 7-10 on one machine is a test artifact.
 export async function seatRealMatchUi(table: Table, opts: { mode: Mode; seats: number; baseURL: string; hostName?: string; scene: SceneMode }): Promise<BrowserMatch> {
   const ctx = { baseURL: opts.baseURL };
   const host = await table.player(opts.hostName ?? (opts.mode === 'moderator' ? 'Mod' : 'P0'), ctx);
@@ -176,7 +178,7 @@ export async function seatRealMatchUi(table: Table, opts: { mode: Mode; seats: n
   const players: Player[] = opts.mode === 'automatic' ? [host] : [];
   while (players.length < opts.seats) {
     const p = await table.player(`P${players.length}`, ctx);
-    await quietUi(p, opts.scene);
+    await quietUi(p, 'off');
     await p.page.goto('/');
     await tid(p, 'name').fill(p.name);
     await tid(p, 'code').fill(code);

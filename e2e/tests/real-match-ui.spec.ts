@@ -14,7 +14,8 @@ const REAL_PORT = Number(process.env.E2E_REAL_PORT ?? 4152);
 const states = (p: Player): SeatView[] => p.frames.flatMap((f) => (f.msg.t === 'state' ? [f.msg.view] : []));
 const isPhone = (name: string) => name.startsWith('ui-phone');
 const STRICT = process.env.E2E_UI_STRICT === '1';
-// The UI suite runs with the scene mounted: 'auto' (no override; the scene picks 'low' under webdriver). MOONVEIL_SCENE overrides.
+// One scene observer per match (host: moderator, or the first seat): 'auto' (no override; the scene picks 'low' under
+// webdriver). All other contexts 'off'. MOONVEIL_SCENE overrides the observer's mode.
 const SCENE = sceneMode('auto');
 const ACTION_CONTROLS = ['confirm', 'vote-skip', 'vote-yes', 'vote-no', 'heal-yes', 'heal-no'];
 
@@ -46,15 +47,17 @@ for (const seed of ALL_ACCEPTANCE) {
       let outcome: unknown = null;
       // Steps passed without the UI actor acting (pacing). Strict (acceptance) runs fail on them, like the protocol suite (0006).
       let skipped: ReturnType<typeof skippedSteps> | null = null;
+      let sceneObserver: string | null = null;
       uiStats.attempted = uiStats.done = 0;
       uiStats.misses = [];
       uiStats.byType = {};
       uiStats.wolfPicks = [];
       const stats = { ballotSteps: 0, reloads: 0, reloadMs: 0, ballotRecheckAfterReload: '', drops: 0, ghostChecks: 0, overflowChecks: 0, wolfPicksChecked: 0 };
       const report = (result: string) =>
-        console.log(`UIMATCH ${JSON.stringify({ project: info.project.name, mode, seats, seed: seed.S, scene: SCENE, expected: seed.expect, outcome, result, strict: STRICT, landed: uiStats.done, intended: uiStats.attempted, byType: uiStats.byType, misses: uiStats.misses, skipped, ...stats })}`);
+        console.log(`UIMATCH ${JSON.stringify({ project: info.project.name, mode, seats, seed: seed.S, scene: { mode: SCENE, observer: sceneObserver, others: 'off' }, expected: seed.expect, outcome, result, strict: STRICT, landed: uiStats.done, intended: uiStats.attempted, byType: uiStats.byType, misses: uiStats.misses, skipped, ...stats })}`);
       try {
       const m = await seatRealMatchUi(table, { mode, seats, baseURL: `http://127.0.0.1:${REAL_PORT}`, hostName: seed.S, scene: SCENE });
+      sceneObserver = m.moderator ? `moderator (${m.driver.name})` : `seat ${game(m.driver)!.me!.seat} (${m.driver.name})`;
       await runRealMatch(
         m,
         seed.S,
