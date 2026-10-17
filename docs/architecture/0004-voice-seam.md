@@ -85,3 +85,9 @@ Accepted from the recommendation: self-hosted LiveKit OSS (grant d), room per ch
 - **Foundation wiring:** no change needed (grants in, sessions out).
 - **Hear-matrix:** 0 failures across 3,175 pair-channel checks (7-seat moderator to the end; 10-seat automatic).
 - My earlier acceptance of sticky visibility (update above) was wrong. The test that should have caught it is the roster check across a death, which the measured suite now covers.
+
+## Lobby voice-mode switch (D5, foundation-10)
+- `{ t: 'voiceMode', voiceMode: 'remote' | 'inPerson' }`: host only, lobby only (else `not-allowed`); invalid values are refused by the parser.
+- The room's `voiceMode` updates every `SeatView` and is persisted. The next flush syncs voice grants: `[]` for every seat when in person, so the gateway closes the sessions and mints nothing; the normal grants when remote.
+- Text channels don't depend on `voiceMode`. Tests: `apps/server/test/voice-mode.test.ts`, including the real `LiveKitVoiceGateway` on its `FakeBackend`.
+

@@ -88,7 +88,9 @@ Status: foundation, 2026-10-16. The harness is ready now; the UI-driven layer wa
 - **Locked run on `4408c64` (2026-10-17): strict UI failed 5/16**, all on the laptop project, in automatic mode, with a playing seat as observer. The misses are the observer's clicks timing out at 1.5 s, plus pacing misses on others. Moderator-observer and phone matches passed.
   - A/B on `a8-6` (laptop, ×5): observer `off` passed 26/26 (our browsers 38 % CPU on average); `auto`→`low` failed 25/26, with our GPU process at ~850 % in every sample.
   - Cause: one software-WebGL scene (headless Chromium) at laptop size at 30 fps. The harness's reduced-motion setting doesn't reach the scene, which reads only the media query.
-  - **Fix (foundation-10, not yet run under the lock):** the observer's context emulates `prefers-reduced-motion: reduce`, so the scene stays mounted and rendering but capped at 4 fps.
+  - **Test-environment mitigation (foundation-10, not yet run under the lock):** the observer's context emulates `prefers-reduced-motion: reduce`. The scene stays mounted and rendering, but at **4 fps**.
+  - **So acceptance runs the scene at 4 fps on one observer per match.** That shows the UI works with a scene mounted. It is **not** evidence of normal-quality (30 fps `low` or `high`) performance.
+  - Product performance is the visual owner's measurement on a GPU path (real devices). Every run report states this.
 - Each match logs its mode (`scene` in `MATCH`, `STEPS`, `UIMATCH`).
 - Before foundation-10, every real-match suite ran with the scene switched off (quiet settings).
 - Not yet run in a locked run. If scene cost breaks pacing (misses or skipped steps), that's a finding to report, not a reason to switch the suite to `off` silently.
