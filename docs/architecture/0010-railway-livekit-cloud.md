@@ -49,7 +49,7 @@ In `deploy/railway.ts` (IaC draft), or set by hand in the dashboard with the sam
 - Env: `RAILPACK_NODE_VERSION=24.20.0` (the version all checks ran on), `RAILPACK_NODE_NPM_INSTALL`, `HOST=0.0.0.0`, `MOONVEIL_ENGINE=rules`, `MOONVEIL_DATA_DIR=/data/rooms`.
 - Dashboard only: `MOONVEIL_PUBLIC_ORIGIN=https://${{RAILWAY_PUBLIC_DOMAIN}}` (reference variable; whether this same-service reference resolves Railway-provided vars is checked at the smoke test). The four `LIVEKIT_*`, with key and secret **sealed**.
 - Dashboard only: generate the Railway domain; **Serverless off**; restart policy left at default (on failure, **unverified** default); no `RAILWAY_RUN_UID` unless the volume is not writable (the server then fails at start with an `EACCES` from `mkdir`, so it's visible).
-- IaC needs the `railway` npm package, a new dependency not added. A first playtest can use dashboard settings alone. Note: the `railway config` commands are run by whoever holds the account.
+- **Deploy-time step (not in the repo):** IaC needs the `railway` npm package. It is not added; adding it is a dependency decision to ask for at deploy approval (then: copy `deploy/railway.ts` to `.railway/railway.ts`, `railway config plan`, `apply`, run by whoever holds the account). A first playtest can use dashboard settings alone.
 
 ## 4. Restart recovery on Railway (approved behaviour, unchanged)
 - `fileRoomStore` writes each room snapshot on change (atomic rename, 0600) to `MOONVEIL_DATA_DIR` on the volume. At start the server restores every room; downtime counts as paused time (0003).
