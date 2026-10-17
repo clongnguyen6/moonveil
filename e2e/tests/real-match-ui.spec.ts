@@ -5,6 +5,7 @@
 // Skips itself until the UI's entry screen exists in the served build (a skip is never a pass).
 import type { GameView, SeatView } from '@moonveil/protocol';
 import { assertOpenBallotsViews, assertOutcome, assertSeatIsolationViews } from '../../apps/server/test/assertions.ts';
+import { ALL_ACCEPTANCE } from '../../apps/server/test/acceptance-seeds.ts';
 import { expect, type Player, test } from '../harness/index.ts';
 import { type BrowserMatch, game, runRealMatch } from '../harness/match.ts';
 import { seatRealMatchUi, uiBotAct, uiCloseStep, uiPresent, uiStats } from '../harness/ui.ts';
@@ -30,27 +31,29 @@ async function resumed(p: Player, seat: string) {
   expect(p.view().me.seat).toBe(seat);
 }
 
-for (const mode of ['automatic', 'moderator'] as const) {
-  for (const seats of [7, 8, 9, 10]) {
-    test(`UI match, ${mode}, ${seats} browsers: reload + network drop, ghosts, open ballots, isolation, outcome`, async ({ table }, info) => {
+for (const seed of ALL_ACCEPTANCE) {
+  const { mode, seats } = seed;
+  {
+    test(`UI match, ${mode}, ${seats} browsers, seed ${seed.S} (${seed.expect.winner}/${seed.expect.reason}): reload + network drop, ghosts, open ballots, isolation, outcome`, async ({ table }, info) => {
       test.skip(isPhone(info.project.name) && seats !== 7, 'phone projects run 7 seats');
       test.setTimeout(isPhone(info.project.name) ? 900_000 : 600_000);
       const probe = await table.player('probe', { baseURL: `http://127.0.0.1:${REAL_PORT}` });
       test.skip(!(await uiPresent(probe)), 'game UI not wired in this build (no [data-testid=entry])');
       await probe.context.close();
 
+      let outcome: unknown = null;
       uiStats.attempted = uiStats.done = 0;
       uiStats.misses = [];
       uiStats.byType = {};
       uiStats.wolfPicks = [];
       const stats = { ballotSteps: 0, reloads: 0, reloadMs: 0, ballotRecheckAfterReload: '', drops: 0, ghostChecks: 0, overflowChecks: 0, wolfPicksChecked: 0 };
       const report = (result: string) =>
-        console.log(`UIMATCH ${JSON.stringify({ project: info.project.name, mode, seats, result, strict: STRICT, landed: uiStats.done, intended: uiStats.attempted, byType: uiStats.byType, misses: uiStats.misses, ...stats })}`);
+        console.log(`UIMATCH ${JSON.stringify({ project: info.project.name, mode, seats, seed: seed.S, expected: seed.expect, outcome, result, strict: STRICT, landed: uiStats.done, intended: uiStats.attempted, byType: uiStats.byType, misses: uiStats.misses, ...stats })}`);
       try {
-      const m = await seatRealMatchUi(table, { mode, seats, baseURL: `http://127.0.0.1:${REAL_PORT}` });
+      const m = await seatRealMatchUi(table, { mode, seats, baseURL: `http://127.0.0.1:${REAL_PORT}`, hostName: seed.S });
       await runRealMatch(
         m,
-        `ui-${info.project.name}-${mode}-${seats}`,
+        seed.S,
         async (mm: BrowserMatch) => {
           const k = game(mm.driver)!.step.kind;
           const living = mm.players.filter((p) => game(p)!.me!.alive);
@@ -109,7 +112,9 @@ for (const mode of ['automatic', 'moderator'] as const) {
       );
       expect(m.driver.view().status).toBe('ended');
       const final = game(m.players[0]!) as GameView;
+      outcome = final.outcome;
       assertOutcome(final);
+      expect(final.outcome, `acceptance seed ${seed.S}`).toEqual(seed.expect);
       // Night actions reach the engine: every accepted wolf pick (last per wolf per night) is in that night's record.
       const nights = (final.reveal?.history ?? []).flatMap((h) => (h.t === 'night' ? [h] : []));
       const last = new Map(uiStats.wolfPicks.map((w) => [`${w.night}/${w.seat}`, w]));

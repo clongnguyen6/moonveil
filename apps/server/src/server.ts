@@ -24,14 +24,17 @@ export interface ServerOptions extends RegistryOptions {
   heartbeatMs?: number;
   // LAN base URLs players can reach (empty when bound to loopback). Served at GET /api/lan.
   lanUrls?: () => string[];
+  // Origins allowed on /ws in addition to same-origin (deploy.ts allowedOrigins). Exact URL.origin match.
+  allowedOrigins?: readonly string[];
 }
 
-// Same-origin check (CSWSH). Non-browser clients send no Origin and are allowed.
-function originOk(req: IncomingMessage): boolean {
+// Same-origin check (CSWSH), or an explicitly allowed origin. Non-browser clients send no Origin and are allowed.
+function originOk(req: IncomingMessage, allowed: readonly string[]): boolean {
   const origin = req.headers.origin;
   if (!origin) return true;
   try {
-    return new URL(origin).host === req.headers.host;
+    const u = new URL(origin);
+    return u.host === req.headers.host || allowed.includes(u.origin);
   } catch {
     return false;
   }
@@ -97,7 +100,7 @@ export function createMoonveilServer(opts: ServerOptions): { http: Server; regis
 
   http.on('upgrade', (req, socket, head) => {
     const path = new URL(req.url ?? '/', 'http://x').pathname;
-    if (path !== WS_PATH || !originOk(req)) {
+    if (path !== WS_PATH || !originOk(req, opts.allowedOrigins ?? [])) {
       socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
       socket.destroy();
       return;

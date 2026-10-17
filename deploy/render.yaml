@@ -1,0 +1,32 @@
+# DRAFT Render Blueprint (ADR 0009). Inactive here: nothing deploys from this file until a Blueprint is created
+# from it (account action, needs approval). No secrets in this file: `sync: false` values are entered once in the
+# Render dashboard (server-side env only). Never add test-only vars (MOONVEIL_TEST_*, MOONVEIL_ENGINE=fixture,
+# MOONVEIL_FIXTURE_MS, E2E_*); apps/server/test/deploy.test.ts checks this.
+services:
+  - type: web
+    name: moonveil
+    runtime: node
+    plan: free
+    region: singapore # nearest Render region to the players (0008)
+    numInstances: 1 # rooms are in memory; one instance only (0007)
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: node apps/server/src/main.ts
+    healthCheckPath: /healthz
+    autoDeployTrigger: "off" # a deploy replaces the instance and ends every match; deploy by hand between sessions
+    envVars:
+      - key: NODE_VERSION
+        value: 24.20.0 # the version all checks ran on; root engines is >=24.12
+      - key: HOST
+        value: 0.0.0.0
+      - key: MOONVEIL_ENGINE
+        value: rules
+      - key: MOONVEIL_PERSIST
+        value: "0" # Free filesystem is ephemeral; see 0009 restart recovery (pending decision)
+      - key: LIVEKIT_URL
+        sync: false
+      - key: LIVEKIT_PUBLIC_WS
+        sync: false
+      - key: LIVEKIT_API_KEY
+        sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false

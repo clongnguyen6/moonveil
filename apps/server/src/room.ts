@@ -90,7 +90,7 @@ export interface RoomDeps<S> {
   voice: VoiceGateway;
   scheduler: Scheduler;
   now: () => number;
-  seed: () => string;
+  seed: (ctx: { hostName: string; players: number }) => string;
   store?: RoomStore;
 }
 
@@ -321,7 +321,7 @@ export class Room<S = unknown> {
     if (!this.canStart()) throw new RoomError('cannot-start', 'need enough connected, ready players');
     this.game = this.deps.engine.setup({
       seats: this.players.map((p) => p.id),
-      seed: this.deps.seed(),
+      seed: this.deps.seed({ hostName: this.seat(this.hostId).name, players: this.players.length }),
       ...(this.customDeck ? { deck: this.customDeck } : {}),
     });
     this.status = 'playing';
