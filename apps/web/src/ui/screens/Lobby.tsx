@@ -10,6 +10,7 @@ import type { Mic } from '../voice/mic.ts';
 import { useVoiceClient } from '../voice/useVoiceClient.ts';
 import { ROLES, type Role } from '@moonveil/rules';
 import { copyText } from '../lan.ts';
+import { errorText } from '../errors.ts';
 import { ProfileEditor, saveProfile } from './Entry.tsx';
 import { SettingsRow } from './Settings.tsx';
 
@@ -87,7 +88,7 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
 
       {view.me.kind === 'player' && <MicCheck mic={mic} voiceMode={s.voiceMode} />}
 
-      {s.error && <p className="danger" role="alert" data-testid="error">{s.error.message}</p>}
+      {s.error && <p className="danger" role="alert" data-testid="error">{errorText(t, s.error)}</p>}
 
       <section className="card stack">
         {view.me.kind === 'player' && me && (

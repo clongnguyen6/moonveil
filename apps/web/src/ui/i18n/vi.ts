@@ -105,6 +105,11 @@ export const vi: Strings = {
   annDied: '{name} đã chết', annExecuted: '{name} bị treo cổ', annShot: '{by} bắn {target}', annHunter: '{name} là Thợ săn',
 
   provisional: 'tạm thời', ambience: 'Âm thanh trại', sceneSetting: 'Cảnh trại', wakeHint: 'Giữ màn hình sáng trong ván.', copyManual: 'Không chép tự động được. Nhấn giữ link để chép.', youLabel: 'Bạn', modNarrationSetting: 'Gợi ý lời dẫn (tạm thời)', 
+  errRoomNotFound: 'Không có phòng với mã này. Kiểm tra link hoặc xin chủ phòng mã mới.', errRoomFull: 'Phòng đã đầy.', errGameStarted: 'Ván này đã bắt đầu. Hãy đợi ván sau.',
+  errNameTaken: 'Tên này đã có người dùng trong phòng. Chọn tên khác.', errBadToken: 'Ghế của bạn trong phòng này đã hết hạn. Vào lại nhé.', errCannotStart: 'Mọi người phải kết nối và sẵn sàng, bộ vai phải hợp lệ.',
+  errRateLimited: 'Chậm lại một chút.', errNetwork: 'Mất kết nối. Kiểm tra mạng.', errNotAllowed: 'Lúc này không làm được việc đó.',
+  entryInvited: 'Bạn được mời vào phòng {code}', entryInvitedHint: 'Chọn tên và diện mạo rồi vào phòng.',
+  modNow: 'Hiện tại', modDawnDead: 'Chết lúc bình minh: {names}', modDawnNobody: 'Bình minh không ai chết.', modAccused: 'Bị xét xử: {name}', modNoTrial: 'Hôm nay không xét xử.', modBallots: 'Phiếu (công khai)', modYesInPerson: 'Chỉ khi bạn đếm giơ tay tại bàn; phiếu trong ứng dụng tự được tính.',
   a11yGrid: 'Người chơi: dùng phím mũi tên để di chuyển, Enter để chọn',
   a11yTimer: 'còn {s} giây', a11ySeat: '{name}, {state}', a11yDead: 'đã chết', a11yAlive: 'còn sống', a11ySpeaking: 'đang nói', a11yYou: 'bạn', a11yTarget: 'chọn {name}',
   stepDisplay: { 'night.main': 'Đêm', 'night.witch': 'Phù thủy', hunter: 'Thợ săn', 'day.discussion': 'Thảo luận', 'day.vote': 'Đề cử', 'day.defense': 'Biện hộ', 'day.confirm': 'Phán quyết', ended: 'Kết thúc' },

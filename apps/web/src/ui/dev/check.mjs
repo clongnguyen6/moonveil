@@ -119,6 +119,16 @@ await open('hunter');
 ok('pending Hunter (dead) still gets the shot panel', (await page.locator('[data-testid=hunter-shoot] [data-testid=confirm]').count()) === 1);
 await open('day');
 
+// 8d. Server error codes render as localized copy (not the server's raw string).
+await open('day', '&lang=en');
+await stub((r) => { r.error = { code: 'room-full', message: 'room is full' }; r.emit?.() ?? r.setViewer(r.viewer); });
+await page.waitForTimeout(100);
+ok('error copy: room-full shows player-facing text', /This room is full/.test(await page.getByTestId('error').innerText()));
+await stub((r) => { r.error = { code: 'invalid-action', message: 'rule: cannot target yourself' }; r.setViewer(r.viewer); });
+await page.waitForTimeout(100);
+ok('error copy: engine messages pass through', /cannot target yourself/.test(await page.getByTestId('error').innerText()));
+await open('day');
+
 // 9. Reconnect overlay shows and clears, view unchanged.
 const before = await page.getByTestId('match').getAttribute('data-step');
 await stub((r) => r.simulateReconnect(600));
@@ -227,6 +237,11 @@ let ended = false;
 for (let i = 0; i < 120 && !ended; i++) { await page.waitForTimeout(500); ended = (await page.locator('[data-testid=match]').getAttribute('data-step').catch(() => null)) === 'ended'; }
 ok('full automatic match with bots reaches ended', ended);
 if (ended) ok('end reveal shows every role', (await page.locator('[data-testid=ended] .seat-chip .tag').count()) === 8);
+await open('moderator-day', '&lang=en');
+ok('moderator Now card shows the dawn result', /Died at dawn|Nobody died/.test(await page.getByTestId('mod-now').innerText()));
+await stub((r) => r.closeStep());
+await page.waitForTimeout(150);
+ok('moderator Now card shows public ballots during the vote', (await page.locator('[data-testid=mod-now] [data-testid=ballots]').count()) === 1);
 
 ok('no page errors', errs.length === 0);
 if (errs.length) console.log(errs.slice(0, 5));

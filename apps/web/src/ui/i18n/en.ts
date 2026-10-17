@@ -104,6 +104,11 @@ export const en = {
   annDied: '{name} died', annExecuted: '{name} executed', annShot: '{by} shot {target}', annHunter: '{name} is the Hunter',
 
   provisional: 'provisional', ambience: 'Camp ambience', sceneSetting: 'Camp scene', wakeHint: 'Keep your screen on during the match.', copyManual: 'Copy not available here. Long-press the link to copy it.', youLabel: 'You', modNarrationSetting: 'Narration cues (provisional)', 
+  errRoomNotFound: 'No room with that code. Check the link or ask the host for a new one.', errRoomFull: 'This room is full.', errGameStarted: 'This match has already started. Ask the host for the next one.',
+  errNameTaken: 'That name is already used in this room. Pick another name.', errBadToken: 'Your seat in this room has expired. Join again.', errCannotStart: 'Everyone must be connected and ready, and the deck must be valid.',
+  errRateLimited: 'Slow down a little.', errNetwork: 'No connection. Check your network.', errNotAllowed: 'That is not allowed right now.',
+  entryInvited: 'You are invited to room {code}', entryInvitedHint: 'Pick a name and a look, then join.',
+  modNow: 'Now', modDawnDead: 'Died at dawn: {names}', modDawnNobody: 'Nobody died at dawn.', modAccused: 'On trial: {name}', modNoTrial: 'No trial today.', modBallots: 'Ballots (public)', modYesInPerson: 'Only if you count hands at the table; in-app votes count by themselves.',
   a11yGrid: 'Players: use arrow keys to move, Enter to choose',
   a11yTimer: '{s} seconds left', a11ySeat: '{name}, {state}', a11yDead: 'dead', a11yAlive: 'alive', a11ySpeaking: 'speaking', a11yYou: 'you', a11yTarget: 'choose {name}',
   stepDisplay: { 'night.main': 'Night', 'night.witch': 'Witch', hunter: 'Hunter', 'day.discussion': 'Discussion', 'day.vote': 'Nomination', 'day.defense': 'Defense', 'day.confirm': 'Verdict', ended: 'Ended' } as Record<string, string>,

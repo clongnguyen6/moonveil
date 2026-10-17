@@ -20,6 +20,7 @@ import { HunterPanel, NightPanel } from './screens/Night.tsx';
 import { ChatSheet, ConnOverlay, EndPanel, GhostBar, HelpSheet, RoleCardSheet, VoiceBar } from './screens/Panels.tsx';
 import { SettingsRow } from './screens/Settings.tsx';
 import { SessionContext, useSession, useSessionState } from './session-context.ts';
+import { errorText } from './errors.ts';
 import { useMic } from './voice/mic.ts';
 
 export function GameApp({ session, children }: { session: Session; children?: React.ReactNode }) {
@@ -178,7 +179,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
           <ConfirmPanel view={view} g={g} speaking={s.speaking} />
         )}
         {isMod && view.phaseEndsAt !== null && <p className="center"><Timer endsAt={view.phaseEndsAt} totalMs={view.phaseDurationMs} /></p>}
-        {s.error && <p className="danger center" role="alert" data-testid="error">{s.error.message}</p>}
+        {s.error && <p className="danger center" role="alert" data-testid="error">{errorText(t, s.error)}</p>}
       </div>
     </main>
   );

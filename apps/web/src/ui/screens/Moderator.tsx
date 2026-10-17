@@ -9,6 +9,7 @@ import { nameAt } from '../../game/select.ts';
 import type { GameView, SeatView } from '../../game/types.ts';
 import { Button, Confirm, Tabs } from '../components/index.tsx';
 import { SeatGrid } from '../components/SeatGrid.tsx';
+import { Ballots } from './Day.tsx';
 import { useT } from '../i18n/index.ts';
 import { useSession } from '../session-context.ts';
 
@@ -43,6 +44,13 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
         <div className="stack">
           <p><strong data-testid="mod-step">{stepName}</strong> · {g.step.kind.startsWith('night') ? t('phaseNight', { n: g.night }) : t('phaseDiscuss', { d: g.day }).split(' ·')[0]} · {t('livingCount', { n: living })}</p>
           <p className="hint">{view.phaseEndsAt === null ? t('modNoTimer') : ''}</p>
+          <div className="card stack" style={{ padding: 10 }} data-testid="mod-now">
+            <strong>{t('modNow')}</strong>
+            {g.step.kind === 'day.discussion' && (() => { const d = g.publicLog.filter((e) => e.t === 'dawn').at(-1); return <span>{d && d.t === 'dawn' && d.dead.length ? t('modDawnDead', { names: d.dead.map((x) => nameAt(view, g, x)).join(', ') }) : t('modDawnNobody')}</span>; })()}
+            {(g.step.kind === 'day.defense' || g.step.kind === 'day.confirm') && <span>{t('modAccused', { name: nameAt(view, g, g.step.accused) })}</span>}
+            {g.step.kind === 'hunter' && <span>{t('hunterOthers', { name: g.step.pending.map((p) => nameAt(view, g, p)).join(', ') })}</span>}
+            {(g.step.kind === 'day.vote' || g.step.kind === 'day.confirm') && (<><span className="hint">{t('modBallots')}</span><Ballots view={view} g={g} /></>)}
+          </div>
           {narration && <p className="card" style={{ padding: 10 }} data-testid="mod-say">🗣 {narrate(t, g, view)} <span className="pill warn">{t('provisional')}</span></p>}
           {m?.nightRec && g.step.kind.startsWith('night') && <p className="hint">{t('modSubmitted', { n: submittedCount(g), total: expectedCount(g) })}</p>}
           {g.step.kind === 'hunter' && <p className="hint">{t('hunterOthers', { name: g.step.pending.map((p) => nameAt(view, g, p)).join(', ') })}</p>}
@@ -52,7 +60,7 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
                 {t('modYesCount')}
                 <input className="input" type="number" min={0} max={living} value={yes} onChange={(e) => setYes(Number(e.target.value))} data-testid="yes-count" />
               </label>
-              <p className="hint">{t('modYesHint')}</p>
+              <p className="hint">{t('modYesHint')} {t('modYesInPerson')}</p>
               <Button kind="secondary" testId="yes-apply" onClick={() => sendMod(mod.yesCount(yes))}>{t('modApply')}</Button>
             </div>
           )}

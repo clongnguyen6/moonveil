@@ -5,6 +5,7 @@ import type { SessionState } from '../../game/session.ts';
 import { Button } from '../components/index.tsx';
 import { useT } from '../i18n/index.ts';
 import { useSession } from '../session-context.ts';
+import { errorText } from '../errors.ts';
 import { SettingsRow } from './Settings.tsx';
 
 const PROFILE_KEY = 'moonveil.profile';
@@ -77,9 +78,12 @@ export function EntryScreen({ s }: { s: SessionState }) {
       <section className="card stack" style={{ padding: 16 }}>
         <ProfileEditor value={profile} onChange={setProfile} />
       </section>
-      {s.error && <p className="danger" role="alert" data-testid="error">{s.error.message}</p>}
+      {s.error && <p className="danger" role="alert" data-testid="error">{errorText(t, s.error)}</p>}
       <section className="card stack" style={{ padding: 16 }}>
-        <label className="field col" style={{ gap: 4 }}>
+        {linkCode ? (
+          <p data-testid="invited"><strong>{t('entryInvited', { code: linkCode })}</strong><br /><span className="hint">{t('entryInvitedHint')}</span></p>
+        ) : null}
+        <label className="field col" style={{ gap: 4, ...(linkCode ? { display: 'none' } : {}) }}>
           {t('entryCode')}
           <input className="input" data-testid="code" value={code} maxLength={6} autoCapitalize="characters" autoComplete="off" inputMode="text" style={{ letterSpacing: '.2em', fontWeight: 700, textTransform: 'uppercase' }} onChange={(e) => setCode(e.target.value.toUpperCase())} />
         </label>
