@@ -8,7 +8,7 @@ import { chromium, devices, webkit } from '@playwright/test';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '../../../../..');
-const out = join(root, 'docs/ui/screens');
+const out = join(root, process.env.CAPTURE_DIR ?? 'docs/ui/screens');
 mkdirSync(out, { recursive: true });
 const port = process.env.WEB_PORT ?? '4401';
 const base = `http://127.0.0.1:${port}/src/ui/dev/index.html`;
@@ -16,7 +16,7 @@ const args = process.argv.slice(2);
 const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : null;
 const withWebkit = args.includes('--webkit');
 
-const SCENARIOS = ['entry', 'lobby', 'role', 'night-wolf', 'night-seer', 'night-guard', 'night-villager', 'witch', 'hunter', 'day', 'vote', 'defense', 'confirm', 'ghost', 'ended', 'moderator', 'moderator-day', 'stalemate'];
+const SCENARIOS = (process.env.CAPTURE_SCENARIOS?.split(',') ?? ['entry', 'lobby', 'role', 'night-wolf', 'night-seer', 'night-guard', 'night-villager', 'witch', 'hunter', 'day', 'vote', 'defense', 'confirm', 'ghost', 'ended', 'moderator', 'moderator-day', 'stalemate']);
 const SHEETS = { role: 'open-role', help: 'open-help', chat: 'open-chat' };
 
 const sizes = {
