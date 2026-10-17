@@ -114,7 +114,8 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Running: voice Cloud/local rotation-gap slot (cap 15 p-min). Next: foundation release full acceptance on bundle SHA.
 
 ## Release candidate (2026-10-18 overnight)
-- **acb9c82** = release-bundle candidate. Full acceptance passed (owner run 18:11–19:00Z): check, matches 10/10, voice matches 10/10, strict UI 16/16 (0 misses), load 2.5–5.2.
+- **f12761a** = release candidate (supersedes acb9c82). Full acceptance 21:56–22:45Z all rc=0: check (rules 216, scene 28, voice 54, server 110, e2e 13); matches 10/10; voice matches 10/10; strict UI 16/16, 711/711, 0 misses (3 s click wait; 4 fps single observer). Adds voice connecting/reconnecting/unavailable+retry, voiceAvailable.
+- (previous) **acb9c82** = release-bundle candidate. Full acceptance passed (owner run 18:11–19:00Z): check, matches 10/10, voice matches 10/10, strict UI 16/16 (0 misses), load 2.5–5.2.
 - 3ceaeae (adds voice connecting/reconnecting UI) is in dev but NOT a candidate: two full runs each had 1 observer miss (a9-3, a8-6); 3/3 repro clean; suspected small regression from the new UI (under investigation by game-UI), vs test stall.
 - Next release items: harness click wait 3 s + SeatView.voiceAvailable (foundation); voice-unavailable timeout/retry (game-ui-voice c078801).
 - Cloud participant-minutes used ≈15.7 / 100.
