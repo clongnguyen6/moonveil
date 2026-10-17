@@ -4,10 +4,10 @@
 // channel the seat is not granted. Runs once foundation's wiring exposes `globalThis.__moonveil.voice`.
 //
 //   node scripts/env.mjs npm run e2e -w @moonveil/voice            # default: 7 seats moderator, 10 seats automatic
-//   VOICE_E2E_SEATS=10 VOICE_E2E_AUTO_BUDGET_MS=300000 ... -g automatic
+//   VOICE_E2E_SEATS=10 VOICE_E2E_AUTO_BUDGET_MS=300000 MOONVEIL_SCENE=low ... -g automatic
 import { RoomServiceClient } from 'livekit-server-sdk';
 import { expect, type Player, test } from '../../../e2e/harness/index.ts';
-import { botAct, checkHearMatrix, game, type MatrixReport, moderatorClose, requireVoiceWiring, rng, sleep, step, voiceFrameLeaks, voiceFrames, voiceSettled, voiceSnapshot, waitStepChange } from './helpers.ts';
+import { botAct, checkHearMatrix, game, joinVoice, type MatrixReport, moderatorClose, requireVoiceWiring, rng, sleep, step, voiceFrameLeaks, voiceFrames, voiceSettled, voiceSnapshot, waitStepChange } from './helpers.ts';
 
 const SEATS = Number(process.env.VOICE_E2E_SEATS ?? 0);
 const AUTO_BUDGET_MS = Number(process.env.VOICE_E2E_AUTO_BUDGET_MS ?? 5 * 60_000);
@@ -29,13 +29,33 @@ function summarize(reports: MatrixReport[]) {
   return { failures, checked, steps, skipped: skipped.length };
 }
 
+// Scene rendering in test pages. Agreed switch across harnesses: the product honours
+// `globalThis.__MOONVEIL_SCENE = 'off'|'low'|'high'` (set by an init script) once visual-7 lands, with the env
+// mirror MOONVEIL_SCENE. This suite measures audio, not visuals, so it defaults to 'off': in a headless browser
+// the pixi.js/WebGL scene is software-rendered in one GPU process, measured at 620–730 % CPU for 11 pages
+// (runs 15–17), which starved renderers, ICE and publishes. Until the product honours the flag, 'off' also
+// stops the frame loop by never firing requestAnimationFrame (fallback; remove when visual-7 is on dev).
+const SCENE = (process.env.MOONVEIL_SCENE ?? 'off') as 'off' | 'low' | 'high';
+async function newPlayer(table: { player(name: string): Promise<Player> }, name: string): Promise<Player> {
+  const p = await table.player(name);
+  await p.context.addInitScript((scene) => {
+    (globalThis as any).__MOONVEIL_SCENE = scene;
+    if (scene === 'off') {
+      (globalThis as any).__realRAF = globalThis.requestAnimationFrame;
+      globalThis.requestAnimationFrame = () => 0;
+      globalThis.cancelAnimationFrame = () => {};
+    }
+  }, SCENE);
+  return p;
+}
+
 async function seatTable(table: { player(name: string): Promise<Player>; seat(mode: 'automatic' | 'moderator', host: Player, others: Player[]): Promise<string> }, mode: 'automatic' | 'moderator', seats: number) {
   const players: Player[] = [];
-  for (const n of NAMES.slice(0, seats)) players.push(await table.player(n));
+  for (const n of NAMES.slice(0, seats)) players.push(await newPlayer(table, n));
   let mod: Player | null = null;
   let code: string;
   if (mode === 'moderator') {
-    mod = await table.player('Mod');
+    mod = await newPlayer(table, 'Mod');
     code = await table.seat('moderator', mod, players);
   } else {
     const [host, ...others] = players as [Player, ...Player[]];
@@ -48,7 +68,7 @@ test('moderator mode, full match with voice: hear-matrix equals grants on every 
   const seats = SEATS || 7;
   const { players, mod, code } = await seatTable(table, 'moderator', seats);
   const all = [...players, mod!];
-  await requireVoiceWiring(players[0]!);
+  await joinVoice(all); // D2: explicit join per page (the UI's tap)
 
   // lobby: everyone speaks and hears; the moderator listens hidden
   await voiceSettled(all);
@@ -95,7 +115,7 @@ test('automatic mode, 10 seats with voice: hear-matrix on every step within the 
   test.setTimeout(AUTO_BUDGET_MS + 8 * 60_000); // budget + seating, settling and the final checks
   const seats = SEATS || 10;
   const { players } = await seatTable(table, 'automatic', seats);
-  await requireVoiceWiring(players[0]!);
+  await joinVoice(players); // D2
   await voiceSettled(players);
   const reports: MatrixReport[] = [await checkHearMatrix(players, 'lobby')];
 
@@ -125,7 +145,7 @@ test('automatic mode, 10 seats with voice: hear-matrix on every step within the 
 });
 
 test('in-person room: no voice sessions anywhere, no LiveKit rooms', async ({ table }) => {
-  const host = await table.player('Host');
+  const host = await newPlayer(table, 'Host');
   await host.page.goto('/');
   // Create through the client with voiceMode 'inPerson' (the UI control is game-ui scope; same wire message).
   await host.page.evaluate(() => (globalThis as any).__moonveil.create('automatic', { name: 'Host', appearance: { color: 'moss', hat: 'none' } }, 'inPerson'));
@@ -133,7 +153,7 @@ test('in-person room: no voice sessions anywhere, no LiveKit rooms', async ({ ta
   const code = (await host.page.getByTestId('room-code').textContent())!.trim();
   const others: Player[] = [];
   for (const n of NAMES.slice(1, 7)) {
-    const p = await table.player(n);
+    const p = await newPlayer(table, n);
     await p.joinByCode(code);
     others.push(p);
   }

@@ -13,6 +13,7 @@ Status: foundation, 2026-10-16. The harness is ready now; the UI-driven layer wa
   - the moderator gets moderator data.
 - **Time** (TEST ONLY): `MOONVEIL_TEST_TIME_SCALE` on the real-engine server (playwright default 20; the match scripts set ×10, see Strict pacing). Server clock and timers run 20× faster; the engine still sees 60 s nights and all approved timings. Server tests verify real durations.
 - **Ports:** `scripts/e2e-run.mjs` gives OS-assigned free ports (`E2E_PORT` fixture server, `E2E_REAL_PORT` real server, `E2E_RESTART_PORT`).
+- **Voice (D2, foundation-10):** after seating, every page is checked to have no voice connection, then joined explicitly (`joinVoiceAll`).
 - **Voice:** `npm run e2e:matches:voice` (`E2E_VOICE=1`) also starts the pinned LiveKit (voice tooling; writes only under `.cache/livekit`; UDP 4160–4199) and asserts the `voice` frames on every browser. The harness captures only the game socket (`/ws`), never LiveKit's.
 - **Filters:** `E2E_GREP="…"` selects tests; `E2E_TIME_SCALE` sets the real server's time scale (default 20).
 - **Not in `npm run check`:** about 4 min and up to 10 browser contexts at once on a shared machine. Becomes part of acceptance runs.
@@ -64,7 +65,7 @@ Status: foundation, 2026-10-16. The harness is ready now; the UI-driven layer wa
 - **Why:** on foundation-8 (`5b081c4`) the protocol suite at ×20 acted in fewer steps under load. `a7-0`: 14 loop iterations without voice, 13 with. `a9-3`: 34 vs 25. A step that passes between two loop iterations gets no bot action, so later bot choices diverge from the in-process simulation. The outcomes still matched, by luck of the path.
 - **Check:** `skippedSteps(m)` (`e2e/harness/match.ts`) = step keys (`night/day/kind`) that the driver's socket saw while playing but the loop never acted in. `withActions` marks steps where some seat's own view offered actions. Same-key collisions merge, so it can only under-count. Unit test: `e2e/harness/match.test.ts`.
   - `real-match.spec.ts` (protocol, with and without voice) **fails** on any skipped step and logs `STEPS {seed, acted, skipped}` first.
-  - `real-match-ui.spec.ts` logs `skipped` in `UIMATCH` (not yet a failure; proposal: make it one once a locked run shows 0 at ×5/×2).
+  - `real-match-ui.spec.ts` logs `skipped` in `UIMATCH` and, in strict runs (`E2E_UI_STRICT=1`, i.e. `e2e:ui:accept`), **fails** on any (foundation-10). Basis: 0 skipped steps in all 16 strict matches at ×5/×2 on `36bdafd` (`.cache/runs/full-36bdafd/`). Quick runs (`e2e:ui`, ×10) only log them. Not yet run in a locked acceptance run.
   - Step-change polls run every 20 ms (views are local frames, so polling is cheap).
 - **Protocol suite time scale: ×10** (default of `e2e:matches` and `e2e:matches:voice`; `E2E_TIME_SCALE` overrides). Locked run on `9a806be`, 2026-10-17 (`.cache/runs/pacing-x10-9a806be/`):
   - 0 skipped steps in all 10 matches, with and without voice;
@@ -73,3 +74,25 @@ Status: foundation, 2026-10-16. The harness is ready now; the UI-driven layer wa
   - 8.1 min without voice, 8.5 min with (×20 took 4.7 min);
   - load 3.3 → 4.3, 1.8–3.0 GB free; peaks: browsers 3.4 GB RSS and 484 % CPU, server 336 MB.
   ×5 was not needed.
+
+## Scene cost per suite (foundation-10, needs visual-7 in `dev`)
+- Knob (visual-7, `docs/visual/MOUNT.md`): `quietUi(p, scene)` in `e2e/harness/ui.ts`.
+  - `off`: the Settings scene switch is off and the page override `globalThis.__MOONVEIL_SCENE = 'off'` is set, so there's no canvas and no loop.
+  - `low` / `high`: scene on, with that override.
+  - `auto`: scene on, no override; the scene picks `low` under `navigator.webdriver`.
+  - Env `MOONVEIL_SCENE=off|low|high|auto` overrides a suite's default; any other value is an error.
+- **Protocol and voice suites** (`real-match.spec.ts`): `off`. They assert the wire. Voice measured 11 software-rendered scenes at 600–700 % CPU in the GPU process.
+- **Strict UI suite** (`real-match-ui.spec.ts`): **one scene observer per match.** The host's context gets `auto` (resolves to `low`): the moderator in moderator mode, else the first seat. Every other context gets `off`. This holds in all three projects.
+  - On a device each player renders one scene; 7–10 scenes on one test machine would be a test artifact.
+  - `UIMATCH` logs `scene: {mode, observer, others}`.
+  - The scene's real cost on phones is the visual owner's device measurement, not this suite's.
+- **Locked run on `4408c64` (2026-10-17): strict UI failed 5/16**, all on the laptop project, in automatic mode, with a playing seat as observer. The misses are the observer's clicks timing out at 1.5 s, plus pacing misses on others. Moderator-observer and phone matches passed.
+  - A/B on `a8-6` (laptop, ×5): observer `off` passed 26/26 (our browsers 38 % CPU on average); `auto`→`low` failed 25/26, with our GPU process at ~850 % in every sample.
+  - Cause: one software-WebGL scene (headless Chromium) at laptop size at 30 fps. The harness's reduced-motion setting doesn't reach the scene, which reads only the media query.
+  - **Test-environment mitigation (foundation-10, not yet run under the lock):** the observer's context emulates `prefers-reduced-motion: reduce`. The scene stays mounted and rendering, but at **4 fps**.
+  - **So acceptance runs the scene at 4 fps on one observer per match.** That shows the UI works with a scene mounted. It is **not** evidence of normal-quality (30 fps `low` or `high`) performance.
+  - Product performance is the visual owner's measurement on a GPU path (real devices). Every run report states this.
+- Each match logs its mode (`scene` in `MATCH`, `STEPS`, `UIMATCH`).
+- Before foundation-10, every real-match suite ran with the scene switched off (quiet settings).
+- Not yet run in a locked run. If scene cost breaks pacing (misses or skipped steps), that's a finding to report, not a reason to switch the suite to `off` silently.
+

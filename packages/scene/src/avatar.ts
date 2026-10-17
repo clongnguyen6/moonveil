@@ -94,6 +94,7 @@ export class Avatar {
   private steerSide = 1;
   target: { x: number; y: number } | null = null;
   onArrive: (() => void) | null = null;
+  labelBaseY = 0;   // label anchor (world units, relative to the feet) before layout offsets
 
   constructor(seat: string, name: string, appearance: SceneAppearance, bank: TextureBank) {
     this.seat = seat;
@@ -113,10 +114,16 @@ export class Avatar {
   }
 
   setName(name: string) { if (this.label.text !== name) this.label.text = name; }
+  setLabelSize(px: number) { if (this.label.style.fontSize !== px) this.label.style.fontSize = px; }
+  // head position in world units relative to the feet (leader line target)
+  get headOffsetY() { return this.body.y - 62 - (this.mode === 'ghost' ? 12 : 0); }
   setPos(x: number, y: number) { this.x = x; this.y = y; }
   walkTo(x: number, y: number, onArrive?: () => void) { this.target = { x, y }; this.onArrive = onArrive ?? null; }
   showEmote(s: string) { this.emote.text = s; this.emote.visible = true; this.emoteT = 2.2; }
   get isGhost() { return this.mode === 'ghost'; }
+
+  // called by the scene after update(): screen-space layout result in world units
+  setLabelOffset(dx: number, dy: number) { this.label.x = dx; this.label.y = this.labelBaseY + dy; }
 
   destroy() {
     this.root.destroy({ children: true });
@@ -203,7 +210,8 @@ export class Avatar {
     this.arcs.position.set(this.facing * 17, this.body.y - 50 - (ghost ? 12 : 0));
     this.arcs.scale.set(this.facing * (0.9 + Math.sin(this.t * 9) * 0.1) * this.speakT, (0.9 + Math.sin(this.t * 9) * 0.1) * this.speakT);
     this.label.scale.set(labelScale);
-    this.label.y = this.body.y - 78 - (ghost ? 12 : 0);
+    this.labelBaseY = this.body.y - 78 - (ghost ? 12 : 0);
+    this.label.y = this.labelBaseY;
     this.label.style.fill = this.speaking ? 0xffe28a : ghost ? 0xcfe0ff : 0xfff6e6;
     this.label.alpha = ghost ? 0.85 : 1;
     if (this.emoteT > 0) { this.emoteT -= dt; this.emote.y = this.label.y - 18 * labelScale - Math.sin((2.2 - this.emoteT) * 3) * 3; this.emote.scale.set(labelScale); this.emote.alpha = clamp(this.emoteT * 2, 0, 1); if (this.emoteT <= 0) this.emote.visible = false; }

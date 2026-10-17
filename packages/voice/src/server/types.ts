@@ -42,6 +42,9 @@ export interface VoiceBackend {
   createRoom(room: string, emptyTimeoutSeconds: number): Promise<void>;
   // Disconnects everyone in the room; no-op when the room does not exist.
   deleteRoom(room: string): Promise<void>;
+  // Disconnects one participant. `revokeTokenTs` (unix seconds) asks LiveKit Cloud to reject tokens
+  // issued before it; the OSS server ignores the field (verified in its source). No-op when absent.
+  removeParticipant(room: string, identity: string, revokeTokenTs?: number): Promise<void>;
 }
 
 export type Grants = ReadonlyMap<SeatId, readonly VoiceGrantLike[]>;

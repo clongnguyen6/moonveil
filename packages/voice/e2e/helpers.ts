@@ -14,14 +14,29 @@ export const grant = (v: SeatView, channel: string): VoiceGrant | undefined => v
 
 // ---- voice state in the page ----
 
+// page.evaluate has no timeout: a frozen renderer (CPU starvation, a hung getStats) would hang the test
+// until its global timeout and leave no evidence. Bound every evaluate and name the page in the error.
+export class PageUnresponsive extends Error {
+  constructor(name: string, what: string, ms: number) {
+    super(`${name}: page unresponsive, ${what} did not return within ${ms} ms`);
+  }
+}
+async function evalBounded<T>(p: Player, what: string, fn: () => T | Promise<T>, ms = 15_000): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([p.page.evaluate(fn), new Promise<never>((_, rej) => { timer = setTimeout(() => rej(new PageUnresponsive(p.name, what, ms)), ms); })]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 export async function voiceSnapshot(p: Player): Promise<VoiceSnapshot | null> {
-  return p.page.evaluate(() => {
+  return evalBounded(p, 'voiceSnapshot', () => {
     const v = (globalThis as any).__moonveil?.voice;
     return v && typeof v.getSnapshot === 'function' ? (v.getSnapshot() as VoiceSnapshot) : null;
   });
 }
 export async function voiceStats(p: Player): Promise<AudioStats[]> {
-  return p.page.evaluate(async () => {
+  return evalBounded(p, 'voiceStats', async () => {
     const v = (globalThis as any).__moonveil?.voice;
     return v && typeof v.stats === 'function' ? ((await v.stats()) as AudioStats[]) : [];
   });
@@ -33,19 +48,38 @@ export async function requireVoiceWiring(p: Player) {
     .toBe(true);
 }
 
+// D2: voice connects only after an explicit join() from a user gesture; the UI makes that call from the
+// "join campfire" tap. The suite makes it directly on each page once the VoiceClient exists.
+export async function joinVoice(players: Player[]) {
+  for (const p of players) {
+    await requireVoiceWiring(p);
+    await evalBounded(p, 'voice.join', () => (globalThis as any).__moonveil.voice.join());
+  }
+}
+
 // Wait until every player's voice channels match its grants (names) and are connected.
 export async function voiceSettled(players: Player[], timeout = 40_000) {
+  const t0 = Date.now();
   for (const p of players) {
+    let lastLogged = 0;
     await expect
       .poll(
         async () => {
           const snap = await voiceSnapshot(p);
-          if (!snap) return 'no voice client';
-          const want = grants(p).filter((g) => g.listen || g.speak).map((g) => g.channel).sort().join();
-          const have = Object.keys(snap.channels).sort().join();
-          if (want !== have) return `channels ${have} != grants ${want}`;
-          for (const [name, c] of Object.entries(snap.channels)) if (c.state !== 'connected') return `${name}: ${c.state} ${c.error ?? ''}`;
-          return 'ok';
+          let state = 'ok';
+          if (!snap) state = 'no voice client';
+          else {
+            const want = grants(p).filter((g) => g.listen || g.speak).map((g) => g.channel).sort().join();
+            const have = Object.keys(snap.channels).sort().join();
+            if (want !== have) state = `channels [${have}] != grants [${want}]`;
+            else for (const [name, c] of Object.entries(snap.channels)) if (c.state !== 'connected') state = `${name}: ${c.state} ${c.error ?? ''}`;
+          }
+          // Evidence trail: what this page is waiting on, every 10 s while not settled.
+          if (state !== 'ok' && Date.now() - lastLogged > 10_000) {
+            lastLogged = Date.now();
+            console.log(`  settle ${p.name} +${((Date.now() - t0) / 1000).toFixed(0)}s: ${state}; step=${step(p)}; channels=${snap ? Object.entries(snap.channels).map(([k, c]) => `${k}:${c.state}${c.publishing ? '/pub' : ''}`).join(',') : '-'}; mic=${snap?.mic ?? '-'}`);
+          }
+          return state;
         },
         { message: `${p.name}: voice settle`, timeout },
       )

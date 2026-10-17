@@ -48,7 +48,11 @@ export interface SceneOptions {
   input: SceneInput;
   camera?: CameraMode;         // default: 'tight' on narrow portrait screens, else 'fit'
   perf?: boolean;              // collect per-frame timings (dev)
-  resolution?: number;         // device pixel ratio cap, default min(dpr, 2)
+  resolution?: number;         // device pixel ratio cap, default min(dpr, 2); 'low' forces 1
+  // Cost mode. 'auto' (default): page override globalThis.__MOONVEIL_SCENE, else 'low' under automation
+  // or on ≤4 cores / ≤4 GB, else 'high'. 'off' mounts nothing (no canvas, no frame loop).
+  quality?: 'off' | 'low' | 'high' | 'auto';
+  labelLayout?: boolean | 'v1';   // default true: clamp on screen, lift ≤ 1 label height, leader line when displaced, smaller labels at 13+ seats; 'v1' = first version (lift ≤ 3, no leaders); false = off (captures only)
 }
 
 export interface PerfStats { n: number; frame: Stat; update: Stat; lightmap: Stat; render: Stat }
@@ -56,6 +60,7 @@ export interface Stat { avg: number; p95: number; max: number }
 
 export interface SceneHandle {
   readonly ready: Promise<void>;
+  readonly quality: 'off' | 'low' | 'high';   // resolved cost mode
   setInput(input: SceneInput): void;
   setPoses(frame: PoseFrame): void;
   setSpeaking(seats: SeatId[]): void;

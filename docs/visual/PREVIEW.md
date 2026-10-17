@@ -1,4 +1,6 @@
-# Camp visual preview (M1) — for direction approval
+# Camp visual preview (M1)
+
+Status 2026-10-17: this camp look is the chosen visual baseline (see `BASELINE.md`); the later "mature/cinematic" redo was stopped.
 
 Run: `npm install` at the root, then `node scripts/env.mjs npm run dev -w @moonveil/scene` → http://127.0.0.1:4200 (dev harness on the fixture stub server; the renderer lives in `packages/scene`, see `packages/scene/README.md`).
 All captures are WebKit/browser emulation (Playwright WebKit, the Safari engine, GPU-backed); no real device was used. An earlier round used GPU headless Chromium; the look is the same.

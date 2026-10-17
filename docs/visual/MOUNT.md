@@ -36,6 +36,10 @@ scene.destroy();
 
 Keyboard (WASD/arrows, Space = push-to-talk callback via `setSpeakingLocal` is the shell's choice; the scene only reports) and the floating touch joystick live inside the scene; the joystick appears on touch devices and attaches to the slot element. Buttons over the slot must set `data-ui` on their container so taps on them do not reach the joystick.
 
+## Cost modes (for tests and low-end devices)
+
+`mountScene(slot, { input, quality })` with `quality: 'off' | 'low' | 'high' | 'auto'` (default `auto`). `off` mounts no canvas and runs no loop; harnesses can force it without touching the shell by setting `globalThis.__MOONVEIL_SCENE = 'off'` (or `'low'`) in a page init script, which `auto` honours. `auto` also picks `low` under `navigator.webdriver` and on ≤ 4 cores / ≤ 4 GB. The loop stops while the document is hidden; `prefers-reduced-motion` caps it at 4 fps. The Settings "scene" switch stays the user-facing off.
+
 ## Resize and safe areas
 
 - The canvas fills the slot (`position:absolute; inset:0` as in layout.css). The scene observes the slot with `ResizeObserver` and resizes itself; `scene.resize()` exists for shells that prefer to drive it.

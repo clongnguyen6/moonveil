@@ -112,7 +112,7 @@ interface StoredRoom {
 export class Room<S = unknown> {
   readonly code: string;
   readonly mode: Mode;
-  readonly voiceMode: VoiceMode;
+  voiceMode: VoiceMode;
   status: 'lobby' | 'playing' | 'ended' = 'lobby';
   closed = false;
   lastActive: number;
@@ -291,6 +291,11 @@ export class Room<S = unknown> {
         this.customDeck = msg.counts;
         break;
       }
+      case 'voiceMode':
+        // D5: flush() re-syncs voice grants ([] for every seat when inPerson), so sessions close or return.
+        if (this.status !== 'lobby' || seat.id !== this.hostId) throw new RoomError('not-allowed', 'host, lobby only');
+        this.voiceMode = msg.voiceMode;
+        break;
       case 'say':
         this.say(seat, msg.channel, msg.text);
         return;

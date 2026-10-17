@@ -135,8 +135,8 @@ test('one commit per flush: three setGrants coalesce into one reconcile (microta
   await new Promise((r) => setTimeout(r, 0));
   await gw.commit('C');
   assert.deepEqual(backend.deleted, ['C-public-g1']);
-  // one reconcile => one list per channel (public + wolves), not three
-  assert.equal(backend.calls.filter((c) => c.op === 'list').length - listsBefore, 2);
+  // one reconcile => one list per channel (public + wolves) plus one for the rotated room's departure list, not 3x
+  assert.equal(backend.calls.filter((c) => c.op === 'list').length - listsBefore, 3);
 });
 
 test('API call order is shuffled, not seat order', async () => {
@@ -152,14 +152,54 @@ test('API call order is shuffled, not seat order', async () => {
   assert.notDeepEqual(order, seats);
 });
 
-test('closeRoom deletes every channel room of that game', async () => {
-  const { gw, backend } = make();
+test('closeRoom revokes every present participant (Cloud semantics) and deletes every channel room', async () => {
+  const backend = new FakeBackend();
+  const gw = new LiveKitVoiceGateway({ backend, keys, publicWsUrl: 'wss://x', autoCommit: false, now: () => 1_700_000_000_000 });
   gw.setGrants('X', 'p1', [g('public', true, true)]);
   gw.setGrants('X', 'w1', [g('wolves', true, true)]);
   await gw.commit('X');
+  await joinAll(gw, backend, 'X', ['p1', 'w1']);
   await gw.closeRoom('X');
   assert.deepEqual(backend.deleted.sort(), ['X-public-g1', 'X-wolves-g1']);
+  const removes = backend.calls.filter((c) => c.op === 'remove');
+  assert.deepEqual(removes.map((c) => [c.room, c.identity, c.revokeTokenTs]).sort(), [['X-public-g1', 'p1', 1_699_999_999], ['X-wolves-g1', 'w1', 1_699_999_999]]);
   assert.deepEqual(await gw.sessions('X', 'p1'), []);
+});
+
+test('rotation: every participant of the old room generation is removed with revokeTokenTs before the room is deleted', async () => {
+  const backend = new FakeBackend();
+  const gw = new LiveKitVoiceGateway({ backend, keys, publicWsUrl: 'wss://x', autoCommit: false, random: () => 0.5, now: () => 1_700_000_000_000 });
+  await gw.sync('RV', new Map([['p1', [g('public', true, true)]], ['p2', [g('public', true, true)]], ['p4', [g('public', true, true)]]]));
+  await joinAll(gw, backend, 'RV', ['p1', 'p2', 'p4']);
+  // p4 dies: hidden in public (visibility flip) -> rotation; everyone leaves g1 (p1, p2 get fresh g2 tokens)
+  const r = await gw.sync('RV', new Map([['p1', [g('public', true, true)]], ['p2', [g('public', true, true)]], ['p4', [g('public', false, true), g('ghosts', true, true)]]]));
+  const ops = backend.calls.filter((c) => c.op === 'remove' || c.op === 'delete').map((c) => `${c.op}:${c.identity ?? c.room}${c.revokeTokenTs ? `@${c.revokeTokenTs}` : ''}`);
+  assert.deepEqual(ops.slice(0, 3).sort(), ['remove:p1@1699999999', 'remove:p2@1699999999', 'remove:p4@1699999999']); // revoke all three first
+  assert.equal(ops[3], 'delete:RV-public-g1'); // then delete
+  assert.equal(r.get('p1')![0]!.room, 'RV-public-g2'); // fresh tokens (nbf = now) are after the cutoff
+  const nbf = (await readToken(keys, r.get('p1')![0]!.token)).nbf!;
+  assert.ok(nbf > 1_699_999_999, `new token nbf ${nbf} must be after the revocation cutoff`);
+});
+
+test('revokeOnClose=false (A/B knob): rotation deletes the room without RemoveParticipant calls', async () => {
+  const backend = new FakeBackend();
+  const gw = new LiveKitVoiceGateway({ backend, keys, publicWsUrl: 'wss://x', autoCommit: false, revokeOnClose: false });
+  await gw.sync('AB', new Map([['p1', [g('public', true, true)]], ['p4', [g('public', true, true)]]]));
+  await joinAll(gw, backend, 'AB', ['p1', 'p4']);
+  await gw.sync('AB', new Map([['p1', [g('public', true, true)]], ['p4', [g('public', false, true), g('ghosts', true, true)]]]));
+  assert.deepEqual(backend.deleted, ['AB-public-g1']);
+  assert.equal(backend.calls.filter((c) => c.op === 'remove').length, 0);
+});
+
+test('rotation after a seat loses every grant (night villager): it is revoked; wolves keep theirs', async () => {
+  const backend = new FakeBackend();
+  const gw = new LiveKitVoiceGateway({ backend, keys, publicWsUrl: 'wss://x', autoCommit: false, random: () => 0.5, now: () => 1_700_000_000_000 });
+  await gw.sync('NV', new Map([['w1', [g('public', true, true)]], ['v1', [g('public', true, true)]]]));
+  await joinAll(gw, backend, 'NV', ['w1', 'v1']);
+  await gw.sync('NV', new Map([['w1', [g('wolves', true, true)]], ['v1', []]]));
+  const removes = backend.calls.filter((c) => c.op === 'remove').map((c) => c.identity).sort();
+  assert.deepEqual(removes, ['v1', 'w1']); // both leave public, both revoked for it; w1 gets a wolves token
+  assert.deepEqual(backend.deleted, ['NV-public-g1']);
 });
 
 // ---- ADR 0004 seam: sync / sessionsFor ----
@@ -229,6 +269,27 @@ test('defense (ADR 0004 §1, measured): listeners become hidden, so the public r
   assert.deepEqual(a.backend.deleted, ['DEF-public-g1', 'DEF-public-g2']); // and again when the defense ends
   // Why not keep them visible ("sticky"): a seat that dies while connected (execution, Hunter) would stay
   // visible as a listen-only ghost in the public roster. Measured in the browser suite; policy forbids it.
+});
+
+test('D5: lobby switch remote -> in-person -> remote: every session closes, no token is minted, then sessions resume on a new generation', async () => {
+  const backend = new FakeBackend();
+  const gw = new LiveKitVoiceGateway({ backend, keys, publicWsUrl: 'wss://x', autoCommit: false, random: () => 0.5, now: () => 1_700_000_000_000 });
+  const lobby = new Map([['p1', [g('public', true, true)]], ['p2', [g('public', true, true)]]]);
+  const r1 = await gw.sync('L', lobby);
+  await joinAll(gw, backend, 'L', ['p1', 'p2']);
+  assert.equal(r1.get('p1')![0]!.room, 'L-public-g1');
+  // host switches to in-person: the server sends the same seats with [] (voice grants only; text grants unaffected)
+  const r2 = await gw.sync('L', new Map([['p1', []], ['p2', []]]));
+  assert.deepEqual([...r2.values()].map((v) => v.length), [0, 0]); // no token minted
+  assert.deepEqual(backend.deleted, ['L-public-g1']); // session rooms closed (revoked first)
+  assert.deepEqual(backend.calls.filter((c) => c.op === 'remove').map((c) => c.identity).sort(), ['p1', 'p2']);
+  assert.equal(backend.calls.filter((c) => c.op === 'create').length, 1); // only the original room was ever created
+  assert.deepEqual(await gw.sessionsFor('L', 'p1'), []);
+  // host switches back: issued as for any remote lobby, on a fresh generation
+  const r3 = await gw.sync('L', lobby);
+  assert.equal(r3.get('p1')![0]!.room, 'L-public-g2');
+  assert.equal(r3.get('p2')!.length, 1);
+  assert.deepEqual([...backend.rooms.keys()], ['L-public-g2']);
 });
 
 test('backend errors are reported, not thrown into the server', async () => {

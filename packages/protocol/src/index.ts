@@ -83,6 +83,9 @@ export const ClientMessage = z.discriminatedUnion('t', [
       .refine((o) => Object.keys(o).length <= 16, 'too many roles')
       .nullable(),
   }),
+  // Host, lobby only (D5): switch remote voice <-> in person. Every view's `voiceMode` updates; inPerson = no voice
+  // sessions for anyone (grants synced as []), remote = normal grants again.
+  z.strictObject({ t: z.literal('voiceMode'), ref: Ref, voiceMode: VoiceMode }),
   // Text on a channel. Server accepts only with a current `speak` grant on that channel.
   z.strictObject({ t: z.literal('say'), ref: Ref, channel: ChannelId, text: ChatText }),
   // Free movement (lobby; ghosts during play). <= 10 Hz. Server silently drops moves a seat may not make. No ack.

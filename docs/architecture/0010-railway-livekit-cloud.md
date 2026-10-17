@@ -128,6 +128,78 @@ In `deploy/railway.ts` (IaC draft), or set by hand in the dashboard with the sam
   - [ ] **Voice reachability** (after step 8): sessions issued per seat, audio both ways, wolves-only at night.
   - [ ] Usage before and after the session recorded (§6).
 
+### 7a. Appendix (draft): checks after a deploy, in the Railway dashboard
+For the person holding the Railway account; no programming needed. Do the parts in order. **If any check says STOP:** do nothing further, take a screenshot, and send it with the part number. Never upgrade, add a card or switch hosts to get past a STOP. Dashboard wording that Railway's docs don't confirm is marked *(label unverified)*; if the screen differs, look for the closest match or STOP and ask.
+
+**A. Before anything: trial type and time left**
+1. Open railway.com and sign in. Look at your account or workspace plan *(label unverified)*.
+2. It must say **Trial** and must **not** say "Limited" anywhere (for example "Limited Trial" or "Limited access"). Railway's docs don't say where this is shown; railway.com/verify is the documented route from Limited to Full.
+   - STOP if you see "Limited", or if a payment or upgrade screen appears.
+3. Note the credit left and the days left.
+   - STOP if under $1 or under 5 days.
+
+**B. Service settings** (open the project, click the **moonveil** service, then its **Settings**)
+1. **Region:** Southeast Asia (Singapore).
+2. **Replicas:** 1 *(label unverified)*. Never more.
+3. **Serverless:** Settings → Deploy → Serverless. It must be **off**. If it's on, switch it off.
+4. **Public domain:** generate a Railway domain *(Networking section; label unverified)*. Write it down. It looks like `something.up.railway.app`.
+
+**C. Variables** (service → **Variables** *(label unverified)*; add each name with exactly this value)
+
+| Name | Value |
+|---|---|
+| `RAILPACK_NODE_VERSION` | `24.20.0` |
+| `RAILPACK_NODE_NPM_INSTALL` | `npm ci --include=dev` |
+| `RAILWAY_DEPLOYMENT_DRAINING_SECONDS` | `5` |
+| `HOST` | `0.0.0.0` |
+| `MOONVEIL_ENGINE` | `rules` |
+| `MOONVEIL_DATA_DIR` | `/data/rooms` |
+| `MOONVEIL_PUBLIC_ORIGIN` | `https://${{RAILWAY_PUBLIC_DOMAIN}}`, typed exactly, braces included |
+
+- **Do not add** any name starting with `MOONVEIL_TEST`, `E2E_` or `MOONVEIL_PERSIST`, and not `MOONVEIL_FIXTURE_MS`.
+- **Voice, only after LiveKit is approved:** `LIVEKIT_URL`, `LIVEKIT_PUBLIC_WS`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`. Mark the last two as **sealed** (Railway hides sealed values for good). Add all four or none. Never paste these values into chat, issues or the repo.
+
+**D. Volume**
+1. Add a volume to the moonveil service *(how: label unverified; Railway's docs describe it, and the CLI form is `railway volume add --mount-path /data`)*.
+2. **Mount path:** `/data`. **Size:** the smallest offered, at most 0.5 GB (the Trial limit).
+   - STOP if it asks for a plan upgrade.
+
+**E. Deploy and read the first log line**
+1. Deploy the revision named in the deploy request (Lead provides it).
+2. Open the deployment's **logs**. Within a minute or two you should see one line starting `moonveil server`. It must contain all of these:
+   - `engine=rules`
+   - `voice=off` (or `voice=wss://…` once voice is set up)
+   - `persist=/data/rooms`
+   - `restoredRooms=0` on the very first deploy
+   - STOP if the deploy fails, if the line never appears, or if it shows `persist=off` or another path.
+   - STOP if you see `EACCES` or `permission denied`: report it; the likely fix, `RAILWAY_RUN_UID=0`, is decided by us, not tried blind.
+3. Open `https://<your domain>/healthz` in a browser. It must show `ok`. STOP otherwise.
+
+**F. Game page and connection**
+1. Open `https://<your domain>` on a laptop and on a phone. Both show the start screen.
+2. Laptop: enter a name, then **Create & play**. A small **Connected** label appears. STOP if it keeps showing "Reconnecting…".
+3. Phone: open the invite link the laptop shows. It must start with `https://<your domain>/r/`. Join with another name; both see each other in the lobby.
+4. **Idle test:** leave both on the lobby for **20 minutes** without touching them (screens on). Afterwards both still show Connected, and no "Reconnecting…" screen has appeared. If one did, write down roughly when and STOP.
+
+**G. Restart check (rooms survive on the volume)**
+1. Keep the lobby from F open on both devices. Each player taps **Ready**.
+2. In the dashboard, restart the service: the deployment's **⋮** menu → **Restart** *(label unverified)*.
+3. On both devices a "Reconnecting…" screen appears, then within about a minute both are back in **the same lobby**, with the same names and ready marks. STOP if either lands on the start screen or sees "room not found".
+4. In the logs, the new `moonveil server` line shows `restoredRooms=1` (or more).
+5. Repeat steps 2–4 with **Redeploy** instead of Restart (same menu). Expect a slightly longer gap.
+6. Mid-match version (needs at least 7 players, so do it at the first real playtest only if everyone agrees): restart during a day phase. Everyone returns to the same seat and role, and the timer continues from where it paused.
+
+**H. Voice reachability** (only after LiveKit is approved and the four `LIVEKIT_` variables are set)
+1. Redeploy. The `moonveil server` line now shows `voice=wss://…`.
+2. Create a room with the laptop and a phone, allow the microphone, and speak: each hears the other in the lobby.
+3. In the logs, look for lines starting with `voice ` that mention `fetch failed`, `ETIMEDOUT`, `ECONNREFUSED` or `ENOTFOUND`. If any appear, the service can't reach LiveKit Cloud (this is what a Limited Trial would cause): **STOP**.
+
+**I. Usage page** (before and after every session, and once after an idle day)
+1. Open your workspace settings → **Usage**.
+2. Write down the date and time, the total used so far, and the moonveil project's CPU, memory, network (egress) and volume figures. The CLI `railway usage projects --project moonveil` shows the same.
+3. Send the numbers after each session.
+   - STOP if credit left drops under $1 or under 5 days remain. Stop the service between sessions (remove its active deployment; *label unverified*); don't upgrade. We then present the measured usage and the options.
+
 ## 8. Open items
 - **LiveKit Cloud compatibility and testing plan:** voice owner (link pending, as in 0009 §5). LiveKit Cloud probes and credentials remain unapproved.
 - **Decisions for Human:** IaC (`railway` npm package, a deploy-time step) vs. dashboard-only settings; deploy approval with the package above.

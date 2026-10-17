@@ -39,7 +39,13 @@ Resolve simultaneous deaths and linked effects before deciding the outcome; the 
 - Free movement enriches the lobby and ghost experience; active play centers on conversation and deduction.
 - Early visual preview for Human approval. Final acceptance also requires polished animation, transitions, audio, and UI, not merely a functional prototype.
 
-### Revised art direction (Human, 2026-10-17; approved as direction, execution pending review)
+### Revised art direction (Human, 2026-10-17) — SUPERSEDED same day
+
+Human reviewed the redo and chose to return to the original camping look ("UI cũ đỡ hơn"). The original preview look (dev 44fb793, see docs/visual/BASELINE.md) is the chosen visual baseline, not final product acceptance. Redo work is preserved unmerged on branches `visual-6` and `game-ui-art`.
+
+Staging decision (Human, 2026-10-17, option B): keep the current look, prioritise playtest readiness; broad art/animation/audio polish deferred (not removed from final expectations). Usability/readability fixes, rendering performance and voice fixes continue.
+
+The superseded direction, kept for reference:
 
 The first preview was judged too cartoonish/childlike and visually dull for colleagues aged ~23–34. Replacement direction:
 - Mature nighttime camping: warm but subtly unsettling after dark; cinematic lighting. No gore or extreme horror.
