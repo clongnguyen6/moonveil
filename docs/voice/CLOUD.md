@@ -46,7 +46,11 @@ Approved: Railway Trial at exactly 35151f2 + LiveKit Cloud; probes ≤ 100 parti
 
 **Runtime check and budget:** `packages/voice/e2e/cloud-check.spec.ts` (`npm run e2e:cloud`, see README). Smallest real match is 7 players (Batch A minimum) + moderator = 8 pages. Estimate: ~1.1 connected channels per page on average over ~5 min of play ≈ 45 participant-minutes; the guard samples connected channels every 5 s, prints the running total after each step, and leaves voice before `VOICE_CLOUD_CAP_MIN` (default 60) so one run stays well under the 100-minute approval. Region is read from Cloud's `/settings/regions` with a session token held in memory (names only are printed). Revocation is checked without media through `/rtc/validate`: the executed seat's old public token must be rejected after the rotation while a fresh token validates. TURN fallback is not included: forcing relay needs a separate browser launch with a WebRTC IP-handling policy flag and a second seat budget; it can be added as an opt-in if the first run leaves budget.
 
-## 5. Cloud runtime test plan (nothing run yet)
+## 4b. First runtime evidence (2026-10-18, run 1, ~5.1 participant-minutes)
+
+Through the deployed app: config-only compatibility confirmed (signaling host `personal-c15mov1e.livekit.cloud`); nearest offered region Hyderabad (3,122 km), then Osaka, Tokyo; no Singapore region; revocation confirmed (old token `/rtc/validate` 401 after rotation, fresh token 200); hidden moderator/ghost rosters and token/channel checks pass; hear-matrix 0 failures in 4 of 5 windows, the defense window right after a rotation showed no audio yet from the accused (timing on Cloud, to be confirmed). Details: `TEST_RESULTS.md`.
+
+## 5. Cloud runtime test plan (run 1 done; see 4b)
 
 What local OSS already proves (and Cloud shares the code path for): grant→permission mapping, hidden sessions, `UpdateParticipant` publish flips, rotation mechanics, token shape, client reconnect, the full-match hear-matrix. What only a real Cloud project can show: revocation timing, `DeleteRoom` vs tokens, the auto-create toggle, error wording, region/latency from Vietnam, TURN fallback, quota behaviour.
 

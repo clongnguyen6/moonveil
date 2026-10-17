@@ -19,6 +19,18 @@ The 4 skipped windows are all whole-table step boundaries: in each, every page m
 
 **Token / channel checks (separate from the audio measurement), all pass:** every page holds exactly the channels of its grants and each is connected; rosters contain only granted seats and never a listen-only one; every `voice` frame carries only channels the seat is granted at that moment, with `speak` never beyond the state grant; LiveKit's participant list shows the moderator hidden while listen-only and visible at `ended`; in-person room (1.7 min): no sessions in any `voice` frame, no LiveKit room for the code, no voice channel in any page, public text delivered in the lobby.
 
+### LiveKit Cloud runtime check, run 1 (2026-10-18 00:17:34–00:18:22, lock held; deployed app https://moonveil-production-b733.up.railway.app, test files 3d18e7f)
+
+8 headless pages (7 players + moderator), scene off, `join()` per page, traces off, cap 60 participant-minutes. Conditions: load 4.3–4.5, CPU mostly idle, browser GPU process 0–15 %. **Participant-minutes used: ~5.1** (connected channels × time, sampled every 5 s; foundation's smoke ≤ 0.5 before this). Artifacts: `.cache/voice-cloud-run1.log`, `.cache/voice-cloud/results-cloud1/` (error context only; no traces), `.cache/voice-cloud-conditions.log`. No token appears anywhere.
+
+Findings via Cloud:
+- Signaling host `personal-c15mov1e.livekit.cloud`; `/settings/regions` (200) lists, by distance from this client: ohyderabad1a 3,122 km, oosaka1a 3,952 km, otokyo1a 4,341 km, odubai1a, osydney1a, ojeddah1a. No Singapore region is offered; the client's nearest is Hyderabad.
+- Night: 2 wolves held the wolves channel, 5 others held none; moderator held public, wolves, ghosts; the executed seat became a ghost with public + ghosts.
+- **Revocation:** the executed seat's old public token → `/rtc/validate` **401**; a fresh token → **200**. Cloud rejects the old token after the rotation with `RemoveParticipant`+`revokeTokenTs`.
+- Rosters in every window: no ungranted seat, no listen-only seat visible (moderator and ghosts hidden). `voice` frames: no channel beyond grants, no `speak` beyond the state grant. Channels matched grants on every page after each step (no settle failure, no unresponsive page).
+
+**Measured hear-matrix (separate):** 308 pair-channel checks over 5 windows: lobby 56 checks 0 failures; night.main 0 failures; day.discussion 0 failures; **day.defense 7 failures**: every listener (6 living + moderator) measured 0 energy from the accused, the only permitted speaker, in the 2 s window taken right after the defense rotation; night 2 0 failures. No "must not hear" failure anywhere. The defense window was measured within seconds of a rotation (everyone reconnects through Cloud and the accused republishes); the later window shows audio flowing again. Reading: a post-rotation timing gap on Cloud longer than the local 2–5 s assumption, not a routing error; to be confirmed by a rerun that waits for the accused's audio to appear before measuring (≈ 5 more participant-minutes). Not confirmed yet.
+
 ### Slot 19 (2026-10-17 18:06–18:44, lock held; candidate 705faad = e432694 (D2 explicit join, D5) + dev 758c44a + a type-only fix): ALL GREEN
 
 Scene loop stopped in test pages (`MOONVEIL_SCENE=off`), `join()` called on every page (D2). Conditions sampled every 30 s (`.cache/voice-e2e/conditions-slot19.log`): load 1-min 3.9 at start, peak 8.2, 6.5 at end; CPU idle 54–73 %; browser GPU process 0–29 % during matches (peak 100 % at page load; 620–730 % with the scene running in runs 15–17); 10–12 renderers summing ~70 %; memory 35 GB used, 7 GB in the compressor.
