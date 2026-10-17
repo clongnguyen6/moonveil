@@ -38,6 +38,8 @@ Earlier scene changes already contained in 44fb793 and part of the baseline: `vi
 ## Usability fixes inside the baseline (visual-8)
 
 - Name labels are laid out in screen space every frame: clamped fully inside the visible area minus HUD safe insets (no clipping at phone edges), and lifted or slid so neighbouring labels never overlap (dense 13–15 seat rings). The resolver is pure (`src/labels.ts`) and unit-tested.
+- Known limitation (observed in `docs/visual/labels/after-phone-landscape-seating-15.jpg`): with 13–15 seats on a phone in landscape, a label may be lifted up to three label heights to clear its neighbours, so it can end far from its avatar (e.g. "Lan" above a tent, "An"/"Huy" stacked to the right), which makes the name-to-player link harder to read.
+- Proposed small fix (not started, light work): at 13+ seats, shrink labels by one step (12 px → 11 px, which alone removes most lifts on phone landscape), cap the lift at one label height, and when a label is still displaced, draw a one-pixel leader line from the label's bottom centre to the avatar's head. Leader lines cost one Graphics object per displaced label (usually 0–4), well within the `low` budget.
 
 ## Status
 
