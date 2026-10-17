@@ -105,6 +105,14 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Unverified live: Railway restart/redeploy persistence; Cloud post-rotation audio gap (7 should-hear fails at old-rule defense window, cause unconfirmed); real devices. Cloud region nearest = Hyderabad (no Singapore).
 - Proposals awaiting Human: 2 h room idle timeout; next deploy request (origin switch, revision move, persistence sequence) after release acceptance. Batches C/D/E unapproved.
 
+## Overnight merges 2026-10-18 (owner root check on each exact SHA)
+- 5480ccd foundation-13: event log, /api/status, rules-15 defense all-living speak, server tests (rules 209, server 106, e2e 13).
+- 7254c31 rules-16: saved-match version + restoreCheck (rules 216).
+- b890db9 game-ui: settings clarity, opaque sheets, create choice, regrouped lobby, defense copy (root + stub 101; heavy on 24ef99a: real-server 104, layout 170).
+- 700698c foundation-14: deploy notes 7b–7e, postdeploy script, restoreCheck wiring (server 108).
+- 1b4a836 voice: defense no-rotation test, Cloud check spec, rotation-gap spec, probe() (voice 54).
+- Running: voice Cloud/local rotation-gap slot (cap 15 p-min). Next: foundation release full acceptance on bundle SHA.
+
 ## Lead message queue (deliver at owner's next turn end)
 - (cleared)
 - (cleared)
