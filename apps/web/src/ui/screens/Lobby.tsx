@@ -9,6 +9,8 @@ import { useSession } from '../session-context.ts';
 import type { Mic } from '../voice/mic.ts';
 import { useVoiceClient } from '../voice/useVoiceClient.ts';
 import { ROLES, type Role } from '@moonveil/rules';
+import { qrMatrix, qrPath } from '../qr.ts';
+import { platform } from '../voice/guidance.ts';
 import { copyText } from '../lan.ts';
 import { errorText } from '../errors.ts';
 import { ProfileEditor, saveProfile } from './Entry.tsx';
@@ -64,6 +66,21 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
         )}
       </section>
 
+      {view.me.host && <QrCard link={link} />}
+
+      {view.me.host && (
+        <section className="card stack" data-testid="voice-mode" data-mode={s.voiceMode}>
+          <div className="row between">
+            <strong>{t('voiceModeLabel')}</strong>
+            <div className="btn-row" style={{ minWidth: 260 }}>
+              <Button kind={s.voiceMode === 'remote' ? 'primary' : 'secondary'} testId="voice-mode-remote" pressed={s.voiceMode === 'remote'} onClick={() => session.send({ t: 'voiceMode', voiceMode: 'remote' })}>{t('voiceModeRemote')}</Button>
+              <Button kind={s.voiceMode === 'inPerson' ? 'primary' : 'secondary'} testId="voice-mode-inperson" pressed={s.voiceMode === 'inPerson'} onClick={() => session.send({ t: 'voiceMode', voiceMode: 'inPerson' })}>{t('voiceModeInPerson')}</Button>
+            </div>
+          </div>
+          <p className="muted" style={{ fontSize: 'var(--fs-0)' }}>{t('voiceModeHostHint')}</p>
+        </section>
+      )}
+
       <section className="card stack">
         <ul className="player-list" data-testid="seats">
           {view.moderator && (
@@ -86,7 +103,7 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
 
       {view.deck && <DeckCard view={view} />}
 
-      {view.me.kind === 'player' && <MicCheck mic={mic} voiceMode={s.voiceMode} />}
+      {view.me.kind === 'player' && <MicCheck mic={mic} voiceMode={s.voiceMode} joined={s.voiceJoined} />}
 
       {s.error && <p className="danger" role="alert" data-testid="error">{errorText(t, s.error)}</p>}
 
@@ -157,6 +174,27 @@ function DeckCard({ view }: { view: SeatView }) {
   );
 }
 
+/** D1: QR of the invite link on the host's screen (vendored encoder, ui/qr.ts; licence: original Moonveil code). */
+function QrCard({ link }: { link: string }) {
+  const t = useT();
+  let mat: boolean[][] | null = null;
+  try { mat = qrMatrix(link); } catch { mat = null; }
+  if (!mat) return null;
+  const n = mat.length;
+  return (
+    <section className="card row wrap" style={{ gap: 16, alignItems: 'center' }} data-testid="qr" data-version={(n - 17) / 4}>
+      <svg viewBox={`-4 -4 ${n + 8} ${n + 8}`} width="168" height="168" role="img" aria-label={`${t('lobbyQr')}: ${link}`} shapeRendering="crispEdges" style={{ background: '#fff', borderRadius: 6 }}>
+        <path d={qrPath(mat)} fill="#000" />
+      </svg>
+      <div className="col" style={{ gap: 4 }}>
+        <strong>{t('lobbyQr')}</strong>
+        <span className="hint">{t('lobbyQrHint')}</span>
+        <span className="muted" style={{ fontSize: 'var(--fs-0)', wordBreak: 'break-all' }}>{link}</span>
+      </div>
+    </section>
+  );
+}
+
 function EditProfile({ initial, onDone }: { initial: Profile; onDone: () => void }) {
   const t = useT();
   const session = useSession();
@@ -170,10 +208,29 @@ function EditProfile({ initial, onDone }: { initial: Profile; onDone: () => void
   );
 }
 
-export function MicCheck({ mic, voiceMode }: { mic: Mic; voiceMode: 'remote' | 'inPerson' }) {
+export function MicGuide({ ua }: { ua?: string }) {
+  const t = useT();
+  const key = ({ iosSafari: 'micGuideIosSafari', androidChrome: 'micGuideAndroidChrome', desktopChrome: 'micGuideDesktopChrome', desktopSafari: 'micGuideDesktopSafari', firefox: 'micGuideFirefox', other: 'micGuideOther' } as const)[platform(ua)];
+  return <p className="hint" data-testid="mic-guide" data-platform={platform(ua)}>{t(key)}</p>;
+}
+
+export function MicCheck({ mic, voiceMode, joined }: { mic: Mic; voiceMode: 'remote' | 'inPerson'; joined: boolean }) {
   const t = useT();
   const session = useSession();
   const { client: vc, snap } = useVoiceClient(session);
+  if (voiceMode === 'remote' && !joined) {
+    // D2: nothing connects and no mic prompt until this tap.
+    return (
+      <section className="card stack" data-testid="mic" data-status="notJoined">
+        <div className="row between">
+          <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('micTitle')}</h2>
+          <span className="pill">{t('voiceNotJoined')}</span>
+        </div>
+        <p className="hint">{t('voiceJoinHint')}</p>
+        <Button wide testId="voice-join" onClick={() => void session.voiceJoin?.()}>🎙️ {t('voiceJoin')}</Button>
+      </section>
+    );
+  }
   if (snap && voiceMode !== 'inPerson') {
     // Real voice: state comes from the single VoiceClient (mic acquired when a speak session exists).
     const st = snap.mic;
@@ -187,12 +244,13 @@ export function MicCheck({ mic, voiceMode }: { mic: Mic; voiceMode: 'remote' | '
         {st === 'idle' && <p className="hint">{t('micWaitingSession')}</p>}
         {st === 'requesting' && <p className="hint">{t('micChecking')}</p>}
         {st === 'granted' && <p className="hint">{snap.muted ? t('voiceMuted') : t('micOkVoice')}</p>}
-        {st === 'denied' && (<><p className="danger">{t('micDenied')}</p><p className="hint">{t('micDeniedHelp')}</p></>)}
-        {st === 'failed' && (<><p className="danger">{t('micFailed')}</p>{snap.micError && <p className="muted" style={{ fontSize: 'var(--fs-0)' }}>{snap.micError}</p>}<p className="hint">{t('micDeniedHelp')}</p></>)}
+        {st === 'denied' && (<><p className="danger">{t('micDenied')}</p><MicGuide /></>)}
+        {st === 'failed' && (<><p className="danger">{t('micFailed')}</p>{snap.micError && <p className="muted" style={{ fontSize: 'var(--fs-0)' }}>{snap.micError}</p>}<MicGuide /></>)}
         {snap.audioBlocked && <Button kind="secondary" testId="audio-unlock" onClick={() => void vc?.unlockAudio()}>{t('voiceUnlock')}</Button>}
         <div className="btn-row">
           {st === 'granted' && <Button kind="secondary" testId="mic-mute" pressed={!snap.muted} onClick={() => void vc?.setMuted(!snap.muted)}>{snap.muted ? t('voiceUnmute') : t('voiceMute')}</Button>}
           {(st === 'denied' || st === 'failed') && <Button kind="quiet" testId="mic-reload" onClick={() => location.reload()}>{t('micRetry')}</Button>}
+          <Button kind="quiet" testId="voice-leave" onClick={() => void session.voiceLeave?.()}>{t('voiceLeave')}</Button>
         </div>
       </section>
     );
@@ -225,7 +283,7 @@ export function MicCheck({ mic, voiceMode }: { mic: Mic; voiceMode: 'remote' | '
       {(st === 'denied' || st === 'error') && (
         <>
           <p className="danger">{t('micDenied')}</p>
-          <p className="hint">{t('micDeniedHelp')}</p>
+          <MicGuide />
         </>
       )}
       {st === 'unsupported' && <p className="warn">{t('micUnsupported')}</p>}
@@ -236,6 +294,7 @@ export function MicCheck({ mic, voiceMode }: { mic: Mic; voiceMode: 'remote' | '
         {(st === 'denied' || st === 'error' || st === 'insecure' || st === 'unsupported') && <Button kind="secondary" testId="mic-retry" onClick={() => void mic.check()}>{t('micRetry')}</Button>}
         {st !== 'ok' && !mic.textOnly && st !== 'idle' && st !== 'checking' && <Button kind="quiet" testId="mic-text" onClick={() => mic.setTextOnly(true)}>{t('micText')}</Button>}
         {st === 'ok' && <Button kind="quiet" onClick={() => mic.stop()}>{t('done')}</Button>}
+        {voiceMode === 'remote' && joined && <Button kind="quiet" testId="voice-leave" onClick={() => void session.voiceLeave?.()}>{t('voiceLeave')}</Button>}
       </div>
       <p className="muted" style={{ fontSize: 'var(--fs-0)' }}>{t('micLater')}</p>
     </section>

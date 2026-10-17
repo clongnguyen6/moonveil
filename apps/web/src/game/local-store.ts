@@ -6,7 +6,7 @@ export interface Settings {
   lang: Lang;
   sound: boolean;
   reducedMotion: 'system' | 'on' | 'off';
-  /** PROVISIONAL aids pending Human decisions (kept behind settings, default off). */
+  /** D6 (2026-10-17): moderator narration cues on by default; approved/neutral lines only. */
   modNarration: boolean;
   /** Scene ambience audio (procedural). Starts after a gesture. */
   ambience: boolean;
@@ -30,7 +30,7 @@ function read<T>(key: string, fallback: T): T {
   }
 }
 
-let settings: Settings = read<Settings>(SETTINGS_KEY, { lang: detectLang(), sound: true, reducedMotion: 'system', modNarration: false, ambience: false, scene: true });
+let settings: Settings = read<Settings>(SETTINGS_KEY, { lang: detectLang(), sound: true, reducedMotion: 'system', modNarration: true, ambience: false, scene: true });
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((fn) => fn());
 

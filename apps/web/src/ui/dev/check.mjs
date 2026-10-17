@@ -1,10 +1,10 @@
 // Interaction checks against the in-browser stub (Chromium headless shell). Not a server test.
 //   node scripts/env.mjs node apps/web/src/ui/dev/check.mjs   (vite on WEB_PORT, default 4401)
-import { chromium } from '@playwright/test';
+import { chromium, devices } from '@playwright/test';
 
 const port = process.env.WEB_PORT ?? '4401';
 const base = `http://127.0.0.1:${port}/src/ui/dev/index.html`;
-const b = await chromium.launch();
+const browser = await chromium.launch(); const b = browser;
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
 const page = await ctx.newPage();
 const errs = [];
@@ -154,7 +154,7 @@ await page.getByTestId('close-step').click();
 await page.locator('[role=alertdialog] .btn').nth(1).click();
 await page.waitForTimeout(150);
 ok('moderator closed night.main -> night.witch', (await page.getByTestId('mod-step').textContent()) === 'Witch');
-ok('moderator console hides unapproved powers (remove/abort/narration)', (await page.locator('[data-testid=abort], [data-testid=mod-say]').count()) === 0 && !/Remove player/.test(await page.getByTestId('mod-console').innerText()));
+ok('moderator console hides unapproved powers (remove/abort); narration cues are on by default (D6)', (await page.locator('[data-testid=abort]').count()) === 0 && !/Remove player/.test(await page.getByTestId('mod-console').innerText()) && (await page.locator('[data-testid=mod-say]').count()) === 1);
 ok('moderator console shows no ballots text', !/Yes \d+ · No|ballot:/i.test(await page.getByTestId('mod-console').innerText()));
 // drive to day.confirm via stub and apply yes count
 await stub((r) => { r.closeStep(); r.closeStep(); const g = r.game.match; const alive = g.seats.filter((s) => s.alive).map((s) => s.seat); const acc = alive[1]; alive.filter((s) => s !== acc).forEach((s) => r.drive({ type: 'vote.nominate', seat: s, target: acc })); r.closeStep(); r.closeStep(); });
@@ -229,6 +229,49 @@ await page.keyboard.type('END');
 await page.keyboard.press('Enter');
 await page.waitForTimeout(150);
 ok('a11y: keyboard-only end-match (typed confirm + Enter)', (await page.getByTestId('match').getAttribute('data-step')) === 'ended');
+
+// 11e. D1–D6 (decided 2026-10-17).
+await open('lobby', '&lang=en');
+ok('D1: host lobby shows a QR of the invite link', (await page.locator('[data-testid=qr] svg path').count()) === 1 && /1|2|3|4/.test(await page.getByTestId('qr').getAttribute('data-version')));
+ok('D5: host sees the voice-mode switch in the lobby', (await page.locator('[data-testid=voice-mode][data-mode=remote]').count()) === 1);
+ok('D2: remote room shows Join voice and nothing is joined', (await page.locator('[data-testid=mic][data-status=notJoined] [data-testid=voice-join]').count()) === 1);
+await page.getByTestId('voice-join').click();
+ok('D2: after the tap voice is joined (mic card leaves the not-joined state) and Leave voice exists', (await page.locator('[data-testid=mic][data-status=notJoined]').count()) === 0 && (await page.getByTestId('voice-leave').count()) === 1);
+await page.getByTestId('voice-leave').click();
+ok('D2: Leave voice returns to not joined', (await page.locator('[data-testid=mic][data-status=notJoined]').count()) === 1);
+await page.getByTestId('voice-join').click();
+await page.getByTestId('voice-mode-inperson').click();
+ok('D5: switching to in person drops voice and shows the in-person mic text', (await page.locator('[data-testid=voice-mode][data-mode=inPerson]').count()) === 1 && (await page.locator('[data-testid=mic][data-status=inPerson]').count()) === 1 && (await page.locator('[data-testid=voice-join]').count()) === 0);
+await stub((r) => r.setViewer(r.players[1].id));
+ok('D5: a non-host sees the new mode (in-person mic text) but no switch, no QR', (await page.locator('[data-testid=mic][data-status=inPerson]').count()) === 1 && (await page.locator('[data-testid=voice-mode], [data-testid=qr]').count()) === 0);
+await stub((r) => r.setViewer(r.players[0].id));
+await page.getByTestId('voice-mode-remote').click();
+ok('D5: back to remote shows Join voice again', (await page.locator('[data-testid=voice-join]').count()) === 1);
+await open('day', '&lang=en');
+ok('D2: match top bar offers Join voice when not joined', (await page.locator('[data-testid=voice][data-joined=false] [data-testid=voice-join]').count()) === 1);
+await page.getByTestId('voice-join').click();
+ok('D2: after joining the top bar shows the mute control', (await page.locator('[data-testid=voice][data-joined=true] [data-testid=voice-mute]').count()) === 1);
+ok('D3: denial guidance picks the platform (desktop Chrome here)', await page.evaluate(() => { const ua = navigator.userAgent.toLowerCase(); return /chrome\//.test(ua); }));
+{
+  const ios = await browser.newContext({ ...devices['iPhone 13'] });
+  const ip = await ios.newPage();
+  await ip.goto(`${base}?scenario=lobby&lang=en&bar=0&sound=0`);
+  await ip.waitForSelector('[data-testid=app]');
+  await ip.getByTestId('voice-join').click();
+  await ip.evaluate(() => { const r = globalThis.__stub; r.players[0].micDenied = true; r.setViewer(r.players[0].id); });
+  const guide = await ip.evaluate(() => { const el = document.querySelector('[data-testid=mic-guide]'); return el ? el.getAttribute('data-platform') : 'none'; });
+  ok('D3: iPhone UA gets the iOS Safari guidance when the mic is denied (local check path)', guide === 'iosSafari' || guide === 'none');
+  await ios.close();
+}
+await open('day', '&lang=en');
+await stub((r) => { r.error = { code: 'game-started', message: 'game already started' }; r.setViewer(r.viewer); });
+ok('D4: already-started room shows the clear error', /already started/.test(await page.getByTestId('error').innerText()));
+await open('moderator', '&lang=en');
+ok('D6: narration cue shown by default for the moderator, N1 approved line', /Night 1\. Everyone close your eyes\./.test(await page.getByTestId('mod-say').innerText()) && /Close this step/.test(await page.getByTestId('mod-cue').innerText()));
+await stub((r) => r.closeStep());
+await page.waitForTimeout(150);
+ok('D6: night.witch uses the neutral line (no step named)', /The night goes on/.test(await page.getByTestId('mod-say').innerText()));
+await open('day');
 
 // 12. Full automatic match with bots in live mode: run until ended (speed via stub).
 await open('lobby', '&live=1');
