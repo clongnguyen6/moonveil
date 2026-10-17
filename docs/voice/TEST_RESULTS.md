@@ -19,6 +19,23 @@ The 4 skipped windows are all whole-table step boundaries: in each, every page m
 
 **Token / channel checks (separate from the audio measurement), all pass:** every page holds exactly the channels of its grants and each is connected; rosters contain only granted seats and never a listen-only one; every `voice` frame carries only channels the seat is granted at that moment, with `speak` never beyond the state grant; LiveKit's participant list shows the moderator hidden while listen-only and visible at `ended`; in-person room (1.7 min): no sessions in any `voice` frame, no LiveKit room for the code, no voice channel in any page, public text delivered in the lobby.
 
+### Slot 17 (2026-10-17 14:35–, lock held; candidate 1d12fc6 = d85b133 + dev 36bdafd): A/B and run 17, FAILED; cause found by measurement
+
+Kept: `.cache/voice-e2e-ab17-off.log`, `.cache/voice-e2e-ab17-on.log`, `.cache/voice-e2e-run17.log`, per-run artifacts `.cache/voice-e2e/results-ab17-off/`, `results-ab17-on/`, `results-run17/` (error contexts + traces), `.cache/voice-e2e/conditions-slot17.log`, `conditions-ab17-off.log`, `conditions-ab17-on.log`, LiveKit server log `.cache/voice-e2e/livekit.log`.
+
+Root check on 1d12fc6 (load 2.7): rules 206, scene 20, voice 50, server 91, e2e 13/13.
+
+**A/B, same test files, `MOONVEIL_TEST_SEED=voice-ab!`, scale 2, back-to-back:**
+- revoke **off**: moderator and automatic both failed: "Ann: page unresponsive, voiceSnapshot did not return within 15000 ms", "Chi: … voiceStats …".
+- revoke **on**: moderator measured 1 window (night.main#0, 35 checks, 0 failures; settle evidence: Ann's wolves room `connecting` → `connect timed out after 20000 ms` → `connecting` again), then the browser was closed at the test timeout; automatic: "Bao: page unresponsive".
+- Conclusion: **revoke-before-delete is not the distinguishing factor**; both variants fail the same way. The `VoiceClient` publish-hang fix (d85b133) did not make the full matches pass either; it holds only what its unit test shows (a stuck publish no longer blocks applying sessions). Conditions during the A/B: load 1-min peak 78 (0.5–0.8 % idle), 35 GB used, 15 GB in the compressor, <130 MB free, swap-ins/outs in the millions.
+
+**Cause, measured live during run 17 (three samples 5 s apart):** the headless browser's **GPU process at 624–728 % CPU** (`--use-angle=swiftshader-webgl`: software WebGL), each of the 11 page renderers at 5–14 %. Every page mounts the camp scene (`apps/web/src/ui/SceneMount.tsx` → `@moonveil/scene`, pixi.js 8, WebGL); 11 software-rendered scenes take 6–7 of the machine's 11 cores, on top of other projects' load and heavy memory pressure. That starves everything in the browser at once: `page.evaluate` (the new 15 s bound turns the starvation into a named failure where the old unbounded harness simply waited), ICE (`could not establish pc connection`, `short ice connection`), mic publishes (run 16's one seat with a single publish event). It also explains the history: the scene entered the web shell on 2026-10-16 ~18:15–21:00 and grew (textures, visual-5); runs 8–10 predate it, run 11 and 13 passed partially on an earlier scene, runs 15–17 fail. No renderer spins, so a client-side busy loop (hypothesis 1) is ruled out by the per-process numbers; what the renderers do during the 15 s is wait for CPU.
+
+**Mitigation for this suite (test-only, `packages/voice/e2e`):** pages get an init script that never fires `requestAnimationFrame`, so the scene's frame loop does not run (`VOICE_E2E_SCENE=on` restores it). The suite measures audio, not visuals. To be verified in the next slot, with the GPU-process CPU sampled before/after.
+
+**Product note for the game-UI/visual owners (not my scope):** the scene renders at full rate in every page regardless of `document.hidden` or reduced motion; pausing the ticker for hidden pages and under `prefers-reduced-motion` would save CPU/battery on phones too. Reported through Lead.
+
 ### Runs 15–16 (2026-10-17 12:33–13:24, window + lock; candidate 7320503 = 2f38c5f + dev 5b081c4): FAILED, under analysis
 
 First full run with revoke-before-delete (70d5bb2). Kept artifacts: `.cache/voice-e2e/keep/voice-e2e-run15.log`, `.cache/voice-e2e/keep/voice-e2e-run16.log`, `.cache/voice-e2e/keep/run16-results-final/` (run 16 error context + trace), `.cache/voice-e2e/livekit.log` (append-only server log covering runs 10–16), `.cache/voice-e2e/conditions-run15.log`. Run 15's own Playwright artifacts were lost: Playwright wipes `outputDir` when the next run starts, and run 16 started in the same chain; artifact directories are now per run (`VOICE_E2E_RUN`).

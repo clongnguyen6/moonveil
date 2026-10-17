@@ -29,13 +29,31 @@ function summarize(reports: MatrixReport[]) {
   return { failures, checked, steps, skipped: skipped.length };
 }
 
+// The web shell mounts the animated camp scene (pixi.js, WebGL) in every page. In a headless browser that
+// is software-rendered (SwiftShader) in the single GPU process: measured 620–730 % CPU for 11 pages, which
+// starved renderers, ICE and publishes (runs 15–17, A/B). This suite measures audio, not visuals, so by default
+// it stops the scene's frame loop by never firing requestAnimationFrame in test pages. VOICE_E2E_SCENE=on keeps it.
+const SCENE_OFF = process.env.VOICE_E2E_SCENE !== 'on';
+async function newPlayer(table: { player(name: string): Promise<Player> }, name: string): Promise<Player> {
+  const p = await table.player(name);
+  if (SCENE_OFF) {
+    await p.context.addInitScript(() => {
+      // Keep a handle for anything that needs a one-shot frame; animation loops simply never tick.
+      (globalThis as any).__realRAF = globalThis.requestAnimationFrame;
+      globalThis.requestAnimationFrame = () => 0;
+      globalThis.cancelAnimationFrame = () => {};
+    });
+  }
+  return p;
+}
+
 async function seatTable(table: { player(name: string): Promise<Player>; seat(mode: 'automatic' | 'moderator', host: Player, others: Player[]): Promise<string> }, mode: 'automatic' | 'moderator', seats: number) {
   const players: Player[] = [];
-  for (const n of NAMES.slice(0, seats)) players.push(await table.player(n));
+  for (const n of NAMES.slice(0, seats)) players.push(await newPlayer(table, n));
   let mod: Player | null = null;
   let code: string;
   if (mode === 'moderator') {
-    mod = await table.player('Mod');
+    mod = await newPlayer(table, 'Mod');
     code = await table.seat('moderator', mod, players);
   } else {
     const [host, ...others] = players as [Player, ...Player[]];
@@ -125,7 +143,7 @@ test('automatic mode, 10 seats with voice: hear-matrix on every step within the 
 });
 
 test('in-person room: no voice sessions anywhere, no LiveKit rooms', async ({ table }) => {
-  const host = await table.player('Host');
+  const host = await newPlayer(table, 'Host');
   await host.page.goto('/');
   // Create through the client with voiceMode 'inPerson' (the UI control is game-ui scope; same wire message).
   await host.page.evaluate(() => (globalThis as any).__moonveil.create('automatic', { name: 'Host', appearance: { color: 'moss', hat: 'none' } }, 'inPerson'));
@@ -133,7 +151,7 @@ test('in-person room: no voice sessions anywhere, no LiveKit rooms', async ({ ta
   const code = (await host.page.getByTestId('room-code').textContent())!.trim();
   const others: Player[] = [];
   for (const n of NAMES.slice(1, 7)) {
-    const p = await table.player(n);
+    const p = await newPlayer(table, n);
     await p.joinByCode(code);
     others.push(p);
   }
