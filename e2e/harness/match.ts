@@ -3,19 +3,9 @@
 // Bots read only their own wire view (me.actions) and send `act` over the page's real socket.
 // When the UI lands, acceptance specs drive the same matches through UI selectors agreed with the UI owner.
 import type { GameView, Mode, Profile, SeatView } from '@moonveil/protocol';
+import { planActions, rng, toAction } from '../../apps/server/test/bot-policy.ts';
 import { expect, type Player, type Table } from './index.ts';
-
-export function rng(seed: string) {
-  let h = 2166136261;
-  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
-  return () => {
-    h = Math.imul(h ^ (h >>> 15), 2246822507);
-    h = Math.imul(h ^ (h >>> 13), 3266489909);
-    h ^= h >>> 16;
-    return (h >>> 0) / 4294967296;
-  };
-}
-const pick = <T>(r: () => number, xs: readonly T[]): T => xs[Math.floor(r() * xs.length)]!;
+import { quietUi } from './ui.ts';
 
 export const game = (p: Player) => p.view().game as GameView | null;
 export const stepKey = (v: SeatView) => {
@@ -35,41 +25,12 @@ async function clientCall(p: Player, method: 'create' | 'join', args: unknown[])
 }
 const profile = (name: string): Profile => ({ name, appearance: { color: 'moss', hat: 'none' } });
 
-// One random legal choice per available action, from this seat's own view.
+// Shared bot policy (apps/server/test/bot-policy.ts) over the page's real socket.
 export async function botAct(p: Player, r: () => number): Promise<number> {
-  const me = game(p)?.me;
-  if (!me || p.view().status !== 'playing') return 0;
-  let n = 0;
-  for (const a of me.actions) {
-    let action: Record<string, unknown> | null = null;
-    switch (a.type) {
-      case 'wolf.pick':
-      case 'guard.protect':
-      case 'hunter.shoot':
-        action = { type: a.type, target: a.targets.length && r() < 0.85 ? pick(r, a.targets) : 'pass' };
-        break;
-      case 'seer.inspect':
-        if (a.targets.length) action = { type: a.type, target: pick(r, a.targets) };
-        break;
-      case 'witch.heal':
-        if (a.canUse) action = { type: a.type, use: r() < 0.5 };
-        break;
-      case 'witch.poison':
-        action = { type: a.type, target: a.targets.length && r() < 0.3 ? pick(r, a.targets) : 'pass' };
-        break;
-      case 'vote.nominate':
-        action = { type: a.type, target: a.targets.length && r() < 0.8 ? pick(r, a.targets) : 'skip' };
-        break;
-      case 'vote.confirm':
-        action = { type: a.type, choice: r() < 0.6 ? 'yes' : 'no' };
-        break;
-    }
-    if (action) {
-      await send(p, { t: 'act', action });
-      n++;
-    }
-  }
-  return n;
+  if (p.view().status !== 'playing') return 0;
+  const plans = planActions(game(p), r);
+  for (const plan of plans) await send(p, { t: 'act', action: toAction(plan) });
+  return plans.length;
 }
 
 export interface BrowserMatch {
@@ -78,12 +39,17 @@ export interface BrowserMatch {
   players: Player[];
   driver: Player;
   steps: number;
+  // Step keys the loop acted in (one iteration each). See skippedSteps.
+  acted: Set<string>;
 }
 
 // Create, join, ready, start: all via the client handle. `baseURL` = real-engine server.
-export async function seatRealMatch(table: Table, opts: { mode: Mode; seats: number; baseURL: string }): Promise<BrowserMatch> {
+// hostName: with MOONVEIL_TEST_SEED the server's match seed is `<base>:<host name>` (acceptance seeds).
+export async function seatRealMatch(table: Table, opts: { mode: Mode; seats: number; baseURL: string; hostName?: string }): Promise<BrowserMatch> {
   const ctx = { baseURL: opts.baseURL };
-  const host = await table.player(opts.mode === 'moderator' ? 'Mod' : 'P0', ctx);
+  const host = await table.player(opts.hostName ?? (opts.mode === 'moderator' ? 'Mod' : 'P0'), ctx);
+  // Game UI is mounted on every page: use its documented quiet settings for many-context runs (SELECTORS.md).
+  await quietUi(host);
   await host.page.goto('/');
   await clientCall(host, 'create', [opts.mode, profile(host.name)]);
   // The room code is read from the first state frame (welcome may arrive alone first).
@@ -92,6 +58,7 @@ export async function seatRealMatch(table: Table, opts: { mode: Mode; seats: num
   const players: Player[] = opts.mode === 'automatic' ? [host] : [];
   while (players.length < opts.seats) {
     const p = await table.player(`P${players.length}`, ctx);
+    await quietUi(p);
     await p.page.goto('/');
     await clientCall(p, 'join', [code, profile(p.name)]);
     players.push(p);
@@ -101,7 +68,7 @@ export async function seatRealMatch(table: Table, opts: { mode: Mode; seats: num
   await expect.poll(() => host.view().canStart).toBe(true);
   await send(host, { t: 'start' });
   for (const p of [host, ...players]) await expect.poll(() => p.view().status).toBe('playing');
-  return { mode: opts.mode, moderator: opts.mode === 'moderator' ? host : null, players, driver: host, steps: 0 };
+  return { mode: opts.mode, moderator: opts.mode === 'moderator' ? host : null, players, driver: host, steps: 0, acted: new Set() };
 }
 
 // Run to the end. Each step: every bot acts once, `onStep` runs (assertions), then the step closes
@@ -115,21 +82,59 @@ export const protocolActor: Actor = {
   close: (mod) => send(mod, { t: 'act', action: { type: 'step.close' } }),
 };
 
+// Public-log summary for failure reports (what happened each night/day).
+export function matchDiag(m: BrowserMatch): string {
+  const g = game(m.driver);
+  const log = (g?.publicLog ?? []).flatMap((e) => {
+    const x = e as { t: string; night?: number; day?: number; dead?: number[]; accused?: number | null; executed?: boolean; seat?: number };
+    if (x.t === 'dawn') return [`N${x.night}: dead=[${x.dead?.join(',') ?? ''}]`];
+    if (x.t === 'nomination') return [`D${x.day}: accused=${x.accused ?? 'none'}`];
+    if (x.t === 'confirm') return [`D${x.day}: executed=${x.executed}`];
+    if (x.t === 'shot') return [`shot`];
+    return [];
+  });
+  return JSON.stringify({ room: m.driver.view().code, day: g?.day, night: g?.night, step: g?.step.kind, log });
+}
+
 export async function runRealMatch(
   m: BrowserMatch,
   seed: string,
   onStep?: (m: BrowserMatch) => Promise<void>,
   maxSteps = 200,
   actor: Actor = protocolActor,
+  maxDays = Infinity,
 ) {
   const r = rng(seed);
   for (; m.steps < maxSteps && m.driver.view().status === 'playing'; m.steps++) {
+    const day = game(m.driver)?.day ?? 0;
+    // Acceptance: a match must reach a win condition within a bounded number of days.
+    if (day > maxDays) throw new Error(`no win condition by day ${maxDays}: ${matchDiag(m)}`);
     const key = stepKey(m.driver.view());
+    m.acted.add(key);
     for (const p of m.players) await actor.act(p, r);
     await onStep?.(m);
     if (m.moderator) await actor.close(m.moderator);
-    await expect.poll(() => m.driver.view().status !== 'playing' || stepKey(m.driver.view()) !== key, { timeout: 30_000 }).toBe(true);
+    // A step can last minutes of wall time at low time scales (e.g. discussion 60 s + 15 s per living seat).
+    // Views are local (captured frames), so tight polling is cheap; it narrows the window for a step to pass unseen.
+    await expect.poll(() => m.driver.view().status !== 'playing' || stepKey(m.driver.view()) !== key, { timeout: 240_000, intervals: [20] }).toBe(true);
     // Every seat agrees on the current step before anyone acts (steps may pass quickly at x20).
-    await expect.poll(() => new Set([m.driver, ...m.players].map((p) => stepKey(p.view()))).size, { timeout: 10_000 }).toBe(1);
+    await expect.poll(() => new Set([m.driver, ...m.players].map((p) => stepKey(p.view()))).size, { timeout: 10_000, intervals: [20] }).toBe(1);
   }
+}
+
+// Steps the driver's socket saw while playing that the loop never acted in: they passed between two iterations
+// (pacing), so no bot acted and later bot choices diverge from the in-process simulation. withActions = some seat's
+// own view offered actions in that step. Key collisions (same night/day/kind twice) are merged, so this can only
+// under-count.
+export function skippedSteps(m: BrowserMatch): { key: string; withActions: boolean }[] {
+  const seen = new Set<string>();
+  for (const f of m.driver.frames) if (f.msg.t === 'state' && f.msg.view.status === 'playing') seen.add(stepKey(f.msg.view));
+  return [...seen]
+    .filter((k) => !m.acted.has(k))
+    .map((key) => ({
+      key,
+      withActions: [...m.players, ...(m.moderator ? [m.moderator] : [])].some((p) =>
+        p.frames.some((f) => f.msg.t === 'state' && stepKey(f.msg.view) === key && ((f.msg.view.game as GameView | null)?.me?.actions.length ?? 0) > 0),
+      ),
+    }));
 }

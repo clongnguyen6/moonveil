@@ -19,12 +19,34 @@ The 4 skipped windows are all whole-table step boundaries: in each, every page m
 
 **Token / channel checks (separate from the audio measurement), all pass:** every page holds exactly the channels of its grants and each is connected; rosters contain only granted seats and never a listen-only one; every `voice` frame carries only channels the seat is granted at that moment, with `speak` never beyond the state grant; LiveKit's participant list shows the moderator hidden while listen-only and visible at `ended`; in-person room (1.7 min): no sessions in any `voice` frame, no LiveKit room for the code, no voice channel in any page, public text delivered in the lobby.
 
+### Runs 11–14 (2026-10-17 03:03–04:08, heavy-run lock held; dev merged at ca23197): real-time follow-up
+
+Purpose: strengthen automatic-mode audio evidence (`MOONVEIL_TEST_TIME_SCALE=1`, `VOICE_E2E_AUTO_BUDGET_MS=600000`). Conditions sampled every 30 s (`.cache/voice-e2e/conditions-run11.log`); the load came from other projects on the shared machine (two long-running Python jobs, an iOS Simulator with ~200 processes, a Codex session), plus one Moonveil CPU job (`apps/server/test/seed-search-zero.ts`, ~100 % of a core, 03:09–03:40).
+
+| Run | Match | Conditions (load 1-min: start / peak / end; CPU idle at peak) | Steps measured | Pair-channel checks | should-hear failures | must-not-hear failures | Skipped windows |
+|---|---|---|---|---|---|---|---|
+| 11 | moderator, 7 + mod, complete match, real time (10.6 min) | 3.4 / 17.6 / 12.9; 1.5 % idle | 14 (lobby, 2 full day/night cycles with vote, defense, confirm, ended) | 924 | 0 | 0 | 0 |
+| 11 | automatic, 10 seats, real time | 12–15; 2–6 % idle | — | — | — | — | failed before measuring: a seat's voice channels did not settle within 40 s after the first rotation; LiveKit logged 8 "short ice connection" events for public-g8 in the same minute |
+| 12 | automatic, 10 seats, real time | 13–16; 1.5 % idle | — | — | — | — | my error: fixed 12-min test timeout shorter than the 10-min budget plus seating; no summary printed. Fixed (timeout derived from budget, per-window progress lines) |
+| 13 | automatic, 10 seats, real time (13.4 min) | 14.2 / 16.3 / 13.7; 2.5–6 % idle | 9 (lobby, night.main ×2, night.witch, day.discussion ×2, day.vote ×2, day.defense) | 693 | 1 | 0 | 1 (night.witch → day.discussion, all pages moved together) |
+| 14 | automatic, 10 seats, real time | 13.1 / **78.8** / 61.9; 2 % idle at start | 2 | 117 | 17 (one window) | 0 | 1; then the test hit its 18-min timeout and Playwright closed the browser; LiveKit logged 1,804 warnings in 8 min. Not usable as evidence either way. |
+
+Per-step counts, run 11 moderator: not printed by that version of the suite (totals only); run 13 automatic: lobby 90, night.main 18, night.witch 90 (1 fail), day.discussion 90, day.vote 90, night.main 18, day.discussion 99, day.vote 99, day.defense 99.
+
+**The one run-13 failure, with evidence, not dismissed:** "night.witch: Gia should hear Ann on public, energy 0.0000". A living seat has public `speak` only by day, so the grants in that window were day.discussion grants while the window carried the label read at the start of the loop iteration (night.witch, a 20 s step). The step had changed during the settle wait; all pages agreed on the new step, so the guard passed; the listener had no subscribed track from the speaker 4.5 s after the rotation under 2–6 % idle CPU. Two suite changes followed (58ec82c): the window is labelled with the step at measurement time, and settling now waits for publishing and for every expected speaker track to be subscribed (bounded 15 s) before the 2 s window. Whether the failure reproduces under lower load is **unresolved**: run 14, meant to answer it, ran into load 55–79 and was killed by its timeout. To be retried when the machine allows.
+
+**Token / channel checks:** all pass in runs 11 and 13 wherever reached (channels = grants, rosters, `voice` frames, moderator hidden/visible rule).
+
+Not covered here: real devices, NAT/TURN, >10 seats, TLS in this suite (the spike covers TLS), timing/traffic side channels.
+
 ### Earlier runs of this suite (same day)
 
 - Run 1 (steady 440 Hz tone): ~1/40 of the expected energy on every should-hear pair, 0 must-not-hear failures → speech-like bursts (noise suppression on the product mic treats a constant tone as noise).
 - Run 2: hearing 0/0; 315 + 297 roster hits = listen-only seats visible in the public roster (sticky visibility kept seats that died mid-room visible) → adapter switched to the literal ADR 0004 rule (visible iff speak).
 - Run 3: 0 hear-matrix failures (1,050 + 1,215 checks); one false assertion of mine (moderator expected hidden at `ended`) fixed. Run 4: moderator complete match 1,960 checks, 0 failures, 0 skipped.
 - Runs 5–9 under load averages 10–28 from other projects: should-hear failures only in windows mixing two steps across pages (frames lagging per page), ICE "could not establish pc connection" for the moderator's rooms, one 12-minute test timeout. Changes: tolerant driver, 45 s expect timeout, time scale 2, `VoiceClient` connect timeout + retry, multiplexed UDP ports, cross-page step-consistency guard with skew evidence. Run 8 (moderator alone, 0099957): 896 checks, 0 failures, 0 skipped.
+
+**Known limitation (Human, 2026-10-16):** the 10-seat automatic match measured only 4 windows, with 4 skipped at step transitions. Follow-up when the heavy-run lock is free again: a run with a longer measurement budget, or a seeded run that holds each step long enough (lower time scale or `VOICE_E2E_AUTO_BUDGET_MS`), to strengthen the automatic-mode audio evidence. Does not block the merge of a9b411d.
 
 Not covered here: real devices, NAT/TURN, >10 seats, TLS in this suite (the spike covers TLS), timing/traffic side channels.
 

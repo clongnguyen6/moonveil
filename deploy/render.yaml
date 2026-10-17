@@ -1,0 +1,37 @@
+# DRAFT Render Blueprint (ADR 0009), documented alternative to Railway (0010). Inactive here: nothing deploys from
+# this file until a Blueprint is created from it (account action, needs approval). No secrets in this file:
+# `sync: false` values are entered once in the Render dashboard (server-side env only). Never add test-only vars
+# (MOONVEIL_TEST_*, MOONVEIL_ENGINE=fixture, MOONVEIL_FIXTURE_MS, E2E_*) or MOONVEIL_PERSIST;
+# apps/server/test/deploy.test.ts checks this.
+# Restart recovery: on plan free the filesystem is ephemeral, so rooms don't survive a restart; keeping the approved
+# recovery needs a paid instance + disk mounted at MOONVEIL_DATA_DIR (0009 §3 option b; disk syntax unverified).
+services:
+  - type: web
+    name: moonveil
+    runtime: node
+    plan: free
+    region: singapore # nearest Render region to the players (0008)
+    numInstances: 1 # rooms are in memory; one instance only (0007)
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: node apps/server/src/main.ts
+    healthCheckPath: /healthz
+    autoDeployTrigger: "off" # a deploy replaces the instance; deploy by hand between sessions
+    envVars:
+      - key: NODE_VERSION
+        value: 24.20.0 # the version all checks ran on; root engines is >=24.12
+      - key: HOST
+        value: 0.0.0.0
+      - key: MOONVEIL_ENGINE
+        value: rules
+      - key: MOONVEIL_PUBLIC_ORIGIN
+        sync: false # https://<service>.onrender.com (RENDER_EXTERNAL_URL)
+      - key: MOONVEIL_DATA_DIR
+        sync: false # the disk mount + /rooms when a disk is attached; unset = default path (ephemeral on Free)
+      - key: LIVEKIT_URL
+        sync: false
+      - key: LIVEKIT_PUBLIC_WS
+        sync: false
+      - key: LIVEKIT_API_KEY
+        sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false

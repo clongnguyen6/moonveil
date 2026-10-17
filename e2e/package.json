@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "e2e": "node ../scripts/e2e-run.mjs",
+    "test": "node --test harness/*.test.ts",
     "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {

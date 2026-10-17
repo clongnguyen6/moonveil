@@ -31,6 +31,7 @@ export default defineConfig({
       cwd: '..',
       url: `http://127.0.0.1:${REAL_PORT}/healthz`,
       reuseExistingServer: false,
+      stdout: 'pipe',
       timeout: 120_000,
       env: {
         PORT: String(REAL_PORT),
@@ -38,6 +39,8 @@ export default defineConfig({
         MOONVEIL_ENGINE: 'rules',
         MOONVEIL_TEST_TIME_SCALE: process.env.E2E_TIME_SCALE ?? '20',
         MOONVEIL_PERSIST: '0',
+        // Deterministic seeds (server log only) so a failing match can be reproduced.
+        MOONVEIL_TEST_SEED: process.env.E2E_SEED ?? 'e2e',
         // Voice only when scripts/e2e-run.mjs started LiveKit (E2E_VOICE=1).
         ...Object.fromEntries(
           ['LIVEKIT_URL', 'LIVEKIT_PUBLIC_WS', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET'].flatMap((k) => (process.env[k] ? [[k, process.env[k]!]] : [])),
@@ -48,7 +51,11 @@ export default defineConfig({
   projects: [
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /mobile\.spec|real-match(-ui)?\.spec/ },
     // Opt-in: npm run e2e:matches (full real-engine matches, 7-10 browsers each).
-    { name: 'real-matches', use: { ...devices['Desktop Chrome'] }, testMatch: /real-match(-ui)?\.spec/ },
+    { name: 'real-matches', use: { ...devices['Desktop Chrome'] }, testMatch: /real-match\.spec/ },
+    // Opt-in UI-driven acceptance (npm run e2e:ui): browser EMULATION of laptop and phones, not real devices.
+    { name: 'ui-laptop', use: { ...devices['Desktop Chrome'] }, testMatch: /real-match-ui\.spec/ },
+    { name: 'ui-phone-chromium', use: { ...devices['Pixel 7'] }, testMatch: /real-match-ui\.spec/ },
+    { name: 'ui-phone-webkit', use: { ...devices['iPhone 15'] }, testMatch: /real-match-ui\.spec/ },
     { name: 'mobile-chromium', use: { ...devices['Pixel 7'] }, testMatch: /mobile\.spec/ },
     // Grant b (WORKSPACE_PROTOCOL.md): WebKit may write ONLY ~/Library/{Preferences/org.webkit.Playwright.plist,
     // WebKit/org.webkit.Playwright/, Caches/org.webkit.Playwright/}. Results = "WebKit/browser emulation", not iPhone.
