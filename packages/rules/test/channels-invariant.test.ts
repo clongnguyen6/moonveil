@@ -15,7 +15,7 @@ import { nextInt } from '../src/rng.ts';
 type Viewer = { kind: 'seat'; seat: number } | { kind: 'moderator' };
 const g = (channel: string, listen: boolean, speak: boolean) => ({ channel, listen, speak });
 
-/** Independent oracle, written from the approval text (Human, 2026-10-16), not from channels.ts. */
+/** Independent oracle, written from the approval text (Human, 2026-10-16; defense 2026-10-18), not from channels.ts. */
 function approved(s: MatchState, v: Viewer): ChannelGrant[] | 'moderator' {
   if (s.step.kind === 'ended') return [g('public', true, true)] as ChannelGrant[];
   if (v.kind === 'moderator') return 'moderator'; // listens everywhere; public speech is provisional (checked separately)
@@ -26,8 +26,7 @@ function approved(s: MatchState, v: Viewer): ChannelGrant[] | 'moderator' {
     return (pending ? [g('public', true, false)] : [g('public', true, false), g('ghosts', true, true)]) as ChannelGrant[];
   }
   if (night) return (me.role === 'wolf' ? [g('wolves', true, true)] : []) as ChannelGrant[];
-  if (s.step.kind === 'day.defense') return [g('public', true, me.seat === s.step.accused)] as ChannelGrant[];
-  return [g('public', true, true)] as ChannelGrant[];
+  return [g('public', true, true)] as ChannelGrant[]; // every day step, defense included (2026-10-18)
 }
 
 /** Every config path channelsFor read, across all checked states (structural proof). */

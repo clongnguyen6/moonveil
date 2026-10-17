@@ -85,7 +85,7 @@ describe('channels (Q25)', () => {
     assert.ok(channelsFor(s, { kind: 'seat', seat: 1 }).some((g) => g.channel === 'wolves'));
   });
 
-  it('day: everyone living speaks; defense: only the accused speaks', () => {
+  it('day: everyone living speaks, defense included (2026-10-18)', () => {
     let s = night(match(), { bite: 'pass' });
     assert.deepEqual(channelsFor(s, { kind: 'seat', seat: 3 }), [{ channel: 'public', listen: true, speak: true }]);
     s = close(s);
@@ -93,6 +93,6 @@ describe('channels (Q25)', () => {
     s = close(s);
     assert.equal(s.step.kind, 'day.defense');
     assert.deepEqual(channelsFor(s, { kind: 'seat', seat: 0 }), [{ channel: 'public', listen: true, speak: true }]);
-    assert.deepEqual(channelsFor(s, { kind: 'seat', seat: 3 }), [{ channel: 'public', listen: true, speak: false }]);
+    assert.deepEqual(channelsFor(s, { kind: 'seat', seat: 3 }), [{ channel: 'public', listen: true, speak: true }]);
   });
 });

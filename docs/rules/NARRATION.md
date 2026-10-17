@@ -1,6 +1,6 @@
 # Moonveil narration and phase text
 
-Status: product copy, 2026-10-17. Narration cues are shown by default (D6). They may state **approved rules only**; they must not quietly settle anything that's still pending.
+Status: product copy, 2026-10-18. Narration cues are shown by default (D6). They may state **approved rules only**; they must not quietly settle anything that's still pending.
 Each line has a **Status**:
 - **approved-consistent**: states approved rules only; use as is.
 - **pending: X**: depends on an undecided item (codes from `DECISIONS_REMAINING.md`). Use the **neutral** line instead: it's true whatever is decided. Switch to the specific wording only after the item is approved.
@@ -59,7 +59,7 @@ Vietnamese is my draft and needs a native read-through. Role names follow sky2 (
 | Y5 | public | No trial today: the vote was tied. | Hôm nay không xét xử: số phiếu hòa. | approved-consistent |
 | Y6 | public | No trial today: Skip had the most votes. | Hôm nay không xét xử: Bỏ qua nhiều phiếu nhất. | approved-consistent |
 | Y7 | public | No trial today: nobody voted. | Hôm nay không xét xử: không ai bỏ phiếu. | approved-consistent |
-| Y8 | public | {name}, you have 30 seconds to defend yourself. Everyone else listens. | {name}, bạn có 30 giây để tự bào chữa. Mọi người lắng nghe. | approved-consistent (30 s defense; only the accused speaks) |
+| Y8 | public | {name}, you have 30 seconds to defend yourself. | {name}, bạn có 30 giây để tự bào chữa. | approved-consistent (30 s defense; the accused has the focus, and every living player may speak, 2026-10-18; the line must not say only the accused may speak) |
 | Y9 | public | Execute {name}? It takes Yes from more than half of all living players: **{need} of {living}**. | Xử tử {name}? Cần hơn một nửa số người còn sống đồng ý: **{need}/{living}**. | approved-consistent (whether the accused votes is **D6**; the line doesn't say) |
 | Y10 | public | **{name}** is executed ({yes} Yes). | **{name}** bị xử tử ({yes} phiếu đồng ý). | approved-consistent |
 | Y11 | public | {name} is spared ({yes} Yes; {need} needed). | {name} được tha ({yes} phiếu đồng ý; cần {need}). | approved-consistent |

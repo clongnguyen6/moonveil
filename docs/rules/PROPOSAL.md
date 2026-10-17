@@ -1,6 +1,6 @@
 # Moonveil rules proposal
 
-Status: **proposal, v0.11, 2026-10-17**. v0.2 was revised after an independent review of 9af74b8; v0.3 to v0.11 record your decisions (v0.11: Batch B pace). Owner: rules scope (`packages/rules`, `docs/rules`).
+Status: **proposal, v0.12, 2026-10-18**. v0.2 was revised after an independent review of 9af74b8; v0.3 to v0.12 record your decisions (v0.11: Batch B pace; v0.12: open speech during defense). Owner: rules scope (`packages/rules`, `docs/rules`).
 Only what is listed under "Approved rules" is accepted. Everything else is **provisional** until you approve it.
 The engine implements each provisional recommendation as a named setting (`config.*`) or one isolated function.
 Approved rules are fixed engine behaviour, no longer settings.
@@ -93,7 +93,7 @@ Low-stakes defaults you could accept as a group: Q01, Q02, Q04, Q05, Q12, Q13, Q
 - **Voice and text channels (Q25).**
   - Day: living players speak and listen in public.
   - Night: only living wolves communicate, on the private wolf channel; nobody else speaks.
-  - Defense: only the accused speaks; others listen.
+  - Defense (approved 2026-10-18; supersedes the 2026-10-16 clause "only the accused speaks; others listen"): every living player may speak in public, as well as the accused. The accused keeps the defense focus and the 30 s timer. There is no push-to-talk queue.
   - Ghosts speak and listen on the ghost channel and listen to public, never the wolf channel (pending Hunter excepted, as above).
   - The moderator listens to every channel.
   - No channel membership, participant list or speaking indicator reaches a seat without the matching access.
@@ -184,7 +184,7 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 ## Q10 Defense interval and Yes/No vote — DECIDED 2026-10-16 (except whether the accused votes)
 - **sky2 doc and code**: no defense step. The Yes/No vote is on by default (`isNeedVote=true`, AV1:98). Execution needs Yes from more than 50% of living players (AV1:955), so not voting counts against.
 - **DECIDED (Human, 2026-10-16): execution threshold.** `Yes × 2 > all living players` (see Approved rules). The other options I offered after review F4 ("Yes > No plus half participation", "Yes > No among votes cast") are rejected. Fixed in the engine; not a setting.
-- **DECIDED (2026-10-16)**: the accused always gets a 30 s defense (only they speak, Q25), always followed by the Yes/No round.
+- **DECIDED (2026-10-16)**: the accused always gets a 30 s defense, always followed by the Yes/No round. Speech during it: every living player may speak (approved 2026-10-18, Q25; this supersedes "only the accused speaks").
 - **Still open**: whether the accused may vote in their own round (recommend yes; either way they count as living). The Yes/No duration (15 s) is approved (Batch B).
 - **Effect of the decision:** silent, absent and disconnected players now count against execution. Expect more days without an execution than under v0.2, which tends to help the Wolves; balance screening will measure this.
 - **Engine**: fixed `tallyConfirm()`, `DEFENSE_SECONDS = 30`, defense → confirm always; provisional: `day.accusedVotesOnConfirm`.
@@ -298,7 +298,7 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 - **Rejected alternatives**: (b) reset to public only; (c) ghosts see everything, as a spectator mode.
 - **Engine**: per-seat knowledge ledger; facts are granted only to living seats (tested: "ghost knowledge is frozen at death"); `reveal.historyAtEnd`.
 
-## Q25 Voice and text channels — DECIDED 2026-10-16 (except moderator speaking)
+## Q25 Voice and text channels — DECIDED 2026-10-16 (except moderator speaking); defense row changed 2026-10-18
 - **Brief**: ghost rules approved (see the table above). "Public communication during daytime; private wolf communication at night; ghost communication separate" is a working proposal.
 - **sky2 code**: text only. The wolf chat is for living wolves; the "all" chat is for everyone (LUAT §1). There is no voice.
 - **Decision** (moderator *speaking* still provisional):
@@ -307,13 +307,15 @@ Hunter. Example: 1 Wolf and 1 Hunter alive means the Wolves win. sky2 called tha
 |---|---|---|---|---|
 | Night | Wolf channel (talk) | Silent | Ghost channel + hears public | Hears everything |
 | Day (discussion, votes) | Public (talk) | Public (talk) | Ghost channel + hears public | Hears all; talking in public is provisional and off by default |
-| Defense | Listen; only the nominee talks | Listen; only the nominee talks | Ghost channel + hears public | Same |
+| Defense (2026-10-18) | Public (talk); the accused has the focus and timer | Public (talk) | Ghost channel + hears public | Same |
 | Hunter's 20 s shot | Public (talk) | Public (talk) | The shooting Hunter: hears public only (approved, Q06); other ghosts as usual | Same |
 | Match end | Public (all) | Public (all) | Public (all) | Public (all) |
 
+  *Superseded:* the 2026-10-16 defense row ("Listen; only the nominee talks") was replaced on 2026-10-18. Nothing else in the table changed.
+
   The same grants apply to text and emotes. In-person play keeps voice off (a server/room setting), and wolves use text at night.
 - **No leaks (approved)**: no channel membership, participant list or speaking indicator reaches a seat without the matching grant. The engine never puts channel data in views; enforcement is the server's and voice's.
-- **Engine**: fixed `channelsFor()`; the old `comms.*` settings are removed and now rejected if passed (strict config). The only provisional part is `moderator.speaksInPublic` (default `false`). Tests: the grant table across phases (`test/decisions.test.ts`), and the approved table against every combination of provisional settings (`test/channels-invariant.test.ts`). The engine only *computes* grants. Whether voice and text actually obey them (membership, rosters, speaking indicators, chat history) needs evidence from the server and voice integration.
+- **Engine**: fixed `channelsFor()`; the old `comms.*` settings are removed and now rejected if passed (strict config). The only provisional part is `moderator.speaksInPublic` (default `false`). Tests: the grant table across phases (`test/decisions.test.ts`), open defense speech (`test/defense-speech.test.ts`), and the approved table against every combination of provisional settings (`test/channels-invariant.test.ts`). The engine only *computes* grants. Whether voice and text actually obey them (membership, rosters, speaking indicators, chat history) needs evidence from the server and voice integration.
 
 ## Q26 Disconnects during secret phases — DECIDED 2026-10-16 (except removal)
 - **Server today (ADR 0001)**: presence shown to players is frozen during secret phases, so nobody sees who dropped at night. The moderator sees it live.
