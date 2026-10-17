@@ -22,6 +22,7 @@ server.stdout.on('data', () => {});
 server.stderr.on('data', (d) => process.stderr.write(d));
 for (let i = 0; i < 100; i++) { try { if ((await fetch(`${base}/healthz`)).ok) break; } catch {} await new Promise((r) => setTimeout(r, 200)); }
 
+console.log('[scene] off');
 const browser = await chromium.launch();
 class P {
   constructor(name, ctx, page) { this.name = name; this.ctx = ctx; this.page = page; this.frames = []; page.on('websocket', (ws) => ws.on('framereceived', ({ payload }) => this.frames.push(JSON.parse(typeof payload === 'string' ? payload : payload.toString('utf8'))))); }
@@ -37,7 +38,7 @@ class P {
   async pickFirst() { const c = this.page.getByTestId('confirm'); if (!(await c.count())) return false; const b = this.page.locator('.seat-grid button[aria-pressed]:not([disabled])').first(); if (!(await b.count())) return false; await b.click(); if (!(await c.isEnabled())) return false; await c.click(); return true; }
 }
 // Scene canvas off: 15 software-rendered WebGL contexts starve the page in headless Chromium; the scene has its own checks (packages/scene).
-const mk = async (name, opts = {}) => { const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce', ...opts }); await ctx.addInitScript(() => localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'en', sound: false, reducedMotion: 'on', modNarration: false, ambience: false, scene: false }))); const page = await ctx.newPage(); return new P(name, ctx, page); };
+const mk = async (name, opts = {}) => { const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce', ...opts }); await ctx.addInitScript(() => { globalThis.__MOONVEIL_SCENE = 'off'; localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'en', sound: false, reducedMotion: 'on', modNarration: true, ambience: false, scene: false })); }); const page = await ctx.newPage(); return new P(name, ctx, page); };
 const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
 
 // ---------- automatic mode: lobby -> night 1 -> dawn/day (real timers) ----------

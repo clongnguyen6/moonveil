@@ -4,8 +4,11 @@ import { chromium, devices } from '@playwright/test';
 
 const port = process.env.WEB_PORT ?? '4401';
 const base = `http://127.0.0.1:${port}/src/ui/dev/index.html`;
+const SCENE = process.env.SCENE === 'on' ? 'on' : 'off'; // heavy-run rule: scene renders only under the lock (SCENE=on)
+console.log(`[scene] ${SCENE}`);
 const browser = await chromium.launch(); const b = browser;
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
+if (SCENE === 'off') await ctx.addInitScript(() => { globalThis.__MOONVEIL_SCENE = 'off'; });
 const page = await ctx.newPage();
 const errs = [];
 page.on('pageerror', (e) => errs.push(e.message));
@@ -254,6 +257,7 @@ ok('D2: after joining the top bar shows the mute control', (await page.locator('
 ok('D3: denial guidance picks the platform (desktop Chrome here)', await page.evaluate(() => { const ua = navigator.userAgent.toLowerCase(); return /chrome\//.test(ua); }));
 {
   const ios = await browser.newContext({ ...devices['iPhone 13'] });
+  if (SCENE === 'off') await ios.addInitScript(() => { globalThis.__MOONVEIL_SCENE = 'off'; });
   const ip = await ios.newPage();
   await ip.goto(`${base}?scenario=lobby&lang=en&bar=0&sound=0`);
   await ip.waitForSelector('[data-testid=app]');
