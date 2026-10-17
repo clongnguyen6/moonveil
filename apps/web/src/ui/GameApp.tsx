@@ -10,7 +10,7 @@ import { stalemateWarning } from '../game/approved.ts';
 import type { Session, SessionState } from '../game/session.ts';
 import { type GameView, type SeatView, stepFamily as famOf } from '../game/types.ts';
 import { type Cue, playCue, unlockAudio } from './audio/cues.ts';
-import { Button, Timer, type ToastItem, Toasts } from './components/index.tsx';
+import { Button, Sheet, Timer, type ToastItem, Toasts } from './components/index.tsx';
 import { type T, useT } from './i18n/index.ts';
 import { ConfirmPanel, DefensePanel, DiscussionPanel, GhostPanel, VotePanel } from './screens/Day.tsx';
 import { EntryScreen } from './screens/Entry.tsx';
@@ -18,7 +18,7 @@ import { LobbyScreen } from './screens/Lobby.tsx';
 import { ModeratorConsole } from './screens/Moderator.tsx';
 import { HunterPanel, NightPanel } from './screens/Night.tsx';
 import { ChatSheet, ConnOverlay, EndPanel, GhostBar, HelpSheet, RoleCardSheet, VoiceBar } from './screens/Panels.tsx';
-import { SettingsRow } from './screens/Settings.tsx';
+import { SettingsPanel } from './screens/Settings.tsx';
 import { SessionContext, useSession, useSessionState } from './session-context.ts';
 import { errorText } from './errors.ts';
 import { useMic } from './voice/mic.ts';
@@ -80,7 +80,7 @@ function Root() {
               </div>
               <div className="dock">
                 {view.status === 'lobby' ? (
-                  <LobbyScreen s={s} view={view} mic={mic} onHelp={() => setSheet('help')} onChat={() => setSheet('chat')} />
+                  <LobbyScreen s={s} view={view} mic={mic} onHelp={() => setSheet('help')} onChat={() => setSheet('chat')} onSettings={() => setSheet('settings')} />
                 ) : (
                   <div className="card" style={{ padding: 12 }}>
                     <p className="hint" data-testid="you">{t('youLabel')}: {view.me.kind === 'moderator' ? view.moderator?.name : view.players.find((p) => p.seat === view.me.seat)?.name}</p>
@@ -101,13 +101,9 @@ function Root() {
       {sheet === 'help' && <HelpSheet g={g} onClose={closeSheet} limits={view ? { min: view.limits.minPlayers, max: view.limits.maxPlayers } : undefined} />}
       {sheet === 'chat' && view && <ChatSheet s={s} view={view} onClose={closeSheet} />}
       {sheet === 'settings' && (
-        <div className="scrim" onClick={closeSheet}>
-          <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={t('settings')}>
-            <div className="grip" />
-            <div className="sheet-head"><h2 className="panel-title">{t('settings')}</h2><Button kind="icon" label={t('close')} onClick={closeSheet}>✕</Button></div>
-            <div className="sheet-body"><SettingsRow /></div>
-          </div>
-        </div>
+        <Sheet title={t('settings')} onClose={closeSheet} testId="settings-sheet">
+          <SettingsPanel moderator={view?.me.kind === 'moderator'} />
+        </Sheet>
       )}
       <ConnOverlay status={s.status} serverRestart={s.serverRestart} />
     </div>
@@ -147,7 +143,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
             <Button kind="icon" label={t('chat')} testId="open-chat" onClick={() => open('chat')}>💬</Button>
             {!isMod && <Button kind="icon" label={t('roleCard')} testId="open-role" onClick={() => open('role')}>🎭</Button>}
             <Button kind="icon" label={t('help')} testId="open-help" onClick={() => open('help')}>?</Button>
-            <Button kind="icon" label={t('settings')} onClick={() => open('settings')}>⚙</Button>
+            <Button kind="icon" label={t('settings')} testId="open-settings" onClick={() => open('settings')}>⚙</Button>
           </div>
         </div>
         {overlay && (

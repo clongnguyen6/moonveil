@@ -105,6 +105,23 @@ ul { padding: 0; list-style: none; }
 .ghost-bar { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-2); }
 .ghost-bar .pill { flex-shrink: 0; }
 .mic-bar { display: flex; align-items: center; gap: var(--sp-2); }
+.settings { display: flex; flex-direction: column; gap: var(--sp-4); }
+.setting-group { display: flex; flex-direction: column; gap: var(--sp-2); }
+.setting-group .group-title { font-size: var(--fs-2); font-weight: 700; margin: 0; }
+.setting-group > .line { margin: -4px 0 4px; }
+.setting { justify-content: space-between; gap: var(--sp-3); min-height: var(--tap); padding: 6px 0; cursor: pointer; }
+.setting .meta { display: flex; flex-direction: column; min-width: 0; }
+.setting .lbl { font-weight: 600; }
+.line { color: var(--ink-3); font-size: var(--fs-0); }
+input[type="checkbox"].switch { appearance: none; width: 48px; height: 28px; border-radius: 14px; background: var(--surface-3); border: 1px solid var(--line-strong); position: relative; flex-shrink: 0; cursor: pointer; margin: 0; }
+.switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--ink-2); transition: transform var(--dur-2) var(--ease), background var(--dur-2); }
+input[type="checkbox"].switch:checked { background: var(--accent); border-color: var(--accent); }
+input[type="checkbox"].switch:checked::after { transform: translateX(20px); background: var(--ink-on-accent); }
+.choice { display: grid; gap: var(--sp-2); }
+.choice label { display: flex; gap: var(--sp-3); align-items: flex-start; padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-2); background: var(--surface-2); cursor: pointer; }
+.choice label[data-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.choice input[type="radio"] { width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--accent); flex-shrink: 0; }
+.choice .meta { display: flex; flex-direction: column; }
 
 /* phone landscape + laptop: scene left, dock right */
 @media (min-width: 700px) and (min-aspect-ratio: 1/1) {

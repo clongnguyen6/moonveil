@@ -4,7 +4,7 @@
 import type { Seat } from '@moonveil/rules';
 import { useEffect, useState } from 'react';
 import { act } from '../../game/commands.ts';
-import { action, aliveSeats, nameAt } from '../../game/select.ts';
+import { action, aliveSeats, canSpeak, nameAt } from '../../game/select.ts';
 import type { GameView, SeatId, SeatView } from '../../game/types.ts';
 import { Button, Timer } from '../components/index.tsx';
 import { SeatGrid } from '../components/SeatGrid.tsx';
@@ -118,10 +118,12 @@ export function DefensePanel({ view, g, speaking }: P) {
   const accused = g.step.accused;
   const mine = g.me?.seat === accused;
   const name = nameAt(view, g, accused);
+  // Copy follows the grants: when living players other than the accused may speak in public, say so (no 'only' text).
+  const everyone = !mine && !!g.me?.alive && canSpeak(view, 'public');
   return (
-    <section className="card panel rise-in" data-testid="day-defense">
+    <section className="card panel rise-in" data-testid="day-defense" data-everyone={everyone}>
       <Head title={t('defenseTitle', { name })} view={view} />
-      <p className="hint">{mine ? t('defenseAccused') : t('defenseOthers', { name })}</p>
+      <p className="hint" data-testid="defense-hint">{mine ? t('defenseAccused') : everyone ? t('defenseEveryone', { name }) : t('defenseOthers', { name })}</p>
       <SeatGrid view={view} g={g} seats={[accused]} speaking={speaking} />
       <p className="muted" style={{ fontSize: 'var(--fs-0)' }}>{t('defenseNext')}</p>
     </section>

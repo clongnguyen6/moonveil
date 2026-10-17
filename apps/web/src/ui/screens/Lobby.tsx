@@ -14,9 +14,8 @@ import { platform } from '../voice/guidance.ts';
 import { copyText } from '../lan.ts';
 import { errorText } from '../errors.ts';
 import { ProfileEditor, saveProfile } from './Entry.tsx';
-import { SettingsRow } from './Settings.tsx';
 
-export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState; view: SeatView; mic: Mic; onHelp: () => void; onChat: () => void }) {
+export function LobbyScreen({ s, view, mic, onHelp, onChat, onSettings }: { s: SessionState; view: SeatView; mic: Mic; onHelp: () => void; onChat: () => void; onSettings: () => void }) {
   const t = useT();
   const session = useSession();
   const me = view.players.find((p) => p.seat === view.me.seat);
@@ -46,17 +45,22 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
         <div className="row">
           <Button kind="icon" label={t('chat')} onClick={onChat}>💬</Button>
           <Button kind="icon" label={t('help')} onClick={onHelp}>?</Button>
+          <Button kind="icon" label={t('settings')} testId="open-settings" onClick={onSettings}>⚙</Button>
         </div>
       </header>
 
-      <section className="card row wrap between">
-        <div className="row">
-          <span className="hint">{t('lobbyInvite')}</span>
-          <kbd className="code" data-testid="room-code">{view.code}</kbd>
-        </div>
-        <div className="row">
-          <Button kind="secondary" testId="copy-link" onClick={() => void copy('link')}>{copied === 'link' ? t('copied') : t('lobbyCopyLink')}</Button>
-          <Button kind="quiet" onClick={() => void copy('code')}>{copied === 'code' ? t('copied') : t('lobbyCopyCode')}</Button>
+      {/* 1. Invite: code, link, QR (host) in one card */}
+      <section className="card stack" data-testid="invite">
+        <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('lobbyInviteTitle')}</h2>
+        <div className="row wrap between">
+          <div className="row">
+            <span className="hint">{t('entryCode')}</span>
+            <kbd className="code" data-testid="room-code">{view.code}</kbd>
+          </div>
+          <div className="row">
+            <Button kind="secondary" testId="copy-link" onClick={() => void copy('link')}>{copied === 'link' ? t('copied') : t('lobbyCopyLink')}</Button>
+            <Button kind="quiet" onClick={() => void copy('code')}>{copied === 'code' ? t('copied') : t('lobbyCopyCode')}</Button>
+          </div>
         </div>
         {manual && (
           <div className="col" style={{ width: '100%' }} data-testid="copy-manual">
@@ -64,23 +68,34 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
             <input className="input" readOnly value={link} onFocus={(e) => e.target.select()} />
           </div>
         )}
+        {view.me.host && <QrCard link={link} />}
       </section>
 
-      {view.me.host && <QrCard link={link} />}
-
-      {view.me.host && (
-        <section className="card stack" data-testid="voice-mode" data-mode={s.voiceMode}>
-          <div className="row between">
-            <strong>{t('voiceModeLabel')}</strong>
-            <div className="btn-row" style={{ minWidth: 260 }}>
-              <Button kind={s.voiceMode === 'remote' ? 'primary' : 'secondary'} testId="voice-mode-remote" pressed={s.voiceMode === 'remote'} onClick={() => session.send({ t: 'voiceMode', voiceMode: 'remote' })}>{t('voiceModeRemote')}</Button>
-              <Button kind={s.voiceMode === 'inPerson' ? 'primary' : 'secondary'} testId="voice-mode-inperson" pressed={s.voiceMode === 'inPerson'} onClick={() => session.send({ t: 'voiceMode', voiceMode: 'inPerson' })}>{t('voiceModeInPerson')}</Button>
+      {/* 2. Room settings (host) / Room (everyone else): voice mode + deck */}
+      <section className="card stack" data-testid="room-settings" data-host={view.me.host}>
+        <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{view.me.host ? t('lobbyRoomTitle') : t('lobbyRoomInfo')}</h2>
+        {view.me.host && <p className="line">{t('lobbyRoomHostLine')}</p>}
+        {view.me.host ? (
+          <div className="field" data-testid="voice-mode" data-mode={s.voiceMode}>
+            <span>{t('voiceModeLabel')}</span>
+            <div className="choice" role="radiogroup" aria-label={t('voiceModeLabel')}>
+              <label data-checked={s.voiceMode === 'remote'}>
+                <input type="radio" name="voicemode" checked={s.voiceMode === 'remote'} data-testid="voice-mode-remote" onChange={() => session.send({ t: 'voiceMode', voiceMode: 'remote' })} />
+                <span className="meta"><span className="lbl">{t('voiceModeRemote')}</span><span className="line">{t('voiceModeRemoteLine')}</span></span>
+              </label>
+              <label data-checked={s.voiceMode === 'inPerson'}>
+                <input type="radio" name="voicemode" checked={s.voiceMode === 'inPerson'} data-testid="voice-mode-inperson" onChange={() => session.send({ t: 'voiceMode', voiceMode: 'inPerson' })} />
+                <span className="meta"><span className="lbl">{t('voiceModeInPerson')}</span><span className="line">{t('voiceModeInPersonLine')}</span></span>
+              </label>
             </div>
           </div>
-          <p className="muted" style={{ fontSize: 'var(--fs-0)' }}>{t('voiceModeHostHint')}</p>
-        </section>
-      )}
+        ) : (
+          <p data-testid="room-voice-mode" data-mode={s.voiceMode}><strong>{t('voiceModeLabel')}:</strong> {s.voiceMode === 'inPerson' ? t('voiceModeInPerson') : t('voiceModeRemote')} <span className="line">— {s.voiceMode === 'inPerson' ? t('voiceModeInPersonLine') : t('voiceModeRemoteLine')}</span></p>
+        )}
+        {view.deck && <DeckCard view={view} />}
+      </section>
 
+      {/* 3. Players */}
       <section className="card stack">
         <ul className="player-list" data-testid="seats">
           {view.moderator && (
@@ -101,33 +116,35 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
         </ul>
       </section>
 
-      {view.deck && <DeckCard view={view} />}
-
+      {/* 4. You: ready, look, voice */}
+      {view.me.kind === 'player' && me && (
+        <section className="card stack" data-testid="you-card">
+          <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('lobbyYouTitle')}</h2>
+          <Button wide kind={me.ready ? 'secondary' : 'primary'} testId="ready" pressed={me.ready} onClick={() => session.send({ t: 'ready', ready: !me.ready })}>
+            {me.ready ? t('notReady') : t('ready')}
+          </Button>
+          <div className="btn-row">
+            <Button kind="quiet" testId="edit-profile" onClick={() => setEditing(!editing)}>{editing ? t('done') : t('lobbyEditLook')}</Button>
+            <Button kind="quiet" testId="leave" onClick={() => session.leave()}>{t('leave')}</Button>
+          </div>
+          {editing && <EditProfile initial={{ name: me.name, appearance: me.appearance }} onDone={() => setEditing(false)} />}
+        </section>
+      )}
       {view.me.kind === 'player' && <MicCheck mic={mic} voiceMode={s.voiceMode} joined={s.voiceJoined} />}
 
       {s.error && <p className="danger" role="alert" data-testid="error" data-code={s.error.code}>{errorText(t, s.error)}</p>}
 
-      <section className="card stack">
-        {view.me.kind === 'player' && me && (
-          <Button wide kind={me.ready ? 'secondary' : 'primary'} testId="ready" pressed={me.ready} onClick={() => session.send({ t: 'ready', ready: !me.ready })}>
-            {me.ready ? t('notReady') : t('ready')}
-          </Button>
-        )}
-        {view.me.host ? (
-          <>
-            <Button wide testId="start" disabled={!view.canStart} onClick={() => session.send({ t: 'start' })}>{t('lobbyStart')}</Button>
-            {!view.canStart && <p className="hint center">{missing > 0 ? t('lobbyNeedMore', { n: missing }) : allReady ? t('waiting') : t('lobbyNotAllReady')}</p>}
-          </>
-        ) : (
-          <p className="hint center">{host ? t('lobbyHostStarts', { name: host.name }) : t('waiting')}</p>
-        )}
-        <div className="btn-row">
-          {view.me.kind === 'player' && <Button kind="quiet" testId="edit-profile" onClick={() => setEditing(!editing)}>{editing ? t('done') : t('lobbyEditLook')}</Button>}
-          <Button kind="quiet" testId="leave" onClick={() => session.leave()}>{t('leave')}</Button>
-        </div>
-        {editing && me && <EditProfile initial={{ name: me.name, appearance: me.appearance }} onDone={() => setEditing(false)} />}
-      </section>
-      <SettingsRow />
+      {/* 5. Start (host) */}
+      {view.me.host ? (
+        <section className="card stack" data-testid="start-card">
+          <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('lobbyStartTitle')}</h2>
+          <Button wide testId="start" disabled={!view.canStart} onClick={() => session.send({ t: 'start' })}>{t('lobbyStart')}</Button>
+          <p className="line center">{view.canStart ? t('lobbyStartLine') : missing > 0 ? t('lobbyNeedMore', { n: missing }) : allReady ? t('lobbyStartLine') : t('lobbyNotAllReady')}</p>
+          {view.me.kind === 'moderator' && <Button kind="quiet" testId="leave" onClick={() => session.leave()}>{t('leave')}</Button>}
+        </section>
+      ) : (
+        <p className="hint center">{host ? t('lobbyHostStarts', { name: host.name }) : t('waiting')}</p>
+      )}
     </main>
   );
 }
@@ -145,11 +162,12 @@ function DeckCard({ view }: { view: SeatView }) {
   const counts = draft ?? shown ?? {};
   const bump = (r: Role, by: number) => setDraft({ ...counts, [r]: Math.max(0, (counts[r] ?? 0) + by) });
   return (
-    <section className="card stack" data-testid="deck" data-custom={d.custom !== null} data-error={d.error !== null}>
+    <div className="stack" data-testid="deck" data-custom={d.custom !== null} data-error={d.error !== null}>
       <div className="row between">
-        <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('deckTitle')}</h2>
+        <span className="lbl" style={{ fontWeight: 600 }}>{t('deckTitle')}</span>
         <span className={`pill ${d.custom ? 'warn' : ''}`}>{d.custom ? t('deckCustom') : t('deckDefault')}</span>
       </div>
+      <p className="line">{t('deckLine')}</p>
       {shown === null && !editing && <p className="hint">{t('deckNone', { n: view.players.length })}</p>}
       <div className="row wrap" data-testid="deck-counts">
         {roles.map((r) => (
@@ -170,7 +188,7 @@ function DeckCard({ view }: { view: SeatView }) {
           {editing && <Button testId="deck-apply" onClick={() => { session.send({ t: 'deck', counts: draft! }); setDraft(null); }}>{t('deckApply')}</Button>}
         </div>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -182,7 +200,7 @@ function QrCard({ link }: { link: string }) {
   if (!mat) return null;
   const n = mat.length;
   return (
-    <section className="card row wrap" style={{ gap: 16, alignItems: 'center' }} data-testid="qr" data-version={(n - 17) / 4}>
+    <div className="row wrap" style={{ gap: 16, alignItems: 'center' }} data-testid="qr" data-version={(n - 17) / 4}>
       <svg viewBox={`-4 -4 ${n + 8} ${n + 8}`} width="168" height="168" role="img" aria-label={`${t('lobbyQr')}: ${link}`} shapeRendering="crispEdges" style={{ background: '#fff', borderRadius: 6 }}>
         <path d={qrPath(mat)} fill="#000" />
       </svg>
@@ -191,7 +209,7 @@ function QrCard({ link }: { link: string }) {
         <span className="hint">{t('lobbyQrHint')}</span>
         <span className="muted" style={{ fontSize: 'var(--fs-0)', wordBreak: 'break-all' }}>{link}</span>
       </div>
-    </section>
+    </div>
   );
 }
 
