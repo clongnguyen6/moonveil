@@ -39,6 +39,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   if (quality === 'off') return offHandle(opts.input);
   const reducedMotion = !!qEnv.reducedMotion;
   const low = quality === 'low';
+  const x = opts.experimental ?? {};
   let input = opts.input;
   let destroyed = false;
   const listeners: Listener = { move: [], emote: [], tap: [] };
@@ -50,6 +51,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   let ro: ResizeObserver | null = null;
   let onVis: (() => void) | null = null;
   let frameNo = 0;
+  let lastLightKey = '';
   const safe: SafeArea = { top: 0, right: 0, bottom: 0, left: 0 };
   const perfOn = !!opts.perf;
   const perf = { frames: [] as number[], update: [] as number[], lightmap: [] as number[], render: [] as number[], last: 0 };
@@ -64,13 +66,13 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   const ready = (async () => {
     const a = new Application();
     await a.init({
-      resizeTo: host, background: '#0f1813', antialias: true,
+      resizeTo: host, background: '#0f1813', antialias: x.antialias ?? true,
       resolution: low ? 1 : Math.min(window.devicePixelRatio || 1, opts.resolution ?? 2), autoDensity: true,
       preference: 'webgl', powerPreference: 'high-performance',
     });
     if (destroyed) { a.destroy(true); return; }
     app = a;
-    a.ticker.maxFPS = frameCap(quality, reducedMotion);
+    a.ticker.maxFPS = x.fpsCap ?? frameCap(quality, reducedMotion);
     // no frames while the document is hidden (background tab, headless page marked hidden)
     onVis = () => { if (document.hidden) a.ticker.stop(); else a.ticker.start(); };
     document.addEventListener('visibilitychange', onVis);
@@ -106,10 +108,10 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   function build(a: Application) {
     bank = new TextureBank(a.renderer);
     map = createMap(Math.max(4, input.players.length));
-    world = new World(bank, map);
+    world = new World(bank, map, x.ripples ?? true);
     emissive = new Container(); fx = new Container();
     lighting = new Lighting(a.renderer, bank.light);
-    vignette = new Sprite(bank.vignette); vignette.alpha = 0.9;
+    vignette = new Sprite(bank.vignette); vignette.alpha = 0.9; vignette.visible = x.vignette ?? true;
     nightTint = new Sprite(bank.light); nightTint.tint = 0x6a5aa8; nightTint.alpha = 0; nightTint.anchor.set(0.5); // soft purple wash at night
     leaders = new Graphics(); leaders.zIndex = 100000; world.objects.addChild(leaders);
     a.stage.addChild(world.root, lighting.out, nightTint, emissive, fx, vignette);
@@ -155,7 +157,9 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       tick(dt);
       frameNo++;
       lightMs = 0;
-      if (!low || frameNo % 2 === 0) { const l0 = performance.now(); lighting.render(cam); lightMs = performance.now() - l0; }
+      const lightKey = x.lightmapOnChange ? `${nightLevel.toFixed(3)}|${lanternLevel.join(',')}|${cam.x.toFixed(1)},${cam.y.toFixed(1)},${cam.scale.toFixed(4)}|${lastW}x${lastH}` : '';
+      const needLight = x.lightmapOnChange ? lightKey !== lastLightKey : (!low || frameNo % 2 === 0);
+      if (needLight) { lastLightKey = lightKey; const l0 = performance.now(); lighting.render(cam); lightMs = performance.now() - l0; }
     });
   }
   let lightMs = 0;
@@ -254,7 +258,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     // Lobby growth beyond the initial layout: rebuild world and lights. Rare; acceptable cost.
     const a = app!; const old = world;
     map = createMap(n);
-    world = new World(bank, map);
+    world = new World(bank, map, x.ripples ?? true);
     a.stage.addChildAt(world.root, 0);
     for (const av of avatars.values()) world.objects.addChild(av.root);
     old.root.destroy({ children: true });
@@ -344,7 +348,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     // world + effects (cheap mode: no sway, no particle pools, no fog)
     if (!low && !reducedMotion) world.update(t, dt);
     const fi = lerp(1, 0.45, smooth(n));
-    const flick = 1 + Math.sin(t * 9.3) * 0.05 + Math.sin(t * 23.7) * 0.03 + Math.sin(t * 3.1) * 0.03;
+    const flick = x.lightmapOnChange ? 1 : 1 + Math.sin(t * 9.3) * 0.05 + Math.sin(t * 23.7) * 0.03 + Math.sin(t * 3.1) * 0.03;
     fire.intensity = fi;
     fireLight.scale.set(3.4 * flick * (0.7 + 0.3 * fi)); fireLight.alpha = 0.85 * (0.5 + 0.5 * fi);
     fireLight2.scale.set(1.5 * flick); fireLight2.alpha = 0.9;
