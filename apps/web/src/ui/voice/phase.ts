@@ -2,7 +2,7 @@
 // publish, subscribe); a room rotation reconnects in ~2 s. Players must see "connecting" / "reconnecting", not silence.
 import type { VoiceSnapshot } from '@moonveil/voice/client';
 
-export type VoicePhase = 'off' | 'notJoined' | 'connecting' | 'reconnecting' | 'live' | 'listening' | 'denied' | 'failed';
+export type VoicePhase = 'off' | 'notJoined' | 'connecting' | 'reconnecting' | 'live' | 'listening' | 'denied' | 'failed' | 'unavailable';
 
 export function voicePhase(snap: VoiceSnapshot | null, opts: { off: boolean; joined: boolean; canSpeak: boolean }): VoicePhase {
   if (opts.off) return 'off';
@@ -21,3 +21,6 @@ export function voicePhase(snap: VoiceSnapshot | null, opts: { off: boolean; joi
   }
   return 'listening';
 }
+
+/** Bounded wait: joined but no session (voice off server-side) or no connected channel after this long → 'unavailable'. */
+export const VOICE_TIMEOUT_MS = () => (globalThis as { __MOONVEIL_VOICE_TIMEOUT_MS?: number }).__MOONVEIL_VOICE_TIMEOUT_MS ?? 30_000;

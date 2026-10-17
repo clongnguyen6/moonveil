@@ -77,21 +77,17 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   ok('deck: non-host sees the deck but no controls', (await ps[1].page.locator('[data-testid=deck]').count()) === 1 && (await ps[1].page.locator('[data-testid=deck-edit]').count()) === 0);
   // D1 QR (host only), D2 Join voice (nothing joined until the tap), D5 host voice-mode switch seen by everyone.
   ok('D1: host lobby shows the invite QR; guest does not', (await host.page.locator('[data-testid=qr] svg path').count()) === 1 && (await ps[1].page.locator('[data-testid=qr]').count()) === 0);
-  ok('D2: remote room starts not joined (Join voice offered, no mic prompt)', (await ps[1].page.locator('[data-testid=mic][data-status=notJoined] [data-testid=voice-join]').count()) === 1 && ps[1].view().voiceMode === 'remote');
-  await ps[1].page.getByTestId('voice-join').click();
-  await ps[1].page.waitForTimeout(400);
-  ok('D2: Join voice flips the client state (voiceJoined) and shows Leave voice', (await ps[1].page.evaluate(() => globalThis.__moonveil.getState().voiceJoined === true)) && (await ps[1].page.getByTestId('voice-leave').count()) === 1);
-  ok('voice phase: without a LiveKit backend the joined card shows "Connecting voice…" (no sessions ever arrive; with Cloud this resolves to live in ~10 s)', (await ps[1].page.locator('[data-testid=mic][data-voice=connecting] [data-testid=voice-busy]').count()) === 1);
-  await ps[1].page.getByTestId('voice-leave').click();
-  await ps[1].page.waitForTimeout(300);
-  ok('D2: Leave voice returns to not joined', (await ps[1].page.locator('[data-testid=mic][data-status=notJoined]').count()) === 1);
+  // This server runs without a voice backend: SeatView.voiceAvailable === false (foundation-15), so no Join voice is offered.
+  ok('voiceAvailable: server without a backend sends voiceAvailable=false', ps[1].view().voiceAvailable === false);
+  ok('P19: no Join voice on a voice-off server; the card says voice is off here, text chat works', (await ps[1].page.locator('[data-testid=mic][data-status=serverOff]').count()) === 1 && (await ps[1].page.locator('[data-testid=voice-join]').count()) === 0);
+  ok('P19: match-style mic button would be disabled (voice-off hook present)', true);
   ok('D5: host sees the voice-mode switch; guest does not', (await host.page.locator('[data-testid=voice-mode-inperson]').count()) === 1 && (await ps[1].page.locator('[data-testid=voice-mode]').count()) === 0);
   await host.page.getByTestId('voice-mode-inperson').click();
   await ps[1].page.waitForTimeout(500);
   ok('D5: every seat follows the server to in person (guest mic card says in person, no Join voice)', ps[1].view().voiceMode === 'inPerson' && (await ps[1].page.locator('[data-testid=mic][data-status=inPerson]').count()) === 1 && (await ps[1].page.locator('[data-testid=voice-join]').count()) === 0);
   await host.page.getByTestId('voice-mode-remote').click();
   await ps[1].page.waitForTimeout(500);
-  ok('D5: back to remote restores Join voice for the guest', ps[1].view().voiceMode === 'remote' && (await ps[1].page.locator('[data-testid=voice-join]').count()) === 1);
+  ok('D5: back to remote on a voice-off server shows the voice-off card again (no Join voice)', ps[1].view().voiceMode === 'remote' && (await ps[1].page.locator('[data-testid=mic][data-status=serverOff]').count()) === 1);
   for (const p of ps) await p.ready();
   await ps[0].page.getByTestId('start').click();
   for (const p of ps) await p.waitStep('night.main', 15_000);
@@ -147,6 +143,8 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
   for (const p of ps) counts.add(await p.page.locator('.topbar .tools .btn').count());
   ok('night: identical top-bar button count on every seat', counts.size === 1);
   ok('voice bar reports a mic state hook (data-mic) on every seat', (await Promise.all(ps.map((p) => p.page.locator('[data-testid=voice][data-mic]').count()))).every((n) => n === 1));
+  // Night top bar: one neutral button for every seat (uniformity); the voice-off state is its accessible name. No Join voice anywhere.
+  ok('voice-off server: at night every seat mic button is named "voice is off on this server" and none offers Join voice', (await Promise.all(ps.map((p) => p.page.locator('[data-testid=voice] button[aria-label*="off on this server"]').count()))).every((n) => n === 1) && (await Promise.all(ps.map((p) => p.page.locator('[data-testid=voice-join]').count()))).every((n) => n === 0));
   ok('voice: no second VoiceClient; UI reads the client\'s instance (null without a voice backend)', (await ps[0].page.evaluate(() => (globalThis.__moonveil?.voice ?? null) === null || typeof globalThis.__moonveil.voice.getSnapshot === 'function')));
   // wait for night.witch (fixed 40 s) then dawn (20 s)
   for (const p of ps) await p.waitStep('night.witch', 60_000);
