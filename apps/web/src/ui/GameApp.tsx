@@ -104,7 +104,7 @@ function Root() {
           </div>
         </div>
       )}
-      <ConnOverlay status={s.status} />
+      <ConnOverlay status={s.status} serverRestart={s.serverRestart} />
     </div>
   );
 }

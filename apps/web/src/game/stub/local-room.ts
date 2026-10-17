@@ -191,11 +191,14 @@ export class LocalRoom implements Session {
     this.viewer = id;
     this.emit();
   }
-  simulateReconnect(ms = 1800) {
+  restarting = false;
+  simulateReconnect(ms = 1800, opts: { restart?: boolean } = {}) {
     this.conn = 'reconnecting';
+    this.restarting = !!opts.restart;
     this.emit();
     setTimeout(() => {
       this.conn = 'open';
+      this.restarting = false;
       this.emit();
     }, ms);
   }
@@ -339,6 +342,7 @@ export class LocalRoom implements Session {
       speaking: this.speaking,
       poses: [],
       voiceMode: this.voiceMode,
+      serverRestart: this.conn === 'reconnecting' && this.restarting,
     };
   }
 }
