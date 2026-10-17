@@ -54,9 +54,10 @@ export interface ChannelView {
 }
 export interface VoiceSnapshot {
   // D2: nothing connects and no microphone is requested before join() (called by the UI from a user gesture).
-  joined: boolean;
+  // Optional in the type so consumers that build an empty snapshot literal keep compiling; the client always sets them.
+  joined?: boolean;
   // Channels the server currently grants (held while not joined).
-  pendingChannels: string[];
+  pendingChannels?: string[];
   channels: Record<string, ChannelView>;
   mic: MicState;
   micError: string | null;
