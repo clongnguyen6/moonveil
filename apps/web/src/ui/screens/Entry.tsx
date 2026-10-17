@@ -78,7 +78,7 @@ export function EntryScreen({ s }: { s: SessionState }) {
       <section className="card stack" style={{ padding: 16 }}>
         <ProfileEditor value={profile} onChange={setProfile} />
       </section>
-      {s.error && <p className="danger" role="alert" data-testid="error">{errorText(t, s.error)}</p>}
+      {s.error && <p className="danger" role="alert" data-testid="error" data-code={s.error.code}>{errorText(t, s.error)}</p>}
       <section className="card stack" style={{ padding: 16 }}>
         {linkCode ? (
           <p data-testid="invited"><strong>{t('entryInvited', { code: linkCode })}</strong><br /><span className="hint">{t('entryInvitedHint')}</span></p>

@@ -105,7 +105,7 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat }: { s: SessionState;
 
       {view.me.kind === 'player' && <MicCheck mic={mic} voiceMode={s.voiceMode} joined={s.voiceJoined} />}
 
-      {s.error && <p className="danger" role="alert" data-testid="error">{errorText(t, s.error)}</p>}
+      {s.error && <p className="danger" role="alert" data-testid="error" data-code={s.error.code}>{errorText(t, s.error)}</p>}
 
       <section className="card stack">
         {view.me.kind === 'player' && me && (

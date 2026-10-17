@@ -61,3 +61,6 @@ Server restarts close sockets with 1012 (SIGTERM) and the match is paused and re
 
 ## P17. Host switches voice mode in the lobby — DONE in foundation-10 (`{ t: 'voiceMode' }`)
 C→S `{ t: 'voiceMode', ref?, voiceMode: 'remote' | 'inPerson' }`, host only, lobby only; `SeatView.voiceMode` updates for everyone; remote → inPerson revokes voice sessions for all seats.
+
+## P18. e2e asserts on error codes, not copy (foundation, `e2e/tests/lobby.spec.ts:43`)
+Error text is localized player copy now (D4). `[data-testid=error]` carries `data-code=<ErrorCode>`; please assert `toHaveAttribute('data-code', 'room-not-found')` (and `name-taken` on line ~14) instead of substrings. The English line keeps "no such room" for now so the current spec stays green.

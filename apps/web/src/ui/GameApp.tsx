@@ -183,7 +183,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
           <ConfirmPanel view={view} g={g} speaking={s.speaking} />
         )}
         {isMod && view.phaseEndsAt !== null && <p className="center"><Timer endsAt={view.phaseEndsAt} totalMs={view.phaseDurationMs} /></p>}
-        {s.error && <p className="danger center" role="alert" data-testid="error">{errorText(t, s.error)}</p>}
+        {s.error && <p className="danger center" role="alert" data-testid="error" data-code={s.error.code}>{errorText(t, s.error)}</p>}
       </div>
     </main>
   );
