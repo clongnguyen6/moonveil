@@ -65,7 +65,7 @@ const AUDIT = () => {
 
 async function run(browser, tag, ctxOpts, lang) {
   const ctx = await browser.newContext({ ...ctxOpts, locale: lang === 'vi' ? 'vi-VN' : 'en-US', reducedMotion: 'reduce' });
-  await ctx.addInitScript(() => localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'vi', sound: false, reducedMotion: 'on', modNarration: false, ambience: false, scene: true })));
+  await ctx.addInitScript(() => localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'vi', sound: false, reducedMotion: 'on', modNarration: false, ambience: false, scene: false })));
   const page = await ctx.newPage();
   for (const sc of SCENARIOS) {
     await page.goto(`${base}?scenario=${sc}&lang=${lang}&bar=0&sound=0`);

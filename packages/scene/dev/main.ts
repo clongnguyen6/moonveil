@@ -1,5 +1,5 @@
 // Dev harness: runs the scene against the fixture stub server (no real server). Also the capture/perf target.
-// URL: ?scene=lobby|seating|night|day|ghost|ended  ?n=4..16  ?viewer=moderator|s1..s16  ?cam=fit|tight  ?panel=0  ?audio=0  ?speak=0  ?perf=1
+// URL: ?scene=lobby|seating|night|day|ghost|ended  ?quality=off|low|high|auto (default high)  ?labels=0 (bypass label layout, before/after captures)  ?n=4..16  ?viewer=moderator|s1..s16  ?cam=fit|tight  ?panel=0  ?audio=0  ?speak=0  ?perf=1
 import { mountScene } from '../src/index.ts';
 import { phaseLabel } from '../src/choreo.ts';
 import { FakeServer, type FixtureScene } from '../fixtures/index.ts';
@@ -15,7 +15,7 @@ const viewer = viewerParam === 'moderator' ? 'moderator' : viewerParam && /^s\d+
 const server = new FakeServer(initial, n, viewer);
 if (q.get('speak') === '0') server.autoSpeak = false;
 const host = document.getElementById('scene')!;
-const scene: SceneHandle = mountScene(host, { input: server.input, camera: (q.get('cam') as 'fit' | 'tight') || undefined, perf: q.get('perf') === '1' });
+const scene: SceneHandle = mountScene(host, { input: server.input, camera: (q.get('cam') as 'fit' | 'tight') || undefined, perf: q.get('perf') === '1', quality: (q.get('quality') as 'off' | 'low' | 'high' | 'auto') || 'high', labelLayout: q.get('labels') !== '0' });
 server.onPoses((f) => scene.setPoses(f));
 server.onSpeaking((s) => scene.setSpeaking(s));
 scene.on('move', (p: Pose) => { server.move(p.seat, p.x, p.y, p.facing); });
@@ -71,5 +71,6 @@ window.__moonveil = {
   perf: () => scene.perf(),
   perfReset: () => scene.perfReset(),
   ready: false,
+  quality: scene.quality,
 };
 void scene.ready.then(() => { window.__moonveil!.ready = true; console.log(`moonveil scene harness: ${n} players, ${initial}`); });

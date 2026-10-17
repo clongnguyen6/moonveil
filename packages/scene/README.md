@@ -8,6 +8,10 @@ Camp renderer (PixiJS v8). A pure function of three inputs: the seat's `SceneInp
 - `@moonveil/scene/map`: DOM-free layout (`createMap(playerCount)`), `isWalkable(map, x, y)`, `inWorld`, constants. For the server to validate `move` messages with the renderer's geometry.
 - `@moonveil/scene/fixtures`: `makeInput(scene, n)`, `FakeServer` (stub server: NPC movement, entitlement-filtered poses, speaking rotation). Used by the dev harness and tests.
 
+## Cost modes
+
+`mountScene(host, { quality })`: `off` mounts nothing (no canvas, no frame loop); `low` = DPR 1, 30 fps cap, no particles, sway or fog, lightmap every other frame; `high` = full; `auto` (default) = page override `globalThis.__MOONVEIL_SCENE` (`off|low|high`, set by a harness init script), else `low` under automation (`navigator.webdriver`) or on ≤ 4 cores / ≤ 4 GB, else `high`. Frames stop while `document.hidden`; `prefers-reduced-motion` caps at 4 fps in any mode. `handle.quality` reports the resolved mode. Proposed env mirror for harnesses: `MOONVEIL_SCENE=off|low|high` → init script sets the override (the voice suite's `VOICE_E2E_SCENE` can map onto it). Harness: `?quality=`.
+
 ## Run
 
 ```sh

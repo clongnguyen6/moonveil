@@ -31,7 +31,7 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 
 ## Milestones
 - M0 init: docs committed on `dev` (acf85a0). [done]
-- M1 visual preview: f07b6d5 sent to Human; merged to dev 3225999 (incl. WebKit-emulation captures). Lead conditions proposed: moonlit night, 16-seat crowding, phone label clipping, thin forest. [awaiting Human]
+- M1 visual: mature redo SUPERSEDED (Human returned to original look, 2026-10-17). Baseline = original look (dev 44fb793, BASELINE.md). Option B: keep look, prioritise playtest readiness; polish deferred. Redo branches visual-6, game-ui-art unmerged.
 - M1 rules: proposal v0.2 at rules 01fbb49 (codex review F1–F7 addressed; Lead re-ran 138/138) sent to Human. Approved so far listed under Approved rules; rest pending. Rules Peer: recording approvals + integration into dev.
 - M1 voice: LiveKit OSS selected for local implementation/verification (grant d). Room-per-channel, server sole token issuer, rotate channel on membership loss. 43/43 on a94fe73 (Peer); reconcile with head + re-run on final SHA before merge. Lead re-run pending.
 - M2 playable slice: server serves real engine (a280efe); protocol-level full matches 7–10 both modes pass (owner); game UI first screens on branch game-ui; scene package in dev; next: UI wired to real client + browser e2e full matches, voice gateway.
@@ -59,9 +59,21 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Hosting trust (server host can read secrets): (a) accept + (b) guide non-player host. [asked]
 - First playtest network path; HTTPS options with verified costs incl. zero-cost (LAN voice-off = partial only, not voice acceptance). [asked; proposal later]
 
+## Status 2026-10-17 (Lead)
+- dev 36bdafd = intended deploy revision (foundation-9 full acceptance: check, matches x10 10/10, voice matches 10/10, strict UI 16/16, 0 misses/skips). Hosting: Railway Trial only selected (no paid/upgrade); Render documented alternative; deploy request pending; LiveKit Cloud probes/credentials unapproved.
+- Merges since last log: voice 44fb793/a9b411d, rules-12 d3a3cbb (stalemate draw + match.end), visual-5 3400f92, game-ui 50dcc22, foundation-7 ca23197, foundation-8 5b081c4, foundation-9 36bdafd. Owner evidence in their reports; heavy-run conditions recorded.
+- Open: voice candidate 1d12fc6 (publish-hang fix) fails measured-audio full matches (pages unresponsive); likely CPU starvation from scene rendering in many headless pages; under analysis, not merged.
+- Heavy-run lock (serial, Lead hands out): voice → game-UI (b7bd170) → foundation-10 (strict UI skip-fail) → visual direction captures as needed.
+- Human local preview: 127.0.0.1:4480 (real server, dev 44fb793) and :4481 (stub screens), game-UI owner's PIDs 77636/78025. Keep running.
+
+## Decisions 2026-10-17 (Human)
+- Hosting: Railway Trial only (no upgrade/paid/overage); Render documented alternative; durable volume recovery required; stop + report at credit/expiry. Deploy, main merge, LiveKit Cloud probes/credentials NOT approved.
+- Playtest UX: D1 QR on host screen; D2 voice/mic only after explicit "Join voice" tap; D3 per-browser denied-mic guidance; D4 error only for full/started rooms (no spectator); D5 host may switch in-person/remote in lobby only; D6 moderator narration cues on by default, approved-consistent or neutral wording only (rules-13 statuses). D7 = pending Batch C1. D8 (Lead): rule errors as codes, after playtest.
+- Heavy-run lock covers any browser automation that renders the scene (stub checks included); scene off otherwise. Acceptance runs use one scene observer at 4 fps reduced motion = test mitigation, not product performance evidence.
+- Paseo installed source reference: /Users/long/repo/agent-workflow/paseo-v0.11.2/ (read-only).
+
 ## Lead message queue (deliver at owner's next turn end)
-- game UI: player range text 6–16 → 7–15 (Batch A).
-- foundation: correct deployment notes (docs/architecture 0002/ADR) from current primary docs: Vercel Functions support WebSockets (beta, all plans; sockets close at max duration; reconnects may hit other instances; needs external durable state + pub/sub). Current Moonveil still not import-and-play (single-process in-memory rooms/timers, disk persistence, same-origin WS, incomplete UI/voice, LiveKit media separate). No redesign to Vercel Functions, no provisioning/deploy/cost. Then prepare single-host vs split-host options.
+- (cleared)
 
 ## Approved rules (Human, 2026-10-16) — rules owner records in docs/rules/PROPOSAL.md
 - Batch A (Q17/Q18): 7–15 players; 2 Wolves at 7–12, 3 at 13–15; one each Seer/Witch/Guard/Hunter, rest Villagers; host customization within valid limits.

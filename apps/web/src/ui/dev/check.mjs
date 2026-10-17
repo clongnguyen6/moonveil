@@ -123,8 +123,13 @@ await open('day');
 const before = await page.getByTestId('match').getAttribute('data-step');
 await stub((r) => r.simulateReconnect(600));
 ok('reconnect overlay visible', (await page.getByTestId('conn').getAttribute('data-status')) === 'reconnecting');
+ok('reconnect copy is neutral for a local drop (no "continues", no "paused")', !/continues|paused/i.test(await page.getByTestId('conn-hint').innerText()) && (await page.getByTestId('conn-hint').getAttribute('data-restart')) === 'false');
 await page.waitForTimeout(900);
 ok('reconnect overlay gone, same step', (await page.getByTestId('conn').getAttribute('data-status')) === 'open' && (await page.getByTestId('match').getAttribute('data-step')) === before);
+
+await stub((r) => r.simulateReconnect(600, { restart: true }));
+ok('server-restart reconnect says the match is saved and paused', /paused/i.test(await page.getByTestId('conn-hint').innerText()));
+await page.waitForTimeout(900);
 
 // 10. Role card: hidden until tapped.
 await page.getByTestId('open-role').click();
