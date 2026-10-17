@@ -19,6 +19,26 @@ The 4 skipped windows are all whole-table step boundaries: in each, every page m
 
 **Token / channel checks (separate from the audio measurement), all pass:** every page holds exactly the channels of its grants and each is connected; rosters contain only granted seats and never a listen-only one; every `voice` frame carries only channels the seat is granted at that moment, with `speak` never beyond the state grant; LiveKit's participant list shows the moderator hidden while listen-only and visible at `ended`; in-person room (1.7 min): no sessions in any `voice` frame, no LiveKit room for the code, no voice channel in any page, public text delivered in the lobby.
 
+### Slot 19 (2026-10-17 18:06–18:44, lock held; candidate 705faad = e432694 (D2 explicit join, D5) + dev 758c44a + a type-only fix): ALL GREEN
+
+Scene loop stopped in test pages (`MOONVEIL_SCENE=off`), `join()` called on every page (D2). Conditions sampled every 30 s (`.cache/voice-e2e/conditions-slot19.log`): load 1-min 3.9 at start, peak 8.2, 6.5 at end; CPU idle 54–73 %; browser GPU process 0–29 % during matches (peak 100 % at page load; 620–730 % with the scene running in runs 15–17); 10–12 renderers summing ~70 %; memory 35 GB used, 7 GB in the compressor.
+
+Root check on 705faad: typecheck ok; rules 206, scene 26, voice 53, server 96, harness 2, e2e 13/13 (1.8 min). An earlier root check on 6afa3a3 (same product behaviour) failed only because `apps/web` builds an empty `VoiceSnapshot` literal and D2 had added two required fields; they are optional in the type since 705faad.
+
+**Measured hear-matrix on 705faad** (received audio energy per channel and remote seat, 2 s window after every step, versus the matrix derived from each seat's own `state.voice`):
+
+| Run | Match | Steps | Pair-channel checks | should-hear failures | must-not-hear failures | Skipped |
+|---|---|---|---|---|---|---|
+| 21 | moderator, 7 + mod, complete match, scale 2 (44.5 s) | 11 | 658 | 0 | 0 | 0 |
+| 21 | automatic, 10 seats, scale 2, 5-min budget (5.2 min) | 14 | 1,278 | 0 | 0 | 0 |
+| 22 | automatic, 10 seats, real time, 10-min budget (10.2 min) | 12 | 981 | 0 | 0 | 0 |
+
+Per step, run 21 moderator: lobby 56, night.main 35/63, night.witch 35/63, day.discussion 70, day.vote 70, day.defense 70, day.confirm 70, hunter 70, ended 56. Run 21 automatic: lobby 90, night.main 18/63, night.witch 18/63, hunter 90, day.discussion 108/126, day.vote 108/126, day.defense 108/126, day.confirm 108/126. Run 22 (real time): lobby 90, night.main 18/54, night.witch 18/54, day.discussion 99/117, day.vote 99/117, day.defense 99/117, day.confirm 99. The run-13 question (one should-hear failure after a rotation, real time) is settled: 0 failures over 981 real-time checks with the settle fix, and 0 over 1,278 at scale 2.
+
+**Token / channel checks (separate), all pass:** channels equal grants and connected on every page; rosters only granted seats, never a listen-only one; `voice` frames never carry an ungranted channel or `speak` beyond the state grant; moderator hidden while listen-only and visible at `ended`; in-person room (5.7 s): no sessions, no LiveKit room, no voice channel, public text delivered. Nothing connects before `join()` (D2, unit-tested; the suite joins explicitly).
+
+The same three suites also passed on 6afa3a3 (runs 19/20: 1,183 + 828 + 981 checks, 0 failures, 0 skipped) before the type-only fix.
+
 ### Slot 17 (2026-10-17 14:35–, lock held; candidate 1d12fc6 = d85b133 + dev 36bdafd): A/B and run 17, FAILED; cause found by measurement
 
 Kept: `.cache/voice-e2e-ab17-off.log`, `.cache/voice-e2e-ab17-on.log`, `.cache/voice-e2e-run17.log`, per-run artifacts `.cache/voice-e2e/results-ab17-off/`, `results-ab17-on/`, `results-run17/` (error contexts + traces), `.cache/voice-e2e/conditions-slot17.log`, `conditions-ab17-off.log`, `conditions-ab17-on.log`, LiveKit server log `.cache/voice-e2e/livekit.log`.
