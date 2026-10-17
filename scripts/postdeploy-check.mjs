@@ -23,6 +23,8 @@ const IDLE_MIN = Number(opt('idle-min', '16'));
 const ACTIONS = Number(opt('actions', '2'));
 const ACTION_TIMEOUT_MS = Number(opt('action-timeout-min', '30')) * 60_000;
 const VOICE = !args.includes('--no-voice');
+// Hard cap on LiveKit Cloud participant-minutes for this script (pages x connected time); voice phase is cut short at it.
+const VOICE_CAP_MIN = Number(opt('voice-cap-min', '10'));
 const OUT = opt('out', `.cache/postdeploy/check-${new Date().toISOString().replace(/[:.]/g, '-')}.jsonl`);
 if (!/^https?:\/\/[^/]+$/.test(url)) {
   console.error('usage: postdeploy-check.mjs https://<domain> [--idle-min=16] [--actions=2] [--no-voice]');
@@ -115,21 +117,36 @@ try {
 
   // 4. Voice, briefly: server reached LiveKit (sessions arrive) and this browser reached LiveKit (a page connects).
   if (VOICE) {
-    const t0 = Date.now();
     let sessions = false;
     for (let i = 0; i < 40 && !sessions; i++, await sleep(500)) sessions = (await Promise.all(pages.map((p) => st(p.page)))).every((s) => s.sessions > 0);
     log({ check: 'voice sessions issued (server -> LiveKit API)', ok: sessions, hint: sessions ? undefined : 'no sessions: LIVEKIT_* missing, server cannot reach LiveKit (Limited Trial?), or voice errors in the service logs. STOP and report.' });
     if (sessions) {
-      for (const p of pages) await p.page.evaluate(() => void globalThis.__moonveil.joinVoice());
+      // Connected time is bounded: at most capMs per page so pages x time stays under VOICE_CAP_MIN (LiveKit bills
+      // >= 10 s per session). leaveVoice runs in finally, and browser.close() would disconnect anyway.
+      const capMs = Math.min(60_000, (VOICE_CAP_MIN * 60_000) / pages.length);
+      const joinAt = Date.now();
       let states = [];
-      for (let i = 0; i < 60; i++, await sleep(500)) {
+      let connectedMs = null;
+      try {
+        for (const p of pages) await p.page.evaluate(() => void globalThis.__moonveil.joinVoice());
+        while (Date.now() - joinAt < capMs) {
+          states = await Promise.all(pages.map((p) => p.page.evaluate(() => globalThis.__moonveil.voice?.getSnapshot().channels.public?.state ?? 'none')));
+          if (states.every((s) => s === 'connected')) {
+            connectedMs = Date.now() - joinAt;
+            break;
+          }
+          await sleep(500);
+        }
+        await sleep(3_000); // brief hold: connections stable
         states = await Promise.all(pages.map((p) => p.page.evaluate(() => globalThis.__moonveil.voice?.getSnapshot().channels.public?.state ?? 'none')));
-        if (states.every((s) => s === 'connected')) break;
+      } finally {
+        for (const p of pages) await p.page.evaluate(() => globalThis.__moonveil.leaveVoice()).catch(() => {});
       }
-      log({ check: 'voice connected (browser -> LiveKit Cloud)', states, ok: states.every((s) => s === 'connected') });
-      for (const p of pages) await p.page.evaluate(() => globalThis.__moonveil.leaveVoice());
+      const heldMs = Date.now() - joinAt;
+      log({ check: 'voice connected (browser -> LiveKit Cloud)', states, connectAfterMs: connectedMs, ok: states.every((s) => s === 'connected') });
+      // Upper bound: every page billed for the whole join..leave span, min 10 s each.
+      log({ check: 'voice participant-minutes used (upper bound)', pages: pages.length, heldSec: Math.round(heldMs / 1000), participantMinutes: +((pages.length * Math.max(heldMs, 10_000)) / 60_000).toFixed(2), capMinutes: VOICE_CAP_MIN, ok: (pages.length * heldMs) / 60_000 <= VOICE_CAP_MIN });
     }
-    log({ check: 'voice minutes used (estimate)', participantMinutes: Math.ceil(((Date.now() - t0) / 60_000) * pages.length), ok: true });
   }
 
   // 5. Idle WebSocket: nobody touches anything; no page may reconnect.
