@@ -4,7 +4,7 @@
 // channel the seat is not granted. Runs once foundation's wiring exposes `globalThis.__moonveil.voice`.
 //
 //   node scripts/env.mjs npm run e2e -w @moonveil/voice            # default: 7 seats moderator, 10 seats automatic
-//   VOICE_E2E_SEATS=10 VOICE_E2E_AUTO_BUDGET_MS=300000 ... -g automatic
+//   VOICE_E2E_SEATS=10 VOICE_E2E_AUTO_BUDGET_MS=300000 MOONVEIL_SCENE=low ... -g automatic
 import { RoomServiceClient } from 'livekit-server-sdk';
 import { expect, type Player, test } from '../../../e2e/harness/index.ts';
 import { botAct, checkHearMatrix, game, type MatrixReport, moderatorClose, requireVoiceWiring, rng, sleep, step, voiceFrameLeaks, voiceFrames, voiceSettled, voiceSnapshot, waitStepChange } from './helpers.ts';
@@ -29,21 +29,23 @@ function summarize(reports: MatrixReport[]) {
   return { failures, checked, steps, skipped: skipped.length };
 }
 
-// The web shell mounts the animated camp scene (pixi.js, WebGL) in every page. In a headless browser that
-// is software-rendered (SwiftShader) in the single GPU process: measured 620–730 % CPU for 11 pages, which
-// starved renderers, ICE and publishes (runs 15–17, A/B). This suite measures audio, not visuals, so by default
-// it stops the scene's frame loop by never firing requestAnimationFrame in test pages. VOICE_E2E_SCENE=on keeps it.
-const SCENE_OFF = process.env.VOICE_E2E_SCENE !== 'on';
+// Scene rendering in test pages. Agreed switch across harnesses: the product honours
+// `globalThis.__MOONVEIL_SCENE = 'off'|'low'|'high'` (set by an init script) once visual-7 lands, with the env
+// mirror MOONVEIL_SCENE. This suite measures audio, not visuals, so it defaults to 'off': in a headless browser
+// the pixi.js/WebGL scene is software-rendered in one GPU process, measured at 620–730 % CPU for 11 pages
+// (runs 15–17), which starved renderers, ICE and publishes. Until the product honours the flag, 'off' also
+// stops the frame loop by never firing requestAnimationFrame (fallback; remove when visual-7 is on dev).
+const SCENE = (process.env.MOONVEIL_SCENE ?? 'off') as 'off' | 'low' | 'high';
 async function newPlayer(table: { player(name: string): Promise<Player> }, name: string): Promise<Player> {
   const p = await table.player(name);
-  if (SCENE_OFF) {
-    await p.context.addInitScript(() => {
-      // Keep a handle for anything that needs a one-shot frame; animation loops simply never tick.
+  await p.context.addInitScript((scene) => {
+    (globalThis as any).__MOONVEIL_SCENE = scene;
+    if (scene === 'off') {
       (globalThis as any).__realRAF = globalThis.requestAnimationFrame;
       globalThis.requestAnimationFrame = () => 0;
       globalThis.cancelAnimationFrame = () => {};
-    });
-  }
+    }
+  }, SCENE);
   return p;
 }
 

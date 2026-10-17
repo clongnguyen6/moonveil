@@ -28,6 +28,8 @@ E2E_PORT=4350 LIVEKIT_PORT=4360 VOICE_E2E_SEATS=10 VOICE_E2E_AUTO_BUDGET_MS=3000
 per channel and remote seat) with the matrix derived from each seat's own `state.voice` grants, checks rosters, and checks that
 `voice` frames never carry a channel the seat lacks.
 
+Scene in test pages: `MOONVEIL_SCENE=off|low|high` (default `off` here; the init script sets `globalThis.__MOONVEIL_SCENE`, the switch shared by all harnesses; the software-rendered scene cost 620–730 % CPU for 11 headless pages).
+
 Needed from foundation's wiring (asked through Lead): the server reads the four `LIVEKIT_*` env vars above to build
 `LiveKitVoiceGateway`; the web shell exposes its `VoiceClient` as `globalThis.__moonveil.voice` (same pattern as `__moonveil`
 for the client). Optional: `MOONVEIL_RULES_CONFIG` (JSON) to shorten phase durations in automatic-mode tests.
