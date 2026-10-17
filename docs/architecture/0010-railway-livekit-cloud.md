@@ -274,6 +274,36 @@ For the account holder. Approved 2026-10-17: Railway Trial only, revision pinned
 - Create and join work.
 - SIGTERM: both clients get close 1012 and the process exits 0. The restart logs `restoredRooms=1`, and both clients resume the same seats with their lobby state.
 
+### 7c. Switching to the custom domain `moonveil.id.vn` (draft, not applied)
+Config only: the deployed revision stays the same. Do it **between sessions**, after the domain purchase completes. Facts are from docs.railway.com/networking/domains/working-with-domains, checked 2026-10-17.
+
+**Facts**
+- Railway asks for **two** DNS records, a CNAME target and a TXT ownership record; it won't verify with only the CNAME.
+- The certificate comes "within an hour" of the DNS being correct; DNS itself can take up to 72 h to propagate.
+- The Trial allows **1** custom domain.
+- A root (apex) domain needs CNAME flattening or an ALIAS record at the DNS provider. Whether the `.id.vn` registrar's DNS offers that is **unverified**.
+- Whether the `*.up.railway.app` domain keeps working after a custom domain is added: **not stated**, so this plan doesn't depend on it.
+
+**Recommendation:** use a subdomain such as `play.moonveil.id.vn`, which works with a plain CNAME at any DNS provider. Use the root `moonveil.id.vn` only if the registrar supports ALIAS or flattening.
+
+**Steps (account holder)**
+1. Railway → moonveil service → Settings → Public Networking → **+ Custom Domain** → `play.moonveil.id.vn`. Port: **8080**.
+2. At the domain's DNS provider, add exactly the CNAME and the TXT record Railway shows, with TTL 300 if offered. If the DNS is on Cloudflare, don't proxy (grey cloud).
+3. Wait for the green check in Railway. Then `https://play.moonveil.id.vn/healthz` must show `ok`.
+4. **Between sessions** (no match running), change the variables:
+   - `MOONVEIL_PUBLIC_ORIGIN` = `https://play.moonveil.id.vn`
+   - add `MOONVEIL_ALLOWED_ORIGINS` = `https://moonveil-production-b733.up.railway.app`, so pages still open on the old address keep connecting during the switch.
+5. Deploy the change. The first log line must still show `persist=/data/rooms`. A brief restart; any open room is restored.
+6. Agents run `scripts/postdeploy-check.mjs https://play.moonveil.id.vn --idle-min=2 --actions=0`.
+7. After the next session, optionally remove `MOONVEIL_ALLOWED_ORIGINS`.
+- **Rollback:** set `MOONVEIL_PUBLIC_ORIGIN` back to the Railway URL, remove `MOONVEIL_ALLOWED_ORIGINS`, and deploy.
+
+**What players notice**
+- New invite links and QR codes use the address the host has open (`location.origin`), so hosts should open the new address.
+- Old links keep working only while the old domain still serves and its origin is allowed (step 4).
+- **Resume tokens and microphone permission are per origin.** A player who joined on the old address and reopens the new one has no seat token there. In a lobby they simply join again; in a running match they can't get their seat back. That's why the switch happens only between sessions.
+- Nothing needs exporting: rooms close 30 min after the last connection.
+
 ## 8. Open items
 - **LiveKit Cloud compatibility and testing plan:** voice owner (link pending, as in 0009 §5). LiveKit Cloud probes and credentials remain unapproved.
 - **Decisions for Human:** IaC (`railway` npm package, a deploy-time step) vs. dashboard-only settings; deploy approval with the package above.
