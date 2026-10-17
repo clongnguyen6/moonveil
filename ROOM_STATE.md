@@ -87,6 +87,9 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Hosting trust accepted.
 - Trial type (Full vs Limited) unknown: verify via outbound probe; if Limited, stop and report, never upgrade.
 - Not deployed until a real URL + post-deploy evidence exist.
+- Status: deploy-trial = 35151f2 (verified). Dashboard steps (0010 §7b, foundation-12) sent to Human via Supervisor. Post-deploy script dry-run passed locally (restart 1012 ~4.5 s, kill 1006 ~8.5 s, same seats). Voice Cloud check ready (~45 p-min, cap 60). Waiting for Human's dashboard steps + domain.
+- Batch B made fixed in engine (rules-14 ad2429f, merged to dev); 35151f2 already runs identical defaults.
+- Outside writes (rules, 2026-10-17): /tmp/moonveil-unused (created+deleted ~21:58), /tmp/.none (471 B, 22:01, left in place). No cleanup authorized.
 
 ## Lead message queue (deliver at owner's next turn end)
 - (cleared)
