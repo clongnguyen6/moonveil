@@ -79,6 +79,15 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Merges since 36bdafd: rules-13 2ea3952 (narration statuses), visual-7 24f4ae8 (scene quality/pause), game-ui 56dd4ed, visual-8 758c44a + visual-9 d3fa535 (labels), voice ce2dadc (join/leave, publish-hang fix, revoke-before-delete, CLOUD.md), foundation-10 8d6c7d9 (D2/D5, 1012 notice, lastCloseCode, scene knob, strict skip-fail), game-ui 84795d0 (D1–D6), foundation-11 35151f2 (gates §9, P18). Evidence in owners' reports/.cache/runs.
 - Unmerged by design: visual-6 (mature scene redo), game-ui-art (UI restyle).
 
+## Approved 2026-10-17 (Human "Ok" to deploy-trial-with-voice package)
+- Deploy Railway Trial from dev at exact 35151f2 (service tracks branch `deploy-trial` pinned to 35151f2). No main merge, no paid upgrade/spend.
+- Batch B as recommended (night 40+20; discussion 60+15/living clamped 90–240 s; nomination 30; defense 30; Yes/No 15; Hunter 20, ends on shot).
+- Automatic-mode playtest first; Batch C pending.
+- LiveKit Cloud probes < 100 free participant-minutes total; secrets entered by Human only in Railway dashboard (never chat/git/logs).
+- Hosting trust accepted.
+- Trial type (Full vs Limited) unknown: verify via outbound probe; if Limited, stop and report, never upgrade.
+- Not deployed until a real URL + post-deploy evidence exist.
+
 ## Lead message queue (deliver at owner's next turn end)
 - (cleared)
 
