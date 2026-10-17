@@ -8,7 +8,7 @@ export const vi: Strings = {
   language: 'Ngôn ngữ', sound: 'Âm báo', on: 'Bật', off: 'Tắt', motion: 'Hiệu ứng', motionSystem: 'Theo thiết bị', motionReduce: 'Giảm', motionFull: 'Đầy đủ',
   change: 'Đổi', waiting: 'Đang chờ…', seconds: '{s} giây', chosen: 'Đã chọn', nightDoneChange: 'Đã chọn. Vẫn có thể đổi đến khi trời sáng.',
 
-  connConnected: 'Đã kết nối', connReconnecting: 'Đang kết nối lại…', connReconnectHint: 'Ghế của bạn vẫn giữ. Ván chơi vẫn tiếp tục.',
+  connConnected: 'Đã kết nối', connReconnecting: 'Đang kết nối lại…', connReconnectHint: 'Ghế và tiến trình của bạn được lưu.', connRestartHint: 'Ván của bạn được lưu và tạm dừng đến khi máy chủ hoạt động lại.',
   connReplaced: 'Đã mở ở tab khác.', connUseHere: 'Dùng ở đây', connEnded: 'Bạn đã rời phòng.', connOffline: 'Ngoại tuyến',
 
   entryTagline: 'Ma Sói bên lửa trại. Mỗi người một điện thoại, nói chuyện ngay trong game.',

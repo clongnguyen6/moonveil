@@ -21,7 +21,8 @@ export function clientSession(client: Client): Session {
         const listen = new Set(s.view?.voice.filter((v) => v.listen).map((v) => v.channel) ?? []);
         chat = Object.entries(s.chat).filter(([ch]) => listen.has(ch)).flatMap(([ch, msgs]) => msgs.map((msg) => ({ channel: ch as ChannelId, msg })));
       }
-      cached = { status: s.status, code: s.code, view: s.view, error: s.error, chat, speaking: s.speaking, poses: [], voiceMode: s.voiceMode };
+      // Server restart closes with 1012 (SIGTERM; the match is paused and restored): the overlay says "saved and paused".
+      cached = { status: s.status, code: s.code, view: s.view, error: s.error, chat, speaking: s.speaking, poses: [], voiceMode: s.voiceMode, serverRestart: s.status === 'reconnecting' && s.lastCloseCode === 1012 };
       return cached;
     },
     create: (mode: Mode, profile: Profile, voiceMode: VoiceMode = 'remote') => client.create(mode, profile, voiceMode),
