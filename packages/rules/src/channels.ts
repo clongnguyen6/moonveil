@@ -1,4 +1,5 @@
 // APPROVED Q25 (2026-10-16): voice and text channel grants. Fixed behaviour; one function.
+// APPROVED 2026-10-18 (supersedes the Q25 defense clause): during defense every living player speaks in public.
 // Provisional only: whether the moderator may speak in public (moderator.speaksInPublic).
 import type { MatchState } from './types.ts';
 
@@ -17,9 +18,9 @@ export function isPendingHunter(state: MatchState, seat: number): boolean {
 }
 
 /**
- * Day (discussion, votes, Hunter turn): living speak + listen in public.
+ * Day (discussion, votes, defense, Hunter turn): living speak + listen in public. Defense keeps the accused's focus
+ * and timer in the step (step.accused), not in the grants.
  * Night: only living wolves, on 'wolves'; nobody else speaks.
- * Defense: only the accused speaks in public; other living listen.
  * Ghosts: speak + listen on 'ghosts', listen to public; never 'wolves'. A pending Hunter gets public-listen only.
  * Moderator: listens to every channel; speaking in public is provisional.
  * Match end: everyone public (the server opens the room).
@@ -48,6 +49,5 @@ export function channelsFor(state: MatchState, viewer: ChannelViewer): ChannelGr
   if (step.kind === 'night.main' || step.kind === 'night.witch') {
     return me.role === 'wolf' ? [{ channel: 'wolves', listen: true, speak: true }] : [];
   }
-  if (step.kind === 'day.defense') return [{ channel: 'public', listen: true, speak: me.seat === step.accused }];
   return [{ channel: 'public', listen: true, speak: true }];
 }

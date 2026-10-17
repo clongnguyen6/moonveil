@@ -8,10 +8,12 @@ Rules live in `docs/rules/PROPOSAL.md`. **Approved rules are fixed behaviour; ev
 - Q03 Witch; Q06 Hunter; Q07 wolf plurality;
 - Q09/Q10 trial, 30 s defense and Yes/No with `Yes × 2 > all living`; Q16 moderator Yes count;
 - Q11 fixed 60 s nights, never early; day votes run to their deadline as open ballots shown live (Q22);
-- Q20 reveals; Q24 ghosts; Q25 channels (except moderator speaking, which is provisional and **off** by default);
+- Q20 reveals; Q24 ghosts; Q25 channels (except moderator speaking, which is provisional and **off** by default; defense row changed 2026-10-18, below);
 - disconnected seats and the automatic-mode pause.
 
 **Approved 2026-10-17 (fixed): Batch B durations.** Night 40 + 20 s; discussion 60 s + 15 s × living, clamped 90–240 s (`discussionSeconds(living)`); nomination 30 s; defense 30 s; Yes/No 15 s; Hunter 20 s, `earlyCloseReady` once every pending Hunter has shot or held fire. Exported constants: `NIGHT_TOTAL_SECONDS`, `NIGHT_MAIN_SECONDS`, `DISCUSSION_{BASE,PER_ALIVE,MIN,MAX}_SECONDS`, `VOTE_SECONDS`, `DEFENSE_SECONDS`, `CONFIRM_SECONDS`, `HUNTER_SECONDS`. The `timing.*` settings were removed.
+
+**Approved 2026-10-18 (fixed): open speech during defense.** In `day.defense`, every living seat gets `public` listen + speak (supersedes accused-only). `step.accused` still marks the defense focus; the 30 s timer is unchanged. Ghosts, the pending Hunter, the moderator and night grants are unchanged.
 
 ## Run
 ```

@@ -225,9 +225,10 @@ describe('APPROVED Q25 channel grants (engine side)', () => {
     assert.deepEqual(at(s).villager, [PUB_TALK]);
     for (const v of [1, 2, 3]) s = ok(s, S(v), { type: 'vote.nominate', seat: v, target: 7 });
     s = close(s); // day.defense, accused 7
+    // 2026-10-18: every living seat speaks during defense (supersedes accused-only).
     assert.deepEqual(g(s, { kind: 'seat', seat: 7 }), [PUB_TALK], 'accused speaks');
-    assert.deepEqual(g(s, { kind: 'seat', seat: 9 }), [PUB_LISTEN], 'non-accused listens');
-    assert.deepEqual(g(s, { kind: 'seat', seat: 1 }), [PUB_LISTEN], 'living wolf listens, no wolf channel by day');
+    assert.deepEqual(g(s, { kind: 'seat', seat: 9 }), [PUB_TALK], 'non-accused speaks');
+    assert.deepEqual(g(s, { kind: 'seat', seat: 1 }), [PUB_TALK], 'living wolf speaks in public, no wolf channel by day');
     assert.deepEqual(at(s).ghost, [PUB_LISTEN, GHOSTS]);
     s = close(s); // day.confirm
     assert.deepEqual(at(s).villager, [PUB_TALK]);
