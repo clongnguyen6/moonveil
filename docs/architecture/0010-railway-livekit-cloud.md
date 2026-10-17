@@ -198,7 +198,7 @@ For the person holding the Railway account; no programming needed. Do the parts 
 1. Open your workspace settings → **Usage**.
 2. Write down the date and time, the total used so far, and the moonveil project's CPU, memory, network (egress) and volume figures. The CLI `railway usage projects --project moonveil` shows the same.
 3. Send the numbers after each session.
-   - STOP (pause the project, don't upgrade) if credit left drops under $1 or under 5 days remain. We then present the measured usage and the options.
+   - STOP if credit left drops under $1 or under 5 days remain. Stop the service between sessions (remove its active deployment; *label unverified*); don't upgrade. We then present the measured usage and the options.
 
 ## 8. Open items
 - **LiveKit Cloud compatibility and testing plan:** voice owner (link pending, as in 0009 §5). LiveKit Cloud probes and credentials remain unapproved.
