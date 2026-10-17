@@ -279,7 +279,7 @@ export function VoiceBar({ s, view, mic, night }: { s: SessionState; view: SeatV
   );
 }
 
-export function ConnOverlay({ status }: { status: ConnStatus }) {
+export function ConnOverlay({ status, serverRestart }: { status: ConnStatus; serverRestart?: boolean }) {
   const t = useT();
   const session = useSession();
   if (status === 'idle') return null;
@@ -292,7 +292,7 @@ export function ConnOverlay({ status }: { status: ConnStatus }) {
         {status === 'reconnecting' && (
           <>
             <p className="panel-title pulse">{t('connReconnecting')}</p>
-            <p className="hint">{t('connReconnectHint')}</p>
+            <p className="hint" data-testid="conn-hint" data-restart={!!serverRestart}>{serverRestart ? t('connRestartHint') : t('connReconnectHint')}</p>
           </>
         )}
         {status === 'replaced' && (
