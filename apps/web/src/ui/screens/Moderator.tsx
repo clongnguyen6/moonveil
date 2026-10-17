@@ -9,6 +9,7 @@ import { nameAt } from '../../game/select.ts';
 import type { GameView, SeatView } from '../../game/types.ts';
 import { Button, Confirm, Tabs } from '../components/index.tsx';
 import { SeatGrid } from '../components/SeatGrid.tsx';
+import { Ballots } from './Day.tsx';
 import { useT } from '../i18n/index.ts';
 import { useSession } from '../session-context.ts';
 
@@ -43,7 +44,14 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
         <div className="stack">
           <p><strong data-testid="mod-step">{stepName}</strong> · {g.step.kind.startsWith('night') ? t('phaseNight', { n: g.night }) : t('phaseDiscuss', { d: g.day }).split(' ·')[0]} · {t('livingCount', { n: living })}</p>
           <p className="hint">{view.phaseEndsAt === null ? t('modNoTimer') : ''}</p>
-          {narration && <p className="card" style={{ padding: 10 }} data-testid="mod-say">🗣 {narrate(t, g, view)} <span className="pill warn">{t('provisional')}</span></p>}
+          <div className="card stack" style={{ padding: 10 }} data-testid="mod-now">
+            <strong>{t('modNow')}</strong>
+            {g.step.kind === 'day.discussion' && (() => { const d = g.publicLog.filter((e) => e.t === 'dawn').at(-1); return <span>{d && d.t === 'dawn' && d.dead.length ? t('modDawnDead', { names: d.dead.map((x) => nameAt(view, g, x)).join(', ') }) : t('modDawnNobody')}</span>; })()}
+            {(g.step.kind === 'day.defense' || g.step.kind === 'day.confirm') && <span>{t('modAccused', { name: nameAt(view, g, g.step.accused) })}</span>}
+            {g.step.kind === 'hunter' && <span>{t('hunterOthers', { name: g.step.pending.map((p) => nameAt(view, g, p)).join(', ') })}</span>}
+            {(g.step.kind === 'day.vote' || g.step.kind === 'day.confirm') && (<><span className="hint">{t('modBallots')}</span><Ballots view={view} g={g} /></>)}
+          </div>
+          {narration && <div className="card stack" style={{ padding: 10 }} data-testid="mod-say"><span><strong>{t('modSay')}:</strong> {narrate(t, g, view)}</span><span className="hint" data-testid="mod-cue">{g.step.kind === 'day.confirm' ? `${t('cueM2')} ${t('cueM1')}` : g.step.kind === 'ended' ? t('cueE4') : t('cueM1')}</span></div>}
           {m?.nightRec && g.step.kind.startsWith('night') && <p className="hint">{t('modSubmitted', { n: submittedCount(g), total: expectedCount(g) })}</p>}
           {g.step.kind === 'hunter' && <p className="hint">{t('hunterOthers', { name: g.step.pending.map((p) => nameAt(view, g, p)).join(', ') })}</p>}
           {g.step.kind === 'day.confirm' && (
@@ -52,7 +60,7 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
                 {t('modYesCount')}
                 <input className="input" type="number" min={0} max={living} value={yes} onChange={(e) => setYes(Number(e.target.value))} data-testid="yes-count" />
               </label>
-              <p className="hint">{t('modYesHint')}</p>
+              <p className="hint">{t('modYesHint')} {t('modYesInPerson')}</p>
               <Button kind="secondary" testId="yes-apply" onClick={() => sendMod(mod.yesCount(yes))}>{t('modApply')}</Button>
             </div>
           )}
@@ -62,7 +70,7 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
 
       {tab === 'flow' && !ended && (
         <section className="card end-match stack" style={{ padding: 12, marginTop: 8 }} data-testid="end-match" data-open={ending}>
-          <p className="hint" id="end-match-hint"><strong>{t('endMatchTitle')}</strong> · {t('endMatchHint')}</p>
+          <p className="hint" id="end-match-hint"><strong>{t('endMatchTitle')}</strong> · {t('cueM3')}</p>
           {!ending ? (
             <Button kind="danger" testId="end-match-open" onClick={() => { setEnding(true); setTyped(''); }}>{t('endMatchOpen')}</Button>
           ) : (
@@ -117,17 +125,20 @@ export function ModeratorConsole({ view, g }: { view: SeatView; g: GameView }) {
   );
 }
 
+/** Public narration line per step from docs/rules/NARRATION.md: approved-consistent lines, or the neutral alternative where
+ *  the specific wording depends on a pending rule (N7). Durations come from the engine (phaseDurationMs), never hard-coded. */
 function narrate(t: ReturnType<typeof useT>, g: GameView, view: SeatView): string {
   const s = g.step;
+  const secs = view.phaseDurationMs ? String(Math.round(view.phaseDurationMs / 1000)) : '…';
   switch (s.kind) {
-    case 'night.main': return t('sayNightMain');
-    case 'night.witch': return t('sayNightWitch');
-    case 'hunter': return t('sayHunter', { name: s.pending.map((p) => nameAt(view, g, p)).join(', ') });
-    case 'day.discussion': { const d = g.publicLog.filter((e) => e.t === 'dawn').at(-1); const dead = d && d.t === 'dawn' ? d.dead.map((x) => nameAt(view, g, x)).join(', ') : ''; return dead ? t('sayDawnDead', { names: dead }) : t('sayDawnNobody'); }
-    case 'day.vote': return t('sayVote');
-    case 'day.defense': return t('sayDefense', { name: nameAt(view, g, s.accused) });
-    case 'day.confirm': return t('sayConfirm', { name: nameAt(view, g, s.accused) });
-    case 'ended': return t('sayEnded');
+    case 'night.main': return t('cueN1', { n: g.night });
+    case 'night.witch': return t('cueN7');
+    case 'hunter': return t('cueH1', { name: s.pending.map((p) => nameAt(view, g, p)).join(', '), t: secs });
+    case 'day.discussion': { const d = g.publicLog.filter((e) => e.t === 'dawn').at(-1); const dead = d && d.t === 'dawn' ? d.dead.map((x) => nameAt(view, g, x)).join(', ') : ''; return `${dead ? t('cueD1', { names: dead }) : t('cueD2')} ${t('cueY1', { n: g.day })}`; }
+    case 'day.vote': return t('cueY2');
+    case 'day.defense': return t('cueY8', { name: nameAt(view, g, s.accused), t: secs });
+    case 'day.confirm': { const living = g.seats.filter((x) => x.alive).length; return t('cueY9', { name: nameAt(view, g, s.accused), need: Math.floor(living / 2) + 1, living }); }
+    case 'ended': return t('cueE4');
   }
 }
 /** Moderator-only: how many night inputs are in (from the moderator projection's night record). */

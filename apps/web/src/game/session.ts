@@ -7,7 +7,7 @@ import type { ChatEntry } from './types.ts';
 
 export type ConnStatus = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'replaced' | 'ended';
 
-/** Wire messages (foundation-3 protocol): moderator commands travel as `act`; chat is `say`. */
+/** Wire messages (foundation protocol): moderator commands travel as `act`; chat is `say`; D5 `voiceMode` is host-only. */
 export type OutMessage = ClientMessageInput;
 
 export interface SessionState {
@@ -26,6 +26,8 @@ export interface SessionState {
   poses: Pose[];
   /** Room voice setting (APPROVED): 'remote' = in-game voice, 'inPerson' = voice off, text only. */
   voiceMode: VoiceMode;
+  /** D2: voice connects only after the player's explicit Join voice tap. */
+  voiceJoined: boolean;
 }
 
 export interface Session {
@@ -41,10 +43,13 @@ export interface Session {
   inviteBase?(): Promise<string>;
   /** The one VoiceClient (client.ts creates it lazily); null until voice sessions arrive. Absent on the stub. */
   voice?(): VoiceClient | null;
+  /** D2: explicit join/leave (client.joinVoice / client.leaveVoice, foundation-10). */
+  voiceJoin?(): Promise<void> | void;
+  voiceLeave?(): Promise<void> | void;
   /** Pose frames (≤ 10 Hz) for the scene; absent on the stub. */
   onPoses?(fn: (poses: Pose[]) => void): () => void;
 }
 
 export function emptySession(): SessionState {
-  return { status: 'idle', code: null, view: null, error: null, chat: [], speaking: [], poses: [], voiceMode: 'remote', serverRestart: false };
+  return { status: 'idle', code: null, view: null, error: null, chat: [], speaking: [], poses: [], voiceMode: 'remote', serverRestart: false, voiceJoined: false };
 }
