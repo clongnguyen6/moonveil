@@ -72,6 +72,13 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Heavy-run lock covers any browser automation that renders the scene (stub checks included); scene off otherwise. Acceptance runs use one scene observer at 4 fps reduced motion = test mitigation, not product performance evidence.
 - Paseo installed source reference: /Users/long/repo/agent-workflow/paseo-v0.11.2/ (read-only).
 
+## Deploy candidate (2026-10-17)
+- **35151f2** (dev). Owner full acceptance on exact SHA (Lead read summary, all rc=0): check (rules 206, scene 28, voice 53, server 100, e2e 13); matches x10 10/10, voice matches x10 10/10 (token/channel, scene off, explicit join); strict UI 16/16 on new screens (laptop 7–10 both modes, Pixel 7 + iPhone 15 emulation 7 seats), 0 misses/skips, reload + network drop per match. Measured audio (voice owner, identical voice code, scene off): 2,917 pair-channel checks, 0 fails.
+- Limitations: 4 fps single scene observer = test mitigation, not perf evidence; emulation only (no real devices/players/mics); LiveKit Cloud untested (local OSS); Railway facts verified only post-deploy (§7a); restarts interrupt; cost/bandwidth estimates; bot balance.
+- Gates (0010 §9) sent to Human: Batch B; Batch C (moderated only); voice (Cloud probes+credentials) or explicit voice-off; deploy approval Railway Trial at 35151f2 (dev vs main?); hosting trust ack.
+- Merges since 36bdafd: rules-13 2ea3952 (narration statuses), visual-7 24f4ae8 (scene quality/pause), game-ui 56dd4ed, visual-8 758c44a + visual-9 d3fa535 (labels), voice ce2dadc (join/leave, publish-hang fix, revoke-before-delete, CLOUD.md), foundation-10 8d6c7d9 (D2/D5, 1012 notice, lastCloseCode, scene knob, strict skip-fail), game-ui 84795d0 (D1–D6), foundation-11 35151f2 (gates §9, P18). Evidence in owners' reports/.cache/runs.
+- Unmerged by design: visual-6 (mature scene redo), game-ui-art (UI restyle).
+
 ## Lead message queue (deliver at owner's next turn end)
 - (cleared)
 
