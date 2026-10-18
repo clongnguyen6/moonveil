@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./map": "./src/map.ts",
-    "./fixtures": "./fixtures/index.ts"
+    "./fixtures": "./fixtures/index.ts",
+    "./seed": "./src/seed.ts"
   },
   "scripts": {
     "dev": "vite --port 4200 --strictPort --host 127.0.0.1",
