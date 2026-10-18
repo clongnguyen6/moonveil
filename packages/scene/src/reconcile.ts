@@ -7,7 +7,7 @@ import type { AvatarMode } from './avatar.ts';
 
 // Outfit id (costume module) for an appearance; '' = base camper look.
 export function outfitOf(a: SceneAppearance): string {
-  const o = a.outfit ?? a.costume ?? '';
+  const o = a.outfit ?? '';
   return o === 'camper' ? '' : o;
 }
 

@@ -1,5 +1,5 @@
 // Lobby: who is here, ready state, invite, mic check (incl. denied/failed), settings, help.
-import { type Profile, normalizeName } from '@moonveil/protocol';
+import { legacyLook, type Profile, normalizeName } from '@moonveil/protocol';
 import { useEffect, useState } from 'react';
 import { lookDraft, useLookDraft } from '../../game/look-draft.ts';
 import type { SessionState } from '../../game/session.ts';
@@ -141,7 +141,7 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat, onSettings }: { s: S
             <Button kind="quiet" testId="edit-profile" onClick={() => { if (editing) lookDraft.clear(); setEditing(!editing); }}>{editing ? t('cancel') : t('lobbyEditLook')}</Button>
             <Button kind="quiet" testId="leave" onClick={() => session.leave()}>{t('leave')}</Button>
           </div>
-          {editing && <EditProfile initial={{ name: me.name, appearance: me.appearance }} onChange={(p) => lookDraft.set(p, ctx)} onDone={() => { lookDraft.markSaved(); setEditing(false); }} onCancel={() => { lookDraft.clear(); setEditing(false); }} />}
+          {editing && <EditProfile initial={{ name: me.name, appearance: legacyLook(me.appearance) }} onChange={(p) => lookDraft.set(p, ctx)} onDone={() => { lookDraft.markSaved(); setEditing(false); }} onCancel={() => { lookDraft.clear(); setEditing(false); }} />}
           {look.notice === 'notSaved' && <p className="danger" role="alert" data-testid="look-not-saved">{t('lookNotSaved')}</p>}
         </section>
       )}

@@ -2,6 +2,7 @@
 // screenshotted before foundation wires the engine into apps/server. Mirrors Room.buildView() from
 // apps/server/src/room.ts (view shape, grants, fixed phase deadlines). Never shipped to players.
 import type { Mode, Profile, PublicSeat, SeatId, SeatView, VoiceGrant } from '@moonveil/protocol';
+import { legacyLook } from '@moonveil/protocol';
 import { type Command, type DeckCounts, type HostState, type RulesEngine, createRulesEngine, defaultDeck, resolveConfig, validateDeck } from '@moonveil/rules';
 import { type ConnStatus, type OutMessage, type Session, type SessionState, emptySession } from '../session.ts';
 import type { ChannelId, ChatEntry } from '../types.ts';
@@ -146,7 +147,7 @@ export class LocalRoom implements Session {
         case 'profile':
           if (this.rejectProfile) throw new Error('name already used in this room');
           me.name = msg.profile.name;
-          me.appearance = msg.profile.appearance;
+          me.appearance = legacyLook(msg.profile.appearance);
           break;
         case 'start':
           this.start();
