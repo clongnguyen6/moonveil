@@ -82,3 +82,7 @@ Frog, mushroom, puffer and shark are separate art commits. Scene screenshots rem
 Catalog/registry ID `bowCat`; `catHood | none`, `fishSling | none`, rose/berry tops, back none. Oatmeal hood, rounded canvas ears, berry bow and compact clay fish sling. Crown -93 with hood, -75 otherwise. Human face/hair stay intact; every choice combination has outline-inclusive box/crown/arcs, eye/hand and living/ghost checks.
 
 Catalog naming follow-up for scene owner: the accepted IDs `bowCat` and `robotCat` contain uppercase letters, while `test/costumes.test.ts` restricts registry IDs to `/^[a-z][a-z0-9-]*$/`. Runtime lookup supports the accepted names. Keep those IDs; update the scene-owned test/rig documentation to permit the accepted catalog keys. No aliases, changed wire IDs or edits outside this directory introduced here.
+
+## Robot cat handoff
+
+Catalog/registry ID `robotCat`; `robotHood | none`, `utilityPocket | none`, river/slate tops, back none. River canvas hood, low rectangular mechanical tabs, silent brass bell on a short offset side tab, and an asymmetric slate utility pocket. Crown -84 with hood, -75 otherwise. Hat/bell and pocket toggle independently. Human face/hair retained; outline-inclusive geometry and ghost checks cover every selection. No white belly, red collar, whiskers, logo, audio or secondary animation.

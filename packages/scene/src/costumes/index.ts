@@ -6,6 +6,7 @@ import { frog } from './frog.ts';
 import { mushroom } from './mushroom.ts';
 import { fish } from './fish.ts';
 import { bowCat } from './bow-cat.ts';
+import { robotCat } from './robot-cat.ts';
 
 export const COSTUMES: Record<string, Costume> = {
   [placeholder.id]: placeholder,
@@ -14,6 +15,7 @@ export const COSTUMES: Record<string, Costume> = {
   [mushroom.id]: mushroom,
   [fish.id]: fish,
   [bowCat.id]: bowCat,
+  [robotCat.id]: robotCat,
 };
 export function costumeById(id: string | undefined | null): Costume | null {
   return id ? COSTUMES[id] ?? null : null;
