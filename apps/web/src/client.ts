@@ -8,7 +8,7 @@ import {
   HEARTBEAT_MS,
   type Mode,
   type Pose,
-  type Profile,
+  type ProfileInput,
   type SeatId,
   type SeatView,
   type ServerMessage,
@@ -46,8 +46,8 @@ export interface ClientState {
 }
 
 type Intent =
-  | { t: 'create'; mode: Mode; profile: Profile; voiceMode?: VoiceMode }
-  | { t: 'join'; code: string; profile: Profile }
+  | { t: 'create'; mode: Mode; profile: ProfileInput; voiceMode?: VoiceMode }
+  | { t: 'join'; code: string; profile: ProfileInput }
   | { t: 'resume'; code: string; token: string };
 
 const tokenKey = (code: string) => `moonveil.seat.${code}`;
@@ -131,10 +131,10 @@ export class Client {
     for (const fn of this.listeners) fn();
   }
 
-  create(mode: Mode, profile: Profile, voiceMode: VoiceMode = 'remote') {
+  create(mode: Mode, profile: ProfileInput, voiceMode: VoiceMode = 'remote') {
     this.begin({ t: 'create', mode, profile, voiceMode });
   }
-  join(code: string, profile: Profile) {
+  join(code: string, profile: ProfileInput) {
     this.begin({ t: 'join', code, profile });
   }
   // Returns false if this browser holds no seat for the room.

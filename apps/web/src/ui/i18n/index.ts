@@ -4,7 +4,7 @@ import { type Strings, en } from './en.ts';
 import { vi } from './vi.ts';
 
 const TABLES: Record<Lang, Strings> = { en, vi };
-export type Key = Exclude<keyof Strings, 'stepDisplay'>;
+export type Key = Exclude<keyof Strings, 'stepDisplay' | 'lookNames'>;
 export type T = ((key: Key, params?: Record<string, string | number>) => string) & { lang: Lang; role: (r: Role) => string; step: (k: string) => string; s: Strings };
 
 export function makeT(lang: Lang): T {

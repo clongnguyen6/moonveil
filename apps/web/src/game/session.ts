@@ -1,7 +1,7 @@
 // What the UI talks to. The real implementation wraps apps/web/src/client.ts (foundation); the dev stub
 // (./stub) implements the same surface in-browser. Keeping the UI on this interface means screens never
 // know whether a socket or a stub is behind them.
-import type { ClientMessageInput, ErrorCode, Mode, Pose, Profile, SeatId, SeatView, VoiceMode } from '@moonveil/protocol';
+import type { ClientMessageInput, ErrorCode, Mode, Pose, ProfileInput, SeatId, SeatView, VoiceMode } from '@moonveil/protocol';
 import type { VoiceClient } from '@moonveil/voice/client';
 import type { ChatEntry } from './types.ts';
 
@@ -37,8 +37,8 @@ export interface SessionState {
 export interface Session {
   subscribe(fn: () => void): () => void;
   getState(): SessionState;
-  create(mode: Mode, profile: Profile, voiceMode?: VoiceMode): void;
-  join(code: string, profile: Profile): void;
+  create(mode: Mode, profile: ProfileInput, voiceMode?: VoiceMode): void;
+  join(code: string, profile: ProfileInput): void;
   resume(code: string): boolean;
   reclaim(): void;
   leave(): void;

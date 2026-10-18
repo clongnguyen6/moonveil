@@ -1,32 +1,42 @@
 // Join / create. Profile is public (name + look); it never relates to a role.
-import { APPEARANCE_COLORS, APPEARANCE_HATS, type Appearance, type Mode, NAME_MAX, type Profile, normalizeName } from '@moonveil/protocol';
+import { AppearanceInput, type Mode, NAME_MAX, normalizeCostume, normalizeName } from '@moonveil/protocol';
 import { useState } from 'react';
+import { type Look, resolveLook } from '../../game/look.ts';
 import type { SessionState } from '../../game/session.ts';
 import { Button } from '../components/index.tsx';
+import { LookPicker } from '../components/LookPicker.tsx';
 import { useT } from '../i18n/index.ts';
 import { useSession } from '../session-context.ts';
 import { errorText } from '../errors.ts';
 import { SettingsRow } from './Settings.tsx';
 
+// Stored as entered: legacy {color, hat} from older versions stays legacy until the player changes it, so the server
+// keeps its seat-seeded camper extras; any picker change stores the canonical costume form.
+export interface StoredProfile { name: string; appearance: AppearanceInput }
 const PROFILE_KEY = 'moonveil.profile';
-export function loadProfile(): Profile {
+const DEFAULT_LOOK = (normalizeCostume({ outfit: 'camper' }) as { ok: true; value: Look }).value;
+export function loadProfile(): StoredProfile {
   try {
-    const p = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? 'null') as Profile | null;
-    if (p && APPEARANCE_COLORS.includes(p.appearance.color) && APPEARANCE_HATS.includes(p.appearance.hat)) return p;
+    const p = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? 'null') as StoredProfile | null;
+    if (p && typeof p.name === 'string' && AppearanceInput.safeParse(p.appearance).success && resolveLook(p.appearance, 'entry').ok) return p;
   } catch {}
-  return { name: '', appearance: { color: APPEARANCE_COLORS[0], hat: 'none' } };
+  return { name: '', appearance: DEFAULT_LOOK };
 }
-export function saveProfile(p: Profile) {
+export function saveProfile(p: StoredProfile) {
   localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+}
+/** The look the entry picker shows: legacy → camper without seat extras (no seat yet); costume → canonical. */
+function entryLook(a: AppearanceInput): Look {
+  const r = 'outfit' in a ? normalizeCostume(a) : normalizeCostume({ outfit: 'camper', color: a.color, hat: a.hat });
+  return r.ok ? r.value : DEFAULT_LOOK;
 }
 
 export function roomFromPath(): string | null {
   return /^\/r\/([A-Za-z0-9]{6})\/?$/.exec(location.pathname)?.[1]?.toUpperCase() ?? null;
 }
 
-export function ProfileEditor({ value, onChange }: { value: Profile; onChange: (p: Profile) => void }) {
+export function ProfileEditor({ value, onChange }: { value: StoredProfile; onChange: (p: StoredProfile) => void }) {
   const t = useT();
-  const setA = (a: Partial<Appearance>) => onChange({ ...value, appearance: { ...value.appearance, ...a } });
   return (
     <div className="col">
       <label className="field col" style={{ gap: 4 }}>
@@ -34,22 +44,7 @@ export function ProfileEditor({ value, onChange }: { value: Profile; onChange: (
         <input className="input" data-testid="name" value={value.name} maxLength={NAME_MAX} autoComplete="nickname" placeholder={t('entryNamePh')} onChange={(e) => onChange({ ...value, name: e.target.value })} />
         <span className="muted" style={{ fontSize: 'var(--fs-0)' }}>{t('entryNameHint')}</span>
       </label>
-      <div className="field">
-        <span>{t('entryColour')}</span>
-        <div className="swatches" role="radiogroup" aria-label={t('entryColour')}>
-          {APPEARANCE_COLORS.map((c) => (
-            <button key={c} type="button" className={`swatch c-${c}`} role="radio" aria-checked={value.appearance.color === c} aria-pressed={value.appearance.color === c} aria-label={c} data-testid={`color-${c}`} onClick={() => setA({ color: c })} />
-          ))}
-        </div>
-      </div>
-      <label className="field col" style={{ gap: 4 }}>
-        {t('entryHat')}
-        <select className="input" data-testid="hat" value={value.appearance.hat} onChange={(e) => setA({ hat: e.target.value as Appearance['hat'] })}>
-          {APPEARANCE_HATS.map((h) => (
-            <option key={h} value={h}>{h}</option>
-          ))}
-        </select>
-      </label>
+      <LookPicker value={entryLook(value.appearance)} onChange={(appearance) => onChange({ ...value, appearance })} />
     </div>
   );
 }
@@ -62,7 +57,7 @@ export function EntryScreen({ s }: { s: SessionState }) {
   const [code, setCode] = useState(linkCode ?? '');
   const busy = s.status === 'connecting' || s.status === 'reconnecting';
   const valid = normalizeName(profile.name).length > 0;
-  const go = (fn: (p: Profile) => void) => {
+  const go = (fn: (p: StoredProfile) => void) => {
     const p = { ...profile, name: normalizeName(profile.name) };
     saveProfile(p);
     fn(p);

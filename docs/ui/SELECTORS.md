@@ -53,6 +53,7 @@ Lobby `[data-testid=mic][data-status=…]`: with a VoiceClient, `ok|checking|idl
 | `[data-testid=wake-hint]` | wake lock unavailable |
 
 ## Look editor (test hooks)
+Picker: `[data-testid=look-picker][data-outfit][data-variant]` → `outfit-<id>` (radio chips, catalog order), `variant-<id>` (when several), `color-<id>` (swatches, `aria-checked`), selects `hat` / `front` / `back` (option values = catalog ids; shown when several). `[data-testid=you-look][data-outfit][data-variant][data-color][data-hat]`. Same picker on the entry screen.
 `globalThis.__moonveilLook` = draft store (`get()` → `{ draft, pendingSince, notice, ctx }`); `globalThis.__moonveilScene` = the mounted scene handle (`localPose()`, visual's `debugAppearance(seatId)`); `__MOONVEIL_LOOK_BOUND_MS` shortens the 6 s save bound. `[data-testid=look-not-saved]` notice.
 
 ## Chat overlay

@@ -1,8 +1,9 @@
 // DEV STUB: an in-browser "server" that runs the real @moonveil/rules engine so the UI can be built and
 // screenshotted before foundation wires the engine into apps/server. Mirrors Room.buildView() from
 // apps/server/src/room.ts (view shape, grants, fixed phase deadlines). Never shipped to players.
-import type { Mode, Profile, PublicSeat, SeatId, SeatView, VoiceGrant } from '@moonveil/protocol';
-import { legacyLook } from '@moonveil/protocol';
+import type { Mode, Profile, ProfileInput, PublicSeat, SeatId, SeatView, VoiceGrant } from '@moonveil/protocol';
+import type { AppearanceInput, CostumeAppearance } from '@moonveil/protocol';
+import { resolveLook } from '../look.ts';
 import { type Command, type DeckCounts, type HostState, type RulesEngine, createRulesEngine, defaultDeck, resolveConfig, validateDeck } from '@moonveil/rules';
 import { type ConnStatus, type OutMessage, type Session, type SessionState, emptySession } from '../session.ts';
 import type { ChannelId, ChatEntry } from '../types.ts';
@@ -12,7 +13,7 @@ export interface StubSeat {
   id: SeatId;
   kind: 'player' | 'moderator';
   name: string;
-  appearance: Profile['appearance'];
+  appearance: CostumeAppearance;   // canonical, as the server stores it
   ready: boolean;
   connected: boolean;
 }
@@ -78,10 +79,10 @@ export class LocalRoom implements Session {
     this.autoBots = opts.autoBots ?? false;
     this.voiceMode = opts.voiceMode ?? 'remote';
     this.seed = opts.seed ?? 'moonveil-ui';
-    for (const p of opts.players ?? []) this.players.push({ id: sid(), kind: 'player', ...p, ready: true, connected: true });
+    for (const p of opts.players ?? []) this.players.push(this.seatFrom('player', p, true));
     if (opts.mode === 'moderator') {
       const m = opts.moderator ?? { name: 'Moderator', appearance: { color: 'slate', hat: 'none' } };
-      this.moderator = { id: sid(), kind: 'moderator', ...m, ready: false, connected: true };
+      this.moderator = this.seatFrom('moderator', m, false);
     }
     this.hostId = this.moderator?.id ?? this.players[0]?.id ?? '';
     this.viewer = this.hostId;
@@ -104,10 +105,17 @@ export class LocalRoom implements Session {
     for (const fn of this.listeners) fn();
   }
 
-  create(mode: Mode, profile: Profile, voiceMode: 'remote' | 'inPerson' = 'remote') {
+  /** Same appearance rule as the server: legacy → camper with seat-seeded extras; costume → canonical. */
+  private seatFrom(kind: StubSeat['kind'], p: { name: string; appearance: AppearanceInput }, ready: boolean): StubSeat {
+    const id = sid();
+    const r = resolveLook(p.appearance, id);
+    if (!r.ok) throw new Error(r.error);
+    return { id, kind, name: p.name, appearance: r.value, ready, connected: true };
+  }
+  create(mode: Mode, profile: ProfileInput, voiceMode: 'remote' | 'inPerson' = 'remote') {
     void mode;
     this.voiceMode = voiceMode;
-    const me: StubSeat = { id: sid(), kind: this.mode === 'moderator' ? 'moderator' : 'player', ...profile, ready: false, connected: true };
+    const me = this.seatFrom(this.mode === 'moderator' ? 'moderator' : 'player', profile, false);
     if (me.kind === 'moderator') this.moderator = me;
     else this.players.unshift(me);
     this.hostId = me.id;
@@ -115,9 +123,9 @@ export class LocalRoom implements Session {
     this.conn = 'open';
     this.emit();
   }
-  join(code: string, profile: Profile) {
+  join(code: string, profile: ProfileInput) {
     void code;
-    const me: StubSeat = { id: sid(), kind: 'player', ...profile, ready: false, connected: true };
+    const me = this.seatFrom('player', profile, false);
     this.players.push(me);
     this.viewer = me.id;
     this.conn = 'open';
@@ -146,8 +154,13 @@ export class LocalRoom implements Session {
           break;
         case 'profile':
           if (this.rejectProfile) throw new Error('name already used in this room');
-          me.name = msg.profile.name;
-          me.appearance = legacyLook(msg.profile.appearance);
+          if (this.status !== 'lobby') throw new Error('profile locked during game');
+          {
+            const r = resolveLook(msg.profile.appearance, me.id);   // whole-profile refusal, like the server
+            if (!r.ok) { this.error = { code: 'invalid-appearance', message: r.error }; break; }
+            me.name = msg.profile.name;
+            me.appearance = r.value;
+          }
           break;
         case 'start':
           this.start();

@@ -94,6 +94,14 @@ async function run(browser, tag, ctxOpts, lang) {
     // primary button reachable: scroll the dock to the confirm button and check it's inside the viewport
     const confirm = page.locator('[data-testid=confirm], [data-testid=start], [data-testid=close-step], [data-testid=vote-yes], [data-testid=leave]').first();
     if (await confirm.count()) { await confirm.scrollIntoViewIfNeeded(); const b = await confirm.boundingBox(); const vp = page.viewportSize(); report(tag, `${sc} primary button inside viewport`, b && b.y >= 0 && b.y + b.height <= vp.height + 0.5 ? [] : [`button at y=${b?.y} h=${b?.height} vp=${vp.height}`]); }
+    if (sc === 'lobby' && (await page.getByTestId('edit-profile').count())) {
+      // look editor open: camper (6 headgear options) and fish (styles, colours, headgear, back): every picker control
+      await page.getByTestId('edit-profile').click(); await page.waitForTimeout(150);
+      report(tag, 'lobby look editor (camper)', await page.evaluate(AUDIT));
+      await page.getByTestId('outfit-fish').click(); await page.waitForTimeout(100);
+      report(tag, 'lobby look editor (fish)', await page.evaluate(AUDIT));
+      await page.getByTestId('cancel-profile').click();
+    }
     if (sc === 'day' || sc === 'role') {
       for (const tid of SHEETS) {
         if (!(await page.getByTestId(tid).count())) continue;

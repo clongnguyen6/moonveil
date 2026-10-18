@@ -1,18 +1,19 @@
 // Shared building blocks. Looks come from theme/skin.css classes; nothing here hard-codes colours.
-import type { Appearance, PublicSeat } from '@moonveil/protocol';
+import type { HatId, PublicSeat } from '@moonveil/protocol';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useT } from '../i18n/index.ts';
 import { playCue } from '../audio/cues.ts';
 import { serverNow } from '../../game/clock.ts';
 
-const HAT_GLYPH: Record<Appearance['hat'], string> = { none: '', beanie: '🧢', cap: '🧢', bucket: '👒', flower: '🌼', hood: '🧥' };
+// Avatar dot glyph per headgear id (catalog HATS); an id without a glyph shows none.
+const HAT_GLYPH: Partial<Record<HatId, string>> = { beanie: '🧢', cap: '🧢', bucket: '👒', flower: '🌼', hood: '🧥', catHood: '🐱', robotHood: '🤖', fishHeadgear: '🐟', frogHat: '🐸', duckCap: '🦆', mushroomCap: '🍄' };
 
 export function Avatar({ p, size, dead, ghost, speaking }: { p: Pick<PublicSeat, 'name' | 'appearance'>; size?: 'lg' | 'sm'; dead?: boolean; ghost?: boolean; speaking?: boolean }) {
   const initials = p.name.trim().slice(0, 2).toUpperCase();
   return (
     <span className={`avatar c-${p.appearance.color} ${size ?? ''} ${dead ? 'dead' : ''} ${ghost ? 'ghost' : ''}`} aria-hidden="true">
       {initials}
-      {p.appearance.hat !== 'none' && <span className="hat">{HAT_GLYPH[p.appearance.hat as keyof typeof HAT_GLYPH]}</span>}
+      {HAT_GLYPH[p.appearance.hat as HatId] && <span className="hat">{HAT_GLYPH[p.appearance.hat as HatId]}</span>}
       {speaking && <span className="speaking-ring pulse" />}
     </span>
   );
