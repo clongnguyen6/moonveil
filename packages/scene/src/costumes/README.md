@@ -49,16 +49,19 @@ Dev page: `?scene=lobby&outfit=duck&variant=ring&hat=duckCap&color=sand&front=no
 - `hoodBack` / `hatFront`: duck cap, short beak visor, flat leaf. Hair retained under cap and when cap is off. Crown -92 for duckCap, -75 otherwise; headgear stays left of the speaking-arcs band including outline.
 - All fill/stroke colors use context mapping; scene retains ghost alpha/tail/motion. No redraw of skin or base limbs.
 
-Integration gap at seam af2afd2 (scene owner): `avatar.ts` calls `makeContext` and `labelAnchorFor` without choices. `SceneAppearance` carries only a costume ID, and body rendering always takes `costume.top` over the selected top. Forward the selected variant/color/hat/front/back to drawing and label clearance, and honor selected body color. Otherwise `?costume=duck` receives default/none and cannot show the requested ring/cap or exercise hat-off switching. No default-to-ring workaround or duplicate preview registry IDs added here.
-
-The package has no `check` script at this SHA. Equivalent node checks, from repo root:
+Choice forwarding/body color/label clearance from af2afd2 are resolved by the visual-costumes merge (includes 51431c8). The package now has a combined check:
 
 ```sh
-node scripts/env.mjs npm run typecheck -w @moonveil/scene
-node scripts/env.mjs npm run test -w @moonveil/scene
-node scripts/env.mjs node --test packages/scene/src/costumes/duck.test.ts
+node scripts/env.mjs npm run check -w @moonveil/scene
 ```
 
 Existing rig tests inspect default choices; duck tests additionally exercise the full 2-variant × 2-color × 2-hat matrix, living/ghost, bounds/crown/arcs, and sample the front path plus stroke against both hand disks. These checks do not establish screenshot readability or pose composition.
 
 Browser lock not requested/held for this implementation. Preview remains pending: both facings; idle/walk/seated; day/night; phone/laptop; living/ghost; hat on/off; labels, ring and speaking arcs clear. Scene owner is queued for the placeholder before this preview.
+
+## Frog / mushroom handoff
+
+- `frog`: `frogHat | none`, `raincoatPockets | none`, `leafPack | none`; pine/moss tops. Crown -94 with hat. Fixed frog eyes and folded lotus pack; no added motion.
+- `mushroom`: `mushroomCap | none`, `scarf | none`, `woodPack | none`; bark/pine tops. Crown -89 with hat. Broad irregular cap spots, short sand scarf and three-slat wooden pack.
+- Both preserve base hair when hat is off. All choices remain independent; tests include every combination, living/ghost fills and strokes, outline-inclusive bounds/crown/arcs and face/hand clearance. These are node geometry checks, not scene screenshots.
+- Scene composition follow-up: `avatar.ts` still paints the legacy scarf whenever `choice.front === 'scarf'`, even for a costume. Mushroom also owns that piece, so it would be painted twice. Scene owner should reserve legacy scarf drawing for the base camper (or delegate only when no costume front handles it); keep legacy camper behavior. Art does not repaint/mask the base scarf to hide this seam issue.
