@@ -42,6 +42,8 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Scope: all six themes + goofy shark + duck with/without ring (8 looks); more coherent variants later, no numeric target. Costumes on camper (reversible baseline). Picker: outfit → customise → local preview → Save/Cancel; no economy/unlocks; never role.
 - Ownership: Codex = creative/catalog content + costume art code; visual = scene seam/pipeline; foundation = wire/server contract + restore compat; game UI = picker (after chat). Don't shift creative work to Claude seats.
 - Phase 1 (now): foundation contract proposal (branch foundation-appearance, stop for review); visual seam + placeholder (visual-costumes); Codex CATALOG.md + shark design.
+- Phase 1 results: contract proposal foundation-appearance c913147 (reviewed); catalog source art-themes 3776e4d CATALOG.md (fish choice = variant, fishHeadgear, finPouch, headgear-off `none`); seam visual-costumes af2afd2 (rig.ts; costumes/** handed to Codex). Decisions: legacy upgrade reproduces seeded scarf/backpack via @moonveil/scene/seed; variant change = appearance changed; whole-profile invalid-appearance; body not chosen this round. Foundation building; Codex building duck/ring on art-costumes from af2afd2.
+- Browser lock queue: game UI (chat) → visual (placeholder check) → Codex (duck preview).
 - Phase 2: duck-with-ring + ghost in real scene (layering, seated, flip, label/ring clearance, phone/laptop day/night) = next Human preview.
 - Phase 3: batch remaining looks + ghosts; picker; candidate checks; ff into dev. Deploy needs approval.
 
