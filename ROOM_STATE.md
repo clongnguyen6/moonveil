@@ -35,6 +35,8 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Working assumption (reversible): costumes/headgear on current base, not full-species. Open: puffer vs shark; costume vs species.
 - First deliverable: concept sheet + phone-scale strip + layer/animation/route notes. Human reviews before final assets/integration. Planned UX: pick outfit, then customise, with local preview + Save/Cancel; no random button/unlocks/economy unless Human confirms.
 - Integration later touches visual (scene), game UI (picker), foundation (protocol appearance schema).
+- Delivered art-themes 17b1c75 (docs/visual/themes only; Lead reviewed images). Sent to Human for selection. Peer recommends: pufferfish hat (shark not drawn), keep procedural vector for production, generated rasters review-only. Seam: `extra` (one of none/scarf/backpack) and wire {color,hat} can't express these; appearance contract needed before production.
+- Outside-Moonveil write (image tool auto-save, no output-dir control): /Users/long/.codex-runtime/peer/generated_images/01a14e4b-…/ 3 PNGs, 2,634,923 bytes. Not deleted; reported.
 
 ## Chat overlay (Human-approved 2026-10-18, implement + review, no deploy)
 - Owner game UI 990963ac, branch game-ui-chat from dev. Persistent corner overlay (working default bottom-left), auto-visible recent messages, clear sender name + content + channel label, translucent bg with readable text, bounded history + full access, no overlap with joystick/vote/night actions/mic, safe areas/keyboard, typing never moves avatar.
