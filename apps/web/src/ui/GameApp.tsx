@@ -7,6 +7,7 @@ import { useWakeLock } from './lan.ts';
 import { useSettings } from '../game/local-store.ts';
 import { nameAt, projection } from '../game/select.ts';
 import { stalemateWarning } from '../game/approved.ts';
+import { SAVE_BOUND_MS, lookDraft, sameLook, useLookDraft } from '../game/look-draft.ts';
 import type { Session, SessionState } from '../game/session.ts';
 import { type GameView, type SeatView, stepFamily as famOf } from '../game/types.ts';
 import { type Cue, playCue, unlockAudio } from './audio/cues.ts';
@@ -61,6 +62,7 @@ function Root() {
     return () => removeEventListener('pointerdown', unlock);
   }, []);
   const { toasts, overlay, live } = useAnnouncer(view, g, t);
+  useLookRules(s, view, t);
   const wake = useWakeLock(!!view && view.status === 'playing');
   // Heavy-run rule: automation sets globalThis.__MOONVEIL_SCENE = 'off' (or MOONVEIL_SCENE for the scene package); the
   // shell skips the mount entirely so no software WebGL runs. 'low' | 'high' are passed to the scene (visual-7).
@@ -186,6 +188,30 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
 }
 
 interface Announcement { id: number; title: string; body?: string }
+
+/** Look-editor rules that depend on the session: confirm on a matching snapshot, bound the pending save, discard on
+ *  reconnect / seat or room change / leaving the lobby. Pure function of SessionState + the draft store. */
+function useLookRules(s: SessionState, view: SeatView | null, t: T) {
+  const look = useLookDraft();
+  const ctx = view ? `${view.code}:${view.me.seat}` : null;
+  useEffect(() => {
+    if (!look.draft && !look.pendingSince) return;
+    // context lost: reconnecting/replaced, another room or seat, lobby left or match started
+    if (s.status !== 'open' || !view || look.ctx !== ctx || view.status !== 'lobby') { lookDraft.clear(); return; }
+    if (look.pendingSince !== null) {
+      const mine = view.players.find((p) => p.seat === view.me.seat);
+      if (mine && look.draft && sameLook(mine.appearance, look.draft.appearance)) { lookDraft.confirmed(); return; }
+      if (s.error && s.error.code !== 'network') { lookDraft.failed(); return; }
+      const left = SAVE_BOUND_MS() - (Date.now() - look.pendingSince);
+      const id = setTimeout(() => lookDraft.failed(), Math.max(0, left));
+      return () => clearTimeout(id);
+    }
+  }, [s.status, s.error, view, look, ctx]);
+  useEffect(() => {
+    if (look.notice) { const id = setTimeout(() => lookDraft.clearNotice(), 6000); return () => clearTimeout(id); }
+  }, [look.notice]);
+  void t;
+}
 
 /** Turns new public-log entries and step changes into toasts, overlays and audio cues. Public data only. */
 function useAnnouncer(view: SeatView | null, g: GameView | null, t: T) {

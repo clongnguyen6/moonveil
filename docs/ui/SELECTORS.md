@@ -52,6 +52,9 @@ Lobby `[data-testid=mic][data-status=…]`: with a VoiceClient, `ok|checking|idl
 | `[data-testid=ended] .seat-chip .tag` | revealed roles (one per seat) |
 | `[data-testid=wake-hint]` | wake lock unavailable |
 
+## Look editor (test hooks)
+`globalThis.__moonveilLook` = draft store (`get()` → `{ draft, pendingSince, notice, ctx }`); `globalThis.__moonveilScene` = the mounted scene handle (`localPose()`, visual's `debugAppearance(seatId)`); `__MOONVEIL_LOOK_BOUND_MS` shortens the 6 s save bound. `[data-testid=look-not-saved]` notice.
+
 ## Sheets
 `[data-testid=role-sheet]` → `[data-testid=role-card][data-shown]` (tap to reveal) → `[data-testid=my-role]`, `[data-testid=facts]`, `[data-testid=roles-in-play]`.
 `[data-testid=chat-sheet]` → `[data-testid=chat-tab][data-channel=<channel>]` (only channels with a listen grant), `[data-testid=chat-log][data-channel]`, `[data-testid=chat-input]`, `[data-testid=chat-send]`, `[data-testid=chat-listen-only]`, `[data-testid=chat-quiet]` (no grants at all).

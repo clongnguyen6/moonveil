@@ -144,6 +144,7 @@ export class LocalRoom implements Session {
           me.ready = msg.ready;
           break;
         case 'profile':
+          if (this.rejectProfile) throw new Error('name already used in this room');
           me.name = msg.profile.name;
           me.appearance = msg.profile.appearance;
           break;
@@ -215,6 +216,8 @@ export class LocalRoom implements Session {
   /** Dev: simulate a server with no voice backend (no sessions ever) or the P19 flag. */
   voiceNoSessions = false;
   voiceAvailable = true;
+  /** Dev: make the next profile save fail (server rejection path). */
+  rejectProfile = false;
   voiceJoin() {
     if (this.voiceMode === 'remote') {
       this.voiceJoined = true;

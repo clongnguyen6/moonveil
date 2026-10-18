@@ -382,6 +382,48 @@ await page.waitForTimeout(100);
 ok('preview: Save sends the profile; the server and the card agree', (await serverColor()) === 'berry' && (await myColor()) === 'berry' && (await page.locator('[data-testid=you-preview]').count()) === 0);
 await open('day');
 
+// 11j. Look editor rules (approved UX): draft local, Escape/Cancel clear, Save confirmed by snapshot, rejection/bound clear with a notice, context changes discard.
+const lookState = () => page.evaluate(() => { const l = globalThis.__moonveilLook.get(); return { draft: l.draft?.appearance ?? null, pending: l.pendingSince !== null, notice: l.notice }; });
+await open('lobby', '&lang=en');
+await page.evaluate(() => { globalThis.__MOONVEIL_LOOK_BOUND_MS = 700; });
+await page.getByTestId('edit-profile').click();
+await page.getByTestId('color-dusk').click();
+ok('look: a change sets the local draft and sends nothing', (await lookState()).draft?.color === 'dusk' && (await serverColor()) !== 'dusk');
+await page.keyboard.press('Escape');
+ok('look: Escape clears the draft and closes the editor', (await lookState()).draft === null && (await page.locator('[data-testid=edit-look]').count()) === 0);
+await page.getByTestId('edit-profile').click();
+await page.getByTestId('color-dusk').click();
+await page.getByTestId('save-profile').click();
+await page.waitForTimeout(150);
+ok('look: Save confirmed by a matching snapshot clears the draft; server has the new look', (await lookState()).draft === null && (await serverColor()) === 'dusk' && (await lookState()).notice === null);
+await stub((r) => { r.rejectProfile = true; });
+await page.getByTestId('edit-profile').click();
+await page.getByTestId('color-sand').click();
+await page.getByTestId('save-profile').click();
+await page.waitForTimeout(200);
+ok('look: a rejected Save clears the draft and shows the notice; server keeps the saved look', (await lookState()).draft === null && (await lookState()).notice === 'notSaved' && (await page.locator('[data-testid=look-not-saved]').count()) === 1 && (await serverColor()) === 'dusk' && (await myColor()) === 'dusk');
+await stub((r) => { r.rejectProfile = false; r.error = null; });
+await page.evaluate(() => globalThis.__moonveilLook.clearNotice());
+// bound: pending save with no matching snapshot (simulate a server that accepts silently without applying)
+await page.evaluate(() => { globalThis.__moonveilLook.set({ name: 'An', appearance: { color: 'pine', hat: 'cap' } }, `${globalThis.__stub.code}:${globalThis.__stub.viewer}`); globalThis.__moonveilLook.markSaved(); });
+await page.waitForTimeout(1000);
+ok('look: no matching snapshot within the bound → draft cleared, notice shown, server look stays', (await lookState()).draft === null && (await lookState()).notice === 'notSaved' && (await myColor()) === 'dusk');
+await page.evaluate(() => globalThis.__moonveilLook.clearNotice());
+// context: reconnect discards; match start discards
+await page.getByTestId('edit-profile').click();
+await page.getByTestId('color-river').click();
+await stub((r) => r.simulateReconnect(500));
+await page.waitForTimeout(100);
+ok('look: reconnect discards the draft', (await lookState()).draft === null);
+await page.waitForTimeout(600);
+await page.getByTestId('edit-profile').click();
+await page.getByTestId('color-river').click();
+await stub((r) => { r.players.forEach((p) => (p.ready = true)); r.start(); });
+await page.waitForTimeout(150);
+ok('look: match start discards the draft', (await lookState()).draft === null);
+await page.evaluate(() => { delete globalThis.__MOONVEIL_LOOK_BOUND_MS; });
+await open('day');
+
 // 12. Full automatic match with bots in live mode: run until ended (speed via stub).
 await open('lobby', '&live=1');
 await stub((r) => { r.players.forEach((p) => (p.ready = true)); r.speed = 40; r.autoBots = true; r.start(); });
