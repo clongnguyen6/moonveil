@@ -22,7 +22,7 @@ import { HunterPanel, NightPanel } from './screens/Night.tsx';
 import { ChatSheet, ConnOverlay, EndPanel, GhostBar, HelpSheet, RoleCardSheet, VoiceBar } from './screens/Panels.tsx';
 import { SettingsPanel } from './screens/Settings.tsx';
 import { SessionContext, useSession, useSessionState } from './session-context.ts';
-import { errorText } from './errors.ts';
+import { errorText, screenError, stampError } from './errors.ts';
 import { useMic } from './voice/mic.ts';
 
 export function GameApp({ session, children }: { session: Session; children?: React.ReactNode }) {
@@ -47,6 +47,7 @@ function Root() {
   const settings = useSettings();
   const t = useT();
   const view = s.view;
+  stampError(s);   // before any screen reads it (errors.ts)
   const g = projection(view);
   const skin = phaseSkin(view, g);
   const mic = useMic();
@@ -184,7 +185,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
           <ConfirmPanel view={view} g={g} speaking={s.speaking} />
         )}
         {isMod && view.phaseEndsAt !== null && <p className="center"><Timer endsAt={view.phaseEndsAt} totalMs={view.phaseDurationMs} /></p>}
-        {s.error && <p className="danger center" role="alert" data-testid="error" data-code={s.error.code}>{errorText(t, s.error)}</p>}
+        {screenError(s) && <p className="danger center" role="alert" data-testid="error" data-code={screenError(s)!.code}>{errorText(t, screenError(s))}</p>}
       </div>
     </main>
   );
@@ -197,6 +198,10 @@ interface Announcement { id: number; title: string; body?: string }
 function useLookRules(s: SessionState, view: SeatView | null, t: T) {
   const look = useLookDraft();
   const ctx = view ? `${view.code}:${view.me.seat}` : null;
+  // the error present when Save was pressed is older news; only a new one is this save's refusal
+  const errAtSave = useRef<SessionState['error']>(null);
+  const savedAt = useRef<number | null>(null);
+  if (look.pendingSince !== savedAt.current) { savedAt.current = look.pendingSince; errAtSave.current = s.error; }
   useEffect(() => {
     if (!look.draft && !look.pendingSince) return;
     // context lost: reconnecting/replaced, another room or seat, lobby left or match started
@@ -204,7 +209,7 @@ function useLookRules(s: SessionState, view: SeatView | null, t: T) {
     if (look.pendingSince !== null) {
       const mine = view.players.find((p) => p.seat === view.me.seat);
       if (mine && look.draft && sameLook(mine.appearance, look.draft.appearance)) { lookDraft.confirmed(); return; }
-      if (s.error && s.error.code !== 'network') { lookDraft.failed(); return; }
+      if (s.error && s.error !== errAtSave.current && s.error.code !== 'network') { lookDraft.failed(); return; }
       const left = SAVE_BOUND_MS() - (Date.now() - look.pendingSince);
       const id = setTimeout(() => lookDraft.failed(), Math.max(0, left));
       return () => clearTimeout(id);

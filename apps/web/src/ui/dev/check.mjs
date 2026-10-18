@@ -478,6 +478,28 @@ ok('entry: create sends the costume; the new seat is frog/moss and the profile i
 await page.evaluate(() => localStorage.removeItem('moonveil.profile'));
 await open('day');
 
+// 11m. Errors belong to their screen: a lobby error never shows in the match; an entry error never in the lobby; a stale
+// error present when Save is pressed does not fail that save (only a refusal arriving after it does).
+await open('lobby', '&lang=en');
+await stub((r) => { r.error = { code: 'cannot-start', message: 'stale' }; r.setViewer(r.viewer); });
+await page.waitForTimeout(80);
+ok('errors: a lobby error shows in the lobby', (await page.locator('[data-testid=error][data-code=cannot-start]').count()) === 1);
+await page.getByTestId('edit-profile').click(); await page.getByTestId('color-dusk').click();
+await stub((r) => { const stale = r.error, send = r.send.bind(r); r.send = (m) => { const out = send(m); if (m.t === 'profile') { r.error = stale; r.setViewer(r.viewer); } r.send = send; return out; }; });
+await page.getByTestId('save-profile').click(); await page.waitForTimeout(200);
+ok('errors: a stale error present at Save does not fail the save (look confirmed, no notice)', (await page.evaluate(() => globalThis.__moonveilLook.get().notice)) === null && (await page.evaluate(() => globalThis.__moonveilLook.get().draft)) === null && (await stub((r) => r.players.find((p) => p.id === r.viewer).appearance.color)) === 'dusk');
+await stub((r) => { r.players.forEach((p) => (p.ready = true)); r.start(); r.setViewer(r.viewer); });
+await page.waitForSelector('[data-testid=match]');
+ok('errors: the lobby error is gone in the match dock (same error object still in the session)', (await stub((r) => r.error?.code)) === 'cannot-start' && (await page.locator('[data-testid=error]').count()) === 0);
+await open('entry', '&lang=en');
+await stub((r) => { r.error = { code: 'room-not-found', message: 'x' }; r.conn = 'idle'; r.setViewer?.(r.viewer); });
+await page.waitForTimeout(80);
+const entryErr = await page.locator('[data-testid=error][data-code=room-not-found]').count();
+await page.getByTestId('name').fill('Err'); await page.getByTestId('create-automatic').click(); await page.waitForSelector('[data-testid=room]');
+ok('errors: an entry error shows on entry and not in the lobby after creating (stub keeps the error object)', entryErr === 1 && (await stub((r) => r.error?.code)) === 'room-not-found' && (await page.locator('[data-testid=error]').count()) === 0);
+await page.evaluate(() => localStorage.removeItem('moonveil.profile'));
+await open('day');
+
 // 11k. Chat overlay: always visible, names + content, channel labels, isolation, same footprint for every seat.
 // Sender consistency: every rendered message's name AND avatar come from the seat that sent it (stub chat log `from`).
 const senderMismatches = () => page.evaluate(() => {

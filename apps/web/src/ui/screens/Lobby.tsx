@@ -15,7 +15,7 @@ import { platform } from '../voice/guidance.ts';
 import { voicePhase } from '../voice/phase.ts';
 import { useBoundedVoice } from '../voice/useBoundedVoice.ts';
 import { copyText } from '../lan.ts';
-import { errorText } from '../errors.ts';
+import { errorText, screenError } from '../errors.ts';
 import { saveProfile } from './Entry.tsx';
 import { LookPicker } from '../components/LookPicker.tsx';
 import { type LookProfile, lookOf } from '../../game/look.ts';
@@ -149,7 +149,7 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat, onSettings }: { s: S
       )}
       {view.me.kind === 'player' && <MicCheck mic={mic} voiceMode={s.voiceMode} joined={s.voiceJoined} sessions={s.voiceSessions} serverOff={s.voiceAvailable === false} />}
 
-      {s.error && <p className="danger" role="alert" data-testid="error" data-code={s.error.code}>{errorText(t, s.error)}</p>}
+      {screenError(s) && <p className="danger" role="alert" data-testid="error" data-code={screenError(s)!.code}>{errorText(t, screenError(s))}</p>}
 
       {/* 5. Start (host) */}
       {view.me.host ? (

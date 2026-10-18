@@ -96,6 +96,7 @@ if (CAPTURE) {
 for (const p of ps) await p.page.getByTestId('ready').click();
 await A.page.getByTestId('start').click();
 for (const p of ps) await p.page.waitForSelector('[data-testid=room][data-step="night.main"]', { timeout: 15000 });
+ok('match: the lobby refusal on Chi (still the last server error) is not shown in the match dock', (await C.page.locator('[data-testid=error]').count()) === 0);
 ok('match: no look editor anywhere', (await Promise.all(ps.map((p) => p.page.locator('[data-testid=edit-profile], [data-testid=look-picker]').count()))).every((n) => n === 0));
 A.got.length = 0;
 await A.page.evaluate(() => globalThis.__moonveil.send({ t: 'profile', profile: { name: 'An', appearance: { outfit: 'frog' } } }));

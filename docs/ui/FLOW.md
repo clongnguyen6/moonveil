@@ -54,6 +54,9 @@ Match (frame = scene host + top bar + dock)
 | day.confirm | Yes / No, live tally | own ballot changeable until close | live Yes/No per voter; overlay: executed |
 | ended | winner, reveal | leave | cue: victory/defeat |
 
+## Errors
+A server error shows only on the screen it arrived on (entry, lobby, or one match step instance; `ui/errors.ts` `screenError`): the client keeps the last error until the next connect, so without this a lobby refusal stayed in the match dock. The look editor counts only an error that arrives after Save as that save's refusal. Proof: stub 11m, picker-check (Chi's lobby refusal absent from the match dock).
+
 ## Accessibility (keyboard + screen reader)
 - Names: every icon-only control carries `aria-label`; avatars are decorative; the seat grid is a labelled group ("use arrow keys, Enter to choose"); the match frame is a `main` named after the phase; the top bar is a toolbar; the phase title is the page `h1`.
 - Keyboard: Tab order follows the DOM (title → tools → panel → grid → buttons); arrow keys / Home / End move within the seat grid; Enter/Space choose; chat sends on Enter; end-match confirms on Enter once the word matches; sheets trap Tab, open on their first body control, close on Escape and return focus to the opener.

@@ -7,7 +7,7 @@ import { Button } from '../components/index.tsx';
 import { LookPicker } from '../components/LookPicker.tsx';
 import { useT } from '../i18n/index.ts';
 import { useSession } from '../session-context.ts';
-import { errorText } from '../errors.ts';
+import { errorText, screenError } from '../errors.ts';
 import { SettingsRow } from './Settings.tsx';
 
 // Stored as entered: legacy {color, hat} from older versions stays legacy until the player changes it, so the server
@@ -73,7 +73,7 @@ export function EntryScreen({ s }: { s: SessionState }) {
       <section className="card stack" style={{ padding: 16 }}>
         <ProfileEditor value={profile} onChange={setProfile} />
       </section>
-      {s.error && <p className="danger" role="alert" data-testid="error" data-code={s.error.code}>{errorText(t, s.error)}</p>}
+      {screenError(s) && <p className="danger" role="alert" data-testid="error" data-code={screenError(s)!.code}>{errorText(t, screenError(s))}</p>}
       <section className="card stack" style={{ padding: 16 }}>
         {!linkCode && <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('entryJoinTitle')}</h2>}
         {linkCode ? (
