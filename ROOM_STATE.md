@@ -237,5 +237,7 @@ Grant c merges into `dev`, newest last. Format: date · branch · ff from → he
 
 - 2026-10-18 · art-costumes · ff 880b497 → 8678b22 · Lead go (grant c). Scope packages/scene/src/costumes/** + docs/visual/themes/preview-*. Owner on exact 8678b22ede9340b2dc02a49993769da57aa404b6: scene check typecheck + 73/73. Root check (E2E_PORT=4650) run 1 failed at typecheck: missing worktree dependencies; environmental, unit suites/e2e not reached. After repo-local npm ci and linking identical existing Playwright builds (no browser downloads), run 2 on the same SHA exited 0: rules 216, scene 73, voice 54, server 115, harness 3, e2e 13/13 (Chromium + WebKit/browser emulation). Remote dev verified at 8678b22 before this separate log-only commit.
 
+- 2026-10-18 · art-themes · ff a8ae555 → bc46d41 · Lead go (grant c), docs-only. Reviewed candidate bc46d4100f451ffa7ca8fe442c776b6d8529c2ea: 13 files under docs/visual/themes/** only (catalog, concept sheet, phone-scale references, prompts/provenance, shark construction). Diff check passed; no tests run for docs-only changes. Remote dev verified at bc46d41 before this separate log-only commit.
+
 ## Acceptance evidence
 - foundation b3d9ece: Lead re-ran `node scripts/env.mjs npm run check` 14:31 → typecheck ok, server 10/10, e2e 7/7 (8-browser auto isolation, 7+mod isolation, lobby, reconnect, 2nd tab, Pixel 7 emu). Chromium only. No new ~/.npm logs. Superseded by the merged revision (see Merge log).
