@@ -19,6 +19,16 @@ The 4 skipped windows are all whole-table step boundaries: in each, every page m
 
 **Token / channel checks (separate from the audio measurement), all pass:** every page holds exactly the channels of its grants and each is connected; rosters contain only granted seats and never a listen-only one; every `voice` frame carries only channels the seat is granted at that moment, with `speak` never beyond the state grant; LiveKit's participant list shows the moderator hidden while listen-only and visible at `ended`; in-person room (1.7 min): no sessions in any `voice` frame, no LiveKit room for the code, no voice channel in any page, public text delivered in the lobby.
 
+### LiveKit Cloud check, run 2 (2026-10-18 12:08–12:10, lock held; live deploy f12761a at https://www.moonveil.id.vn, new defense rule; test files 5e4f0ca)
+
+Scene off, `join()` per page, no traces. Conditions: load 3.0–5.6, CPU idle 58–67 %. **Participant-minutes: 6.3 (cloud-check, cap 6) + 2.8 (rotation gaps, cap 4) = 9.1; aggregate about 24.8 of 100.**
+
+- **Defense (new rule):** 6 living seats held public speak; **public room generation unchanged** through the defense step (no rotation); the defense hear-matrix window had **0 failures** (every living player heard by the others, moderator and ghost).
+- **Leakage:** 0 "must not hear" failures in every window (lobby, night 1, day, defense, night 2). Night: 2 wolves on the wolves channel, 5 others none; rosters clean.
+- **Revocation:** executed seat's old public token `/rtc/validate` 401, fresh token 200.
+- **Join time ("Connecting voice…")**: lobby join median 10.1 s, p95 10.9 s (Cloud; local 3.6 s). Rotations: start→night 2.6 s, night→day 1.5 s, execution 1.5 s medians; night 2→day 2 median 8.9 s (p95 9.7 s) this time versus 1.4 s in the previous Cloud run: the second-day reopen varies between runs; nobody unheard.
+- **8 "should hear" failures are a measurement artifact of my cap:** the budget guard hit 6.3 minutes while the night-2 window was being measured and called `leave()` on every page mid-window; all 8 are in that window (wolves and ghosts speakers who had just been disconnected). The windows before the abort are the evidence; the cap should be set above the planned path next time (≈ 7 for this path).
+
 ### Rotation gaps, Cloud vs local (2026-10-18 01:02–01:07, lock held; test files 1b4a836 + measurement fix)
 
 Gap = time from the first new-generation `voice` frame of a transition until each listener's received energy from each expected speaker starts to grow (polled every 250 ms, no settle wait first). 7 players + moderator, moderator mode, scene off, `join()` per page, no traces. Conditions: load 3.2–6.1, CPU idle 69–77 %, browser GPU process 0 %. Logs: `.cache/voice-gap2-cloud.log`, `.cache/voice-gap2-local.log` (a first attempt, `.cache/voice-gap-*.log`, measured after the settle wait and is superseded; its Cloud invocation also re-ran the cloud-check by title match, 5.0 participant-minutes, defense window failed identically on the deployed old rule).

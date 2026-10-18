@@ -54,7 +54,11 @@ Through the deployed app: config-only compatibility confirmed (signaling host `p
 
 Measured (see `TEST_RESULTS.md`): audio returns 1.4–2.4 s (median) after a rotation through Cloud versus 0.5–0.9 s locally; p95 ≤ 2.4 s; nobody unheard. Lobby join ≈ 10 s on Cloud (3.6 s local). Judgment: no fix required for v1; rotations happen at scene transitions. Optional optimisation in voice scope if play-feel asks for it: make-before-break rotation (create the next generation and issue its sessions before closing the old room; departing seats are still removed with revocation immediately), which would hide the reconnect gap at the cost of a brief double connection for staying seats; it needs a gateway ordering change and the server to send `voice` before the old room closes. Not implemented.
 
-## 5. Cloud runtime test plan (run 1 done; see 4b, 4c)
+## 4d. Live deploy with the new defense rule (2026-10-18, f12761a, www.moonveil.id.vn)
+
+Defense: 6 living speakers, no rotation (generation unchanged), 0 hear-matrix failures; no leakage in any window; revocation 401/200; join ≈ 10 s median on Cloud; rotation reopen 1.5–2.6 s medians with one 8.9 s second-day reopen (varies between runs). Budget aggregate ≈ 24.8 of 100. Details: `TEST_RESULTS.md`.
+
+## 5. Cloud runtime test plan (runs 1–2 done; see 4b–4d)
 
 What local OSS already proves (and Cloud shares the code path for): grant→permission mapping, hidden sessions, `UpdateParticipant` publish flips, rotation mechanics, token shape, client reconnect, the full-match hear-matrix. What only a real Cloud project can show: revocation timing, `DeleteRoom` vs tokens, the auto-create toggle, error wording, region/latency from Vietnam, TURN fallback, quota behaviour.
 
