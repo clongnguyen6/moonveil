@@ -43,7 +43,7 @@ try {
     await page.goto(`http://127.0.0.1:${port}/?scene=ghost&n=7&audio=0&panel=0&speak=0&quality=${quality}`);
     await page.waitForFunction(() => window.__moonveil?.ready, null, { timeout: 30000 });
     await page.waitForTimeout(2500);
-    await page.evaluate(() => window.__moonveil.setScene('night'));
+    await page.evaluate(() => window.__moonveil.setScene('night', window.__moonveil.dead?.()));   // ghosts stay ghosts at night
     await page.waitForTimeout(2500); await page.screenshot({ path: join(out, `${tag}-${quality}-night-walk.png`) });
     await page.waitForTimeout(7000); await page.screenshot({ path: join(out, `${tag}-${quality}-night-ghosts.png`) });
     const n = await page.evaluate(() => window.__moonveil.debugLabels?.() ?? null);

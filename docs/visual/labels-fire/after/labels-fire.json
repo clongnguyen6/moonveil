@@ -1,0 +1,234 @@
+[
+ {
+  "view": "laptop-1440x900",
+  "quality": "high",
+  "shot": "day",
+  "labels": {
+   "order": [
+    "world",
+    "lighting",
+    "nightTint",
+    "emissive",
+    "fx",
+    "labels",
+    "vignette"
+   ],
+   "aboveEffects": true,
+   "labels": 7,
+   "inLabelLayer": 7
+  },
+  "cam": {
+   "scale": 1.0292682926829269,
+   "labelPx": 12.351219512195122,
+   "view": {
+    "w": 1440,
+    "h": 900
+   },
+   "safe": {
+    "top": 56,
+    "right": 0,
+    "bottom": 0,
+    "left": 0
+   },
+   "avatars": {
+    "x0": 478.80563392466223,
+    "y0": 389.647376287843,
+    "x1": 848.1220342503534,
+    "y1": 680.8822398723775
+   }
+  }
+ },
+ {
+  "view": "laptop-1440x900",
+  "quality": "high",
+  "shot": "night",
+  "labels": {
+   "order": [
+    "world",
+    "lighting",
+    "nightTint",
+    "emissive",
+    "fx",
+    "labels",
+    "vignette"
+   ],
+   "aboveEffects": true,
+   "labels": 7,
+   "inLabelLayer": 7
+  }
+ },
+ {
+  "view": "laptop-1440x900",
+  "quality": "low",
+  "shot": "day",
+  "labels": {
+   "order": [
+    "world",
+    "lighting",
+    "nightTint",
+    "emissive",
+    "fx",
+    "labels",
+    "vignette"
+   ],
+   "aboveEffects": true,
+   "labels": 7,
+   "inLabelLayer": 7
+  },
+  "cam": {
+   "scale": 1.0292682926829269,
+   "labelPx": 12.351219512195122,
+   "view": {
+    "w": 1440,
+    "h": 900
+   },
+   "safe": {
+    "top": 56,
+    "right": 0,
+    "bottom": 0,
+    "left": 0
+   },
+   "avatars": {
+    "x0": 478.80563392466223,
+    "y0": 389.647376287843,
+    "x1": 848.1220342503534,
+    "y1": 680.8822398723775
+   }
+  }
+ },
+ {
+  "view": "laptop-1440x900",
+  "quality": "low",
+  "shot": "night",
+  "labels": {
+   "order": [
+    "world",
+    "lighting",
+    "nightTint",
+    "emissive",
+    "fx",
+    "labels",
+    "vignette"
+   ],
+   "aboveEffects": true,
+   "labels": 7,
+   "inLabelLayer": 7
+  }
+ },
+ {
+  "view": "phone-390x844",
+  "quality": "high",
+  "shot": "day",
+  "labels": {
+   "order": [
+    "world",
+    "lighting",
+    "nightTint",
+    "emissive",
+    "fx",
+    "labels",
+    "vignette"
+   ],
+   "aboveEffects": true,
+   "labels": 7,
+   "inLabelLayer": 7
+  },
+  "cam": {
+   "scale": 0.6852173913043478,
+   "labelPx": 12,
+   "view": {
+    "w": 390,
+    "h": 844
+   },
+   "safe": {
+    "top": 56,
+    "right": 0,
+    "bottom": 0,
+    "left": 0
+   },
+   "avatars": {
+    "x0": 33.44665676256784,
+    "y0": 355.1090609724678,
+    "x1": 280.59653417416746,
+    "y1": 554.2305255676234
+   }
+  }
+ },
+ {
+  "view": "phone-390x844",
+  "quality": "high",
+  "shot": "night",
+  "labels": {
+   "order": [
+    "world",
+    "lighting",
+    "nightTint",
+    "emissive",
+    "fx",
+    "labels",
+    "vignette"
+   ],
+   "aboveEffects": true,
+   "labels": 7,
+   "inLabelLayer": 7
+  }
+ },
+ {
+  "view": "phone-390x844",
+  "quality": "low",
+  "shot": "day",
+  "labels": {
+   "order": [
+    "world",
+    "lighting",
+    "nightTint",
+    "emissive",
+    "fx",
+    "labels",
+    "vignette"
+   ],
+   "aboveEffects": true,
+   "labels": 7,
+   "inLabelLayer": 7
+  },
+  "cam": {
+   "scale": 0.6852173913043478,
+   "labelPx": 12,
+   "view": {
+    "w": 390,
+    "h": 844
+   },
+   "safe": {
+    "top": 56,
+    "right": 0,
+    "bottom": 0,
+    "left": 0
+   },
+   "avatars": {
+    "x0": 32.51070007736712,
+    "y0": 355.1090609724678,
+    "x1": 279.66057748896674,
+    "y1": 554.2305255676234
+   }
+  }
+ },
+ {
+  "view": "phone-390x844",
+  "quality": "low",
+  "shot": "night",
+  "labels": {
+   "order": [
+    "world",
+    "lighting",
+    "nightTint",
+    "emissive",
+    "fx",
+    "labels",
+    "vignette"
+   ],
+   "aboveEffects": true,
+   "labels": 7,
+   "inLabelLayer": 7
+  }
+ }
+]

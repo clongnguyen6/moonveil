@@ -71,7 +71,8 @@ requestAnimationFrame(loop);
 // automation hooks for captures / perf
 declare global { interface Window { __moonveil?: Record<string, unknown> } }
 window.__moonveil = {
-  setScene: (s: FixtureScene) => { server.setScene(s); scene.setInput(server.input); hud.markScene(s); banner(s); },
+  setScene: (s: FixtureScene, dead?: string[]) => { server.setScene(s, dead); scene.setInput(server.input); hud.markScene(s); banner(s); },
+  dead: () => server.input.seats.filter((x) => !x.alive).map((x) => x.seat),
   setSpeak: (on: boolean) => { scene.setSpeakingLocal(on); hud.setMic(on); },
   setCamera: (m: 'fit' | 'tight') => { scene.setCamera(m); hud.markCam(m); },
   walk: (x: number, y: number) => scene.walkLocal(x, y),
