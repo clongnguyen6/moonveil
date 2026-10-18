@@ -89,6 +89,8 @@ export interface SceneHandle {
   // Test-only (requires opts.debug): the appearance an avatar currently renders, or null.
   debugAppearance(seat: SeatId): SceneAppearance | null;
   // debug: camera scale, smallest on-screen camper name label (px) and the screen box of visible campers (not ghosts) incl. labels; null when debug is off
+  // debug: stage layer order, whether name labels sit above every effect layer, and how many labels are in the label layer
+  debugLabels(): { order: string[]; aboveEffects: boolean; labels: number; inLabelLayer: number } | null;
   debugCamera(): { scale: number; labelPx: number; view: { w: number; h: number }; safe: SafeArea; avatars: { x0: number; y0: number; x1: number; y1: number } | null } | null;
   // dev/test helpers
   time(): number;

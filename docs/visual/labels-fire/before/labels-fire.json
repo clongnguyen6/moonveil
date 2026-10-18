@@ -1,0 +1,54 @@
+[
+ {
+  "view": "laptop-1440x900",
+  "quality": "high",
+  "shot": "day",
+  "labels": null,
+  "cam": null
+ },
+ {
+  "view": "laptop-1440x900",
+  "quality": "high",
+  "shot": "night",
+  "labels": null
+ },
+ {
+  "view": "laptop-1440x900",
+  "quality": "low",
+  "shot": "day",
+  "labels": null,
+  "cam": null
+ },
+ {
+  "view": "laptop-1440x900",
+  "quality": "low",
+  "shot": "night",
+  "labels": null
+ },
+ {
+  "view": "phone-390x844",
+  "quality": "high",
+  "shot": "day",
+  "labels": null,
+  "cam": null
+ },
+ {
+  "view": "phone-390x844",
+  "quality": "high",
+  "shot": "night",
+  "labels": null
+ },
+ {
+  "view": "phone-390x844",
+  "quality": "low",
+  "shot": "day",
+  "labels": null,
+  "cam": null
+ },
+ {
+  "view": "phone-390x844",
+  "quality": "low",
+  "shot": "night",
+  "labels": null
+ }
+]

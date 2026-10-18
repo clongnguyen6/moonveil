@@ -72,9 +72,10 @@ export class FakeServer {
   onPoses(cb: (f: PoseFrame) => void): void { this.emitPoses = cb; }
   onSpeaking(cb: (s: SeatId[]) => void): void { this.emitSpeaking = cb; }
 
-  setScene(scene: FixtureScene): void {
+  // dead: seats that are ghosts in the new scene (default: the scene's own; e.g. keep ghosts into the night)
+  setScene(scene: FixtureScene, dead?: SeatId[]): void {
     const viewer = this.input.me.kind === 'moderator' ? 'moderator' : scene === 'ghost' ? undefined : this.input.me.seat;
-    this.input = makeInput(scene, this.input.players.length, { viewer });
+    this.input = makeInput(scene, this.input.players.length, { viewer, ...(dead ? { dead } : {}) });
     this.placeForScene();
   }
 

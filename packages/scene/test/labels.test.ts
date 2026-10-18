@@ -54,3 +54,12 @@ test('lift is capped at one label height; further conflicts slide sideways; disp
   assert.equal(layoutLabels([rect('solo', 200, 400)], vp)[0]!.displaced, false);
   assert.equal(layoutLabels([rect('solo', 200, 400)], vp)[0]!.dy, 0);
 });
+
+import { STAGE_ORDER, EFFECT_LAYERS, labelsAboveEffects } from '../src/labels.ts';
+test('name labels are drawn above every effect and light layer (fire, glow, sparks, smoke, fog), in every quality mode', () => {
+  assert.equal(labelsAboveEffects(STAGE_ORDER), true);
+  for (const l of EFFECT_LAYERS) assert.ok(STAGE_ORDER.indexOf(l) < STAGE_ORDER.indexOf('labels'), l);
+  // the check itself rejects the old order (labels inside the world, under emissive/fx) and a missing layer
+  assert.equal(labelsAboveEffects(['world', 'lighting', 'nightTint', 'emissive', 'labels', 'fx', 'vignette']), false);
+  assert.equal(labelsAboveEffects(['world', 'lighting', 'nightTint', 'emissive', 'fx', 'vignette']), false);
+});

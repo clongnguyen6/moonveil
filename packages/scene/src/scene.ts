@@ -13,7 +13,7 @@ import { intentFor, canMove, nightLevelFor, type SeatIntent } from './choreo.ts'
 import { lerp, clamp, mixColor, smooth } from './rng.ts';
 import type { CameraMode, Pose, PoseFrame, SafeArea, SceneAppearance, SceneHandle, SceneInput, SceneOptions, SeatId, PerfStats } from './types.ts';
 import { resolveQuality, renderProfile, readQualityEnv } from './quality.ts';
-import { layoutLabels, type LabelRect } from './labels.ts';
+import { layoutLabels, STAGE_ORDER, labelsAboveEffects, type LabelRect, type StageLayer } from './labels.ts';
 import { frameCamera } from './framing.ts';
 import { playersDiff, spawnPoint, effectiveAppearance } from './reconcile.ts';
 
@@ -32,7 +32,7 @@ function offHandle(input: SceneInput): SceneHandle {
   return {
     ready: Promise.resolve(), quality: 'off',
     setInput(next) { inp = next; }, setPoses() {}, setSpeaking() {}, on() { return () => {}; }, emote() {}, setSpeakingLocal() {},
-    async setAudio() {}, setCamera() {}, setSafeArea() {}, resize() {}, setLocalAppearanceOverride() {}, debugAppearance: () => null, debugCamera: () => null,
+    async setAudio() {}, setCamera() {}, setSafeArea() {}, resize() {}, setLocalAppearanceOverride() {}, debugAppearance: () => null, debugCamera: () => null, debugLabels: () => null,
     time: () => 0, perf: () => null, perfReset() {}, walkLocal() {}, localPose: () => null, night: () => (inp.phase === 'night' ? 1 : 0), destroy() {},
   };
 }
@@ -97,6 +97,8 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   let bank: TextureBank;
   let emissive: Container, fx: Container, lighting: Lighting, vignette: Sprite, nightTint: Sprite;
   let leaders: Graphics;   // one Graphics for every leader line (label → avatar head), redrawn each frame
+  // Name labels + leaders above every scene effect (fire, glow, sparks, smoke, fog) and the lighting: seat identity is never covered.
+  let labelLayer: Container;
   let fire: Fire, fireflies: Fireflies, glints: WaterGlints, fog: Fog;
   let fireLight: Sprite, fireLight2: Sprite, moon: Sprite, moonEdge: Sprite;
   let tentLights: Sprite[] = [], tentBulbs: Sprite[] = [], postLights: Sprite[] = [], postBulbs: Sprite[] = [];
@@ -122,8 +124,10 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     lighting = new Lighting(a.renderer, bank.light);
     vignette = new Sprite(bank.vignette); vignette.alpha = 0.9; vignette.visible = x.vignette;
     nightTint = new Sprite(bank.light); nightTint.tint = 0x6a5aa8; nightTint.alpha = 0; nightTint.anchor.set(0.5); // soft purple wash at night
-    leaders = new Graphics(); leaders.zIndex = 100000; world.objects.addChild(leaders);
-    a.stage.addChild(world.root, lighting.out, nightTint, emissive, fx, vignette);
+    labelLayer = new Container(); labelLayer.sortableChildren = true;
+    leaders = new Graphics(); leaders.zIndex = 100000; labelLayer.addChild(leaders);
+    const layers: Record<StageLayer, Container> = { world: world.root, lighting: lighting.out, nightTint, emissive, fx, labels: labelLayer, vignette };
+    for (const name of STAGE_ORDER) { layers[name].label = name; a.stage.addChild(layers[name]); }
 
     fireLight = lighting.addLight(0xffa84a, 3.2); fireLight2 = lighting.addLight(0xff7a30, 1.4);
     fireLight.position.set(FIRE.x, FIRE.y - 10); fireLight2.position.set(FIRE.x, FIRE.y - 10);
@@ -192,7 +196,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       let av = avatars.get(p.seat);
       if (!av) {
         av = new Avatar(p.seat, p.name, effectiveAppearance(next, p.seat, localOverride) ?? p.appearance, bank);
-        world.objects.addChild(av.root); emissive.addChild(av.glow, ...av.wisps);
+        world.objects.addChild(av.root); emissive.addChild(av.glow, ...av.wisps); labelLayer.addChild(av.label);
         avatars.set(p.seat, av);
         av.mode = 'hidden'; // until positioned
       } else av.setAppearance(effectiveAppearance(next, p.seat, localOverride) ?? p.appearance);   // no-op when unchanged; keeps the local draft
@@ -268,7 +272,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     const a = app!; const old = world;
     map = createMap(n);
     world = new World(bank, map, x.ripples);
-    a.stage.addChildAt(world.root, 0);
+    a.stage.addChildAt(world.root, 0); world.root.label = 'world';
     for (const av of avatars.values()) world.objects.addChild(av.root);
     old.root.destroy({ children: true });
     for (const l of tentLights) l.destroy(); for (const b of tentBulbs) b.destroy();
@@ -310,7 +314,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     cam.scale = scale;
     cam.x = safe.left + innerW / 2 - cx * scale;
     cam.y = safe.top + innerH / 2 - cy * scale;
-    for (const c of [world.root, emissive, fx]) { c.position.set(cam.x, cam.y); c.scale.set(scale); }
+    for (const c of [world.root, emissive, fx, labelLayer]) { c.position.set(cam.x, cam.y); c.scale.set(scale); }
     vignette.width = vw; vignette.height = vh;
     nightTint.position.set(vw / 2, vh / 2); nightTint.scale.set(Math.max(vw, vh) / 256 * 1.6);
   }
@@ -385,6 +389,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     fire.update(t, low ? 0 : dt, mixColor(0xffffff, 0x5a6090, n));   // dt 0: flames animate, pools emit nothing
     lighting.ambient = ambientColor(n);
     nightTint.alpha = 0.16 * moonL;
+    labelLayer.tint = mixColor(0xffffff, 0xc8ccf0, moonL);   // labels sit above the lightmap: a light moonlit tint, still readable
     vignette.alpha = 0.75 + 0.25 * n;
     ambience.night = n; ambience.fire = fi; ambience.update(dt);
   }
@@ -444,6 +449,12 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       if (av && eff) av.setAppearance(eff);   // in place: position, pose, facing, intent untouched; nothing emitted
     },
     debugAppearance(seat) { return opts.debug ? (avatars.get(seat)?.appearance ?? null) : null; },
+    debugLabels() {
+      if (!opts.debug || !app) return null;
+      const order = app.stage.children.map((c) => c.label);
+      const all = [...avatars.values()];
+      return { order, aboveEffects: labelsAboveEffects(order), labels: all.length, inLabelLayer: all.filter((av) => av.label.parent === labelLayer).length };
+    },
     debugCamera() {
       if (!opts.debug || !app) return null;
       let labelPx = Infinity, box: { x0: number; y0: number; x1: number; y1: number } | null = null;
