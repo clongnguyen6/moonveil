@@ -1,7 +1,7 @@
 // Pure helpers for reconciling SceneInput snapshots with live avatars.
-import type { SceneAppearance, ScenePlayer, SeatId } from './types.ts';
+import { HATS, type SceneAppearance, type ScenePlayer, type SeatId } from './types.ts';
 import { TOP_COLORS } from './appearance.ts';
-import { DEFAULT_CHOICE, type CostumeChoice } from './rig.ts';
+import { DEFAULT_CHOICE, type Costume, type CostumeChoice } from './rig.ts';
 import { FIRE, isWalkable, type MapLayout, type Pt } from './map.ts';
 import type { AvatarMode } from './avatar.ts';
 
@@ -19,6 +19,19 @@ export function choiceFor(a: SceneAppearance): CostumeChoice {
     hat: a.hat,
     front: a.front ?? (a.extra === 'scarf' ? 'scarf' : 'none'),
     back: a.back ?? (a.extra === 'backpack' ? 'backpack' : 'none'),
+  };
+}
+
+// Which items the base rig draws. Base hat, scarf and backpack belong to the camper look (no costume);
+// an outfit costume draws every chosen item itself, so nothing is drawn twice.
+export interface BaseItems { hair: boolean; hat: boolean; scarf: boolean; backpack: boolean }
+export function baseItems(a: SceneAppearance, costume: Costume | null): BaseItems {
+  const camper = !costume, choice = choiceFor(a);
+  return {
+    hair: !costume?.hidesHair,
+    hat: camper && (HATS as readonly string[]).includes(a.hat),
+    scarf: camper && choice.front === 'scarf',
+    backpack: camper && choice.back === 'backpack',
   };
 }
 

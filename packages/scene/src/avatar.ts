@@ -2,7 +2,7 @@
 import { Container, Graphics, Sprite, Text } from 'pixi.js';
 import { type TextureBank, type Baked, spriteOf } from './textures.ts';
 import { shade, lerp, clamp, hashString } from './rng.ts';
-import { avatarVisible, LookTracker, choiceFor, outfitOf } from './reconcile.ts';
+import { avatarVisible, LookTracker, baseItems, choiceFor, outfitOf } from './reconcile.ts';
 import { PixiBrush, makeContext, labelAnchorFor, GHOST, ghostTint, type Costume } from './rig.ts';
 import { costumeById } from './costumes/index.ts';
 import type { SceneAppearance } from './types.ts';
@@ -10,8 +10,10 @@ import { HAIR_COLOR_VALUES, SKIN_COLORS, TOP_COLORS } from './appearance.ts';
 
 const PANTS = [0x3a4457, 0x4f3f33, 0x2f3a3f, 0x5a5460] as const;
 const HAT_TINTS = [0xe9e0c8, 0x9bc1d9, 0xd8c9a0, 0xd9603b, 0x3f8f7a, 0xf0d7a0] as const;
-const BASE_HATS = ['none', 'beanie', 'cap', 'bucket', 'hood', 'flower'] as const;
 const O = (c: number) => ({ width: 2, color: shade(c, 0.55), alpha: 0.6, join: 'round' as const, cap: 'round' as const });
+
+// Label anchor (world units above the feet) for a look: clears tall headgear. Computed at bake, not per frame.
+export function labelAnchorOf(a: SceneAppearance): number { return labelAnchorFor(costumeById(outfitOf(a)), choiceFor(a)); }
 
 // Draws a camper facing right, feet at (0,0). ghost=true draws the spectral variant (no legs, tail, pale).
 // Draws a camper facing right, feet at (0,0). ghost=true draws the spectral variant (no legs, tail, pale).
@@ -30,10 +32,8 @@ export function drawAvatar(a: SceneAppearance, ghost: boolean, seedKey: string):
   const pants = ghost ? GHOST.pants : PANTS[h % PANTS.length]!;
   const hairC = ghost ? GHOST.hair : HAIR_COLOR_VALUES[a.hairColor];
   const hatC = ghost ? GHOST.hat : a.hat === 'hood' ? topBase : HAT_TINTS[(h >>> 4) % HAT_TINTS.length]!;
-  const extraC = ghost ? GHOST.extra : choice.front === 'scarf' ? HAT_TINTS[(h >>> 8) % HAT_TINTS.length]! : 0x6b4f3a;
-  const baseHat = (BASE_HATS as readonly string[]).includes(a.hat);   // outfit headgear ids are drawn by the costume
-  const showHair = !costume?.hidesHair, showHat = !costume?.hidesHat && baseHat;
-  const scarf = choice.front === 'scarf', backpack = choice.back === 'backpack';
+  const { hair: showHair, hat: showHat, scarf, backpack } = baseItems(a, costume);   // camper-only base items (rig.ts)
+  const extraC = ghost ? GHOST.extra : scarf ? HAT_TINTS[(h >>> 8) % HAT_TINTS.length]! : 0x6b4f3a;
 
   piece('back');
   if (backpack) g.roundRect(-24, -44, 16, 26, 6).fill(extraC).stroke(O(extraC));
@@ -118,6 +118,7 @@ export class Avatar {
   target: { x: number; y: number } | null = null;
   onArrive: (() => void) | null = null;
   labelBaseY = 0;   // label anchor (world units, relative to the feet) before layout offsets
+  private labelAnchor: number;   // rig label anchor for the current look; changes only on re-bake
 
   constructor(seat: string, name: string, appearance: SceneAppearance, bank: TextureBank) {
     this.seat = seat;
@@ -125,6 +126,7 @@ export class Avatar {
     this.bank = bank; this.look = new LookTracker(appearance);
     this.bodyTex = bank.bake(drawAvatar(appearance, false, seat), 0, 0, 3);
     this.ghostTex = bank.bake(drawAvatar(appearance, true, seat), 0, 0, 3);
+    this.labelAnchor = labelAnchorOf(appearance);
     this.shadow = new Sprite(bank.shadow); this.shadow.anchor.set(0.5); this.shadow.scale.set(1.1, 0.5);
     this.ring = spriteOf(bank.ring); this.ring.anchor.set(0.5); this.ring.visible = false; this.ring.tint = 0xffe28a;
     this.body = spriteOf(this.bodyTex);
@@ -145,6 +147,7 @@ export class Avatar {
     const oldBody = this.bodyTex, oldGhost = this.ghostTex;
     this.bodyTex = this.bank.bake(drawAvatar(a, false, this.seat), 0, 0, 3);
     this.ghostTex = this.bank.bake(drawAvatar(a, true, this.seat), 0, 0, 3);
+    this.labelAnchor = labelAnchorOf(a);
     const tex = this.mode === 'ghost' ? this.ghostTex : this.bodyTex;
     this.body.texture = tex.texture; this.body.anchor.set(tex.ax, tex.ay);
     oldBody.texture.destroy(true); oldGhost.texture.destroy(true);
@@ -249,7 +252,7 @@ export class Avatar {
     this.arcs.position.set(this.facing * 17, this.body.y - 50 - (ghost ? 12 : 0));
     this.arcs.scale.set(this.facing * (0.9 + Math.sin(this.t * 9) * 0.1) * this.speakT, (0.9 + Math.sin(this.t * 9) * 0.1) * this.speakT);
     this.label.scale.set(labelScale);
-    this.labelBaseY = this.body.y + labelAnchorFor(costumeById(outfitOf(this.look.current)), choiceFor(this.look.current)) - (ghost ? 12 : 0);
+    this.labelBaseY = this.body.y + this.labelAnchor - (ghost ? 12 : 0);
     this.label.y = this.labelBaseY;
     this.label.style.fill = this.speaking ? 0xffe28a : ghost ? 0xcfe0ff : 0xfff6e6;
     this.label.alpha = ghost ? 0.85 : 1;
