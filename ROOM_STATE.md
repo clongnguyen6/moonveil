@@ -36,6 +36,11 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - First deliverable: concept sheet + phone-scale strip + layer/animation/route notes. Human reviews before final assets/integration. Planned UX: pick outfit, then customise, with local preview + Save/Cancel; no random button/unlocks/economy unless Human confirms.
 - Integration later touches visual (scene), game UI (picker), foundation (protocol appearance schema).
 
+## Chat overlay (Human-approved 2026-10-18, implement + review, no deploy)
+- Owner game UI 990963ac, branch game-ui-chat from dev. Persistent corner overlay (working default bottom-left), auto-visible recent messages, clear sender name + content + channel label, translucent bg with readable text, bounded history + full access, no overlap with joystick/vote/night actions/mic, safe areas/keyboard, typing never moves avatar.
+- Fix the root cause of "can't tell who said what", not just relocation. Channel isolation unchanged (no previews/names/badges across channels, incl. night/reconnect); server change → foundation only if evidence requires.
+- Evidence: before/after phone+laptop day/night shots; real-server multi-seat checks (auto-visible, unauthorized never shown, reconnect history, overlap, typing). Browser lock: game UI (art-themes asks first).
+
 ## Milestones
 - M0 init: docs committed on `dev` (acf85a0). [done]
 - M1 visual: mature redo SUPERSEDED (Human returned to original look, 2026-10-17). Baseline = original look (dev 44fb793, BASELINE.md). Option B: keep look, prioritise playtest readiness; polish deferred. Redo branches visual-6, game-ui-art unmerged.
