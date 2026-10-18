@@ -1,6 +1,6 @@
 // Session over the real socket client (apps/web/src/client.ts, foundation-4): chat/speaking/voiceMode/server
 // clock come from ClientState; poses are delivered through client.onPoses (not stored, ≤ 10 Hz).
-import type { ChatMessage, Mode, Pose, Profile, VoiceMode } from '@moonveil/protocol';
+import type { ChatMessage, Mode, Pose, ProfileInput, VoiceMode } from '@moonveil/protocol';
 import { type Client, inviteBase } from '../client.ts';
 import { setServerOffset } from './clock.ts';
 import type { OutMessage, Session, SessionState } from './session.ts';
@@ -25,8 +25,8 @@ export function clientSession(client: Client): Session {
       cached = { status: s.status, code: s.code, view: s.view, error: s.error, chat, speaking: s.speaking, poses: [], voiceMode: s.voiceMode, serverRestart: s.status === 'reconnecting' && s.lastCloseCode === 1012, voiceJoined: s.voiceJoined, voiceSessions: s.voiceSessions.length, voiceAvailable: s.view?.voiceAvailable };
       return cached;
     },
-    create: (mode: Mode, profile: Profile, voiceMode: VoiceMode = 'remote') => client.create(mode, profile, voiceMode),
-    join: (code: string, profile: Profile) => client.join(code, profile),
+    create: (mode: Mode, profile: ProfileInput, voiceMode: VoiceMode = 'remote') => client.create(mode, profile, voiceMode),
+    join: (code: string, profile: ProfileInput) => client.join(code, profile),
     resume: (code: string) => client.resume(code),
     reclaim: () => client.reclaim(),
     leave: () => client.leave(),

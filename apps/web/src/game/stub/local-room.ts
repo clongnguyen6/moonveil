@@ -1,7 +1,7 @@
 // DEV STUB: an in-browser "server" that runs the real @moonveil/rules engine so the UI can be built and
 // screenshotted before foundation wires the engine into apps/server. Mirrors Room.buildView() from
 // apps/server/src/room.ts (view shape, grants, fixed phase deadlines). Never shipped to players.
-import type { Mode, Profile, PublicSeat, SeatId, SeatView, VoiceGrant } from '@moonveil/protocol';
+import type { Mode, Profile, ProfileInput, PublicSeat, SeatId, SeatView, VoiceGrant } from '@moonveil/protocol';
 import type { AppearanceInput, CostumeAppearance } from '@moonveil/protocol';
 import { resolveLook } from '../look.ts';
 import { type Command, type DeckCounts, type HostState, type RulesEngine, createRulesEngine, defaultDeck, resolveConfig, validateDeck } from '@moonveil/rules';
@@ -112,7 +112,7 @@ export class LocalRoom implements Session {
     if (!r.ok) throw new Error(r.error);
     return { id, kind, name: p.name, appearance: r.value, ready, connected: true };
   }
-  create(mode: Mode, profile: Profile, voiceMode: 'remote' | 'inPerson' = 'remote') {
+  create(mode: Mode, profile: ProfileInput, voiceMode: 'remote' | 'inPerson' = 'remote') {
     void mode;
     this.voiceMode = voiceMode;
     const me = this.seatFrom(this.mode === 'moderator' ? 'moderator' : 'player', profile, false);
@@ -123,7 +123,7 @@ export class LocalRoom implements Session {
     this.conn = 'open';
     this.emit();
   }
-  join(code: string, profile: Profile) {
+  join(code: string, profile: ProfileInput) {
     void code;
     const me = this.seatFrom('player', profile, false);
     this.players.push(me);
