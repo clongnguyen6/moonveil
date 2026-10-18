@@ -125,6 +125,7 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Deploy request for f12761a: docs/architecture/0010 §7f (foundation-15 8a73d3d). Decisions asked: approve deploy + timing; 2 h idle timeout yes/no.
 
 ## LIVE 2026-10-18 04:32Z: f12761a (deploy-trial = f12761aa730b…)
+- Deployment CLOSED: Human disabled auto-deploy after DEPLOY OK. No further dashboard changes needed; post-release usage snapshot not yet supplied (last known $4.98 / 29 days, pre-release).
 - Mobile two-deploy path: deploy 1 = 35151f2 + origin vars (www public, railway.app allowed), verified 04:29Z; deploy 2 = push-triggered build of f12761a (auto-deploy ON, to be turned OFF by Human).
 - Proof: /api/status JSON revision f12761a (Railway SHA, MOONVEIL_REVISION unset), persist volume /data/rooms, voice configured. Lobby TKZ4FS survived version change (1012, ~16 s, same seats). Railway Restart test passed earlier (CYR2J8, 1012, ~5 s). Fresh room on www OK.
 - No MOONVEIL_ROOM_IDLE_MS (30 min idle stays). No main merge, no spend. Credit at start: $4.98 / 29 days.
