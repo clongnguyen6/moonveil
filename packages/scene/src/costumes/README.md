@@ -38,3 +38,25 @@ Register it in `index.ts` (`COSTUMES[bowCat.id] = bowCat`).
 
 - `node --test test/costumes.test.ts` (no browser) validates box, arcs band, crown and ghost palette for every registered costume.
 - Harness (needs the browser lock): `?scene=lobby&costume=<id>` dresses every seat; `?scene=ghost&costume=<id>` shows the ghost variant; `?scene=seating&costume=<id>` the seated squash.
+
+## Duck handoff
+
+`duck.ts`, registry ID `duck`: choose `variant: ring | plain`, `hat: duckCap | none`, body color sand/clay, front/back none. Ring halves are fixed variant art, unaffected by hat/front/back choices. Original Moonveil procedural vectors; no external assets or spend.
+
+- `back`: rear ring band + duck nub behind arm. `front`: shallow open rim, with clearance around both hand disks; legs/tail remain visible.
+- `hoodBack` / `hatFront`: duck cap, short beak visor, flat leaf. Hair retained under cap and when cap is off. Crown -92 for duckCap, -75 otherwise; headgear stays left of the speaking-arcs band including outline.
+- All fill/stroke colors use context mapping; scene retains ghost alpha/tail/motion. No redraw of skin or base limbs.
+
+Integration gap at seam af2afd2 (scene owner): `avatar.ts` calls `makeContext` and `labelAnchorFor` without choices. `SceneAppearance` carries only a costume ID, and body rendering always takes `costume.top` over the selected top. Forward the selected variant/color/hat/front/back to drawing and label clearance, and honor selected body color. Otherwise `?costume=duck` receives default/none and cannot show the requested ring/cap or exercise hat-off switching. No default-to-ring workaround or duplicate preview registry IDs added here.
+
+The package has no `check` script at this SHA. Equivalent node checks, from repo root:
+
+```sh
+node scripts/env.mjs npm run typecheck -w @moonveil/scene
+node scripts/env.mjs npm run test -w @moonveil/scene
+node scripts/env.mjs node --test packages/scene/src/costumes/duck.test.ts
+```
+
+Existing rig tests inspect default choices; duck tests additionally exercise the full 2-variant × 2-color × 2-hat matrix, living/ghost, bounds/crown/arcs, and sample the front path plus stroke against both hand disks. These checks do not establish screenshot readability or pose composition.
+
+Browser lock not requested/held for this implementation. Preview remains pending: both facings; idle/walk/seated; day/night; phone/laptop; living/ghost; hat on/off; labels, ring and speaking arcs clear. Scene owner is queued for the placeholder before this preview.
