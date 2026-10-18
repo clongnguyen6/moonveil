@@ -114,6 +114,7 @@ export class LocalRoom implements Session {
   }
   create(mode: Mode, profile: ProfileInput, voiceMode: 'remote' | 'inPerson' = 'remote') {
     void mode;
+    this.left = null;
     this.voiceMode = voiceMode;
     const me = this.seatFrom(this.mode === 'moderator' ? 'moderator' : 'player', profile, false);
     if (me.kind === 'moderator') this.moderator = me;
@@ -125,6 +126,7 @@ export class LocalRoom implements Session {
   }
   join(code: string, profile: ProfileInput) {
     void code;
+    this.left = null;
     const me = this.seatFrom('player', profile, false);
     this.players.push(me);
     this.viewer = me.id;
@@ -138,8 +140,21 @@ export class LocalRoom implements Session {
     this.conn = 'open';
     this.emit();
   }
+  /** Voluntary leave (like the real session): the seat goes, the UI is back on the entry screen with a short note. */
+  left: string | null = null;
   leave() {
-    this.conn = 'ended';
+    if (this.status === 'playing') { this.error = { code: 'not-allowed', message: 'cannot leave a running game' }; this.emit(); return; }
+    this.players = this.players.filter((p) => p.id !== this.viewer);
+    if (this.moderator?.id === this.viewer) this.moderator = null;
+    this.left = this.code;
+    this.viewer = '';
+    this.conn = 'idle';
+    this.emit();
+  }
+  goHome() {
+    this.left = null;
+    this.viewer = '';
+    this.conn = 'idle';
     this.emit();
   }
 
@@ -367,7 +382,7 @@ export class LocalRoom implements Session {
 
   private build(): SessionState {
     const me = this.allSeats().find((x) => x.id === this.viewer);
-    if (!me || this.conn === 'ended') return { ...emptySession(), status: this.conn, error: this.error };
+    if (!me || this.conn === 'ended') return { ...emptySession(), status: this.conn, error: this.error, left: this.left };
     const isMod = me.kind === 'moderator';
     const players: PublicSeat[] = this.players.map((p) => ({
       seat: p.id,

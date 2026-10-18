@@ -73,6 +73,7 @@ export function EntryScreen({ s }: { s: SessionState }) {
       <section className="card stack" style={{ padding: 16 }}>
         <ProfileEditor value={profile} onChange={setProfile} />
       </section>
+      {s.left && <p className="banner ok" role="status" data-testid="left-note">{t('connLeft', { code: s.left })}</p>}
       {screenError(s) && <p className="danger" role="alert" data-testid="error" data-code={screenError(s)!.code}>{errorText(t, screenError(s))}</p>}
       <section className="card stack" style={{ padding: 16 }}>
         {!linkCode && <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('entryJoinTitle')}</h2>}

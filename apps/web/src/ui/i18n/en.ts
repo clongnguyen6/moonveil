@@ -22,7 +22,7 @@ export const en = {
   change: 'Change', waiting: 'Waiting…', seconds: '{s} s', chosen: 'Chosen', nightDoneChange: 'Chosen. You can still change it until dawn.',
 
   connConnected: 'Connected', connReconnecting: 'Reconnecting…', connReconnectHint: 'Your seat and progress are saved.', connRestartHint: 'Your match is saved and paused until the server is back.',
-  connReplaced: 'Opened in another tab.', connUseHere: 'Use here', connEnded: 'You left the room.', connOffline: 'Offline',
+  connReplaced: 'Opened in another tab.', connUseHere: 'Use here', connEnded: 'You are no longer in this room.', connGoHome: 'Back to start', connLeft: 'You left room {code}.', connOffline: 'Offline',
 
   entryTagline: 'Werewolf by the campfire. One phone each, your voices in the game.',
   lookOutfit: 'Outfit', lookStyle: 'Style', lookHeadgear: 'Headgear', lookFront: 'Front', lookBack: 'Back', 

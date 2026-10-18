@@ -54,6 +54,9 @@ Match (frame = scene host + top bar + dock)
 | day.confirm | Yes / No, live tally | own ballot changeable until close | live Yes/No per voter; overlay: executed |
 | ended | winner, reveal | leave | cue: victory/defeat |
 
+## Leaving
+Leave (lobby, end screen) is voluntary: the session adapter remembers it; when the session ends the player is on the entry screen at "/" (replaceState, so Back has no /r/<code> entry) with a short "You left room X" note. client.ts already drops the resume token, intent and voice on bye. Refresh/Back never rejoin; the old invite URL only offers Join. Involuntary ends (room closed, e.g. by the moderator leaving; seat removed; tab not reclaimed) keep the overlay, now "You are no longer in this room" + Back to start. Reconnects (drop, reload with token) are untouched. Proof: `ui/dev/leave-check.mjs` (real server), stub 11n.
+
 ## Errors
 A server error shows only on the screen it arrived on (entry, lobby, or one match step instance; `ui/errors.ts` `screenError`): the client keeps the last error until the next connect, so without this a lobby refusal stayed in the match dock. The look editor counts only an error that arrives after Save as that save's refusal. Proof: stub 11m, picker-check (Chi's lobby refusal absent from the match dock).
 

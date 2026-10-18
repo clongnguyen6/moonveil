@@ -306,7 +306,13 @@ export function ConnOverlay({ status, serverRestart }: { status: ConnStatus; ser
             <Button onClick={() => session.reclaim()}>{t('connUseHere')}</Button>
           </>
         )}
-        {status === 'ended' && <p className="panel-title">{t('connEnded')}</p>}
+        {/* Involuntary end (room closed, seat removed, tab could not reclaim): a voluntary Leave never shows this, it goes home. */}
+        {status === 'ended' && (
+          <>
+            <p className="panel-title">{t('connEnded')}</p>
+            <Button testId="go-home" onClick={() => session.goHome()}>{t('connGoHome')}</Button>
+          </>
+        )}
       </div>
     </div>
   );

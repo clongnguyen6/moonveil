@@ -500,6 +500,19 @@ ok('errors: an entry error shows on entry and not in the lobby after creating (s
 await page.evaluate(() => localStorage.removeItem('moonveil.profile'));
 await open('day');
 
+// 11n. Leave: a voluntary leave goes home (entry + note, no dead-end overlay); an involuntary end shows its own message
+// with Back to start.
+await open('lobby', '&lang=en');
+await page.getByTestId('leave').click(); await page.waitForTimeout(100);
+ok('leave: entry screen with the note, no ended overlay', (await page.getByTestId('entry').count()) === 1 && /STUB42/.test(await page.getByTestId('left-note').innerText()) && (await page.locator('[data-testid=conn][data-status=ended]').count()) === 0);
+await open('lobby', '&lang=en');
+await stub((r) => { r.conn = 'ended'; r.setViewer(r.viewer); });
+await page.waitForTimeout(80);
+ok('room ended (not by me): "no longer in this room" + Back to start', (await page.locator('[data-testid=conn][data-status=ended]').count()) === 1 && !/You left/.test(await page.getByTestId('conn').innerText()) && (await page.getByTestId('go-home').count()) === 1);
+await page.getByTestId('go-home').click(); await page.waitForTimeout(80);
+ok('Back to start: entry, no overlay, no note', (await page.getByTestId('entry').count()) === 1 && (await page.locator('[data-testid=conn][data-status=ended], [data-testid=left-note]').count()) === 0);
+await open('day');
+
 // 11k. Chat overlay: always visible, names + content, channel labels, isolation, same footprint for every seat.
 // Sender consistency: every rendered message's name AND avatar come from the seat that sent it (stub chat log `from`).
 const senderMismatches = () => page.evaluate(() => {

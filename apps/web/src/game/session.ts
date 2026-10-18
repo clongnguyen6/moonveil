@@ -32,6 +32,8 @@ export interface SessionState {
   voiceSessions: number;
   /** Server-side voice availability (`SeatView.voiceAvailable`, foundation-15): false = no voice backend, no Join voice. */
   voiceAvailable?: boolean;
+  /** Room code this player just left on purpose (Leave), for the entry screen's short note; null otherwise. */
+  left?: string | null;
 }
 
 export interface Session {
@@ -41,7 +43,10 @@ export interface Session {
   join(code: string, profile: ProfileInput): void;
   resume(code: string): boolean;
   reclaim(): void;
+  /** Voluntary leave: when the session ends, the UI returns to the entry screen and the room code leaves the URL. */
   leave(): void;
+  /** Back to the entry screen after the session ended (any reason): clears the room from the URL; reconnect state is the client's. */
+  goHome(): void;
   send(msg: OutMessage): boolean;
   /** Invite link origin (LAN URL when the host browses on localhost); absent on the stub. */
   inviteBase?(): Promise<string>;

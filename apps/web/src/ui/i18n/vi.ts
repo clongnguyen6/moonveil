@@ -23,7 +23,7 @@ export const vi: Strings = {
   change: 'Đổi', waiting: 'Đang chờ…', seconds: '{s} giây', chosen: 'Đã chọn', nightDoneChange: 'Đã chọn. Vẫn có thể đổi đến khi trời sáng.',
 
   connConnected: 'Đã kết nối', connReconnecting: 'Đang kết nối lại…', connReconnectHint: 'Ghế và tiến trình của bạn được lưu.', connRestartHint: 'Ván của bạn được lưu và tạm dừng đến khi máy chủ hoạt động lại.',
-  connReplaced: 'Đã mở ở tab khác.', connUseHere: 'Dùng ở đây', connEnded: 'Bạn đã rời phòng.', connOffline: 'Ngoại tuyến',
+  connReplaced: 'Đã mở ở tab khác.', connUseHere: 'Dùng ở đây', connEnded: 'Bạn không còn ở trong phòng này.', connGoHome: 'Về trang đầu', connLeft: 'Bạn đã rời phòng {code}.', connOffline: 'Ngoại tuyến',
 
   entryTagline: 'Ma Sói bên lửa trại. Mỗi người một điện thoại, nói chuyện ngay trong game.',
   lookOutfit: 'Bộ đồ', lookStyle: 'Kiểu', lookHeadgear: 'Mũ', lookFront: 'Phía trước', lookBack: 'Sau lưng', 
