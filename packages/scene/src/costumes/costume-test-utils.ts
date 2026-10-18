@@ -28,7 +28,9 @@ export function assertSelection(costume: Costume, choice: CostumeChoice) {
     assert.ok(b.rec.minY - width / 2 >= RIG.box.minY, description);
     assert.ok(b.rec.maxY + width / 2 <= RIG.box.maxY, description);
     if (layer === 'hoodBack' || layer === 'hatFront') {
-      assert.ok(b.rec.maxX + width / 2 <= RIG.arcsBand.minX, description);
+      const a = RIG.arcsBand;
+      assert.equal(b.rec.shapes.some(s => s.maxX > a.minX && s.minX < a.maxX && s.maxY > a.minY && s.minY < a.maxY),
+        false, `${description}: headgear stroke intersects arcs band`);
       assert.ok(labelAnchorFor(costume, choice) <= b.rec.minY - width / 2 - 6, description);
     }
     if (layer === 'hatFront') {

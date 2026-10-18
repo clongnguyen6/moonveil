@@ -14,12 +14,13 @@ export function pufferHatFront(ctx: CostumeContext) {
     .quadraticCurveTo(9, crown + 2, 0, crown + 2)
     .quadraticCurveTo(-8, crown + 1, -16, crown + 7).closePath();
   paint(ctx, M.sand);
-  // Soft fins belong to the hat, never to the camper's arms.
+  // Broad felt fins sit above the arcs band, not thin flaps beside the face.
   for (const side of [-1, 1]) {
-    b.moveTo(side * 15, crown + 1)
-      .quadraticCurveTo(side * 19, crown - 5, side * 19, crown + 2)
-      .quadraticCurveTo(side * 18, crown + 8, side * 15, crown + 5).closePath();
-    paint(ctx, M.sand, 1.6);
+    b.moveTo(side * 14, crown - 5)
+      .quadraticCurveTo(side * 20, crown - 14, side * 26, crown - 10)
+      .quadraticCurveTo(side * 28, crown - 5, side * 24, crown - 2)
+      .lineTo(side * 16, crown - 1).closePath();
+    paint(ctx, M.ember, 1.6);
   }
   for (const x of [-9, 8]) {
     b.circle(x, crown - 3, 3.4).fill(ctx.color(M.oatmeal));
