@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="440" viewBox="0 0 960 440" role="img" aria-labelledby="title desc">
+  <title id="title">Moonveil goofy shark — production construction</title>
+  <desc id="desc">Current human camper, canvas shark costume, pale costume variant, and a 41 pixel base-height sample. Original vector construction; not a scene capture.</desc>
+  <defs>
+    <g id="body" stroke="#49372c" stroke-opacity=".6" stroke-width="2" stroke-linejoin="round">
+      <g fill="#3a4457"><rect x="-10" y="-16" width="9" height="16" rx="3"/><rect x="1" y="-16" width="9" height="16" rx="3"/></g>
+      <g fill="#2a2a30" stroke="none"><rect x="-11" y="-3" width="11" height="4" rx="2"/><rect y="-3" width="11" height="4" rx="2"/></g>
+      <g fill="currentColor"><rect x="-16" y="-48" width="32" height="34" rx="10"/><rect x="-21" y="-44" width="8" height="22" rx="4"/><rect x="13" y="-44" width="8" height="22" rx="4"/></g>
+      <g fill="#e8b894" stroke="none"><circle cx="-17" cy="-22" r="4"/><circle cx="17" cy="-22" r="4"/></g>
+      <circle cy="-60" r="15" fill="#e8b894"/>
+      <path d="M-15-62 Q-14-78 0-77 Q14-78 15-64 Q8-70 2-72 Q-6-71-15-62" fill="#2b1d16" stroke="none"/>
+      <g fill="#2a2229" stroke="none"><circle cx="5" cy="-60" r="2"/><circle cx="11" cy="-59" r="2"/></g>
+      <ellipse cx="9" cy="-54" rx="4" ry="2" fill="#ff8a8a" opacity=".35" stroke="none"/>
+    </g>
+    <g id="hood-back" fill="currentColor" stroke="#49372c" stroke-opacity=".6" stroke-width="2" stroke-linejoin="round">
+      <path d="M-12-79 Q-15-88-9-89 Q-3-87 2-79Z"/>
+      <ellipse cy="-61" rx="20" ry="21"/>
+    </g>
+    <g id="pouch" fill="currentColor" stroke="#49372c" stroke-opacity=".6" stroke-width="2" stroke-linejoin="round">
+      <path d="M-13-40 Q-18-38-22-43 Q-26-45-24-39 L-21-35 Q-25-31-24-28 Q-22-26-18-31 L-13-29Z"/>
+    </g>
+    <g id="hood-front" stroke="#49372c" stroke-opacity=".6" stroke-width="2" stroke-linejoin="round">
+      <path d="M0-82 A20 21 0 1 1 0-40 A20 21 0 1 1 0-82 M0-76 A16 16 0 1 0 0-44 A16 16 0 1 0 0-76" fill="currentColor" fill-rule="evenodd"/>
+      <g fill="#e9e0c8" stroke="none"><rect x="-10" y="-74" width="4" height="5" rx="2"/><rect x="1" y="-74" width="4" height="5" rx="2"/><circle cx="-8" cy="-78" r="3"/><circle cx="7" cy="-78" r="3"/></g>
+      <g fill="#2a2a30" stroke="none"><circle cx="-7" cy="-78" r="1.2"/><circle cx="8" cy="-78" r="1.2"/></g>
+    </g>
+    <g id="shark" color="#6d7f94"><use href="#pouch"/><use href="#hood-back"/><use href="#body"/><use href="#hood-front"/></g>
+    <filter id="pale" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".12 .12 .12 0 .60 .12 .12 .12 0 .67 .12 .12 .12 0 .78 0 0 0 .78 0"/></filter>
+  </defs>
+  <path fill="#21312f" d="M0 0H960V440H0Z"/>
+  <g fill="#ffedca" font-family="system-ui, sans-serif">
+    <text x="28" y="38" font-size="23" font-weight="600">MOONVEIL / GOOFY SHARK</text>
+    <text x="28" y="64" font-size="13">Production vector construction • current human base • no new concept approval gate</text>
+    <g font-size="13"><text x="65" y="104">CURRENT BASE</text><text x="300" y="104">SHARK / SLATE</text><text x="553" y="104">PALE MATERIAL STUDY</text><text x="785" y="104">PHONE SCALE</text></g>
+  </g>
+  <use href="#body" transform="translate(125 353) scale(2.65)" color="#d9603b"/>
+  <use href="#shark" transform="translate(360 353) scale(2.65)"/>
+  <g filter="url(#pale)"><use href="#shark" transform="translate(635 353) scale(2.65)"/></g>
+  <use href="#shark" transform="translate(850 262) scale(.52)"/>
+  <g fill="#cfdbcc" font-family="system-ui, sans-serif" font-size="12">
+    <text x="785" y="292">78 × 0.8 × 0.65</text><text x="785" y="310">≈41 px base height</text>
+    <text x="28" y="393">Dorsal fin + two blunt felt tabs; compact tail pouch. No snout, ears or transformed body.</text>
+    <text x="28" y="415">Pale study shows costume materials only; scene seam owns ghost tail, skin, alpha, motion and label clearance.</text>
+  </g>
+</svg>
