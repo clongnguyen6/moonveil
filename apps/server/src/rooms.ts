@@ -3,7 +3,7 @@ import { randomBytes, randomInt } from 'node:crypto';
 import {
   type ClientMessage,
   type Mode,
-  type Profile,
+  type ProfileInput,
   ROOM_CODE_ALPHABET,
   type VoiceMode,
   ROOM_CODE_LENGTH,
@@ -61,7 +61,7 @@ export class Registry {
     };
   }
 
-  create(mode: Mode, creator: Profile, voiceMode: VoiceMode = 'remote'): Room {
+  create(mode: Mode, creator: ProfileInput, voiceMode: VoiceMode = 'remote'): Room {
     const code = this.newCode();
     const room = new Room(code, mode, creator, this.deps(), voiceMode);
     this.rooms.set(code, room);

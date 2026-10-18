@@ -1,4 +1,4 @@
-# 0011: Appearance contract for costumes (PROPOSAL, for review)
+# 0011: Appearance contract for costumes
 
 Status: proposal, 2026-10-18. Foundation owns the shape, validation and persistence. The art-themes owner owns the catalog content; every id in `packages/protocol/src/appearance-v2.ts` is a placeholder. The scene and the picker UI consume the contract. Nothing is wired in yet: the wire still carries `{color, hat}`, and live stays `3b1dbde`.
 
@@ -46,4 +46,22 @@ Status: proposal, 2026-10-18. Foundation owns the shape, validation and persiste
   - or a small shape extension: per-variant overrides of the outfit's lists, e.g. `variants: { puffer: { hats: ['pufferHat'] }, shark: { hats: ['sharkHat'] } }`. Validation would read the variant's list first.
 
   Either stays a catalog-level change. The extension is a shape change, so it's foundation's if chosen.
+
+## Implementation (foundation-appearance, 2026-10-18)
+- **Catalog:** transcribed exactly from `docs/visual/themes/CATALOG.md` (art-themes `3776e4d`), in `packages/protocol/src/appearance.ts`.
+  - The fish choice lives only in `variant` (`puffer` / `shark`); `fishHeadgear` or `none` is the hat.
+  - New back item `finPouch`. `none` comes after every costume headgear. No fourth slot.
+- **Validation:**
+  - `ProfileInput` accepts the costume form or legacy `{color, hat}` (structure only). `normalizeCostume` fills the outfit's defaults, or refuses.
+  - The server (`apps/server/src/appearance.ts`) turns a refusal into a whole-profile `invalid-appearance`. Nothing changes on refusal, and a refused join leaves no seat.
+- **Legacy upgrade:** camper, same colour and hat, `front`/`back` from `@moonveil/scene/seed` `seededExtras(seat)`, `body` absent. It applies to both legacy input and restored seats. Restored canonical seats are re-validated against the current catalog; an unreadable one falls back to the seeded camper (`room <CODE> appearance-reset seats=N`).
+- **STATE_VERSION:** unchanged (2). Room snapshots keep `v: 1`.
+- **Evidence:** `apps/server/test/appearance.test.ts`, with real 3b1dbde snapshots in `apps/server/test/fixtures/rooms-3b1dbde/`, written by running 3b1dbde's own server code:
+  - every catalog combination valid;
+  - unknown and mismatched input refused;
+  - legacy input accepted;
+  - lobby and mid-match snapshots restore, and each seat equals what the scene's legacy adapter drew;
+  - looks identical across two role deals, for every viewer;
+  - the look is locked during play.
+- **Wire type:** `PublicSeat.appearance: CostumeAppearance | Appearance`. Servers send the canonical form; the legacy pair stays in the type for stubs and older servers. Both forms carry `color` and `hat`, and `legacyLook()` gives the `{color, hat}` view for code still on the legacy picker.
 
