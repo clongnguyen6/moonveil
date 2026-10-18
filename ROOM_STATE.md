@@ -24,7 +24,7 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 |---|---|---|---|
 | foundation: root tooling, server, protocol, client.ts/main.tsx/vite.config/web manifest, e2e harness | 46b279f0 | root config, apps/*, packages/protocol, e2e/, docs/architecture | 4100–4199 |
 | rules: proposal + pure engine | fd99d2a9 | packages/rules, docs/rules | 4500–4599 (E2E_PORT for root check) |
-| visual → scene (branch visual-2) | d9e8c62b | packages/scene, docs/visual (preview/ being retired) | 4200–4299 |
+| visual → scene (from ~10:10Z; d9e8c62b hit Fable model limit, handed over) | c4495920 | packages/scene, docs/visual (preview/ being retired) | 4200–4299 |
 | game UI (from 2026-10-18 ~10:05Z; 990963ac hit model limit, handed over) | b5491460 | apps/web/src/game/**, apps/web/src/ui/**, App.tsx, styles.css, provisional/** (handed over), docs/ui; user-facing LAN helpers | 4400–4499 |
 | voice (spike → product) | 87bbae25 | spikes/voice, docs/voice, packages/voice (new) | 4300–4399 |
 | review (read-only, done): rules 9af74b8 | 09a95d56 (codex) | none | — |
@@ -47,6 +47,7 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Placeholder check done (visual-costumes 5ec35e6, docs/visual/costumes/). Visual integration window open (scene check + root check, no browser).
 - Foundation contract built: foundation-appearance 3bc0e8a (includes visual-costumes 14c9dea). Catalog from CATALOG.md; invalid-appearance; legacy upgrade with seededExtras; STATE_VERSION 2 unchanged; restore tests from real 3b1dbde snapshots. One-off handover to foundation: 4 type-only UI call sites (local-room.ts:149, look-draft sameLook, components/index.tsx:15, Lobby.tsx:144). Order into dev: visual-costumes → foundation-appearance.
 - Browser lock: game UI b5491460 (chat re-check) → Codex (duck preview).
+- Model limits: Fable seats (old game UI, old visual) hit usage limits; replaced by Opus 5.5 seats. Voice 87bbae25 is also Fable (idle); re-seat if needed.
 - Chat candidate 724ae36 (local, unpushed) NOT go: wrong avatar on a message (Bình shown with Chi's "CH"), phone box hides whole campfire circle (blur), root cause not stated. Laptop + isolation good.
 - Phase 2: duck-with-ring + ghost in real scene (layering, seated, flip, label/ring clearance, phone/laptop day/night) = next Human preview.
 - Phase 3: batch remaining looks + ghosts; picker; candidate checks; ff into dev. Deploy needs approval.
