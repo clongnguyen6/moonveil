@@ -45,6 +45,6 @@ export const lookDraft = {
 export function useLookDraft(): LookState {
   return useSyncExternalStore(lookDraft.subscribe, lookDraft.get);
 }
-export const sameLook = (a: Profile['appearance'], b: Profile['appearance']) => a.color === b.color && a.hat === b.hat;
+export const sameLook = (a: { color: string; hat: string }, b: { color: string; hat: string }) => a.color === b.color && a.hat === b.hat;
 // Test hook (dev/e2e): read the editor state without touching React.
 (globalThis as { __moonveilLook?: typeof lookDraft }).__moonveilLook = lookDraft;
