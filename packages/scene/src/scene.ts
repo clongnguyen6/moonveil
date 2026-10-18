@@ -14,6 +14,7 @@ import { lerp, clamp, mixColor, smooth } from './rng.ts';
 import type { CameraMode, Pose, PoseFrame, SafeArea, SceneAppearance, SceneHandle, SceneInput, SceneOptions, SeatId, PerfStats } from './types.ts';
 import { resolveQuality, renderProfile, readQualityEnv } from './quality.ts';
 import { layoutLabels, type LabelRect } from './labels.ts';
+import { frameCamera } from './framing.ts';
 import { playersDiff, spawnPoint, effectiveAppearance } from './reconcile.ts';
 
 const SMALL_LABEL_FROM = 13;   // seats from which labels drop one size step (12 → 11 px)
@@ -31,7 +32,7 @@ function offHandle(input: SceneInput): SceneHandle {
   return {
     ready: Promise.resolve(), quality: 'off',
     setInput(next) { inp = next; }, setPoses() {}, setSpeaking() {}, on() { return () => {}; }, emote() {}, setSpeakingLocal() {},
-    async setAudio() {}, setCamera() {}, setSafeArea() {}, resize() {}, setLocalAppearanceOverride() {}, debugAppearance: () => null,
+    async setAudio() {}, setCamera() {}, setSafeArea() {}, resize() {}, setLocalAppearanceOverride() {}, debugAppearance: () => null, debugCamera: () => null,
     time: () => 0, perf: () => null, perfReset() {}, walkLocal() {}, localPose: () => null, night: () => (inp.phase === 'night' ? 1 : 0), destroy() {},
   };
 }
@@ -107,6 +108,8 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   const timers: { t: number; fn: () => void }[] = [];
   let snap = true;
   const cam = { x: 0, y: 0, scale: 1 };
+  let focusFraming = false;   // phone focus framing active (framing.ts): labels keep full size
+  let aim: { scale: number; cx: number; cy: number } | null = null, aimKey = '';   // eased 'fit' camera; snaps on resize
   const follow: { x: number; y: number } = { x: FIRE.x, y: FIRE.y };
   let moveAcc = 0;
   let lastSent: Pose | null = null;
@@ -279,9 +282,22 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     const innerW = Math.max(100, vw - safe.left - safe.right), innerH = Math.max(100, vh - safe.top - safe.bottom);
     const fit = Math.min(innerW / fr.w, innerH / fr.h);
     const portrait = vh > vw * 1.1;
-    let scale = fit;
-    let cx = fr.x + fr.w / 2, cy = fr.y + fr.h / 2;
+    const me0 = avatars.get(input.me.seat);
+    const ghostAt = me0 && me0.mode === 'ghost' && canMove(input, input.me.seat) ? { x: me0.x, y: me0.y } : null;
+    const want = frameCamera(map, input.phase, innerW, innerH, ghostAt, safe.bottom === 0);
+    let { scale, cx, cy } = want;
+    focusFraming = want.focus;
+    const key = `${vw}|${vh}|${innerW}|${innerH}|${cameraMode}|${portrait}|${map.seats.length}`;
+    if (!aim || key !== aimKey) { aim = { scale, cx, cy }; aimKey = key; }   // first frame, resize, safe-area or map change: snap
+    else {
+      // phase change (camp <-> focus, day <-> night): ease; settle exactly so the low profile's on-change lightmap stops
+      const k = 1 - Math.exp(-dt * 3);
+      aim.scale += (scale - aim.scale) * k; aim.cx += (cx - aim.cx) * k; aim.cy += (cy - aim.cy) * k;
+      if (Math.abs(aim.scale - scale) < 1e-4 && Math.abs(aim.cx - cx) < 0.5 && Math.abs(aim.cy - cy) < 0.5) aim = { scale, cx, cy };
+      ({ scale, cx, cy } = aim);
+    }
     if (cameraMode === 'tight' && portrait) {
+      focusFraming = false; aim = null;
       scale = Math.max(fit, innerH / 1150);
       const me = avatars.get(input.me.seat);
       const visible = !!me && me.mode !== 'hidden';
@@ -313,7 +329,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     const d = target - nightLevel;
     nightLevel = Math.abs(d) < dt * NIGHT_SPEED ? target : nightLevel + Math.sign(d) * dt * NIGHT_SPEED;
     const n = nightLevel, moonL = clamp((n - 0.4) / 0.6, 0, 1);
-    const labelScale = clamp(1 / cam.scale, 1, 3.2) * (cam.scale < 0.65 ? 0.8 : 1);
+    const labelScale = clamp(1 / cam.scale, 1, 3.2) * (cam.scale < 0.65 && !focusFraming ? 0.8 : 1);
     const now = performance.now();
 
     // avatars
@@ -428,6 +444,18 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       if (av && eff) av.setAppearance(eff);   // in place: position, pose, facing, intent untouched; nothing emitted
     },
     debugAppearance(seat) { return opts.debug ? (avatars.get(seat)?.appearance ?? null) : null; },
+    debugCamera() {
+      if (!opts.debug || !app) return null;
+      let labelPx = Infinity, box: { x0: number; y0: number; x1: number; y1: number } | null = null;
+      for (const av of avatars.values()) {
+        if (!av.root.visible || av.root.alpha <= 0 || av.mode === 'ghost') continue;   // campers; ghosts float freely
+        labelPx = Math.min(labelPx, Number(av.label.style.fontSize) * av.label.scale.y * cam.scale);
+        const sx = cam.x + av.x * cam.scale, top = cam.y + (av.y + av.labelBaseY) * cam.scale - av.label.height * cam.scale, bot = cam.y + av.y * cam.scale;
+        const hw = Math.max(av.label.width * cam.scale, 40 * cam.scale) / 2;
+        box = box ? { x0: Math.min(box.x0, sx - hw), y0: Math.min(box.y0, top), x1: Math.max(box.x1, sx + hw), y1: Math.max(box.y1, bot) } : { x0: sx - hw, y0: top, x1: sx + hw, y1: bot };
+      }
+      return { scale: cam.scale, labelPx: labelPx === Infinity ? 0 : labelPx, view: { w: app.screen.width, h: app.screen.height }, safe: { ...safe }, avatars: box };
+    },
     async setAudio(on) { if (on) await ambience.enable(); else ambience.disable(); },
     setCamera(mode) { cameraMode = mode; },
     setSafeArea(insets) { Object.assign(safe, insets); },

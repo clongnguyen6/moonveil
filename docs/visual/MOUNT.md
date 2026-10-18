@@ -50,6 +50,7 @@ Test hook, gated: with `mountScene(slot, { debug: true })`, `scene.debugAppearan
 
 - The canvas fills the slot (`position:absolute; inset:0` as in layout.css). The scene observes the slot with `ResizeObserver` and resizes itself; `scene.resize()` exists for shells that prefer to drive it.
 - `setSafeArea({ top, right, bottom, left })` in CSS px: the camera frames the camp inside the uncovered area. Pass the topbar height (and the dock height when it overlaps the slot on phones). The scene's HUD elements are only the joystick.
+- Camera framing (`src/framing.ts`): the whole camp, except on small slots during play (camp fit below 0.45 = phones; laptops unchanged), where the seat ring (day/ended) or tents + fire (night) is framed up to scale 0.65 and names stay 12 px; the lobby is never focus-framed; a moving local ghost stays in frame. Contract for overlays: with no bottom safe area, seats never enter the bottom 26 % of the uncovered height (camp frame: 25.7 %), so a bottom row smaller than that needs no safe area. Evidence: `docs/visual/framing/`.
 - Portrait phones use the "tight" camera (zoomed, soft follow of your avatar) unless `camera: 'fit'` is passed; this is decided from the slot's size, not the window.
 
 ## Timing and choreography
