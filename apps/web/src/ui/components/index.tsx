@@ -12,7 +12,7 @@ export function Avatar({ p, size, dead, ghost, speaking }: { p: Pick<PublicSeat,
   return (
     <span className={`avatar c-${p.appearance.color} ${size ?? ''} ${dead ? 'dead' : ''} ${ghost ? 'ghost' : ''}`} aria-hidden="true">
       {initials}
-      {p.appearance.hat !== 'none' && <span className="hat">{HAT_GLYPH[p.appearance.hat]}</span>}
+      {p.appearance.hat !== 'none' && <span className="hat">{HAT_GLYPH[p.appearance.hat as keyof typeof HAT_GLYPH]}</span>}
       {speaking && <span className="speaking-ring pulse" />}
     </span>
   );

@@ -36,8 +36,8 @@ test('ghost tint is pale and bluish for any design colour; the context maps colo
 
 test('costume is part of the appearance key, so dressing a seat re-bakes it', () => {
   const a = PRESETS[0]!;
-  assert.notEqual(appearanceKey(a), appearanceKey({ ...a, costume: 'placeholder' }));
-  assert.equal(appearanceKey(a), appearanceKey({ ...a, costume: undefined }));
+  assert.notEqual(appearanceKey(a), appearanceKey({ ...a, outfit: 'placeholder' }));
+  assert.equal(appearanceKey(a), appearanceKey({ ...a, outfit: undefined }));
 });
 
 import { choiceFor, outfitOf } from '../src/reconcile.ts';

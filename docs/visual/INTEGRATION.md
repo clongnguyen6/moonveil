@@ -43,9 +43,9 @@ Scene state that is not in the snapshot is **positional**: the scene computes se
 
 ADR 0001 item 7 already requires the provider to re-publish speaking per seat through the server. Proposed frame: `{ t: 'speaking', seats: SeatId[] }` at ≤ 5 Hz, filtered per viewer to seats on channels the viewer may `listen` to. Ghost speakers thus reach ghosts and the moderator only; wolves at night reach wolves only. The scene shows the indicator for any seat in the list; it does not know the channel.
 
-## Appearance catalog (protocol change, foundation; ids from visual)
+## Appearance (ADR 0011; catalog content: art owner)
 
-`Appearance` is provisional `{ color, hat }`. Visual will deliver the final id lists with the art pass; proposed shape: `{ skin, top, hair, hairColor, hat, extra }`, all enums, chosen by the player, never touched by the server or engine. Role independence holds by construction: appearance is set before roles exist and is in `PublicSeat` for everyone.
+Wire appearance is `{ outfit, variant, color, hat, front, back, body? }` (legacy `{ color, hat }` still accepted). The scene converts it with `sceneAppearance(wire, seat)` (also used by `toSceneInput`): only catalog outfits the scene draws reach the art (a registered costume declaring its catalog `options`); choices outside the outfit's options fall back to its defaults; anything else renders a plain camper. Absent `body` = seat-seeded. Chosen by the player, never touched by the engine; role independence holds by construction.
 
 ## Phase transitions and timing
 

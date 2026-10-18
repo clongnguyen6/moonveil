@@ -16,7 +16,6 @@ const O = (c: number) => ({ width: 2, color: shade(c, 0.55), alpha: 0.6, join: '
 export function labelAnchorOf(a: SceneAppearance): number { return labelAnchorFor(costumeById(outfitOf(a)), choiceFor(a)); }
 
 // Draws a camper facing right, feet at (0,0). ghost=true draws the spectral variant (no legs, tail, pale).
-// Draws a camper facing right, feet at (0,0). ghost=true draws the spectral variant (no legs, tail, pale).
 // Costume pieces are layered into fixed slots of this unchanged base rig (see rig.ts for the order).
 export function drawAvatar(a: SceneAppearance, ghost: boolean, seedKey: string): Graphics {
   const g = new Graphics();
