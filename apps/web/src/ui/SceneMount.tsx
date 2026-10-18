@@ -59,6 +59,31 @@ export function SceneMount({ s, topbarRef, micOn }: { s: SessionState; topbarRef
     const top = topbarRef.current?.offsetHeight ?? 0;
     scene.current?.setSafeArea({ top });
   });
+  // Chat overlay (sibling in .scene-host) vs the campfire circle. The camera frames the whole camp (frameRect); the
+  // frame keeps 25.7 % of its height below the seat ring (CORE bottom 1060 vs lowest seated feet ≈ 849). So:
+  // - compact box (phones, full width): reserve it as the bottom safe area only when it covers more than 25 % of the
+  //   uncovered height (keyboard open, very short screens); otherwise it sits in that margin and the camp keeps its size;
+  // - corner box (laptops): reserve it when it spans ≥ 40 % of the width or ≥ 30 % of the height (small laptops).
+  // chat-check.mjs measures the seats against the box at phone and laptop sizes.
+  useEffect(() => {
+    const el = slot.current, host = el?.parentElement;
+    const box = host?.querySelector<HTMLElement>('[data-testid=chat-overlay]');
+    if (!el || !box) return;
+    const apply = () => {
+      const s = el.getBoundingClientRect(), b = box.getBoundingClientRect();
+      const cover = Math.max(0, Math.round(s.bottom - b.top)), inner = s.height - (topbarRef.current?.offsetHeight ?? 0);
+      const reserve = box.dataset.compact === 'true' ? cover > 0.25 * inner : b.width >= 0.4 * s.width || b.height >= 0.3 * s.height;
+      const bottom = reserve ? cover + 8 : 0;
+      el.dataset.safeBottom = String(bottom);
+      scene.current?.setSafeArea({ bottom });
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el); ro.observe(box);
+    const mo = new MutationObserver(apply);
+    mo.observe(box, { attributes: true, attributeFilter: ['data-compact', 'class'] });
+    return () => { ro.disconnect(); mo.disconnect(); };
+  }, [view?.code, view?.status]);
 
   return <div className="scene-slot" ref={slot} data-testid="scene-slot" aria-hidden="true" />;
 }
