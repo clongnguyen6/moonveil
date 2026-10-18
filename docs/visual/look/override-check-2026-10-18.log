@@ -1,0 +1,5 @@
+ok   local avatar renders the draft
+ok   remote avatar unchanged by the draft
+ok   local position and facing preserved
+ok   draft survives a snapshot update
+ok   clearing restores the saved look
