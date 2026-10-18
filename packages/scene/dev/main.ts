@@ -71,6 +71,8 @@ window.__moonveil = {
   emote: (s: string) => scene.emote(s),
   night: () => scene.night(),
   localPose: () => scene.localPose(),
+  // simulate "save a new look" for a seat: the stub server updates the snapshot and the scene re-bakes that avatar
+  setLook: (seat: string, patch: Record<string, string>) => { server.input = { ...server.input, players: server.input.players.map((p) => (p.seat === seat ? { ...p, appearance: { ...p.appearance, ...patch } } : p)) }; scene.setInput(server.input); },
   time: () => scene.time(),
   perf: () => scene.perf(),
   perfReset: () => scene.perfReset(),

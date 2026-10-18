@@ -14,6 +14,7 @@ import { lerp, clamp, mixColor, smooth } from './rng.ts';
 import type { CameraMode, Pose, PoseFrame, SafeArea, SceneHandle, SceneInput, SceneOptions, SeatId, PerfStats } from './types.ts';
 import { resolveQuality, renderProfile, readQualityEnv } from './quality.ts';
 import { layoutLabels, type LabelRect } from './labels.ts';
+import { playersDiff, spawnPoint } from './reconcile.ts';
 
 const SMALL_LABEL_FROM = 13;   // seats from which labels drop one size step (12 → 11 px)
 
@@ -181,20 +182,20 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       // more players than tents/seats: rebuild layout (lobby only in practice)
       rebuildMap(next.players.length);
     }
-    // create / remove avatars
-    const seen = new Set<SeatId>();
-    next.players.forEach((p) => {
-      seen.add(p.seat);
+    // create / remove / re-bake avatars from the snapshot diff
+    const diff = playersDiff(prev === next ? [] : prev.players, next.players);
+    for (const p of next.players) {
       let av = avatars.get(p.seat);
       if (!av) {
         av = new Avatar(p.seat, p.name, p.appearance, bank);
         world.objects.addChild(av.root); emissive.addChild(av.glow, ...av.wisps);
         avatars.set(p.seat, av);
         av.mode = 'hidden'; // until positioned
-      }
+      } else av.setAppearance(p.appearance);   // no-op when unchanged
       av.setName(p.name + (next.reveal?.[p.seat] ? ` · ${next.reveal[p.seat]}` : ''));
-    });
-    for (const [seat, av] of avatars) if (!seen.has(seat)) { av.destroy(); avatars.delete(seat); intents.delete(seat); poses.drop(seat); }
+    }
+    for (const seat of diff.removed) { const av = avatars.get(seat); if (av) { av.destroy(); avatars.delete(seat); intents.delete(seat); poses.drop(seat); } }
+    for (const [seat, av] of avatars) if (!next.players.some((p) => p.seat === seat)) { av.destroy(); avatars.delete(seat); intents.delete(seat); poses.drop(seat); }
     const nightNow = nightLevelFor(next.phase);
     if (snapNow) nightLevel = nightNow;
     // intents
@@ -211,7 +212,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       switch (intent.kind) {
         case 'free': {
           av.mode = 'idle'; av.alpha = 1;
-          if (local && (snapNow || before === undefined)) { const s = map.seats[0]!; av.setPos(FIRE.x - 40, FIRE.y + 200); void s; }
+          if (local && (snapNow || before === undefined)) { const sp = spawnPoint(map, next.players.indexOf(p)); av.setPos(sp.x, sp.y); }
           if (!local) av.mode = poses.has(p.seat) ? 'idle' : 'hidden';
           break;
         }
