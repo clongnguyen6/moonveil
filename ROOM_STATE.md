@@ -28,6 +28,13 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 | game UI | 990963ac | apps/web/src/game/**, apps/web/src/ui/**, App.tsx, styles.css, provisional/** (handed over), docs/ui; user-facing LAN helpers | 4400–4499 |
 | voice (spike → product) | 87bbae25 | spikes/voice, docs/voice, packages/voice (new) | 4300–4399 |
 | review (read-only, done): rules 9af74b8 | 09a95d56 (codex) | none | — |
+| art-themes: six cosmetic outfit concepts (concept sheet only; no code) | 69dc0d82 (codex, owner-chosen Codex) | docs/visual/themes/** on branch art-themes | none (ask Lead before scene rendering) |
+
+## Art themes (Human-approved 2026-10-18, concepts only)
+- Six original themes: bow cat, robot cat, chubby fish (puffer/shark), camping frog, yellow duck, forest mushroom. Inspired-by, not replicas; appearance-only, role-independent; camping world kept.
+- Working assumption (reversible): costumes/headgear on current base, not full-species. Open: puffer vs shark; costume vs species.
+- First deliverable: concept sheet + phone-scale strip + layer/animation/route notes. Human reviews before final assets/integration. Planned UX: pick outfit, then customise, with local preview + Save/Cancel; no random button/unlocks/economy unless Human confirms.
+- Integration later touches visual (scene), game UI (picker), foundation (protocol appearance schema).
 
 ## Milestones
 - M0 init: docs committed on `dev` (acf85a0). [done]
