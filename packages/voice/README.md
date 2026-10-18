@@ -37,6 +37,6 @@ for the client). Optional: `MOONVEIL_RULES_CONFIG` (JSON) to shorten phase durat
 ## LiveKit Cloud (deployed app) runtime check
 
 ```
-VOICE_CLOUD_URL=https://<app-host> VOICE_CLOUD_CAP_MIN=60 node scripts/env.mjs npm run e2e:cloud -w @moonveil/voice
+VOICE_CLOUD_URL=https://<app-host> node scripts/env.mjs npm run e2e:cloud -w @moonveil/voice   # cap: VOICE_CLOUD_CAP_MIN (default 8; the full path measures 5–6.3)
 ```
 No local server, no LiveKit started, no secret on this machine: 8 headless pages (7 players + moderator, the rules minimum) join the deployed app, tap Join voice, and measure through Cloud (lobby, night, day, a forced execution, the next night). Prints the running participant-minute estimate (connected channels × minutes, sampled every 5 s) and leaves voice before the cap. Traces/video/screenshots off (tokens never reach artifacts). Env names for the server (set in the app host's dashboard only): `LIVEKIT_URL=https://<project>.livekit.cloud`, `LIVEKIT_PUBLIC_WS=wss://<project>.livekit.cloud`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`. `LiveKitBackend.probe()` is a one-call reachability check for the server's startup log / `/healthz`.

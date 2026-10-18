@@ -7,7 +7,9 @@
 import { expect, type Player, test } from '../../../e2e/harness/index.ts';
 import { botAct, checkHearMatrix, game, grants, joinVoice, type MatrixReport, moderatorClose, step, voiceFrameLeaks, voiceFrames, voiceSettled, voiceSnapshot, waitStepChange } from './helpers.ts';
 
-const CAP_MIN = Number(process.env.VOICE_CLOUD_CAP_MIN ?? 60);
+// Default cap sized to the path: measured 5.0–6.3 participant-minutes for 8 pages over lobby → night 2 (runs 1–2,
+// 2026-10-18); a cap below ~7 aborts inside the last window and leaves artifact failures. Approval is 100 in total.
+const CAP_MIN = Number(process.env.VOICE_CLOUD_CAP_MIN ?? 8);
 const NAMES = ['Ann', 'Bao', 'Chi', 'Dan', 'Eve', 'Fay', 'Gia'];
 const SCENE = (process.env.MOONVEIL_SCENE ?? 'off') as 'off' | 'low' | 'high';
 

@@ -1,6 +1,6 @@
 // LiveKit Cloud runtime check against a DEPLOYED Moonveil (no local server, no LiveKit started here, no secret):
 //   VOICE_CLOUD_URL=https://<app-host> node scripts/env.mjs npm run e2e:cloud -w @moonveil/voice
-// Budget guard: VOICE_CLOUD_CAP_MIN (participant-minutes, default 60; approved total for probes: 100).
+// Budget guard: VOICE_CLOUD_CAP_MIN (participant-minutes; default 8 for the full check, 15 for rotation gaps; approved total 100).
 // Traces, videos and screenshots are OFF: wire capture would store LiveKit tokens in artifacts.
 import { defineConfig, devices } from '@playwright/test';
 import fs from 'node:fs';
