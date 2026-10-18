@@ -2,10 +2,12 @@
 import type { Costume } from '../rig.ts';
 import { placeholder } from './placeholder.ts';
 import { duck } from './duck.ts';
+import { frog } from './frog.ts';
 
 export const COSTUMES: Record<string, Costume> = {
   [placeholder.id]: placeholder,
   [duck.id]: duck,
+  [frog.id]: frog,
 };
 export function costumeById(id: string | undefined | null): Costume | null {
   return id ? COSTUMES[id] ?? null : null;
