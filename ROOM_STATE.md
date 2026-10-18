@@ -43,7 +43,9 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Ownership: Codex = creative/catalog content + costume art code; visual = scene seam/pipeline; foundation = wire/server contract + restore compat; game UI = picker (after chat). Don't shift creative work to Claude seats.
 - Phase 1 (now): foundation contract proposal (branch foundation-appearance, stop for review); visual seam + placeholder (visual-costumes); Codex CATALOG.md + shark design.
 - Phase 1 results: contract proposal foundation-appearance c913147 (reviewed); catalog source art-themes 3776e4d CATALOG.md (fish choice = variant, fishHeadgear, finPouch, headgear-off `none`); seam visual-costumes af2afd2 (rig.ts; costumes/** handed to Codex). Decisions: legacy upgrade reproduces seeded scarf/backpack via @moonveil/scene/seed; variant change = appearance changed; whole-profile invalid-appearance; body not chosen this round. Foundation building; Codex building duck/ring on art-costumes from af2afd2.
-- Browser lock queue: game UI (chat) → visual (placeholder check) → Codex (duck preview).
+- Seam 51431c8 (choices → pieces/crown/label/body colour; dev page ?outfit=…; costume tests in package check). Duck 7166772 on art-costumes (Codex merging seam next).
+- Browser lock: visual (placeholder check, now) → game UI (chat re-check) → Codex (duck preview).
+- Chat candidate 724ae36 (local, unpushed) NOT go: wrong avatar on a message (Bình shown with Chi's "CH"), phone box hides whole campfire circle (blur), root cause not stated. Laptop + isolation good.
 - Phase 2: duck-with-ring + ghost in real scene (layering, seated, flip, label/ring clearance, phone/laptop day/night) = next Human preview.
 - Phase 3: batch remaining looks + ghosts; picker; candidate checks; ff into dev. Deploy needs approval.
 
