@@ -35,11 +35,14 @@ export function phaseOf(status: SeatViewLike['status'], stepKind: string | null)
 const has = <T extends string>(list: readonly T[], v: string | undefined): v is T => v !== undefined && (list as readonly string[]).includes(v);
 const pick = (list: readonly string[], v: string | undefined) => (has(list, v) ? v : list[0]!);
 
-// A wire outfit the scene dresses: a registered costume that declares its catalog options (test: options = wire row).
-// Anything else (placeholder, unknown ids, prototype keys) is not reachable from the wire.
+// Wire outfit ids (= protocol OUTFIT_IDS, asserted by test/catalog.test.ts). Only these can be dressed from the wire;
+// dev-only costumes (placeholder) never are, whatever they declare.
+export const WIRE_OUTFITS = ['camper', 'bowCat', 'robotCat', 'fish', 'frog', 'duck', 'mushroom'] as const;
+
+// The costume for a wire outfit: registered and declaring its catalog options (test: options = wire row), else null.
 function wireCostume(id: string): Costume | null {
-  const c = Object.hasOwn(COSTUMES, id) ? COSTUMES[id]! : null;
-  return c?.options ? c : null;
+  if (id === 'camper' || !(WIRE_OUTFITS as readonly string[]).includes(id) || !Object.hasOwn(COSTUMES, id)) return null;
+  return COSTUMES[id]!.options ? COSTUMES[id]! : null;
 }
 
 // Wire appearance -> scene appearance, for snapshots and local look drafts. Only catalog ids reach the art: choices

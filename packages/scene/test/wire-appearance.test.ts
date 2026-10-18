@@ -36,7 +36,7 @@ test('wire body is used when valid, otherwise the seat-seeded body', () => {
 });
 
 test('only catalog outfits reach the art: placeholder, unknown ids and prototype keys render a plain camper', () => {
-  for (const outfit of ['placeholder', 'nope', '__proto__', 'constructor', 'toString', 'bowCat']) {
+  for (const outfit of ['placeholder', 'nope', '__proto__', 'constructor', 'toString']) {
     const a = sceneAppearance({ outfit, variant: 'ring', color: 'rose', hat: 'catHood', front: 'scarf', back: 'backpack' }, 's2');
     assert.equal(outfitOf(a), '', outfit);
     assert.deepEqual(baseItems(a, null), { hair: true, hat: true, scarf: false, backpack: false }, outfit);
@@ -45,17 +45,18 @@ test('only catalog outfits reach the art: placeholder, unknown ids and prototype
 });
 
 test('a registered costume with catalog options is dressed; choices outside its options fall back to its defaults', () => {
-  const duckish: Costume = { id: 'testDuck', options: { variants: ['ring', 'plain'], colors: ['sand', 'clay'], hats: ['duckCap', 'none'], fronts: ['none'], backs: ['none'] }, pieces: {} };
+  const saved = COSTUMES['duck'];   // the art owner's duck once registered; restored below
+  const duckish: Costume = { id: 'duck', options: { variants: ['ring', 'plain'], colors: ['sand', 'clay'], hats: ['duckCap', 'none'], fronts: ['none'], backs: ['none'] }, pieces: {} };
   COSTUMES[duckish.id] = duckish;
   try {
-    const ok = sceneAppearance({ outfit: 'testDuck', variant: 'plain', color: 'clay', hat: 'none', front: 'none', back: 'none' }, 's3');
-    assert.deepEqual({ outfit: ok.outfit, variant: ok.variant, top: ok.top, hat: ok.hat, front: ok.front, back: ok.back }, { outfit: 'testDuck', variant: 'plain', top: 'clay', hat: 'none', front: 'none', back: 'none' });
-    const bad = sceneAppearance({ outfit: 'testDuck', variant: 'x', color: 'moss', hat: 'beanie', front: 'scarf', back: 'backpack' }, 's3');
+    const ok = sceneAppearance({ outfit: 'duck', variant: 'plain', color: 'clay', hat: 'none', front: 'none', back: 'none' }, 's3');
+    assert.deepEqual({ outfit: ok.outfit, variant: ok.variant, top: ok.top, hat: ok.hat, front: ok.front, back: ok.back }, { outfit: 'duck', variant: 'plain', top: 'clay', hat: 'none', front: 'none', back: 'none' });
+    const bad = sceneAppearance({ outfit: 'duck', variant: 'x', color: 'moss', hat: 'beanie', front: 'scarf', back: 'backpack' }, 's3');
     assert.deepEqual({ variant: bad.variant, top: bad.top, hat: bad.hat, front: bad.front, back: bad.back }, { variant: 'ring', top: 'sand', hat: 'duckCap', front: 'none', back: 'none' });
     assert.deepEqual(baseItems(bad, duckish), { hair: true, hat: false, scarf: false, backpack: false }, 'the base never draws its items on a costume');
-    const omitted = sceneAppearance({ outfit: 'testDuck' }, 's3');
+    const omitted = sceneAppearance({ outfit: 'duck' }, 's3');
     assert.deepEqual([omitted.variant, omitted.top, omitted.hat], ['ring', 'sand', 'duckCap'], 'omitted fields = outfit defaults, as the server normalises');
-  } finally { delete COSTUMES[duckish.id]; }
+  } finally { if (saved) COSTUMES['duck'] = saved; else delete COSTUMES['duck']; }
 });
 
 test('toSceneInput maps every player through the wire adapter', () => {
