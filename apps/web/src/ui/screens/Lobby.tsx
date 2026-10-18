@@ -143,7 +143,7 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat, onSettings }: { s: S
             <Button kind="quiet" testId="edit-profile" onClick={() => { if (editing) lookDraft.clear(); setEditing(!editing); }}>{editing ? t('cancel') : t('lobbyEditLook')}</Button>
             <Button kind="quiet" testId="leave" onClick={() => session.leave()}>{t('leave')}</Button>
           </div>
-          {editing && <EditProfile initial={{ name: me.name, appearance: lookOf(me.appearance, me.seat) }} onChange={(p) => lookDraft.set(p, ctx)} onDone={() => { lookDraft.markSaved(); setEditing(false); }} onCancel={() => { lookDraft.clear(); setEditing(false); }} />}
+          {editing && <EditProfile initial={{ name: me.name, appearance: lookOf(me.appearance, me.seat) }} onChange={(p) => lookDraft.set(p, ctx)} onDone={() => { lookDraft.markSaved(Date.now(), s.error); setEditing(false); }} onCancel={() => { lookDraft.clear(); setEditing(false); }} />}
           {look.notice === 'notSaved' && <p className="danger" role="alert" data-testid="look-not-saved">{t('lookNotSaved')}</p>}
         </section>
       )}
@@ -252,7 +252,7 @@ function EditProfile({ initial, onChange, onDone, onCancel }: { initial: LookPro
       <p className="line">{t('lookPreviewLine')}</p>
       <div className="btn-row">
         <Button kind="quiet" testId="cancel-profile" onClick={onCancel}>{t('cancel')}</Button>
-        <Button testId="save-profile" disabled={!name} onClick={() => { saveProfile({ ...p, name }); session.send({ t: 'profile', profile: { ...p, name } }); onDone(); }}>{t('lobbySave')}</Button>
+        <Button testId="save-profile" disabled={!name} onClick={() => { onDone(); saveProfile({ ...p, name }); session.send({ t: 'profile', profile: { ...p, name } }); }}>{t('lobbySave')}</Button>
       </div>
     </div>
   );

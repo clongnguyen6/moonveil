@@ -198,10 +198,6 @@ interface Announcement { id: number; title: string; body?: string }
 function useLookRules(s: SessionState, view: SeatView | null, t: T) {
   const look = useLookDraft();
   const ctx = view ? `${view.code}:${view.me.seat}` : null;
-  // the error present when Save was pressed is older news; only a new one is this save's refusal
-  const errAtSave = useRef<SessionState['error']>(null);
-  const savedAt = useRef<number | null>(null);
-  if (look.pendingSince !== savedAt.current) { savedAt.current = look.pendingSince; errAtSave.current = s.error; }
   useEffect(() => {
     if (!look.draft && !look.pendingSince) return;
     // context lost: reconnecting/replaced, another room or seat, lobby left or match started
@@ -209,7 +205,7 @@ function useLookRules(s: SessionState, view: SeatView | null, t: T) {
     if (look.pendingSince !== null) {
       const mine = view.players.find((p) => p.seat === view.me.seat);
       if (mine && look.draft && sameLook(mine.appearance, look.draft.appearance)) { lookDraft.confirmed(); return; }
-      if (s.error && s.error !== errAtSave.current && s.error.code !== 'network') { lookDraft.failed(); return; }
+      if (s.error && s.error !== look.errorBefore && s.error.code !== 'network') { lookDraft.failed(); return; }   // only an error newer than Save
       const left = SAVE_BOUND_MS() - (Date.now() - look.pendingSince);
       const id = setTimeout(() => lookDraft.failed(), Math.max(0, left));
       return () => clearTimeout(id);

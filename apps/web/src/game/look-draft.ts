@@ -14,6 +14,8 @@ export interface LookState {
   draft: LookProfile | null;
   /** Set on Save: the override stays until a snapshot matches, or the bound passes. */
   pendingSince: number | null;
+  /** The session error showing when Save was pressed (older news); only a different error is this save's refusal. */
+  errorBefore: unknown;
   /** Short notice to show once when a save did not apply. */
   notice: 'notSaved' | null;
   /** Context the draft belongs to (room code + seat); any change discards it. */
@@ -22,7 +24,7 @@ export interface LookState {
   ended: number;
 }
 
-let state: LookState = { draft: null, pendingSince: null, notice: null, ctx: null, ended: 0 };
+let state: LookState = { draft: null, pendingSince: null, errorBefore: null, notice: null, ctx: null, ended: 0 };
 const subs = new Set<() => void>();
 const emit = () => subs.forEach((fn) => fn());
 
@@ -32,13 +34,13 @@ export const lookDraft = {
   /** Editor change: local preview only. */
   set(draft: LookProfile, ctx: string) { state = { ...state, draft, pendingSince: null, ctx }; emit(); },
   /** Cancel / close / Escape / discard: back to the saved look. */
-  clear() { if (state.draft || state.pendingSince || state.ctx) { state = { draft: null, pendingSince: null, notice: state.notice, ctx: null, ended: state.ended + 1 }; emit(); } },
+  clear() { if (state.draft || state.pendingSince || state.ctx) { state = { draft: null, pendingSince: null, errorBefore: null, notice: state.notice, ctx: null, ended: state.ended + 1 }; emit(); } },
   /** Save sent: keep the preview until the server confirms. */
-  markSaved(now = Date.now()) { if (state.draft) { state = { ...state, pendingSince: now }; emit(); } },
+  markSaved(now = Date.now(), errorBefore: unknown = null) { if (state.draft) { state = { ...state, pendingSince: now, errorBefore }; emit(); } },
   /** Server snapshot carries the draft's look: done. */
-  confirmed() { state = { draft: null, pendingSince: null, notice: null, ctx: null, ended: state.ended + 1 }; emit(); },
+  confirmed() { state = { draft: null, pendingSince: null, errorBefore: null, notice: null, ctx: null, ended: state.ended + 1 }; emit(); },
   /** Save rejected or bound passed: show the server's look and say so. */
-  failed() { state = { draft: null, pendingSince: null, notice: 'notSaved', ctx: null, ended: state.ended + 1 }; emit(); },
+  failed() { state = { draft: null, pendingSince: null, errorBefore: null, notice: 'notSaved', ctx: null, ended: state.ended + 1 }; emit(); },
   clearNotice() { if (state.notice) { state = { ...state, notice: null }; emit(); } },
 };
 
