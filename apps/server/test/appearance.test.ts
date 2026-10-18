@@ -7,7 +7,6 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { type CostumeAppearance, normalizeCostume, OUTFITS, type PublicSeat, type ServerMessage } from '@moonveil/protocol';
-import { appearanceFromProtocol } from '@moonveil/scene';
 import { seededBody, seededExtras } from '@moonveil/scene/seed';
 import { createHostedRulesEngine } from '../src/rules/decks.ts';
 import type { RulesEngine } from '../src/rules/engine.ts';
@@ -16,6 +15,12 @@ import { memoryRoomStore, type RoomSnapshot } from '../src/store.ts';
 import { FakeClient, ManualClock } from './harness.ts';
 import { role } from './match-driver.ts';
 
+// The scene's legacy adapter (what the scene drew for {color, hat}). Non-literal specifier: its main entry is DOM
+// code, which the server's tsconfig (no DOM lib) must not typecheck; it runs fine in Node.
+const sceneMain = '@moonveil/scene';
+const { appearanceFromProtocol } = (await import(sceneMain)) as {
+  appearanceFromProtocol: (p: { color: string; hat: string }, seat: string) => { skin: string; top: string; hair: string; hairColor: string; hat: string; extra: string };
+};
 type Msg<T extends ServerMessage['t']> = Extract<ServerMessage, { t: T }>;
 const lastErr = (c: FakeClient) => c.frames.filter((f): f is Msg<'error'> => f.t === 'error').at(-1);
 const registry = (seed = 'appearance', store = memoryRoomStore()) => {
