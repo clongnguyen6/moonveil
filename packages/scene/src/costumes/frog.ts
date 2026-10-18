@@ -3,8 +3,14 @@ import { MATERIAL as M, paint } from './materials.ts';
 
 export const frog: Costume = {
   id: 'frog',
+  options: {
+    variants: ['default'],
+    colors: ['pine', 'moss'],
+    hats: ['frogHat', 'none'],
+    fronts: ['raincoatPockets', 'none'],
+    backs: ['leafPack', 'none'],
+  },
   top: M.pine,
-  hidesHat: true,
   hidesHair: false,
   crownY: (choice) => choice.hat === 'frogHat' ? -94 : -75,
   pieces: {
@@ -38,7 +44,7 @@ export const frog: Costume = {
         paint(ctx, M.pine, 1.5);
       }
       b.moveTo(0, rig.torso.y + 3).lineTo(0, rig.torso.y + 28)
-        .stroke(ctx.color(ctx.outline(M.pine)), 1.2);
+        .stroke(ctx.outline(M.pine), 1.2);
       for (const y of [-40, -31, -22]) b.circle(0, y, 0.8).fill(ctx.color(M.oatmeal));
     },
     hatFront: (ctx) => {

@@ -4,8 +4,8 @@ import type { Costume } from '../rig.ts';
 
 export const placeholder: Costume = {
   id: 'placeholder',
+  options: { variants: ['default'], colors: ['slate'], hats: ['none'], fronts: ['none'], backs: ['none'] },
   top: 0x6a7f94,            // slate body colour
-  hidesHat: true,           // its tall cap replaces the base hat
   crownY: -92,              // tallest point of the cap (label clearance uses this)
   pieces: {
     back: ({ b, color, outline }) => {

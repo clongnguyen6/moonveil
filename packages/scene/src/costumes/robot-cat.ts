@@ -3,8 +3,14 @@ import { MATERIAL as M, paint } from './materials.ts';
 
 export const robotCat: Costume = {
   id: 'robotCat',
+  options: {
+    variants: ['default'],
+    colors: ['river', 'slate'],
+    hats: ['robotHood', 'none'],
+    fronts: ['utilityPocket', 'none'],
+    backs: ['none'],
+  },
   top: M.river,
-  hidesHat: true,
   hidesHair: false,
   crownY: (choice) => choice.hat === 'robotHood' ? -84 : -75,
   pieces: {
@@ -52,7 +58,7 @@ export const robotCat: Costume = {
       b.circle(-17, crown + 25, 3.2);
       paint(ctx, M.sand, 1.6);
       b.moveTo(-18.3, crown + 25.5).lineTo(-15.7, crown + 25.5)
-        .stroke(ctx.color(ctx.outline(M.sand)), 1);
+        .stroke(ctx.outline(M.sand), 1);
     },
   },
 };

@@ -3,8 +3,14 @@ import { MATERIAL as M, paint } from './materials.ts';
 
 export const mushroom: Costume = {
   id: 'mushroom',
+  options: {
+    variants: ['default'],
+    colors: ['bark', 'pine'],
+    hats: ['mushroomCap', 'none'],
+    fronts: ['scarf', 'none'],
+    backs: ['woodPack', 'none'],
+  },
   top: M.bark,
-  hidesHat: true,
   hidesHair: false,
   crownY: (choice) => choice.hat === 'mushroomCap' ? -89 : -75,
   pieces: {
@@ -16,7 +22,7 @@ export const mushroom: Costume = {
       paint(ctx, M.bark);
       // Three broad wooden slats and one strap, not fine wood grain.
       for (const y of [shoulder + 13, shoulder + 21]) {
-        b.moveTo(-24, y).lineTo(-12, y).stroke(ctx.color(ctx.outline(M.bark)), 1.3);
+        b.moveTo(-24, y).lineTo(-12, y).stroke(ctx.outline(M.bark), 1.3);
       }
       b.moveTo(-19, shoulder + 7).lineTo(-19, shoulder + 27)
         .stroke(ctx.color(M.sand), 2);

@@ -3,8 +3,14 @@ import { MATERIAL as M, paint } from './materials.ts';
 
 export const bowCat: Costume = {
   id: 'bowCat',
+  options: {
+    variants: ['default'],
+    colors: ['rose', 'berry'],
+    hats: ['catHood', 'none'],
+    fronts: ['fishSling', 'none'],
+    backs: ['none'],
+  },
   top: M.rose,
-  hidesHat: true,
   hidesHair: false,
   crownY: (choice) => choice.hat === 'catHood' ? -93 : -75,
   pieces: {
@@ -28,7 +34,7 @@ export const bowCat: Costume = {
       if (ctx.choice.front !== 'fishSling') return;
       const { b, rig } = ctx;
       b.moveTo(-12, rig.shoulderY + 1).quadraticCurveTo(-1, -38, 8, -31)
-        .stroke(ctx.color(ctx.outline(M.oatmeal)), 3.5);
+        .stroke(ctx.outline(M.oatmeal), 3.5);
       b.moveTo(-12, rig.shoulderY + 1).quadraticCurveTo(-1, -38, 8, -31)
         .stroke(ctx.color(M.oatmeal), 2);
       b.moveTo(10, -32).lineTo(15, -35)

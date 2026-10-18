@@ -1,4 +1,5 @@
-import type { Costume, CostumeContext } from '../rig.ts';
+import type { Costume } from '../rig.ts';
+import { paint } from './materials.ts';
 
 const SAND = 0xe0b23c;
 const CLAY = 0xe08a3c;
@@ -6,14 +7,16 @@ const PINE = 0x3f8f7a;
 const OATMEAL = 0xe9e0c8;
 const INK = 0x2a2a30;
 
-function paint(ctx: CostumeContext, design: number, width = 2) {
-  ctx.b.fill(ctx.color(design)).stroke(ctx.color(ctx.outline(design)), width);
-}
-
 export const duck: Costume = {
   id: 'duck',
+  options: {
+    variants: ['ring', 'plain'],
+    colors: ['sand', 'clay'],
+    hats: ['duckCap', 'none'],
+    fronts: ['none'],
+    backs: ['none'],
+  },
   top: SAND,
-  hidesHat: true,
   // A cap preserves the camper's hair, including when headgear is off.
   hidesHair: false,
   crownY: (choice) => choice.hat === 'duckCap' ? -92 : -75,
@@ -82,7 +85,7 @@ export const duck: Costume = {
         .quadraticCurveTo(2, crown - 4, -8, crown - 9).closePath();
       paint(ctx, PINE);
       b.moveTo(-5, crown - 9).quadraticCurveTo(2, crown - 10, 8, crown - 9)
-        .stroke(ctx.color(ctx.outline(PINE)), 1, 0.6);
+        .stroke(ctx.outline(PINE), 1, 0.6);
     },
   },
 };

@@ -8,5 +8,5 @@ export const MATERIAL = {
 } as const;
 
 export function paint(ctx: CostumeContext, design: number, width = 2) {
-  ctx.b.fill(ctx.color(design)).stroke(ctx.color(ctx.outline(design)), width);
+  ctx.b.fill(ctx.color(design)).stroke(ctx.outline(design), width);
 }

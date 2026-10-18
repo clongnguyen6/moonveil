@@ -5,8 +5,14 @@ import { sharkHatFront, sharkHoodBack } from './shark.ts';
 
 export const fish: Costume = {
   id: 'fish',
+  options: {
+    variants: ['puffer', 'shark'],
+    colors: ['clay', 'sand', 'slate', 'river'],
+    hats: ['fishHeadgear', 'none'],
+    fronts: ['none'],
+    backs: ['none', 'finPouch'],
+  },
   top: 0xe08a3c,
-  hidesHat: true,
   hidesHair: false,
   crownY: (choice) => {
     if (choice.hat !== 'fishHeadgear') return -75;
