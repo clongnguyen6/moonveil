@@ -35,3 +35,40 @@ test('a hidden avatar renders nothing, whatever its alpha; a faded avatar is inv
   assert.equal(avatarVisible('idle', 1), true);
   assert.equal(avatarVisible('ghost', 0.5), true);
 });
+
+import { effectiveAppearance, LookTracker } from '../src/reconcile.ts';
+
+test('local appearance override applies only to the local seat; others keep the snapshot look', () => {
+  const inp = makeInput('lobby', 4);
+  const draft = { ...inp.players[0]!.appearance, hat: 'bucket' as const, top: 'sand' as const };
+  assert.deepEqual(effectiveAppearance(inp, inp.me.seat, draft), draft);
+  for (const p of inp.players.slice(1)) assert.deepEqual(effectiveAppearance(inp, p.seat, draft), p.appearance);
+  assert.equal(effectiveAppearance(inp, 'nobody', draft), null);
+});
+
+test('clearing the override restores the snapshot look, also after a snapshot update during the draft', () => {
+  const inp = makeInput('lobby', 4);
+  const me = inp.me.seat;
+  const draft = { ...inp.players[0]!.appearance, hair: 'curly' as const };
+  const updated = { ...inp, players: inp.players.map((p) => (p.seat === me ? { ...p, name: 'Renamed' } : p)) };
+  assert.deepEqual(effectiveAppearance(updated, me, draft), draft);          // snapshot update while drafting: keep the draft
+  assert.deepEqual(effectiveAppearance(updated, me, null), inp.players[0]!.appearance);
+});
+
+test('no re-bake when the look is unchanged; one re-bake per actual change', () => {
+  const a = makeInput('lobby', 2).players[0]!.appearance;
+  const t = new LookTracker(a);
+  assert.equal(t.apply({ ...a }), false);
+  assert.equal(t.apply({ ...a, hat: a.hat === 'cap' ? 'beanie' : 'cap' }), true);
+  assert.equal(t.apply(t.current), false);
+  assert.equal(t.apply(a), true);
+  assert.equal(t.rebakes, 2);
+});
+
+test('applying a look touches nothing but the look (pose and position are not part of the tracker)', () => {
+  const a = makeInput('lobby', 2).players[0]!.appearance;
+  const state = { x: 700, y: 900, facing: -1, mode: 'walk', look: new LookTracker(a) };
+  const before = { x: state.x, y: state.y, facing: state.facing, mode: state.mode };
+  state.look.apply({ ...a, top: 'rose' });
+  assert.deepEqual({ x: state.x, y: state.y, facing: state.facing, mode: state.mode }, before);
+});

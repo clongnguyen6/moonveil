@@ -19,7 +19,7 @@ const host = document.getElementById('scene')!;
 const xs = new Set((q.get('x') ?? '').split(',').filter(Boolean));
 const fpsX = [...xs].find((k) => k.startsWith('fps'));
 const experimental = { antialias: xs.has('aa0') ? false : undefined, fpsCap: fpsX ? parseInt(fpsX.slice(3), 10) : undefined, lightmapOnChange: xs.has('lmc') || undefined, ripples: xs.has('rip0') ? false : undefined, vignette: xs.has('vig0') ? false : undefined };
-const scene: SceneHandle = mountScene(host, { experimental, input: server.input, camera: (q.get('cam') as 'fit' | 'tight') || undefined, perf: q.get('perf') === '1', quality: (q.get('quality') as 'off' | 'low' | 'high' | 'auto') || 'high', labelLayout: q.get('labels') === '0' ? false : q.get('labels') === '1' ? 'v1' : true });
+const scene: SceneHandle = mountScene(host, { experimental, debug: true, input: server.input, camera: (q.get('cam') as 'fit' | 'tight') || undefined, perf: q.get('perf') === '1', quality: (q.get('quality') as 'off' | 'low' | 'high' | 'auto') || 'high', labelLayout: q.get('labels') === '0' ? false : q.get('labels') === '1' ? 'v1' : true });
 server.onPoses((f) => scene.setPoses(f));
 server.onSpeaking((s) => scene.setSpeaking(s));
 scene.on('move', (p: Pose) => { server.move(p.seat, p.x, p.y, p.facing); });
@@ -72,6 +72,9 @@ window.__moonveil = {
   night: () => scene.night(),
   localPose: () => scene.localPose(),
   // simulate "save a new look" for a seat: the stub server updates the snapshot and the scene re-bakes that avatar
+  // local-only draft of my look (editor preview): patch merges into the snapshot appearance; null clears
+  setLocalLook: (patch: Record<string, string> | null) => { const me = server.input.players.find((p) => p.seat === server.input.me.seat); scene.setLocalAppearanceOverride(patch && me ? ({ ...me.appearance, ...patch } as typeof me.appearance) : null); },
+  debugAppearance: (seat: string) => scene.debugAppearance(seat),
   setLook: (seat: string, patch: Record<string, string>) => { server.input = { ...server.input, players: server.input.players.map((p) => (p.seat === seat ? { ...p, appearance: { ...p.appearance, ...patch } } : p)) }; scene.setInput(server.input); },
   time: () => scene.time(),
   perf: () => scene.perf(),
