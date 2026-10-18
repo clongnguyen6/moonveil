@@ -55,6 +55,9 @@ Lobby `[data-testid=mic][data-status=…]`: with a VoiceClient, `ok|checking|idl
 ## Look editor (test hooks)
 `globalThis.__moonveilLook` = draft store (`get()` → `{ draft, pendingSince, notice, ctx }`); `globalThis.__moonveilScene` = the mounted scene handle (`localPose()`, visual's `debugAppearance(seatId)`); `__MOONVEIL_LOOK_BOUND_MS` shortens the 6 s save bound. `[data-testid=look-not-saved]` notice.
 
+## Chat overlay
+`[data-testid=chat-overlay][data-channels=<listen channels>]` (always rendered, same box for every seat), `chat-recent` (role=log), `chat-item[data-channel]` with `.co-from` / `.co-text` / `.co-ch`, `chat-overlay-input` (only with a speak grant; a disabled placeholder row otherwise), `chat-overlay-channel` (when several speakable), `chat-overlay-send`, `chat-history` (opens the sheet), `chat-quiet` when no channel is listenable.
+
 ## Sheets
 `[data-testid=role-sheet]` → `[data-testid=role-card][data-shown]` (tap to reveal) → `[data-testid=my-role]`, `[data-testid=facts]`, `[data-testid=roles-in-play]`.
 `[data-testid=chat-sheet]` → `[data-testid=chat-tab][data-channel=<channel>]` (only channels with a listen grant), `[data-testid=chat-log][data-channel]`, `[data-testid=chat-input]`, `[data-testid=chat-send]`, `[data-testid=chat-listen-only]`, `[data-testid=chat-quiet]` (no grants at all).

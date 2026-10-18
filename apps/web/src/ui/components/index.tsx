@@ -7,7 +7,7 @@ import { serverNow } from '../../game/clock.ts';
 
 const HAT_GLYPH: Record<Appearance['hat'], string> = { none: '', beanie: '🧢', cap: '🧢', bucket: '👒', flower: '🌼', hood: '🧥' };
 
-export function Avatar({ p, size, dead, ghost, speaking }: { p: Pick<PublicSeat, 'name' | 'appearance'>; size?: 'lg'; dead?: boolean; ghost?: boolean; speaking?: boolean }) {
+export function Avatar({ p, size, dead, ghost, speaking }: { p: Pick<PublicSeat, 'name' | 'appearance'>; size?: 'lg' | 'sm'; dead?: boolean; ghost?: boolean; speaking?: boolean }) {
   const initials = p.name.trim().slice(0, 2).toUpperCase();
   return (
     <span className={`avatar c-${p.appearance.color} ${size ?? ''} ${dead ? 'dead' : ''} ${ghost ? 'ghost' : ''}`} aria-hidden="true">

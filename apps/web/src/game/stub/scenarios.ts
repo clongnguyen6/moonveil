@@ -59,6 +59,7 @@ export function scenario(name: ScenarioName, opts: { speed?: number; autoBots?: 
   const wolves = () => g().match.seats.filter((s) => s.role === 'wolf').map((s) => s.seat);
   const alive = () => g().match.seats.filter((s) => s.alive).map((s) => s.seat);
   const view = (i: Seat) => room.setViewer(idOf(i));
+  const nameAt = (i: Seat) => room.players[i]?.name ?? `#${i}`;
 
   const night1 = (victim: Seat) => {
     for (const w of wolves()) room.drive({ type: 'wolf.pick', seat: w, target: victim });
@@ -78,6 +79,7 @@ export function scenario(name: ScenarioName, opts: { speed?: number; autoBots?: 
       return room;
     case 'night-wolf':
       room.drive({ type: 'wolf.pick', seat: wolves()[1]!, target: villagers()[0]! });
+      room.chat.push({ channel: 'wolves', msg: { id: 'w1', from: idOf(wolves()[1]!), name: nameAt(wolves()[1]!), text: 'Lấy An đêm nay nhé?', at: Date.now() - 8000 } });
       view(wolves()[0]!);
       return room;
     case 'night-seer':
@@ -115,6 +117,7 @@ export function scenario(name: ScenarioName, opts: { speed?: number; autoBots?: 
     return room;
   }
   if (name === 'day' || name === 'moderator-day') {
+    room.chat.push({ channel: 'public', msg: { id: 'c0', from: idOf(alive()[2]!), name: nameAt(alive()[2]!), text: 'Tôi nghĩ Khoa hơi im lặng.', at: Date.now() - 40_000 } });
     room.chat.push({ channel: 'public', msg: { id: 'c1', from: idOf(alive()[1]!), name: 'Bình', text: 'Đêm qua yên tĩnh quá… ai có thông tin không?', at: Date.now() - 20_000 } });
     room.setViewer(name === 'moderator-day' ? room.moderator!.id : idOf(alive()[0]!));
     room.setSpeaking([idOf(alive()[2]!)]);

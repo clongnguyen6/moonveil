@@ -14,6 +14,7 @@ import { type Cue, playCue, unlockAudio } from './audio/cues.ts';
 import { Button, Sheet, Timer, type ToastItem, Toasts } from './components/index.tsx';
 import { type T, useT } from './i18n/index.ts';
 import { ConfirmPanel, DefensePanel, DiscussionPanel, GhostPanel, VotePanel } from './screens/Day.tsx';
+import { ChatOverlay } from './components/ChatOverlay.tsx';
 import { EntryScreen } from './screens/Entry.tsx';
 import { LobbyScreen } from './screens/Lobby.tsx';
 import { ModeratorConsole } from './screens/Moderator.tsx';
@@ -79,6 +80,7 @@ function Root() {
             <>
               <div className="scene-host">
                 {view.engine !== 'fixture' && sceneOn && <SceneMount s={s} topbarRef={{ current: null }} micOn={mic.status === 'ok' && !mic.muted} />}
+                {view.engine !== 'fixture' && <ChatOverlay s={s} view={view} onHistory={() => setSheet('chat')} />}
               </div>
               <div className="dock">
                 {view.status === 'lobby' ? (
@@ -148,6 +150,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
             <Button kind="icon" label={t('settings')} testId="open-settings" onClick={() => open('settings')}>⚙</Button>
           </div>
         </div>
+        <ChatOverlay s={s} view={view} onHistory={() => open('chat')} />
         {overlay && (
           <div className="overlay-announce announce-life" role="status" data-testid="announce" key={overlay.id}>
             <div className="rise-in">

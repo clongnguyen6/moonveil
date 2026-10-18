@@ -4,7 +4,8 @@ import { chromium, devices } from '@playwright/test';
 
 const port = process.env.WEB_PORT ?? '4401';
 const base = `http://127.0.0.1:${port}/src/ui/dev/index.html`;
-const SCENE = process.env.SCENE === 'on' ? 'on' : 'off'; // heavy-run rule: scene renders only under the lock (SCENE=on)
+const SCENE = process.env.SCENE === 'on' ? 'on' : 'off';
+const ok0 = null; // heavy-run rule: scene renders only under the lock (SCENE=on)
 console.log(`[scene] ${SCENE}`);
 const browser = await chromium.launch(); const b = browser;
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
@@ -422,6 +423,32 @@ await stub((r) => { r.players.forEach((p) => (p.ready = true)); r.start(); r.set
 await page.waitForTimeout(150);
 ok('look: match start discards the draft', (await lookState()).draft === null);
 await page.evaluate(() => { delete globalThis.__MOONVEIL_LOOK_BOUND_MS; });
+await open('day');
+
+// 11k. Chat overlay: always visible, names + content, channel labels, isolation, same footprint for every seat.
+await open('day', '&lang=en');
+ok('chat overlay: visible by day with the recent public messages, sender names and content', (await page.locator('[data-testid=chat-overlay] [data-testid=chat-item]').count()) >= 2 && /Bình/.test(await page.locator('[data-testid=chat-overlay] .co-from').last().innerText()) && /thông tin/.test(await page.locator('[data-testid=chat-overlay] .co-text').last().innerText()));
+ok('chat overlay: input live for a seat with a public speak grant', (await page.locator('[data-testid=chat-overlay-input]:not([disabled])').count()) === 1);
+await page.getByTestId('chat-overlay-input').fill('overlay hello');
+await page.getByTestId('chat-overlay-send').click();
+await page.waitForTimeout(100);
+ok('chat overlay: sending from the overlay appends the message with my name', /overlay hello/.test(await page.locator('[data-testid=chat-overlay] .co-text').last().innerText()) && (await page.locator('[data-testid=chat-overlay] .co-msg.mine').count()) >= 1);
+ok('chat overlay: History opens the full sheet', (await page.getByTestId('chat-history').click(), await page.waitForTimeout(150), (await page.locator('[data-testid=chat-sheet]').count()) === 1));
+await page.keyboard.press('Escape');
+const boxOf = async () => { const b = await page.getByTestId('chat-overlay').boundingBox(); return { w: Math.round(b.width), h: Math.round(b.height), x: Math.round(b.x), y: Math.round(b.y) }; };
+await open('night-wolf', '&lang=en');
+const wolfBox = await boxOf();
+ok('chat overlay: wolf at night sees the wolves message with the channel label and a live input', (await page.locator('[data-testid=chat-overlay] [data-testid=chat-item][data-channel=wolves]').count()) === 1 && /Wolves/.test(await page.locator('[data-testid=chat-overlay] .co-ch').first().innerText()) && (await page.locator('[data-testid=chat-overlay-input]:not([disabled])').count()) === 1);
+await open('night-villager', '&lang=en');
+const villBox = await boxOf();
+ok('chat overlay: villager at night sees no message, no channel, no badge; input reserved but inert', (await page.locator('[data-testid=chat-overlay] [data-testid=chat-item]').count()) === 0 && (await page.getByTestId('chat-overlay').getAttribute('data-channels')) === '' && !/Wolves|Sói|Lấy An/.test(await page.getByTestId('chat-overlay').innerText()) && (await page.locator('[data-testid=chat-overlay-input]').count()) === 0 && (await page.locator('[data-testid=chat-overlay] .co-form input[disabled]').count()) === 1);
+ok('chat overlay: identical footprint for wolf and villager at night (position and size)', wolfBox.w === villBox.w && wolfBox.h === villBox.h && wolfBox.x === villBox.x && wolfBox.y === villBox.y, JSON.stringify({ wolfBox, villBox }));
+await open('ghost', '&lang=en');
+ok('chat overlay: ghost sees the ghosts channel labelled', (await page.locator('[data-testid=chat-overlay] [data-testid=chat-item][data-channel=ghosts]').count()) === 1);
+// overlap: overlay inside the scene host, below the top bar, above the dock
+await open('vote', '&lang=en');
+const ov = await page.getByTestId('chat-overlay').boundingBox(); const dock = await page.locator('.dock').boundingBox(); const bar = await page.locator('.topbar').boundingBox();
+ok('chat overlay: no overlap with the dock (vote controls) or the top bar (mic)', ov.y + ov.height <= dock.y + 1 && ov.y >= bar.y + bar.height - 1, JSON.stringify({ ov, dock: { y: dock.y }, bar: { b: bar.y + bar.height } }));
 await open('day');
 
 // 12. Full automatic match with bots in live mode: run until ended (speed via stub).

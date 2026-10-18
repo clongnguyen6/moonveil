@@ -115,7 +115,7 @@ export const vi: Strings = {
   confirmYesOnly: 'Có {yes} (quản trò đếm)',
   modAlive: 'sống', modDead: 'chết', modDisconnected: 'mất kết nối', modInPerson: 'Phòng chơi trực tiếp',
 
-  chatTitle: 'Chat', chatPh: 'Nhắn gì đó…', chatNone: 'Chưa có tin nhắn.', chatQuiet: 'Đang yên lặng. Chat mở khi bạn được nói.', chatListenOnly: 'Lúc này bạn chỉ đọc, không viết được.', chatPublic: 'Trại', chatWolves: 'Sói', chatGhosts: 'Ma',
+  chatTitle: 'Chat', chatHistory: 'Lịch sử', chatPh: 'Nhắn gì đó…', chatNone: 'Chưa có tin nhắn.', chatQuiet: 'Đang yên lặng. Chat mở khi bạn được nói.', chatListenOnly: 'Lúc này bạn chỉ đọc, không viết được.', chatPublic: 'Trại', chatWolves: 'Sói', chatGhosts: 'Ma',
   voiceMic: 'Mic', voiceMicOff: 'Mic không dùng được', voiceUnlock: 'Bật âm thanh',
   deckTitle: 'Bộ vai', deckDefault: 'mặc định', deckCustom: 'tùy chỉnh', deckNone: 'Chưa có bộ vai mặc định cho {n} người.', deckTotal: '{n} vai · {players} người', deckEdit: 'Tùy chỉnh', deckReset: 'Dùng mặc định', deckApply: 'Áp dụng', voiceMute: 'Tắt mic', voiceUnmute: 'Bật mic', voiceMuted: 'Đã tắt mic', voiceListen: 'Chỉ nghe', voiceOff: 'Tắt thoại', voiceTalking: 'Đang nói', voiceChannel: 'Kênh',
 
