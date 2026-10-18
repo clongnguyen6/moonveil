@@ -17,8 +17,14 @@ export interface SceneAppearance {
   top: (typeof TOPS)[number];
   hair: (typeof HAIRS)[number];
   hairColor: (typeof HAIR_COLORS)[number];
-  hat: (typeof HATS)[number];
-  extra: (typeof EXTRAS)[number];
+  hat: (typeof HATS)[number] | (string & {});   // base hat id, or an outfit's headgear id (catalog, ADR 0011)
+  extra: (typeof EXTRAS)[number];                // legacy single extra; `front`/`back` win when present
+  // Costume fields, aligned with the wire contract proposal { outfit, variant, color, hat, front, back, body? }
+  // (color = `top`, body = skin/hair/hairColor above). Scene-side until the wire adapter lands.
+  outfit?: string;    // costume id in src/costumes/index.ts ('camper' / absent = base look)
+  variant?: string;   // outfit variant, e.g. duck: 'ring' | 'plain'
+  front?: string;     // front item id ('none', 'scarf', or an outfit's id)
+  back?: string;      // back item id ('none', 'backpack', or an outfit's id)
 }
 
 export interface ScenePlayer { seat: SeatId; name: string; appearance: SceneAppearance; connected: boolean }

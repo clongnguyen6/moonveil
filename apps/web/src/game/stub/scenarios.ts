@@ -1,6 +1,7 @@
 // Deterministic match states for building and screenshotting each screen. Dev only.
 import type { Mode, Profile } from '@moonveil/protocol';
 import type { Role, Seat } from '@moonveil/rules';
+import type { ChannelId } from '../types.ts';
 import { LocalRoom } from './local-room.ts';
 
 export const SCENARIOS = [
@@ -47,8 +48,9 @@ export function scenario(name: ScenarioName, opts: { speed?: number; autoBots?: 
   if (name === 'lobby') {
     room.players.forEach((p, i) => (p.ready = i % 3 !== 2));
     room.players[1]!.connected = false;
-    room.chat.push({ channel: 'public', msg: { id: 'c1', from: room.players[2]!.id, name: 'Chi', text: 'Mọi người bật mic chưa?', at: Date.now() - 60_000 } });
-    room.chat.push({ channel: 'public', msg: { id: 'c2', from: room.players[0]!.id, name: 'An', text: 'Ready when you are ✌️', at: Date.now() - 30_000 } });
+    const p2 = room.players[2]!, p0 = room.players[0]!;
+    room.chat.push({ channel: 'public', msg: { id: 'c1', from: p2.id, name: p2.name, text: 'Mọi người bật mic chưa?', at: Date.now() - 60_000 } });
+    room.chat.push({ channel: 'public', msg: { id: 'c2', from: p0.id, name: p0.name, text: 'Ready when you are ✌️', at: Date.now() - 30_000 } });
     return room;
   }
   room.start();
@@ -59,6 +61,8 @@ export function scenario(name: ScenarioName, opts: { speed?: number; autoBots?: 
   const wolves = () => g().match.seats.filter((s) => s.role === 'wolf').map((s) => s.seat);
   const alive = () => g().match.seats.filter((s) => s.alive).map((s) => s.seat);
   const view = (i: Seat) => room.setViewer(idOf(i));
+  // Chat fixtures: the sender name always comes from the sender seat (a hard-coded name once showed Bình's name on Chi's seat).
+  const say = (channel: ChannelId, id: string, i: Seat, text: string, ago: number) => room.chat.push({ channel, msg: { id, from: idOf(i), name: room.players.find((p) => p.id === idOf(i))!.name, text, at: Date.now() - ago } });
 
   const night1 = (victim: Seat) => {
     for (const w of wolves()) room.drive({ type: 'wolf.pick', seat: w, target: victim });
@@ -78,6 +82,7 @@ export function scenario(name: ScenarioName, opts: { speed?: number; autoBots?: 
       return room;
     case 'night-wolf':
       room.drive({ type: 'wolf.pick', seat: wolves()[1]!, target: villagers()[0]! });
+      say('wolves', 'w1', wolves()[1]!, 'Lấy An đêm nay nhé?', 8000);
       view(wolves()[0]!);
       return room;
     case 'night-seer':
@@ -115,13 +120,14 @@ export function scenario(name: ScenarioName, opts: { speed?: number; autoBots?: 
     return room;
   }
   if (name === 'day' || name === 'moderator-day') {
-    room.chat.push({ channel: 'public', msg: { id: 'c1', from: idOf(alive()[1]!), name: 'Bình', text: 'Đêm qua yên tĩnh quá… ai có thông tin không?', at: Date.now() - 20_000 } });
+    say('public', 'c0', alive()[2]!, 'Tôi nghĩ Khoa hơi im lặng.', 40_000);
+    say('public', 'c1', alive()[1]!, 'Đêm qua yên tĩnh quá… ai có thông tin không?', 20_000);
     room.setViewer(name === 'moderator-day' ? room.moderator!.id : idOf(alive()[0]!));
     room.setSpeaking([idOf(alive()[2]!)]);
     return room;
   }
   if (name === 'ghost') {
-    room.chat.push({ channel: 'ghosts', msg: { id: 'c1', from: idOf(dead), name: 'An', text: '…', at: Date.now() - 5000 } });
+    say('ghosts', 'c1', dead, '…', 5000);
     view(dead);
     return room;
   }

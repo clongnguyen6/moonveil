@@ -36,6 +36,6 @@ export function randomAppearance(seedKey: string): SceneAppearance {
 export function appearanceFromProtocol(p: { color: string; hat: string }, seat: string): SceneAppearance {
   const base = randomAppearance(seat);
   const top = (TOPS as readonly string[]).includes(p.color) ? (p.color as SceneAppearance['top']) : base.top;
-  const hat = (HATS as readonly string[]).includes(p.hat) ? (p.hat as SceneAppearance['hat']) : 'none';
+  const hat: SceneAppearance['hat'] = (HATS as readonly string[]).includes(p.hat) ? p.hat : 'none';
   return { ...base, top, hat };
 }

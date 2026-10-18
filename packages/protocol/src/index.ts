@@ -3,6 +3,9 @@
 // Server sends each connection a full per-seat snapshot (`state`); nothing else carries game data.
 import type { Command, HostView } from '@moonveil/rules';
 import { z } from 'zod';
+import { AppearanceInput, type CostumeAppearance } from './appearance.ts';
+
+export * from './appearance.ts';
 
 export const PROTOCOL_VERSION = 1;
 export const WS_PATH = '/ws';
@@ -20,7 +23,8 @@ export type Mode = z.infer<typeof Mode>;
 export const VoiceMode = z.enum(['remote', 'inPerson']);
 export type VoiceMode = z.infer<typeof VoiceMode>;
 
-// PROVISIONAL catalog: visual scope owns the final appearance set. Ids are stable keys, not art.
+// LEGACY picker ids and shape {color, hat} (still accepted as input, upgraded to the camper outfit). The costume
+// contract is in ./appearance.ts (ADR 0011); servers store and send CostumeAppearance.
 export const APPEARANCE_COLORS = ['ember', 'moss', 'river', 'dusk', 'sand', 'berry', 'pine', 'slate'] as const;
 export const APPEARANCE_HATS = ['none', 'beanie', 'cap', 'bucket', 'flower', 'hood'] as const;
 export const Appearance = z.strictObject({
@@ -28,6 +32,13 @@ export const Appearance = z.strictObject({
   hat: z.enum(APPEARANCE_HATS),
 });
 export type Appearance = z.infer<typeof Appearance>;
+// For code still on the legacy picker: the {color, hat} part of any appearance, with ids outside the legacy lists
+// mapped to the legacy defaults (ember, none). Transitional until the picker adopts CostumeAppearance (ADR 0011).
+export function legacyLook(a: { color?: string; hat?: string }): Appearance {
+  const color = (APPEARANCE_COLORS as readonly string[]).includes(a.color ?? '') ? (a.color as Appearance['color']) : APPEARANCE_COLORS[0];
+  const hat = (APPEARANCE_HATS as readonly string[]).includes(a.hat ?? '') ? (a.hat as Appearance['hat']) : 'none';
+  return { color, hat };
+}
 
 export const NAME_MAX = 20;
 export function normalizeName(raw: string): string {
@@ -41,6 +52,9 @@ export const Name = z.string().max(200).transform(normalizeName).pipe(z.string()
 
 export const Profile = z.strictObject({ name: Name, appearance: Appearance });
 export type Profile = z.infer<typeof Profile>;
+// What clients may send: name + costume or legacy appearance (ADR 0011). The server normalizes or refuses it.
+export const ProfileInput = z.strictObject({ name: Name, appearance: AppearanceInput });
+export type ProfileInput = z.infer<typeof ProfileInput>;
 
 const Ref = z.string().max(32).optional();
 
@@ -63,10 +77,10 @@ const CoordY = z.number().int().min(-200).max(1600);
 const Token = z.string().regex(/^[A-Za-z0-9_-]{20,64}$/);
 
 export const ClientMessage = z.discriminatedUnion('t', [
-  z.strictObject({ t: z.literal('create'), ref: Ref, mode: Mode, profile: Profile, voiceMode: VoiceMode.optional() }),
-  z.strictObject({ t: z.literal('join'), ref: Ref, code: RoomCode, profile: Profile }),
+  z.strictObject({ t: z.literal('create'), ref: Ref, mode: Mode, profile: ProfileInput, voiceMode: VoiceMode.optional() }),
+  z.strictObject({ t: z.literal('join'), ref: Ref, code: RoomCode, profile: ProfileInput }),
   z.strictObject({ t: z.literal('resume'), ref: Ref, code: RoomCode, token: Token }),
-  z.strictObject({ t: z.literal('profile'), ref: Ref, profile: Profile }),
+  z.strictObject({ t: z.literal('profile'), ref: Ref, profile: ProfileInput }),
   z.strictObject({ t: z.literal('ready'), ref: Ref, ready: z.boolean() }),
   z.strictObject({ t: z.literal('start'), ref: Ref }),
   // Game action, opaque here; the rules engine validates it.
@@ -101,7 +115,9 @@ export type RoomStatus = 'lobby' | 'playing' | 'ended';
 export interface PublicSeat {
   seat: SeatId;
   name: string;
-  appearance: Appearance;
+  // Servers send the canonical costume form (ADR 0011). The legacy pair remains in the type for local stubs and
+  // older servers; readers keep working on `color`/`hat`, which both forms carry.
+  appearance: CostumeAppearance | Appearance;
   ready: boolean;
   // Published presence. Frozen during secret phases for non-moderators (see ADR 0001).
   connected: boolean;
@@ -150,6 +166,7 @@ export const ERROR_CODES = [
   'game-started',
   'name-taken',
   'bad-token',
+  'invalid-appearance',
   'not-joined',
   'already-joined',
   'not-allowed',

@@ -189,8 +189,9 @@ export function NotePanel({ view, g, title }: PanelProps & { title: string }) {
     <Frame view={view} testId="night-wait" title={title} task={t('nightWait')} info={<span className="muted" style={{ fontSize: 'var(--fs-0)' }}>{t('nightWaitHint')}</span>} status={t('nightWait')}
       buttons={
         <>
-          <Button kind="quiet" disabled>{' '}</Button>
-          <Button testId="confirm" disabled>{' '}</Button>
+          {/* Same two-button slot as the action panels (uniform shape); neutral, labelled, never actionable. */}
+          <Button kind="quiet" disabled>{t('nightIdleLeft')}</Button>
+          <Button kind="secondary" testId="confirm" disabled>{t('nightIdleRight')}</Button>
         </>
       }
     >

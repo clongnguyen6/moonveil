@@ -6,5 +6,5 @@ export { appearanceFromProtocol, randomAppearance, PRESETS } from './appearance.
 export { createMap, isWalkable, inWorld, frameRect, WORLD, CORE, FIRE, MIN_PLAYERS, MAX_PLAYERS, type MapLayout } from './map.ts';
 export { toWireMove, fromWirePoses, facingSign, type WirePose, type WireMove, type PoseUnits } from './wire.ts';
 export { WALK_BOUNDS, BRIDGE_Y, streamX, wanderPoint } from './map.ts';
-export { toSceneInput, phaseOf, type SeatViewLike, type ProjectionLike } from './adapter.ts';
+export { toSceneInput, sceneAppearance, WIRE_OUTFITS, phaseOf, type SeatViewLike, type ProjectionLike, type WireAppearanceLike } from './adapter.ts';
 export { resolveQuality, frameCap, readQualityEnv, SCENE_OVERRIDE_KEY, type Quality, type QualityOption } from './quality.ts';

@@ -105,6 +105,30 @@ ul { padding: 0; list-style: none; }
 .ghost-bar { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-2); }
 .ghost-bar .pill { flex-shrink: 0; }
 .mic-bar { display: flex; align-items: center; gap: var(--sp-2); }
+/* Chat overlay: bottom-left of the scene host, above the dock, clear of the top bar. Fixed log height: the box size
+   depends only on the host size (never on messages or grants), so it is the same box for every seat. */
+.chat-overlay { position: absolute; left: max(var(--sp-2), env(safe-area-inset-left)); bottom: var(--sp-2); z-index: 3; width: min(360px, calc(100% - 2 * var(--sp-2))); max-height: calc(100% - 72px); display: flex; flex-direction: column; gap: 4px; padding: 6px 8px 8px; }
+.chat-overlay .btn { min-height: var(--tap); padding: 0 12px; font-size: var(--fs-0); flex-shrink: 0; }
+.co-log { overflow: auto; display: flex; flex-direction: column; gap: 4px; height: 180px; flex: 0 1 auto; min-height: 0; }
+.co-msg { display: flex; gap: 6px; align-items: flex-start; padding: 3px 4px; border-radius: var(--r-1); }
+.co-body { display: flex; flex-direction: column; min-width: 0; }
+.co-from { font-weight: 700; font-size: var(--fs-0); line-height: 1.25; display: flex; gap: 6px; align-items: baseline; }
+.co-text { font-size: var(--fs-1); word-break: break-word; line-height: 1.3; }
+.co-ch { font-size: var(--fs-0); font-weight: 600; padding: 0 6px; border-radius: var(--r-pill); }
+.co-quiet { font-size: var(--fs-0); margin: 0; }
+.co-form { display: flex; gap: 6px; }
+.co-form .co-input { flex: 1 1 auto; min-width: 0; }
+.co-form .input, .co-form .btn { min-height: var(--tap); }
+.avatar.sm { width: 26px; height: 26px; font-size: 13px; } /* 13px floor for visible text */
+/* Compact (phones): one 44 px row = latest message + chat button. 2 text lines when the host is ≥ 400 px tall, else 1;
+   the row must stay inside the camp frame's margin below the seat ring (see SceneMount). */
+.chat-overlay.compact { flex-direction: row; align-items: center; width: calc(100% - 2 * var(--sp-2)); max-width: 520px; padding: 3px 4px 3px 6px; bottom: var(--sp-1); }
+.chat-overlay.compact .co-log { flex: 1 1 auto; height: 44px; overflow: hidden; justify-content: center; }
+.chat-overlay.compact.lines-2 .co-log { height: 56px; }
+.chat-overlay.compact .co-msg { padding: 0 2px; }
+.chat-overlay.compact .co-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; line-clamp: 1; overflow: hidden; }
+.chat-overlay.compact.lines-2 .co-text { -webkit-line-clamp: 2; line-clamp: 2; }
+.chat-overlay.compact .btn.icon { width: 44px; min-height: 44px; padding: 0; }
 .settings { display: flex; flex-direction: column; gap: var(--sp-4); }
 .setting-group { display: flex; flex-direction: column; gap: var(--sp-2); }
 .setting-group .group-title { font-size: var(--fs-2); font-weight: 700; margin: 0; }
@@ -137,4 +161,10 @@ input[type="checkbox"].switch:checked::after { transform: translateX(20px); back
 @media (max-height: 460px) and (min-aspect-ratio: 1/1) {
   .dock { flex-basis: 52%; }
   .topbar .sub { display: none; }
+  /* phone landscape: the bar spans the scene host (never clipped by it), 44 px icons, tools wrap under the title if needed */
+  .topbar { right: 0; flex-wrap: wrap; row-gap: 4px; }
+  .topbar .titles { flex: 1 1 110px; }
+  .topbar .tools { flex-wrap: wrap; justify-content: flex-end; row-gap: 4px; }
+  .topbar .tools .btn.icon { width: 44px; min-height: 44px; }
+  .topbar .voice-label { display: none; }
 }

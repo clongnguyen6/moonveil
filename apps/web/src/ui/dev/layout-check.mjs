@@ -1,7 +1,8 @@
 // Layout/accessibility checks over every scenario and sheet, at phone portrait, phone landscape and laptop,
 // in Chromium headless shell and WebKit (browser emulation). Asserts: no horizontal overflow, visible text ≥ 13px,
 // interactive targets ≥ 44×44 CSS px (icons ≥ 40), safe-area padding applied, text contrast ≥ 4.5:1 on its surface,
-// and no clipped primary buttons (fully inside the viewport when the dock is scrolled to them).
+// no clipped primary buttons (fully inside the viewport when the dock is scrolled to them), and top-bar controls fully
+// visible, unobstructed and ≥ 44 px at phone landscape (844×390, 667×375, 932×430, iPhone 13 landscape in WebKit).
 //   node scripts/env.mjs node apps/web/src/ui/dev/layout-check.mjs [--webkit]   (vite on WEB_PORT, default 4401)
 import { chromium, devices, webkit } from '@playwright/test';
 
@@ -63,6 +64,22 @@ const AUDIT = () => {
   for (const el of document.querySelectorAll('.dock, .lobby, .sheet-body')) { const pb = parseFloat(getComputedStyle(el).paddingBottom); if (visible(el) && pb < 8) out.push(`bottom padding ${pb}px in ${el.className.split(' ')[0]}`); }
   return out;
 };
+// Top bar: every control fully inside the visible scene host (not clipped by its overflow), hit-testable at its centre
+// (nothing on top), and ≥ min px. min = 44 at phone landscape sizes.
+const TOPBAR = (min) => {
+  const out = [];
+  const host = document.querySelector('.topbar')?.closest('.scene-host'); if (!host) return out;
+  const h = host.getBoundingClientRect(), vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
+  for (const el of document.querySelectorAll('.topbar button, .topbar [role=button]')) {
+    const r = el.getBoundingClientRect(), name = (el.getAttribute('data-testid') || el.getAttribute('aria-label') || el.textContent).trim().slice(0, 24);
+    if (r.width === 0 || getComputedStyle(el).display === 'none') continue;
+    if (r.left < Math.max(0, h.left) - 0.5 || r.right > Math.min(vw, h.right) + 0.5 || r.top < Math.max(0, h.top) - 0.5 || r.bottom > Math.min(vh, h.bottom) + 0.5) out.push(`top bar control clipped: ${name} [${Math.round(r.left)},${Math.round(r.right)}] host [${Math.round(h.left)},${Math.round(h.right)}]`);
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    if (!hit || !(el === hit || el.contains(hit))) out.push(`top bar control covered at its centre: ${name}`);
+    if (r.width < min - 0.5 || r.height < min - 0.5) out.push(`top bar control ${Math.round(r.width)}×${Math.round(r.height)} <${min}: ${name}`);
+  }
+  return out;
+};
 
 async function run(browser, tag, ctxOpts, lang) {
   const ctx = await browser.newContext({ ...ctxOpts, locale: lang === 'vi' ? 'vi-VN' : 'en-US', reducedMotion: 'reduce' });
@@ -73,6 +90,7 @@ async function run(browser, tag, ctxOpts, lang) {
     await page.waitForSelector('[data-testid=app]');
     await page.waitForTimeout(250);
     report(tag, sc, await page.evaluate(AUDIT));
+    if (await page.locator('.topbar').count()) report(tag, `${sc} top bar controls visible and tappable`, await page.evaluate(TOPBAR, tag.includes('landscape') ? 44 : 40));
     // primary button reachable: scroll the dock to the confirm button and check it's inside the viewport
     const confirm = page.locator('[data-testid=confirm], [data-testid=start], [data-testid=close-step], [data-testid=vote-yes], [data-testid=leave]').first();
     if (await confirm.count()) { await confirm.scrollIntoViewIfNeeded(); const b = await confirm.boundingBox(); const vp = page.viewportSize(); report(tag, `${sc} primary button inside viewport`, b && b.y >= 0 && b.y + b.height <= vp.height + 0.5 ? [] : [`button at y=${b?.y} h=${b?.height} vp=${vp.height}`]); }
@@ -93,6 +111,8 @@ async function run(browser, tag, ctxOpts, lang) {
 const cr = await chromium.launch();
 await run(cr, 'chromium/phone', sizes.phone, 'vi');
 await run(cr, 'chromium/landscape', sizes.landscape, 'vi');
+await run(cr, 'chromium/landscape-667', { ...sizes.landscape, viewport: { width: 667, height: 375 } }, 'vi');
+await run(cr, 'chromium/landscape-932', { ...sizes.landscape, viewport: { width: 932, height: 430 } }, 'en');
 await run(cr, 'chromium/laptop', sizes.laptop, 'en');
 await cr.close();
 if (withWebkit) {

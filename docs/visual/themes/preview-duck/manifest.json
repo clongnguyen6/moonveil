@@ -1,0 +1,3087 @@
+{
+  "revision": "39e5af9823fb0d7e1ae5b154716522c8a9973a9e",
+  "engine": "WebKit emulation",
+  "errors": [],
+  "records": [
+    {
+      "file": "scene-phone-ring-hat-on-day-seated.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "ring",
+      "hat": "duckCap",
+      "state": "seating",
+      "width": 390,
+      "height": 844,
+      "sha256": "0ce76c5a4debcf9f3a7142df59341128a7b9aa423ea25d602b445e26c1e8d347"
+    },
+    {
+      "file": "scene-phone-ring-hat-on-night-ghost.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "ring",
+      "hat": "duckCap",
+      "state": "night",
+      "width": 390,
+      "height": 844,
+      "sha256": "50790af4fffec2580d49dde30b76f3fff39dbe4064f1c9dabe454b2b700c97c8"
+    },
+    {
+      "file": "poses-phone-ring-hat-on-day.png",
+      "type": "pose diagnostic",
+      "device": "phone",
+      "variant": "ring",
+      "hat": "duckCap",
+      "night": false,
+      "details": [
+        {
+          "label": "Living idle",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8119312575048522
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living idle",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.7956623728344518
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8487442693440177,
+            "y": 0.7598809392802451
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8459212553603989,
+            "y": 0.7678804430963371
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6891225435632139
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6803358265216025
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8093357624268624
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.8115758765906824
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8436104831647633,
+            "y": 0.7483570812459324
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8239662267673538,
+            "y": 0.7665296343063225
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6778344332187044
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6923580330625436
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        }
+      ],
+      "width": 390,
+      "height": 844,
+      "sha256": "9c397fc2942faeffb0dee7df861644450efbfd13cf1ba073ad86298a67b8261c"
+    },
+    {
+      "file": "poses-phone-ring-hat-on-night.png",
+      "type": "pose diagnostic",
+      "device": "phone",
+      "variant": "ring",
+      "hat": "duckCap",
+      "night": true,
+      "details": [
+        {
+          "label": "Living idle",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8119312575048522
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living idle",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.7956623728344518
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8487442693440177,
+            "y": 0.7598809392802451
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8459212553603989,
+            "y": 0.7678804430963371
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6891225435632139
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6803358265216025
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8093357624268624
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.8115758765906824
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8436104831647633,
+            "y": 0.7483570812459324
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8239662267673538,
+            "y": 0.7665296343063225
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6778344332187044
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6923580330625436
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        }
+      ],
+      "width": 390,
+      "height": 844,
+      "sha256": "0509342af49aedb632d46bfe362e2b3c2665241cfc704b62c5417f4235b9d443"
+    },
+    {
+      "file": "scene-phone-ring-hat-off-day-seated.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "ring",
+      "hat": "none",
+      "state": "seating",
+      "width": 390,
+      "height": 844,
+      "sha256": "75a418fec34aa3a403c60ff07eb40742eca4970f18d689e0d46af79a018af684"
+    },
+    {
+      "file": "scene-phone-ring-hat-off-night-ghost.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "ring",
+      "hat": "none",
+      "state": "night",
+      "width": 390,
+      "height": 844,
+      "sha256": "9f6d4fd2023f4fd0d96790f7b7c92bd39dae1d8bd892e1a24f37764bad2cd310"
+    },
+    {
+      "file": "poses-phone-ring-hat-off-day.png",
+      "type": "pose diagnostic",
+      "device": "phone",
+      "variant": "ring",
+      "hat": "none",
+      "night": false,
+      "details": [
+        {
+          "label": "Living idle",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8119312575048522
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living idle",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.7956623728344518
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8487442693440177,
+            "y": 0.7598809392802451
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8459212553603989,
+            "y": 0.7678804430963371
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6891225435632139
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6803358265216025
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8093357624268624
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.8115758765906824
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8436104831647633,
+            "y": 0.7483570812459324
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8239662267673538,
+            "y": 0.7665296343063225
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6778344332187044
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6923580330625436
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        }
+      ],
+      "width": 390,
+      "height": 844,
+      "sha256": "099b4fff946c6b9b0f509f462121cc35a3a30959c6403852117a765f05f4dc9f"
+    },
+    {
+      "file": "poses-phone-ring-hat-off-night.png",
+      "type": "pose diagnostic",
+      "device": "phone",
+      "variant": "ring",
+      "hat": "none",
+      "night": true,
+      "details": [
+        {
+          "label": "Living idle",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8119312575048522
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living idle",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.7956623728344518
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8487442693440177,
+            "y": 0.7598809392802451
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8459212553603989,
+            "y": 0.7678804430963371
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6891225435632139
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6803358265216025
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8093357624268624
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.8115758765906824
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8436104831647633,
+            "y": 0.7483570812459324
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8239662267673538,
+            "y": 0.7665296343063225
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6778344332187044
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6923580330625436
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        }
+      ],
+      "width": 390,
+      "height": 844,
+      "sha256": "17fc9e053501f496e69964d3fd978a30137ecf523e31b3d28b432b2510bbcf75"
+    },
+    {
+      "file": "scene-phone-plain-hat-on-day-seated.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "plain",
+      "hat": "duckCap",
+      "state": "seating",
+      "width": 390,
+      "height": 844,
+      "sha256": "c97782efc28261f705d5e26bc51252b8b4ff9051199ffca8150ea08f255ed876"
+    },
+    {
+      "file": "scene-phone-plain-hat-on-night-ghost.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "plain",
+      "hat": "duckCap",
+      "state": "night",
+      "width": 390,
+      "height": 844,
+      "sha256": "8fb6884337875055b1249b90ad6966b0db7d2c1c4f3020e8e86f56299039f6a7"
+    },
+    {
+      "file": "poses-phone-plain-hat-on-day.png",
+      "type": "pose diagnostic",
+      "device": "phone",
+      "variant": "plain",
+      "hat": "duckCap",
+      "night": false,
+      "details": [
+        {
+          "label": "Living idle",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8119312575048522
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living idle",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.7956623728344518
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8487442693440177,
+            "y": 0.7598809392802451
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8459212553603989,
+            "y": 0.7678804430963371
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6891225435632139
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6803358265216025
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8093357624268624
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.8115758765906824
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8436104831647633,
+            "y": 0.7483570812459324
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8239662267673538,
+            "y": 0.7665296343063225
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6778344332187044
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6923580330625436
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        }
+      ],
+      "width": 390,
+      "height": 844,
+      "sha256": "3aaffb437ec55393dcbddc3c95470fa3e7f3f5b32011e6395e46752395ab0ca4"
+    },
+    {
+      "file": "poses-phone-plain-hat-on-night.png",
+      "type": "pose diagnostic",
+      "device": "phone",
+      "variant": "plain",
+      "hat": "duckCap",
+      "night": true,
+      "details": [
+        {
+          "label": "Living idle",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8119312575048522
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living idle",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.7956623728344518
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8487442693440177,
+            "y": 0.7598809392802451
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8459212553603989,
+            "y": 0.7678804430963371
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6891225435632139
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6803358265216025
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8093357624268624
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.8115758765906824
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8436104831647633,
+            "y": 0.7483570812459324
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8239662267673538,
+            "y": 0.7665296343063225
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6778344332187044
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6923580330625436
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        }
+      ],
+      "width": 390,
+      "height": 844,
+      "sha256": "6cd17a998f8567199e83c471dce835410a8df309fbb2a722f4d059a85d1e3f07"
+    },
+    {
+      "file": "scene-phone-plain-hat-off-day-seated.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "plain",
+      "hat": "none",
+      "state": "seating",
+      "width": 390,
+      "height": 844,
+      "sha256": "627c808fb71d1241c4d7ca30f443cee56719a2fadb61a6d5e0d863f89053c237"
+    },
+    {
+      "file": "scene-phone-plain-hat-off-night-ghost.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "plain",
+      "hat": "none",
+      "state": "night",
+      "width": 390,
+      "height": 844,
+      "sha256": "cb679e227c0ba1a158b13cb902f1dc7185a3ea84d7e0225725258aade188f455"
+    },
+    {
+      "file": "poses-phone-plain-hat-off-day.png",
+      "type": "pose diagnostic",
+      "device": "phone",
+      "variant": "plain",
+      "hat": "none",
+      "night": false,
+      "details": [
+        {
+          "label": "Living idle",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8119312575048522
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living idle",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.7956623728344518
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8487442693440177,
+            "y": 0.7598809392802451
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8459212553603989,
+            "y": 0.7678804430963371
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6891225435632139
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6803358265216025
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8093357624268624
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.8115758765906824
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8436104831647633,
+            "y": 0.7483570812459324
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8239662267673538,
+            "y": 0.7665296343063225
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6778344332187044
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6923580330625436
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        }
+      ],
+      "width": 390,
+      "height": 844,
+      "sha256": "9405ff8386200cf51e3c63b69fa28eb33d106c36f275916d33bd88b7fc034031"
+    },
+    {
+      "file": "poses-phone-plain-hat-off-night.png",
+      "type": "pose diagnostic",
+      "device": "phone",
+      "variant": "plain",
+      "hat": "none",
+      "night": true,
+      "details": [
+        {
+          "label": "Living idle",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8119312575048522
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living idle",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.7956623728344518
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8487442693440177,
+            "y": 0.7598809392802451
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8459212553603989,
+            "y": 0.7678804430963371
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6891225435632139
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6803358265216025
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8093357624268624
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.8115758765906824
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8436104831647633,
+            "y": 0.7483570812459324
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8239662267673538,
+            "y": 0.7665296343063225
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6778344332187044
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6923580330625436
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        }
+      ],
+      "width": 390,
+      "height": 844,
+      "sha256": "f461700427009bebf368c52b102ff59f25a7f31d2a78ea57d0f743fa7e6fd3f3"
+    },
+    {
+      "file": "scene-laptop-ring-hat-on-day-seated.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "ring",
+      "hat": "duckCap",
+      "state": "seating",
+      "width": 1440,
+      "height": 900,
+      "sha256": "f14a836514de3476ce56ae3bbb0105282b72049d3eadc25a27badc827ee0698b"
+    },
+    {
+      "file": "scene-laptop-ring-hat-on-night-ghost.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "ring",
+      "hat": "duckCap",
+      "state": "night",
+      "width": 1440,
+      "height": 900,
+      "sha256": "29915a8cac157f56b50f9b8e3ef1d8966afad0ee55e5edd3a8bf2412c16bccff"
+    },
+    {
+      "file": "poses-laptop-ring-hat-on-day.png",
+      "type": "pose diagnostic",
+      "device": "laptop",
+      "variant": "ring",
+      "hat": "duckCap",
+      "night": false,
+      "details": [
+        {
+          "label": "Living idle",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8119312575048522
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living idle",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.7956623728344518
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8487442693440177,
+            "y": 0.7598809392802451
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8459212553603989,
+            "y": 0.7678804430963371
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6891225435632139
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6803358265216025
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8093357624268624
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.8115758765906824
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8436104831647633,
+            "y": 0.7483570812459324
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8239662267673538,
+            "y": 0.7665296343063225
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6778344332187044
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6923580330625436
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        }
+      ],
+      "width": 1440,
+      "height": 900,
+      "sha256": "04a1d507aa70830663dfed0705c4d4ca7a42c9ec5f4b419a8e66c26c145fc07f"
+    },
+    {
+      "file": "poses-laptop-ring-hat-on-night.png",
+      "type": "pose diagnostic",
+      "device": "laptop",
+      "variant": "ring",
+      "hat": "duckCap",
+      "night": true,
+      "details": [
+        {
+          "label": "Living idle",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8119312575048522
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living idle",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.7956623728344518
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8487442693440177,
+            "y": 0.7598809392802451
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8459212553603989,
+            "y": 0.7678804430963371
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6891225435632139
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6803358265216025
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8093357624268624
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.8115758765906824
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8436104831647633,
+            "y": 0.7483570812459324
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8239662267673538,
+            "y": 0.7665296343063225
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6778344332187044
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6923580330625436
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        }
+      ],
+      "width": 1440,
+      "height": 900,
+      "sha256": "eab44483973987da8bc8c60427090d67abdae2738d4e9b898d9bb870450fb8ca"
+    },
+    {
+      "file": "scene-laptop-ring-hat-off-day-seated.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "ring",
+      "hat": "none",
+      "state": "seating",
+      "width": 1440,
+      "height": 900,
+      "sha256": "e7b2b09990452d9b6e0943ac2cc87b73eb9c72d3f1cbdf616b8454fa16303b27"
+    },
+    {
+      "file": "scene-laptop-ring-hat-off-night-ghost.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "ring",
+      "hat": "none",
+      "state": "night",
+      "width": 1440,
+      "height": 900,
+      "sha256": "08ffa3fd2d13db07bb0a1740c7cc205c102340d2eff1a32334f41e067519663c"
+    },
+    {
+      "file": "poses-laptop-ring-hat-off-day.png",
+      "type": "pose diagnostic",
+      "device": "laptop",
+      "variant": "ring",
+      "hat": "none",
+      "night": false,
+      "details": [
+        {
+          "label": "Living idle",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8119312575048522
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living idle",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.7956623728344518
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8487442693440177,
+            "y": 0.7598809392802451
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8459212553603989,
+            "y": 0.7678804430963371
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6891225435632139
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6803358265216025
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8093357624268624
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.8115758765906824
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8436104831647633,
+            "y": 0.7483570812459324
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8239662267673538,
+            "y": 0.7665296343063225
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6778344332187044
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6923580330625436
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        }
+      ],
+      "width": 1440,
+      "height": 900,
+      "sha256": "75e7a1c98650eb95491ee0be7ee383fba154ba7042ce3f4ed6b9ab7c32e8e3e9"
+    },
+    {
+      "file": "poses-laptop-ring-hat-off-night.png",
+      "type": "pose diagnostic",
+      "device": "laptop",
+      "variant": "ring",
+      "hat": "none",
+      "night": true,
+      "details": [
+        {
+          "label": "Living idle",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8119312575048522
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living idle",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.7956623728344518
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8487442693440177,
+            "y": 0.7598809392802451
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8459212553603989,
+            "y": 0.7678804430963371
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6891225435632139
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6803358265216025
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8093357624268624
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.8115758765906824
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8436104831647633,
+            "y": 0.7483570812459324
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8239662267673538,
+            "y": 0.7665296343063225
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6778344332187044
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6923580330625436
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        }
+      ],
+      "width": 1440,
+      "height": 900,
+      "sha256": "4db7e0a480e94e462a9f8a9ac46e15e5e454dad941c59f15b909f99a81d4dba9"
+    },
+    {
+      "file": "scene-laptop-plain-hat-on-day-seated.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "plain",
+      "hat": "duckCap",
+      "state": "seating",
+      "width": 1440,
+      "height": 900,
+      "sha256": "4388eae427a7b9d5f39158acd0c902bc9a01c059fabebec28d562b121189d343"
+    },
+    {
+      "file": "scene-laptop-plain-hat-on-night-ghost.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "plain",
+      "hat": "duckCap",
+      "state": "night",
+      "width": 1440,
+      "height": 900,
+      "sha256": "ca74b92c7fdcbc5cbb3fdcf767de560327fd7c6ea3200358020e468b7805c00a"
+    },
+    {
+      "file": "poses-laptop-plain-hat-on-day.png",
+      "type": "pose diagnostic",
+      "device": "laptop",
+      "variant": "plain",
+      "hat": "duckCap",
+      "night": false,
+      "details": [
+        {
+          "label": "Living idle",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8119312575048522
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living idle",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.7956623728344518
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8487442693440177,
+            "y": 0.7598809392802451
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8459212553603989,
+            "y": 0.7678804430963371
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6891225435632139
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6803358265216025
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8093357624268624
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.8115758765906824
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8436104831647633,
+            "y": 0.7483570812459324
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8239662267673538,
+            "y": 0.7665296343063225
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6778344332187044
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6923580330625436
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        }
+      ],
+      "width": 1440,
+      "height": 900,
+      "sha256": "df804f851955d0925bcb819084ae6c1d47e1df83facd628c6cc6bce0da13cbc8"
+    },
+    {
+      "file": "poses-laptop-plain-hat-on-night.png",
+      "type": "pose diagnostic",
+      "device": "laptop",
+      "variant": "plain",
+      "hat": "duckCap",
+      "night": true,
+      "details": [
+        {
+          "label": "Living idle",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8119312575048522
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living idle",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.7956623728344518
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8487442693440177,
+            "y": 0.7598809392802451
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8459212553603989,
+            "y": 0.7678804430963371
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6891225435632139
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6803358265216025
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8093357624268624
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.8115758765906824
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8436104831647633,
+            "y": 0.7483570812459324
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8239662267673538,
+            "y": 0.7665296343063225
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6778344332187044
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6923580330625436
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        }
+      ],
+      "width": 1440,
+      "height": 900,
+      "sha256": "ad77e96a471f7dae7432deb727562b22c65084c9335e407f027271627c80566a"
+    },
+    {
+      "file": "scene-laptop-plain-hat-off-day-seated.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "plain",
+      "hat": "none",
+      "state": "seating",
+      "width": 1440,
+      "height": 900,
+      "sha256": "805dbab80b43889ffda355ac3a13e31a99ff60e0933fde4a67000d61d8962c26"
+    },
+    {
+      "file": "scene-laptop-plain-hat-off-night-ghost.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "plain",
+      "hat": "none",
+      "state": "night",
+      "width": 1440,
+      "height": 900,
+      "sha256": "f892b456ca688feaa47f691323f01d0869465c98b35c1d218b374e4f3f3d4d62"
+    },
+    {
+      "file": "poses-laptop-plain-hat-off-day.png",
+      "type": "pose diagnostic",
+      "device": "laptop",
+      "variant": "plain",
+      "hat": "none",
+      "night": false,
+      "details": [
+        {
+          "label": "Living idle",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8119312575048522
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living idle",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.7956623728344518
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8487442693440177,
+            "y": 0.7598809392802451
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8459212553603989,
+            "y": 0.7678804430963371
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6891225435632139
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6803358265216025
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8093357624268624
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.8115758765906824
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8436104831647633,
+            "y": 0.7483570812459324
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8239662267673538,
+            "y": 0.7665296343063225
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6778344332187044
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6923580330625436
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        }
+      ],
+      "width": 1440,
+      "height": 900,
+      "sha256": "563b928d48d4bf7eb34f0bba06b4d8acdc0d44a27c387970e3b3b38d5e60bf21"
+    },
+    {
+      "file": "poses-laptop-plain-hat-off-night.png",
+      "type": "pose diagnostic",
+      "device": "laptop",
+      "variant": "plain",
+      "hat": "none",
+      "night": true,
+      "details": [
+        {
+          "label": "Living idle",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8119312575048522
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living idle",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.7956623728344518
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8487442693440177,
+            "y": 0.7598809392802451
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living walk",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8459212553603989,
+            "y": 0.7678804430963371
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": 1,
+          "ghost": false,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6891225435632139
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Living seated",
+          "facing": -1,
+          "ghost": false,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6803358265216025
+          },
+          "bodyAlpha": 1,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8,
+            "y": 0.8093357624268624
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost idle",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8,
+            "y": 0.8115758765906824
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8436104831647633,
+            "y": 0.7483570812459324
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost drift",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8239662267673538,
+            "y": 0.7665296343063225
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": 1,
+          "ghost": true,
+          "bodyScale": {
+            "x": 0.8480000000000001,
+            "y": 0.6778344332187044
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        },
+        {
+          "label": "Ghost seated*",
+          "facing": -1,
+          "ghost": true,
+          "bodyScale": {
+            "x": -0.8480000000000001,
+            "y": 0.6923580330625436
+          },
+          "bodyAlpha": 0.78,
+          "labelSize": 12
+        }
+      ],
+      "width": 1440,
+      "height": 900,
+      "sha256": "a35db6f8e87525ebbc8699b437bd74f0d7d5d0c1151ca6523c4e618a64399f26"
+    },
+    {
+      "file": "scene-phone-ring-hat-on-day-idle.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "ring",
+      "hat": "duckCap",
+      "state": "idle",
+      "localPose": {
+        "seat": "s1",
+        "x": 760,
+        "y": 960,
+        "facing": 1,
+        "moving": false
+      },
+      "width": 390,
+      "height": 844,
+      "sha256": "bf20b19de94221c69f5b3f173e9b7e9c8b44f2e4868c7afb7513c5600855d67c"
+    },
+    {
+      "file": "scene-phone-ring-hat-on-day-walk-right.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "ring",
+      "hat": "duckCap",
+      "state": "walk-right",
+      "localPose": {
+        "seat": "s1",
+        "x": 915.7999999999998,
+        "y": 960,
+        "facing": 1,
+        "moving": true
+      },
+      "width": 390,
+      "height": 844,
+      "sha256": "e3ffea0af2b187117fcc0bf6473829e8693f91ad0edf7a7121c8d4d263772820"
+    },
+    {
+      "file": "scene-phone-ring-hat-on-day-walk-left.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "ring",
+      "hat": "duckCap",
+      "state": "walk-left",
+      "localPose": {
+        "seat": "s1",
+        "x": 601.3500000000001,
+        "y": 960,
+        "facing": -1,
+        "moving": true
+      },
+      "width": 390,
+      "height": 844,
+      "sha256": "210f266dcb1b3302071d62ed1f99b2d618c303998ae24dbb06fed825940a49ab"
+    },
+    {
+      "file": "scene-phone-ring-hat-on-day-ghost.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "ring",
+      "hat": "duckCap",
+      "state": "ghost-day",
+      "localPose": {
+        "seat": "s4",
+        "x": 822.1484888599132,
+        "y": 847.1130766532576,
+        "facing": 1,
+        "moving": false
+      },
+      "width": 390,
+      "height": 844,
+      "sha256": "04c9af5592434e35b3c75fc9f00c317f71214e5c749b2d87df74801946c9d18a"
+    },
+    {
+      "file": "scene-phone-ring-hat-off-day-idle.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "ring",
+      "hat": "none",
+      "state": "idle",
+      "localPose": {
+        "seat": "s1",
+        "x": 760,
+        "y": 960,
+        "facing": 1,
+        "moving": false
+      },
+      "width": 390,
+      "height": 844,
+      "sha256": "d96860acfb3dad47aabce13ecc133e692f67a2131c666f30fbf230345d6190be"
+    },
+    {
+      "file": "scene-phone-ring-hat-off-day-walk-right.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "ring",
+      "hat": "none",
+      "state": "walk-right",
+      "localPose": {
+        "seat": "s1",
+        "x": 918.4599999999998,
+        "y": 960,
+        "facing": 1,
+        "moving": true
+      },
+      "width": 390,
+      "height": 844,
+      "sha256": "288176785817f8bd40329e2665a59bf4b57944f3b5bc19b278207007a59ef30b"
+    },
+    {
+      "file": "scene-phone-ring-hat-off-day-walk-left.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "ring",
+      "hat": "none",
+      "state": "walk-left",
+      "localPose": {
+        "seat": "s1",
+        "x": 602.11,
+        "y": 960,
+        "facing": -1,
+        "moving": true
+      },
+      "width": 390,
+      "height": 844,
+      "sha256": "62718792755016570159d837f3ffd68d6e23507e508387e2cff1ecacb3aff3df"
+    },
+    {
+      "file": "scene-phone-ring-hat-off-day-ghost.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "ring",
+      "hat": "none",
+      "state": "ghost-day",
+      "localPose": {
+        "seat": "s4",
+        "x": 822.1484888599132,
+        "y": 847.1130766532576,
+        "facing": 1,
+        "moving": false
+      },
+      "width": 390,
+      "height": 844,
+      "sha256": "3423e87f7db3d4472c15bee44b4b79f8a7bea05b6a9deb34be3f2d0b3a0d5c78"
+    },
+    {
+      "file": "scene-phone-plain-hat-on-day-idle.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "plain",
+      "hat": "duckCap",
+      "state": "idle",
+      "localPose": {
+        "seat": "s1",
+        "x": 760,
+        "y": 960,
+        "facing": 1,
+        "moving": false
+      },
+      "width": 390,
+      "height": 844,
+      "sha256": "30c60e8e865365f9e7344b3df963056d994f04d622fcab495f5f5e9dfdd44965"
+    },
+    {
+      "file": "scene-phone-plain-hat-on-day-walk-right.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "plain",
+      "hat": "duckCap",
+      "state": "walk-right",
+      "localPose": {
+        "seat": "s1",
+        "x": 917.5099999999999,
+        "y": 960,
+        "facing": 1,
+        "moving": true
+      },
+      "width": 390,
+      "height": 844,
+      "sha256": "1786a9f819ef567654f51026d4551e8c3f508c2f480c5dd1c25f717160015f0c"
+    },
+    {
+      "file": "scene-phone-plain-hat-on-day-walk-left.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "plain",
+      "hat": "duckCap",
+      "state": "walk-left",
+      "localPose": {
+        "seat": "s1",
+        "x": 602.3000000000004,
+        "y": 960,
+        "facing": -1,
+        "moving": true
+      },
+      "width": 390,
+      "height": 844,
+      "sha256": "86da20868a5d78a46835a888001511c9a42e79243b321b7bbeeafd2c41f05031"
+    },
+    {
+      "file": "scene-phone-plain-hat-on-day-ghost.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "plain",
+      "hat": "duckCap",
+      "state": "ghost-day",
+      "localPose": {
+        "seat": "s4",
+        "x": 822.1484888599132,
+        "y": 847.1130766532576,
+        "facing": 1,
+        "moving": false
+      },
+      "width": 390,
+      "height": 844,
+      "sha256": "f5eb6e19c5b8588afd36aea15bbbf9abae95979abac38ee8657080860dbcf4af"
+    },
+    {
+      "file": "scene-phone-plain-hat-off-day-idle.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "plain",
+      "hat": "none",
+      "state": "idle",
+      "localPose": {
+        "seat": "s1",
+        "x": 760,
+        "y": 960,
+        "facing": 1,
+        "moving": false
+      },
+      "width": 390,
+      "height": 844,
+      "sha256": "1b4e04437198fc0a5da6e432ecdac66b2970bd184c315d9bdcbdc07cfeb68f28"
+    },
+    {
+      "file": "scene-phone-plain-hat-off-day-walk-right.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "plain",
+      "hat": "none",
+      "state": "walk-right",
+      "localPose": {
+        "seat": "s1",
+        "x": 915.9899999999996,
+        "y": 960,
+        "facing": 1,
+        "moving": true
+      },
+      "width": 390,
+      "height": 844,
+      "sha256": "872cc79825c56c23ae413c720d40ed1c94a9c9eba4e283dcd9f3e6e2764ba523"
+    },
+    {
+      "file": "scene-phone-plain-hat-off-day-walk-left.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "plain",
+      "hat": "none",
+      "state": "walk-left",
+      "localPose": {
+        "seat": "s1",
+        "x": 598.3100000000002,
+        "y": 960,
+        "facing": -1,
+        "moving": true
+      },
+      "width": 390,
+      "height": 844,
+      "sha256": "833fb5b79d989810fc05c7a0ffa2f7a8f7c13577b3313b97da02cbea398612f6"
+    },
+    {
+      "file": "scene-phone-plain-hat-off-day-ghost.png",
+      "type": "scene",
+      "device": "phone",
+      "variant": "plain",
+      "hat": "none",
+      "state": "ghost-day",
+      "localPose": {
+        "seat": "s4",
+        "x": 822.1484888599132,
+        "y": 847.1130766532576,
+        "facing": 1,
+        "moving": false
+      },
+      "width": 390,
+      "height": 844,
+      "sha256": "cdf711311e2024dd50765cb7643a80f0ec73d41fdc641e05eabe7f0777c9d8f9"
+    },
+    {
+      "file": "scene-laptop-ring-hat-on-day-idle.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "ring",
+      "hat": "duckCap",
+      "state": "idle",
+      "localPose": {
+        "seat": "s1",
+        "x": 760,
+        "y": 960,
+        "facing": 1,
+        "moving": false
+      },
+      "width": 1440,
+      "height": 900,
+      "sha256": "7e8cf5bb112fc9b2461f1f1dc8e0513bf0f310e5ca74b3bdd69842827241db62"
+    },
+    {
+      "file": "scene-laptop-ring-hat-on-day-walk-right.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "ring",
+      "hat": "duckCap",
+      "state": "walk-right",
+      "localPose": {
+        "seat": "s1",
+        "x": 922.2599999999996,
+        "y": 960,
+        "facing": 1,
+        "moving": true
+      },
+      "width": 1440,
+      "height": 900,
+      "sha256": "48669f151aa1864f0081cff02c5f36149b8b5e530d58df77b4bfccd1ef2cc6cc"
+    },
+    {
+      "file": "scene-laptop-ring-hat-on-day-walk-left.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "ring",
+      "hat": "duckCap",
+      "state": "walk-left",
+      "localPose": {
+        "seat": "s1",
+        "x": 599.0700000000003,
+        "y": 960,
+        "facing": -1,
+        "moving": true
+      },
+      "width": 1440,
+      "height": 900,
+      "sha256": "ba07aa3fd9cc78ca5859f124515d4c9346ca7ca32edfd8eee4969d567fab6199"
+    },
+    {
+      "file": "scene-laptop-ring-hat-on-day-ghost.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "ring",
+      "hat": "duckCap",
+      "state": "ghost-day",
+      "localPose": {
+        "seat": "s4",
+        "x": 822.1484888599132,
+        "y": 847.1130766532576,
+        "facing": 1,
+        "moving": false
+      },
+      "width": 1440,
+      "height": 900,
+      "sha256": "8dbd946f0e9054670571a09d2fc6b530c7a22aa19145e1b17242aeec2a8cf14c"
+    },
+    {
+      "file": "scene-laptop-ring-hat-off-day-idle.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "ring",
+      "hat": "none",
+      "state": "idle",
+      "localPose": {
+        "seat": "s1",
+        "x": 760,
+        "y": 960,
+        "facing": 1,
+        "moving": false
+      },
+      "width": 1440,
+      "height": 900,
+      "sha256": "b1add540a974aa77d050a2fc36acaf290ad6f3f065bc5eae1bc6bc75eb1782cf"
+    },
+    {
+      "file": "scene-laptop-ring-hat-off-day-walk-right.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "ring",
+      "hat": "none",
+      "state": "walk-right",
+      "localPose": {
+        "seat": "s1",
+        "x": 920.9299999999996,
+        "y": 960,
+        "facing": 1,
+        "moving": true
+      },
+      "width": 1440,
+      "height": 900,
+      "sha256": "1a4534b368d76f77537c8149ff2f759253341e23c681080b3ffa1156e94042b1"
+    },
+    {
+      "file": "scene-laptop-ring-hat-off-day-walk-left.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "ring",
+      "hat": "none",
+      "state": "walk-left",
+      "localPose": {
+        "seat": "s1",
+        "x": 598.8800000000003,
+        "y": 960,
+        "facing": -1,
+        "moving": true
+      },
+      "width": 1440,
+      "height": 900,
+      "sha256": "86d25d75bd4cbe9ef8f72697cc7983c2a5c347d2d762c0165eb08ce1eceb5b72"
+    },
+    {
+      "file": "scene-laptop-ring-hat-off-day-ghost.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "ring",
+      "hat": "none",
+      "state": "ghost-day",
+      "localPose": {
+        "seat": "s4",
+        "x": 822.1484888599132,
+        "y": 847.1130766532576,
+        "facing": 1,
+        "moving": false
+      },
+      "width": 1440,
+      "height": 900,
+      "sha256": "484b596d5af2adf534ffdcfd2e17a181054f9f401c9db6595a5901bdbbdb199e"
+    },
+    {
+      "file": "scene-laptop-plain-hat-on-day-idle.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "plain",
+      "hat": "duckCap",
+      "state": "idle",
+      "localPose": {
+        "seat": "s1",
+        "x": 760,
+        "y": 960,
+        "facing": 1,
+        "moving": false
+      },
+      "width": 1440,
+      "height": 900,
+      "sha256": "bf5ebc079a050a26aa350aca9af65535eb475aac9866933f18cb05e317dc7c56"
+    },
+    {
+      "file": "scene-laptop-plain-hat-on-day-walk-right.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "plain",
+      "hat": "duckCap",
+      "state": "walk-right",
+      "localPose": {
+        "seat": "s1",
+        "x": 921.4999999999998,
+        "y": 960,
+        "facing": 1,
+        "moving": true
+      },
+      "width": 1440,
+      "height": 900,
+      "sha256": "ba5aff29ae11d7c8986b313c1470ac38390fe1d157150f67cafdfb6a606f459b"
+    },
+    {
+      "file": "scene-laptop-plain-hat-on-day-walk-left.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "plain",
+      "hat": "duckCap",
+      "state": "walk-left",
+      "localPose": {
+        "seat": "s1",
+        "x": 598.3100000000002,
+        "y": 960,
+        "facing": -1,
+        "moving": true
+      },
+      "width": 1440,
+      "height": 900,
+      "sha256": "1044d8b7cb07da83290a2d4b4d4fd6d4560d45163776d9faa9c0d1920b7cfcca"
+    },
+    {
+      "file": "scene-laptop-plain-hat-on-day-ghost.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "plain",
+      "hat": "duckCap",
+      "state": "ghost-day",
+      "localPose": {
+        "seat": "s4",
+        "x": 822.1484888599132,
+        "y": 847.1130766532576,
+        "facing": 1,
+        "moving": false
+      },
+      "width": 1440,
+      "height": 900,
+      "sha256": "a98abe5e03d01d1f659e0405a042fabdda51bbd4429c93bae5602fac04f8c38f"
+    },
+    {
+      "file": "scene-laptop-plain-hat-off-day-idle.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "plain",
+      "hat": "none",
+      "state": "idle",
+      "localPose": {
+        "seat": "s1",
+        "x": 760,
+        "y": 960,
+        "facing": 1,
+        "moving": false
+      },
+      "width": 1440,
+      "height": 900,
+      "sha256": "aa04ce722b7d2ab3fc1bb0df38e88c3eeba69e1ec8cdd61e563db47d1a54371e"
+    },
+    {
+      "file": "scene-laptop-plain-hat-off-day-walk-right.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "plain",
+      "hat": "none",
+      "state": "walk-right",
+      "localPose": {
+        "seat": "s1",
+        "x": 921.8799999999998,
+        "y": 960,
+        "facing": 1,
+        "moving": true
+      },
+      "width": 1440,
+      "height": 900,
+      "sha256": "0b4c0a39f3ded4b61e0eba50a81013046a0f6ed39ba813fbd006ebdb4b3a83b2"
+    },
+    {
+      "file": "scene-laptop-plain-hat-off-day-walk-left.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "plain",
+      "hat": "none",
+      "state": "walk-left",
+      "localPose": {
+        "seat": "s1",
+        "x": 597.7400000000001,
+        "y": 960,
+        "facing": -1,
+        "moving": true
+      },
+      "width": 1440,
+      "height": 900,
+      "sha256": "27022de632e41e3f6452c18353559fa609f5dfd353071f075dd974f513d964ea"
+    },
+    {
+      "file": "scene-laptop-plain-hat-off-day-ghost.png",
+      "type": "scene",
+      "device": "laptop",
+      "variant": "plain",
+      "hat": "none",
+      "state": "ghost-day",
+      "localPose": {
+        "seat": "s4",
+        "x": 822.1484888599132,
+        "y": 847.1130766532576,
+        "facing": 1,
+        "moving": false
+      },
+      "width": 1440,
+      "height": 900,
+      "sha256": "de72902e5371fa6d12318f4702abcbc20cf68230c95b5833daaae6910797e783"
+    }
+  ],
+  "attemptNotes": [
+    {
+      "attempt": "first supplemental run",
+      "error": "undefined is not an object (evaluating 'b[0]')",
+      "cause": "capture driver passed a diagnostic state name to the stock dev banner; no supplemental frames were saved in that attempt",
+      "resolution": "mapped driver states to valid lobby/ghost dev URLs; all 32 supplemental frames then completed"
+    }
+  ]
+}

@@ -4,7 +4,7 @@
 // frozen for non-moderators; automatic mode never closes a secret phase early.
 import { randomBytes } from 'node:crypto';
 import {
-  type Appearance,
+  type CostumeAppearance,
   type ChatMessage,
   CLOSE,
   type ClientMessage,
@@ -12,7 +12,7 @@ import {
   type Mode,
   type Pose,
   type VoiceMode,
-  type Profile,
+  type ProfileInput,
   type PublicSeat,
   type SeatId,
   type SeatKind,
@@ -22,6 +22,7 @@ import {
   type VoiceSession,
 } from '@moonveil/protocol';
 import { createMap, inWorld, isWalkable, type MapLayout } from '@moonveil/scene/map';
+import { AppearanceError, resolveAppearance, restoredAppearance } from './appearance.ts';
 import type { PhaseInfo, RulesEngine, Viewer } from './rules/engine.ts';
 import type { RoomSnapshot, RoomStore } from './store.ts';
 import type { VoiceGateway } from './voice.ts';
@@ -45,7 +46,7 @@ interface Seat {
   id: SeatId;
   kind: SeatKind;
   name: string;
-  appearance: Appearance;
+  appearance: CostumeAppearance;
   ready: boolean;
   token: string;
   conn: Conn | null;
@@ -86,6 +87,16 @@ const newSeatId = () => `s_${randomBytes(5).toString('hex')}`;
 const sameName = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'accent' }) === 0;
 
 // A saved room that is deliberately not restored (engine or rules version). The reason is engine text, never data.
+// Whole-profile refusal (ADR 0011): unknown ids or a choice the outfit doesn't offer.
+function appearanceOrRefuse(input: ProfileInput['appearance'], seat: SeatId): CostumeAppearance {
+  try {
+    return resolveAppearance(input, seat);
+  } catch (e) {
+    if (e instanceof AppearanceError) throw new RoomError('invalid-appearance', e.message);
+    throw e;
+  }
+}
+
 export class RestoreSkip extends Error {}
 
 export interface RoomDeps<S> {
@@ -152,7 +163,7 @@ export class Room<S = unknown> {
   private savedJson = '';
   private deps: RoomDeps<S>;
 
-  constructor(code: string, mode: Mode, creator: Profile, deps: RoomDeps<S>, voiceMode: VoiceMode = 'remote') {
+  constructor(code: string, mode: Mode, creator: ProfileInput, deps: RoomDeps<S>, voiceMode: VoiceMode = 'remote') {
     this.code = code;
     this.mode = mode;
     this.voiceMode = voiceMode;
@@ -168,8 +179,9 @@ export class Room<S = unknown> {
     return (this.moderator ?? this.players[0]!).token;
   }
 
-  private makeSeat(kind: SeatKind, p: Profile): Seat {
-    return { id: newSeatId(), kind, name: p.name, appearance: p.appearance, ready: false, token: newToken(), conn: null };
+  private makeSeat(kind: SeatKind, p: ProfileInput): Seat {
+    const id = newSeatId();
+    return { id, kind, name: p.name, appearance: appearanceOrRefuse(p.appearance, id), ready: false, token: newToken(), conn: null };
   }
 
   private allSeats(): Seat[] {
@@ -194,7 +206,7 @@ export class Room<S = unknown> {
 
   // --- membership ---
 
-  join(p: Profile): Seat {
+  join(p: ProfileInput): Seat {
     if (this.status !== 'lobby') throw new RoomError('game-started', 'game already started');
     if (this.players.length >= this.deps.engine.maxPlayers) throw new RoomError('room-full', 'room is full');
     this.assertNameFree(p.name);
@@ -264,8 +276,9 @@ export class Room<S = unknown> {
       case 'profile':
         if (this.status !== 'lobby') throw new RoomError('not-allowed', 'profile locked during game');
         this.assertNameFree(msg.profile.name, seat.id);
+        // Validate before changing anything: a refused profile leaves both name and look as they were.
+        seat.appearance = appearanceOrRefuse(msg.profile.appearance, seat.id);
         seat.name = msg.profile.name;
-        seat.appearance = msg.profile.appearance;
         break;
       case 'ready':
         if (this.status !== 'lobby' || seat.kind !== 'player') throw new RoomError('not-allowed', 'not in lobby');
@@ -638,7 +651,12 @@ export class Room<S = unknown> {
     const why = r.game !== null ? (deps.engine.restoreCheck?.(r.game as S) ?? null) : null;
     if (why) throw new RestoreSkip(why);
     const room = new Room<S>(snap.code, r.mode, { name: 'restore', appearance: { color: 'moss', hat: 'none' } }, deps, r.voiceMode);
-    const seat = (s: StoredSeat): Seat => ({ ...s, conn: null });
+    let reset = 0;
+    const seat = (s: StoredSeat): Seat => {
+      const a = restoredAppearance(s.appearance, s.id);
+      if (a.reset) reset++;
+      return { ...s, appearance: a.value, conn: null };
+    };
     room.players = r.players.map(seat);
     room.moderator = r.moderator ? seat(r.moderator) : null;
     room.hostId = r.hostId;
@@ -648,6 +666,7 @@ export class Room<S = unknown> {
     room.chat = new Map(r.chat);
     room.lastActive = r.lastActive;
     room.customDeck = r.customDeck ?? null;
+    if (reset) deps.log(`room ${snap.code} appearance-reset seats=${reset}`);
     room.savedJson = JSON.stringify(r);
     if (room.game !== null && room.mode === 'automatic' && room.status === 'playing') {
       room.game = deps.engine.pause(room.game, snap.savedAt);

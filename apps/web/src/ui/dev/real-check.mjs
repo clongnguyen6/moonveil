@@ -19,6 +19,7 @@ const sh = (cmd, args, env = {}) => new Promise((res, rej) => { const p = spawn(
 await sh('npm', ['run', 'build', '-w', '@moonveil/web']);
 const server = spawn('node', ['apps/server/src/main.ts'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, PORT: String(port), HOST: '127.0.0.1', MOONVEIL_ENGINE: 'rules', MOONVEIL_PERSIST: '0' } });
 server.stdout.on('data', () => {});
+process.on('exit', () => server.kill('SIGTERM'));   // also on a thrown error: never leave the server on the port
 server.stderr.on('data', (d) => process.stderr.write(d));
 for (let i = 0; i < 100; i++) { try { if ((await fetch(`${base}/healthz`)).ok) break; } catch {} await new Promise((r) => setTimeout(r, 200)); }
 
@@ -233,13 +234,15 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
     for (const n of NAMES.slice(0, 7)) { const p = await mk(n + '2'); await p.join(code2); await p.ready(); ps2.push(p); }
     await mod2.page.getByTestId('start').click();
     await mod2.page.waitForSelector('[data-testid=mod-console]', { timeout: 15_000 });
-    // Normal UI-driven loop until the first verdict closes: proves nomination ballots, the defense grant and the Yes/No step.
+    // UI-driven loop until the first verdict: proves nomination ballots, the defense grant and the Yes/No step.
+    // Deterministic for every deal: nobody acts at night (no kill, no poison, no Hunter turn), so day 1 always has all
+    // 7 alive and a unique nominee. Night actions are proved in room 1 and the automatic match above.
     const close2 = async () => { await mod2.page.getByTestId('close-step').click(); await mod2.page.locator('[role=alertdialog] .btn').nth(1).click(); await mod2.page.waitForTimeout(250); };
     let sawDefense = false, sawConfirm = false;
+    const steps2 = [];
     for (let i = 0; i < 24 && !sawConfirm && (await mod2.step()) !== 'ended'; i++) {
       const step = await mod2.step();
-      if (step === 'night.main' || step === 'night.witch') { for (const p of ps2) await p.pickFirst().catch(() => {}); if (step === 'night.witch') { const w = ps2.find((p) => p.game().me.role === 'witch' && p.game().me.alive); if (w) await w.page.getByTestId('heal-no').click().catch(() => {}); } }
-      if (step === 'hunter') for (const p of ps2) await p.pickFirst().catch(() => {});
+      steps2.push(step);
       if (step === 'day.vote') { const alive = ps2.filter((p) => p.game().me.alive); const target = alive[0]; for (const p of alive) { if (p === target) continue; const b = p.page.locator(`[data-testid=seat-${target.game().me.seat}]`); if (await b.count()) { await b.click(); await p.page.getByTestId('confirm').click(); } } await mod2.page.waitForTimeout(300); }
       if (step === 'day.defense') {
         sawDefense = true;
@@ -252,6 +255,8 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
       if (step === 'day.confirm') { for (const p of ps2.filter((p) => p.game().me.alive)) await p.page.getByTestId('vote-yes').click().catch(() => {}); await mod2.page.waitForTimeout(300); sawConfirm = true; break; } // keep the match running for the end-match proof
       await close2();
     }
+    const room2Ok = sawDefense && sawConfirm && (await mod2.step()) !== 'ended';
+    if (!room2Ok) console.log(`room 2 diagnostics: steps ${steps2.concat(await mod2.step()).join(' > ')}; deal ${ps2.map((p) => `${p.name}#${p.seat}=${p.game().me.role}${p.game().me.alive ? '' : '(dead)'}`).join(' ')}`);
     ok('moderator room 2: reached a defense and a verdict through the UI', sawDefense && sawConfirm);
     ok('moderator room 2: match still running before the end-match proof', (await mod2.step()) !== 'ended');
     await mod2.page.getByTestId('end-match-open').click(); await mod2.page.getByTestId('end-match-input').fill('END'); await mod2.page.getByTestId('end-match-confirm').click();
