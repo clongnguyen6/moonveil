@@ -11,7 +11,7 @@ for (let i = 0; i < 100; i++) { try { if ((await fetch(`${base}/healthz`)).ok) b
 console.log('[scene] on (low) for both pages');
 let fails = 0; const ok = (n, c, extra = '') => { console.log(`${c ? 'PASS' : 'FAIL'}  ${n}${c ? '' : '  ' + extra}`); if (!c) fails++; };
 const browser = await chromium.launch();
-const mk = async () => { const ctx = await browser.newContext({ viewport: { width: 1200, height: 800 }, reducedMotion: 'reduce' }); await ctx.addInitScript(() => { globalThis.__MOONVEIL_SCENE = 'low'; localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'en', sound: false, reducedMotion: 'on', scene: true })); }); return ctx.newPage(); };
+const mk = async () => { const ctx = await browser.newContext({ viewport: { width: 1200, height: 800 }, reducedMotion: 'reduce' }); await ctx.addInitScript(() => { globalThis.__MOONVEIL_SCENE = 'low'; globalThis.__MOONVEIL_SCENE_DEBUG = true; localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'en', sound: false, reducedMotion: 'on', scene: true })); }); return ctx.newPage(); };
 const A = await mk(), B = await mk();
 await A.goto(`${base}/`); await A.getByTestId('name').fill('An'); await A.getByTestId('color-ember').click(); await A.getByTestId('create-automatic').click(); await A.waitForSelector('[data-testid=room-code]');
 const code = (await A.getByTestId('room-code').textContent()).trim();

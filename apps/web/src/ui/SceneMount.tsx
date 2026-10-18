@@ -20,7 +20,9 @@ export function SceneMount({ s, topbarRef, micOn }: { s: SessionState; topbarRef
 
   useEffect(() => {
     if (!slot.current || !view) return;
-    const h = mountScene(slot.current, { input: toSceneInput(view, g) });
+    // debug read hooks (debugAppearance) only when the check environment asks for them; never in production
+    const debug = (globalThis as { __MOONVEIL_SCENE_DEBUG?: boolean }).__MOONVEIL_SCENE_DEBUG === true;
+    const h = mountScene(slot.current, { input: toSceneInput(view, g), ...(debug ? { debug: true } : {}) });
     scene.current = h;
     (globalThis as { __moonveilScene?: SceneHandle }).__moonveilScene = h; // test hook (debugAppearance / localPose)
     const off = h.on('move', (pose) => session.send({ t: 'move', x: Math.round(pose.x), y: Math.round(pose.y), facing: pose.facing, moving: pose.moving }));
@@ -42,11 +44,10 @@ export function SceneMount({ s, topbarRef, micOn }: { s: SessionState; topbarRef
   useEffect(() => {
     scene.current?.setSpeaking(s.speaking);
   }, [s.speaking]);
-  // Local-only preview of the draft look on the local avatar (scene API from visual: setLocalAppearanceOverride).
+  // Local-only preview of the draft look on the local avatar (MOUNT.md: setLocalAppearanceOverride; null restores the snapshot look).
   useEffect(() => {
-    const h = scene.current as (SceneHandle & { setLocalAppearanceOverride?: (a: ReturnType<typeof appearanceFromProtocol> | null) => void }) | null;
-    if (!h?.setLocalAppearanceOverride || !view) return;
-    h.setLocalAppearanceOverride(look.draft ? appearanceFromProtocol(look.draft.appearance, view.me.seat) : null);
+    if (!scene.current || !view) return;
+    scene.current.setLocalAppearanceOverride(look.draft ? appearanceFromProtocol(look.draft.appearance, view.me.seat) : null);
   }, [look.draft, view]);
   useEffect(() => {
     scene.current?.setSpeakingLocal(micOn);
