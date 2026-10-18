@@ -38,6 +38,11 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Delivered art-themes 17b1c75 (docs/visual/themes only; Lead reviewed images). Sent to Human for selection. Peer recommends: pufferfish hat (shark not drawn), keep procedural vector for production, generated rasters review-only. Seam: `extra` (one of none/scarf/backpack) and wire {color,hat} can't express these; appearance contract needed before production.
 - Outside-Moonveil write (image tool auto-save, no output-dir control): /Users/long/.codex-runtime/peer/generated_images/01a14e4b-…/ 3 PNGs, 2,634,923 bytes. Not deleted; reported.
 
+## Release candidate f91f425 (2026-10-18)
+- dev f91f425 = chat + costumes (contract, seam, adapter, 8 looks, picker) + small-phone framing + fire labels + stale-error fix + leave fix. FF from live 3b1dbde; STATE_VERSION 2.
+- Full acceptance 14:14–15:02Z (foundation, exclusive lock): npm ci; check (467 unit, e2e 13/13); matches 10/10; voice 10/10; strict UI 16/16, 711/711, 0 misses (mitigations: 3 s click wait, one 4 fps observer). Summary foundation .cache/runs/full-f91f425/summary.txt.
+- Deploy request sent to Supervisor 15:0xZ. Pending: Human approval; rollback compatibility (3b1dbde reading canonical-appearance snapshots) being checked by foundation; postdeploy costume broadcast check being added.
+
 ## Costumes production (Human-approved 2026-10-18; no deploy)
 - Scope: all six themes + goofy shark + duck with/without ring (8 looks); more coherent variants later, no numeric target. Costumes on camper (reversible baseline). Picker: outfit → customise → local preview → Save/Cancel; no economy/unlocks; never role.
 - Ownership: Codex = creative/catalog content + costume art code; visual = scene seam/pipeline; foundation = wire/server contract + restore compat; game UI = picker (after chat). Don't shift creative work to Claude seats.
