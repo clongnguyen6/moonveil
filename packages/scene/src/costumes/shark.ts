@@ -4,10 +4,12 @@ import { MATERIAL as M, paint } from './materials.ts';
 export function sharkHoodBack(ctx: CostumeContext) {
   const { b, rig } = ctx;
   const crown = rig.head.y - rig.head.r;
-  // A short swept felt fin, not pointed animal ears.
-  b.moveTo(-12, crown - 4).quadraticCurveTo(-15, crown - 13, -9, crown - 14)
-    .quadraticCurveTo(-3, crown - 12, 2, crown - 4).closePath();
+  // One broad swept dorsal fin, visibly separated from the hood at phone scale.
+  b.moveTo(-14, crown - 4).quadraticCurveTo(-17, crown - 18, -9, crown - 19)
+    .quadraticCurveTo(1, crown - 17, 5, crown - 3).closePath();
   paint(ctx, M.slate);
+  b.moveTo(-11, crown - 14).quadraticCurveTo(-7, crown - 14, -3, crown - 7)
+    .stroke(ctx.color(M.oatmeal), 2);
   b.ellipse(rig.head.x, rig.head.y - 1, 19, 21);
   paint(ctx, M.slate);
 }

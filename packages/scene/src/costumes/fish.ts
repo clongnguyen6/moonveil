@@ -16,7 +16,7 @@ export const fish: Costume = {
   hidesHair: false,
   crownY: (choice) => {
     if (choice.hat !== 'fishHeadgear') return -75;
-    return choice.variant === 'puffer' ? -88 : choice.variant === 'shark' ? -91 : -75;
+    return choice.variant === 'puffer' ? -88 : choice.variant === 'shark' ? -96 : -75;
   },
   pieces: {
     back: (ctx) => {

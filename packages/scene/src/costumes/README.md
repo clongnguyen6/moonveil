@@ -51,7 +51,7 @@ All retain base hair under headgear and when headgear is off. Fixed headgear/pro
 | bowCat / default | catHood; -93 | fishSling / none | none |
 | robotCat / default | robotHood; -84 | utilityPocket / none | none |
 | fish / puffer | fishHeadgear; -88 | none | none / finPouch |
-| fish / shark | fishHeadgear; -91 | none | none / finPouch |
+| fish / shark | fishHeadgear; -96 | none | none / finPouch |
 | frog / default | frogHat; -94 | raincoatPockets / none | leafPack / none |
 | duck / ring | duckCap; -92 | none | none |
 | duck / plain | duckCap; -92 | none | none |
@@ -83,3 +83,5 @@ Current captures at 39e5af9 are an in-progress checkpoint: the original thin rin
 Frog readability revision: eye bumps grow from radius6.5 to7.5; cream sockets from4 to5.3 and pupils from1.8 to2.4. Crown remains -94; eye caps stay inside the arcs clearance. Existing full option/ghost/face tests cover the change. Phone visual acceptance remains pending.
 
 Puffer readability revision: broad ember felt fins replace thin sand flaps. Fins project above the speaking-arcs band; all declared combinations remain clear. The art test helper now checks each painted/stroked shape against the actual band (matching rig inspection), rather than forbidding all headgear wider than20 units even above that band. Crown remains -88; phone read still needs screenshots.
+
+Shark readability revision: wider/taller single swept dorsal fin with a broad cream seam; chosen crown is now -96 (still inside the box including strokes). Human face and hood aperture are unchanged. Node checks pass all fish choices; screenshot validation remains pending.
