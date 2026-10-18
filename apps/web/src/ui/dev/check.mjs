@@ -1,6 +1,7 @@
 // Interaction checks against the in-browser stub (Chromium headless shell). Not a server test.
 //   node scripts/env.mjs node apps/web/src/ui/dev/check.mjs   (vite on WEB_PORT, default 4401)
 import { chromium, devices } from '@playwright/test';
+import { OUTFITS } from '../../../../../packages/protocol/src/appearance.ts';
 
 const port = process.env.WEB_PORT ?? '4401';
 const base = `http://127.0.0.1:${port}/src/ui/dev/index.html`;
@@ -430,6 +431,51 @@ await stub((r) => { r.players.forEach((p) => (p.ready = true)); r.start(); r.set
 await page.waitForTimeout(150);
 ok('look: match start discards the draft', (await lookState()).draft === null);
 await page.evaluate(() => { delete globalThis.__MOONVEIL_LOOK_BOUND_MS; });
+await open('day');
+
+// 11l. Costume picker: catalog-driven (OUTFITS), outfit → options, canonical preview + Save, opens on the real look,
+// Cancel restores, refusals handled, entry screen has the same picker.
+const myLook = () => stub((r) => r.players.find((p) => p.id === r.viewer).appearance);
+await open('lobby', '&lang=en');
+await page.getByTestId('edit-profile').click();
+const outfitChips = await page.locator('[data-testid=look-picker] [data-testid^=outfit-]').evaluateAll((els) => els.map((e) => e.dataset.testid.slice(7)));
+ok(`picker: one outfit chip per catalog outfit (${outfitChips.length})`, JSON.stringify(outfitChips) === JSON.stringify(Object.keys(OUTFITS)), JSON.stringify(outfitChips));
+let catalogOk = true;
+for (const [id, d] of Object.entries(OUTFITS)) {
+  await page.getByTestId(`outfit-${id}`).click();
+  const shown = await page.evaluate(() => ({ variants: [...document.querySelectorAll('[data-testid^=variant-]')].map((e) => e.dataset.testid.slice(8)), colors: [...document.querySelectorAll('[data-testid=look-picker] [data-testid^=color-]')].map((e) => e.dataset.testid.slice(6)), hats: [...document.querySelectorAll('[data-testid=hat] option')].map((o) => o.value), fronts: [...document.querySelectorAll('[data-testid=front] option')].map((o) => o.value), backs: [...document.querySelectorAll('[data-testid=back] option')].map((o) => o.value) }));
+  const want = Object.fromEntries(['variants', 'colors', 'hats', 'fronts', 'backs'].map((k) => [k, d[k].length > 1 ? [...d[k]] : []]));
+  if (JSON.stringify(shown) !== JSON.stringify(want)) { catalogOk = false; console.log(`  ${id}: shown ${JSON.stringify(shown)} want ${JSON.stringify(want)}`); }
+}
+ok('picker: every outfit shows exactly its catalog choices (singletons hidden)', catalogOk);
+await page.getByTestId('outfit-fish').click(); await page.getByTestId('variant-shark').click(); await page.getByTestId('color-slate').click(); await page.getByTestId('back').selectOption('finPouch');
+const fishDraft = await page.evaluate(() => globalThis.__moonveilLook.get().draft?.appearance);
+ok('picker: draft is the canonical costume (fish/shark/slate/fishHeadgear/none/finPouch), nothing saved yet', JSON.stringify(fishDraft) === JSON.stringify({ outfit: 'fish', variant: 'shark', color: 'slate', hat: 'fishHeadgear', front: 'none', back: 'finPouch' }) && (await myLook()).outfit === 'camper', JSON.stringify(fishDraft));
+ok('picker: You card previews the draft outfit', (await page.getByTestId('you-look').getAttribute('data-outfit')) === 'fish' && (await page.getByTestId('you-look').getAttribute('data-variant')) === 'shark');
+await page.getByTestId('cancel-profile').click(); await page.waitForTimeout(100);
+ok('picker: Cancel restores the saved look and saves nothing', (await page.getByTestId('you-look').getAttribute('data-outfit')) === 'camper' && (await myLook()).outfit === 'camper' && (await page.evaluate(() => globalThis.__moonveilLook.get().draft)) === null);
+await page.getByTestId('edit-profile').click();
+await page.getByTestId('outfit-duck').click(); await page.getByTestId('variant-plain').click(); await page.getByTestId('color-clay').click(); await page.getByTestId('hat').selectOption('none');
+await page.getByTestId('save-profile').click(); await page.waitForTimeout(150);
+ok('picker: Save stores the canonical duck on the seat and confirms the draft', JSON.stringify(await myLook()) === JSON.stringify({ outfit: 'duck', variant: 'plain', color: 'clay', hat: 'none', front: 'none', back: 'none' }) && (await page.evaluate(() => globalThis.__moonveilLook.get().draft)) === null);
+await page.getByTestId('edit-profile').click();
+ok('picker: the editor reopens on the saved non-legacy look (duck/plain/clay, headgear off)', (await page.getByTestId('look-picker').getAttribute('data-outfit')) === 'duck' && (await page.getByTestId('look-picker').getAttribute('data-variant')) === 'plain' && (await page.locator('[data-testid=color-clay][aria-checked=true]').count()) === 1 && (await page.getByTestId('hat').inputValue()) === 'none');
+await page.getByTestId('cancel-profile').click();
+ok('picker: avatar dot shows the catalog colour (c-clay)', /c-clay/.test(await page.locator('[data-testid=you-look] .avatar').getAttribute('class')));
+for (const bad of [{ outfit: 'duck', color: 'ember' }, { outfit: 'dragon' }]) {
+  await stub((r, a) => { r.send({ t: 'profile', profile: { name: r.players.find((p) => p.id === r.viewer).name, appearance: a } }); }, bad);
+  await page.waitForTimeout(80);
+  ok(`picker: stub refuses ${JSON.stringify(bad)} with invalid-appearance (localized), look unchanged`, (await page.locator('[data-testid=error][data-code=invalid-appearance]').count()) === 1 && (await myLook()).outfit === 'duck' && !/not offered|unknown outfit/.test(await page.getByTestId('error').innerText()));
+}
+await stub((r) => { r.error = null; r.setViewer(r.viewer); });
+await open('entry', '&lang=en');
+await page.getByTestId('name').fill('Picker');
+await page.getByTestId('outfit-frog').click(); await page.getByTestId('color-moss').click();
+ok('entry: same picker, catalog outfits, frog/moss selected', (await page.getByTestId('look-picker').getAttribute('data-outfit')) === 'frog' && (await page.locator('[data-testid=color-moss][aria-checked=true]').count()) === 1);
+await page.getByTestId('create-automatic').click(); await page.waitForSelector('[data-testid=room]');
+const entryLook = await myLook(); const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('moonveil.profile') ?? 'null')?.appearance);
+ok('entry: create sends the costume; the new seat is frog/moss and the profile is stored canonically', entryLook.outfit === 'frog' && entryLook.color === 'moss' && stored?.outfit === 'frog' && stored?.color === 'moss', JSON.stringify({ entryLook, stored }));
+await page.evaluate(() => localStorage.removeItem('moonveil.profile'));
 await open('day');
 
 // 11k. Chat overlay: always visible, names + content, channel labels, isolation, same footprint for every seat.
