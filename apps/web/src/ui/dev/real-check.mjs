@@ -249,11 +249,13 @@ const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh', 'Minh'];
         const accused = ps2.find((p) => p.game().me.seat === acc);
         if (accused) ok('defense: the accused keeps the floor copy and the public speak grant', /defense|Your defense/i.test(await accused.page.getByTestId('defense-hint').innerText()) && (await accused.page.locator('[data-testid=voice][data-speak=public]').count()) === 1);
       }
-      if (step === 'day.confirm') { for (const p of ps2.filter((p) => p.game().me.alive)) await p.page.getByTestId('vote-yes').click().catch(() => {}); await mod2.page.waitForTimeout(300); sawConfirm = true; }
+      if (step === 'day.confirm') { for (const p of ps2.filter((p) => p.game().me.alive)) await p.page.getByTestId('vote-yes').click().catch(() => {}); await mod2.page.waitForTimeout(300); sawConfirm = true; break; } // keep the match running for the end-match proof
       await close2();
     }
     ok('moderator room 2: reached a defense and a verdict through the UI', sawDefense && sawConfirm);
-    if ((await mod2.step()) !== 'ended') { await mod2.page.getByTestId('end-match-open').click(); await mod2.page.getByTestId('end-match-input').fill('END'); await mod2.page.getByTestId('end-match-confirm').click(); await mod2.page.waitForTimeout(400); }
+    ok('moderator room 2: match still running before the end-match proof', (await mod2.step()) !== 'ended');
+    await mod2.page.getByTestId('end-match-open').click(); await mod2.page.getByTestId('end-match-input').fill('END'); await mod2.page.getByTestId('end-match-confirm').click();
+    await ps2[0].page.waitForSelector('[data-testid=ended]', { timeout: 8000 }).catch(() => {});
     ok('moderator end-match (match.end): ended by the moderator, no winner, full reveal on a player', (await ps2[0].page.locator('[data-testid=ended][data-reason=aborted]').count()) === 1 && (await ps2[0].page.locator('[data-testid=ended] .seat-chip .tag').count()) === 7 && !/village|wolves/.test(await ps2[0].page.locator('[data-testid=ended]').getAttribute('data-winner')));
     for (const p of [mod2, ...ps2]) await p.ctx.close();
     await browser.close(); server.kill('SIGTERM');
