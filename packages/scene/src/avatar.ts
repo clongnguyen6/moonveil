@@ -2,6 +2,7 @@
 import { Container, Graphics, Sprite, Text } from 'pixi.js';
 import { type TextureBank, type Baked, spriteOf } from './textures.ts';
 import { shade, lerp, clamp, hashString } from './rng.ts';
+import { appearanceKey, avatarVisible } from './reconcile.ts';
 import type { SceneAppearance } from './types.ts';
 import { HAIR_COLOR_VALUES, SKIN_COLORS, TOP_COLORS } from './appearance.ts';
 
@@ -80,6 +81,8 @@ export class Avatar {
   readonly seat: string;
   private bodyTex: Baked;
   private ghostTex: Baked;
+  private bank: TextureBank;
+  private appKey: string;
   private trail: { x: number; y: number }[] = [];
   x = 0; y = 0;
   facing: 1 | -1 = 1;
@@ -99,6 +102,7 @@ export class Avatar {
   constructor(seat: string, name: string, appearance: SceneAppearance, bank: TextureBank) {
     this.seat = seat;
     this.t = (hashString(seat) % 1000) / 137;
+    this.bank = bank; this.appKey = appearanceKey(appearance);
     this.bodyTex = bank.bake(drawAvatar(appearance, false, seat), 0, 0, 3);
     this.ghostTex = bank.bake(drawAvatar(appearance, true, seat), 0, 0, 3);
     this.shadow = new Sprite(bank.shadow); this.shadow.anchor.set(0.5); this.shadow.scale.set(1.1, 0.5);
@@ -111,7 +115,24 @@ export class Avatar {
     this.glow = new Sprite(bank.lightSoft); this.glow.anchor.set(0.5); this.glow.blendMode = 'add'; this.glow.tint = 0x9fc0ff; this.glow.alpha = 0; this.glow.scale.set(0.5);
     for (let i = 0; i < 4; i++) { const w = new Sprite(bank.dot); w.anchor.set(0.5); w.blendMode = 'add'; w.tint = 0xbfd8ff; w.alpha = 0; w.scale.set(0.3 - i * 0.05); this.wisps.push(w); }
     this.root.addChild(this.shadow, this.ring, this.body, this.arcs, this.label, this.emote);
+    this.root.visible = false; this.glow.visible = false;   // nothing renders until the first update positions the avatar
   }
+
+  // Re-bake the look when the player saves a new appearance; position, mode, facing and intent are untouched.
+  // Same appearance → no work. Old textures are destroyed so nothing leaks.
+  setAppearance(a: SceneAppearance): boolean {
+    const key = appearanceKey(a);
+    if (key === this.appKey) return false;
+    this.appKey = key;
+    const oldBody = this.bodyTex, oldGhost = this.ghostTex;
+    this.bodyTex = this.bank.bake(drawAvatar(a, false, this.seat), 0, 0, 3);
+    this.ghostTex = this.bank.bake(drawAvatar(a, true, this.seat), 0, 0, 3);
+    const tex = this.mode === 'ghost' ? this.ghostTex : this.bodyTex;
+    this.body.texture = tex.texture; this.body.anchor.set(tex.ax, tex.ay);
+    oldBody.texture.destroy(true); oldGhost.texture.destroy(true);
+    return true;
+  }
+  get appearanceKey() { return this.appKey; }
 
   setName(name: string) { if (this.label.text !== name) this.label.text = name; }
   setLabelSize(px: number) { if (this.label.style.fontSize !== px) this.label.style.fontSize = px; }
@@ -218,7 +239,8 @@ export class Avatar {
 
     this.root.position.set(this.x, this.y);
     this.root.zIndex = ghost ? this.y + 400 : this.y;
-    this.root.visible = this.mode !== 'hidden' && this.alpha > 0.01;
+    this.root.visible = avatarVisible(this.mode, this.alpha);
+    this.label.visible = this.root.visible;   // explicit: the label must never outlive a hidden avatar
     this.root.alpha = this.alpha;
     this.glow.visible = this.root.visible && ghost;
     for (const w of this.wisps) w.visible = this.glow.visible;
