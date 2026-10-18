@@ -28,7 +28,7 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 | game UI | 990963ac | apps/web/src/game/**, apps/web/src/ui/**, App.tsx, styles.css, provisional/** (handed over), docs/ui; user-facing LAN helpers | 4400–4499 |
 | voice (spike → product) | 87bbae25 | spikes/voice, docs/voice, packages/voice (new) | 4300–4399 |
 | review (read-only, done): rules 9af74b8 | 09a95d56 (codex) | none | — |
-| art-themes: six cosmetic outfit concepts (concept sheet only; no code) | 69dc0d82 (codex, owner-chosen Codex) | docs/visual/themes/** on branch art-themes | none (ask Lead before scene rendering) |
+| art-themes: costume creative/asset owner (Human chose Codex) | 69dc0d82 (codex) | docs/visual/themes/**; costume art code packages/scene/src/costumes/** (proposed) | ask Lead before scene rendering |
 
 ## Art themes (Human-approved 2026-10-18, concepts only)
 - Six original themes: bow cat, robot cat, chubby fish (puffer/shark), camping frog, yellow duck, forest mushroom. Inspired-by, not replicas; appearance-only, role-independent; camping world kept.
@@ -37,6 +37,13 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Integration later touches visual (scene), game UI (picker), foundation (protocol appearance schema).
 - Delivered art-themes 17b1c75 (docs/visual/themes only; Lead reviewed images). Sent to Human for selection. Peer recommends: pufferfish hat (shark not drawn), keep procedural vector for production, generated rasters review-only. Seam: `extra` (one of none/scarf/backpack) and wire {color,hat} can't express these; appearance contract needed before production.
 - Outside-Moonveil write (image tool auto-save, no output-dir control): /Users/long/.codex-runtime/peer/generated_images/01a14e4b-…/ 3 PNGs, 2,634,923 bytes. Not deleted; reported.
+
+## Costumes production (Human-approved 2026-10-18; no deploy)
+- Scope: all six themes + goofy shark + duck with/without ring (8 looks); more coherent variants later, no numeric target. Costumes on camper (reversible baseline). Picker: outfit → customise → local preview → Save/Cancel; no economy/unlocks; never role.
+- Ownership: Codex = creative/catalog content + costume art code; visual = scene seam/pipeline; foundation = wire/server contract + restore compat; game UI = picker (after chat). Don't shift creative work to Claude seats.
+- Phase 1 (now): foundation contract proposal (branch foundation-appearance, stop for review); visual seam + placeholder (visual-costumes); Codex CATALOG.md + shark design.
+- Phase 2: duck-with-ring + ghost in real scene (layering, seated, flip, label/ring clearance, phone/laptop day/night) = next Human preview.
+- Phase 3: batch remaining looks + ghosts; picker; candidate checks; ff into dev. Deploy needs approval.
 
 ## Chat overlay (Human-approved 2026-10-18, implement + review, no deploy)
 - Owner game UI 990963ac, branch game-ui-chat from dev. Persistent corner overlay (working default bottom-left), auto-visible recent messages, clear sender name + content + channel label, translucent bg with readable text, bounded history + full access, no overlap with joystick/vote/night actions/mic, safe areas/keyboard, typing never moves avatar.
