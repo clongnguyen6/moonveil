@@ -13,9 +13,9 @@ const viewerParam = q.get('viewer');
 const viewer = viewerParam === 'moderator' ? 'moderator' : viewerParam && /^s\d+$/.test(viewerParam) ? viewerParam : undefined;   // seat id, e.g. s1
 
 const server = new FakeServer(initial, n, viewer);
-// Dress every seat: ?outfit=duck (alias ?costume=) &variant=ring|plain &hat=duckCap|none &front=.. &back=.. &color=sand
+// Dress every seat: ?outfit=duck &variant=ring|plain &hat=duckCap|none &front=.. &back=.. &color=sand
 // Scene-side fields only; the wire contract is foundation's.
-const outfitId = q.get('outfit') ?? q.get('costume');
+const outfitId = q.get('outfit');
 if (outfitId) {
   const pick = (k: string) => q.get(k) ?? undefined;
   server.input = { ...server.input, players: server.input.players.map((p) => ({ ...p, appearance: { ...p.appearance, outfit: outfitId, variant: pick('variant'), hat: (pick('hat') ?? p.appearance.hat) as typeof p.appearance.hat, front: pick('front'), back: pick('back'), top: (pick('color') ?? p.appearance.top) as typeof p.appearance.top } })) };

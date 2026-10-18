@@ -25,8 +25,6 @@ export interface SceneAppearance {
   variant?: string;   // outfit variant, e.g. duck: 'ring' | 'plain'
   front?: string;     // front item id ('none', 'scarf', or an outfit's id)
   back?: string;      // back item id ('none', 'backpack', or an outfit's id)
-  /** @deprecated use `outfit` */
-  costume?: string;
 }
 
 export interface ScenePlayer { seat: SeatId; name: string; appearance: SceneAppearance; connected: boolean }
