@@ -1,5 +1,5 @@
-// Name labels vs campfire effects: 7 seated players (front seat's label sits over the flames), day, laptop + phone,
-// high + low. Captures a crop around the fire and asserts via the gated debug read that every name label is in the
+// Name labels vs campfire effects: 7 seated players (front seat's label sits over the flames), day, plus night
+// (walk to the tents, ghosts at full night), laptop + phone, high + low. Captures a crop around the fire and asserts via the gated debug read that every name label is in the
 // label layer, above every effect layer. Browser EMULATION; needs the browser lock. Starts the scene dev page on PORT.
 //   node scripts/env.mjs node packages/scene/scripts/labels-fire-check.mjs --out docs/visual/labels-fire/after
 import { spawn } from 'node:child_process';
@@ -36,8 +36,20 @@ try {
     await page.screenshot({ path: shot });
     const ok = m.labels ? m.labels.aboveEffects && m.labels.inLabelLayer === m.labels.labels && m.labels.labels === 7 : null;
     if (ok === false) failed = true;
-    rows.push({ view: tag, quality, ...m });
-    console.log(`${tag} ${quality}: labels-above-effects ${m.labels ? m.labels.aboveEffects : 'n/a'} in-layer ${m.labels ? `${m.labels.inLabelLayer}/${m.labels.labels}` : 'n/a'} order ${m.labels ? m.labels.order.join('>') : 'n/a'} ${ok === false ? 'FAIL' : ''}`);
+    rows.push({ view: tag, quality, shot: 'day', ...m });
+    console.log(`${tag} ${quality} day: labels-above-effects ${m.labels ? m.labels.aboveEffects : 'n/a'} in-layer ${m.labels ? `${m.labels.inLabelLayer}/${m.labels.labels}` : 'n/a'} order ${m.labels ? m.labels.order.join('>') : 'n/a'} ${ok === false ? 'FAIL' : ''}`);
+    // night: from the ghost scene (viewer + one seat dead) to night: the living walk to their tents (labels in dusk light),
+    // the ghosts keep floating with their labels at full night
+    await page.goto(`http://127.0.0.1:${port}/?scene=ghost&n=7&audio=0&panel=0&speak=0&quality=${quality}`);
+    await page.waitForFunction(() => window.__moonveil?.ready, null, { timeout: 30000 });
+    await page.waitForTimeout(2500);
+    await page.evaluate(() => window.__moonveil.setScene('night'));
+    await page.waitForTimeout(2500); await page.screenshot({ path: join(out, `${tag}-${quality}-night-walk.png`) });
+    await page.waitForTimeout(7000); await page.screenshot({ path: join(out, `${tag}-${quality}-night-ghosts.png`) });
+    const n = await page.evaluate(() => window.__moonveil.debugLabels?.() ?? null);
+    if (n && !(n.aboveEffects && n.inLabelLayer === n.labels)) failed = true;
+    rows.push({ view: tag, quality, shot: 'night', labels: n });
+    console.log(`${tag} ${quality} night: labels-above-effects ${n ? n.aboveEffects : 'n/a'} in-layer ${n ? `${n.inLabelLayer}/${n.labels}` : 'n/a'}`);
     await page.close();
   }
   await browser.close();
