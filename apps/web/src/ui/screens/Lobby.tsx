@@ -12,6 +12,7 @@ import { ROLES, type Role } from '@moonveil/rules';
 import { qrMatrix, qrPath } from '../qr.ts';
 import { platform } from '../voice/guidance.ts';
 import { voicePhase } from '../voice/phase.ts';
+import { useBoundedVoice } from '../voice/useBoundedVoice.ts';
 import { copyText } from '../lan.ts';
 import { errorText } from '../errors.ts';
 import { ProfileEditor, saveProfile } from './Entry.tsx';
@@ -131,7 +132,7 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat, onSettings }: { s: S
           {editing && <EditProfile initial={{ name: me.name, appearance: me.appearance }} onDone={() => setEditing(false)} />}
         </section>
       )}
-      {view.me.kind === 'player' && <MicCheck mic={mic} voiceMode={s.voiceMode} joined={s.voiceJoined} />}
+      {view.me.kind === 'player' && <MicCheck mic={mic} voiceMode={s.voiceMode} joined={s.voiceJoined} sessions={s.voiceSessions} serverOff={s.voiceAvailable === false} />}
 
       {s.error && <p className="danger" role="alert" data-testid="error" data-code={s.error.code}>{errorText(t, s.error)}</p>}
 
@@ -233,10 +234,38 @@ export function MicGuide({ ua }: { ua?: string }) {
   return <p className="hint" data-testid="mic-guide" data-platform={platform(ua)}>{t(key)}</p>;
 }
 
-export function MicCheck({ mic, voiceMode, joined }: { mic: Mic; voiceMode: 'remote' | 'inPerson'; joined: boolean }) {
+export function MicCheck({ mic, voiceMode, joined, sessions = 1, serverOff = false }: { mic: Mic; voiceMode: 'remote' | 'inPerson'; joined: boolean; sessions?: number; serverOff?: boolean }) {
   const t = useT();
   const session = useSession();
   const { client: vc, snap } = useVoiceClient(session);
+  const raw = voiceMode !== 'remote' ? 'off' : !joined ? 'notJoined' : snap ? voicePhase(snap, { off: false, joined, canSpeak: true }) : sessions === 0 ? 'connecting' : 'connecting';
+  const phase = useBoundedVoice(raw, joined && voiceMode === 'remote');
+  const retry = async () => { await session.voiceLeave?.(); await session.voiceJoin?.(); };
+  if (voiceMode === 'remote' && serverOff) {
+    // P19: the server says voice is off for this room: no Join voice at all.
+    return (
+      <section className="card stack" data-testid="mic" data-status="serverOff">
+        <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('micTitle')}</h2>
+        <p className="hint">{t('voiceServerOff')}</p>
+      </section>
+    );
+  }
+  if (voiceMode === 'remote' && joined && phase === 'unavailable') {
+    return (
+      <section className="card stack" data-testid="mic" data-status="unavailable" data-voice="unavailable">
+        <div className="row between">
+          <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('micTitle')}</h2>
+          <span className="pill danger">{t('off')}</span>
+        </div>
+        <p className="danger">{t('voiceUnavailable')}</p>
+        <p className="hint">{t('voiceUnavailableLine')}</p>
+        <div className="btn-row">
+          <Button kind="secondary" testId="voice-retry" onClick={() => void retry()}>{t('voiceRetry')}</Button>
+          <Button kind="quiet" testId="voice-leave" onClick={() => void session.voiceLeave?.()}>{t('voiceLeave')}</Button>
+        </div>
+      </section>
+    );
+  }
   if (voiceMode === 'remote' && !joined) {
     // D2: nothing connects and no mic prompt until this tap.
     return (
@@ -250,10 +279,21 @@ export function MicCheck({ mic, voiceMode, joined }: { mic: Mic; voiceMode: 'rem
       </section>
     );
   }
+  if (!snap && voiceMode === 'remote' && joined) {
+    return (
+      <section className="card stack" data-testid="mic" data-status="checking" data-voice={phase}>
+        <div className="row between">
+          <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('micTitle')}</h2>
+          <span className="pill warn pulse" data-testid="voice-busy">⟳ {t('voiceConnecting')}</span>
+        </div>
+        <p className="hint">{t('voiceConnectingLine')}</p>
+        <Button kind="quiet" testId="voice-leave" onClick={() => void session.voiceLeave?.()}>{t('voiceLeave')}</Button>
+      </section>
+    );
+  }
   if (snap && voiceMode !== 'inPerson') {
     // Real voice: state comes from the single VoiceClient. Joining takes ~10 s on Cloud: say so while it connects.
     const st = snap.mic;
-    const phase = voicePhase(snap, { off: false, joined, canSpeak: true });
     const busy = phase === 'connecting' || phase === 'reconnecting';
     return (
       <section className="card stack" data-testid="mic" data-status={st === 'granted' ? 'ok' : st === 'requesting' ? 'checking' : st} data-voice={phase}>
@@ -264,7 +304,7 @@ export function MicCheck({ mic, voiceMode, joined }: { mic: Mic; voiceMode: 'rem
           {(st === 'denied' || st === 'failed' || phase === 'failed') && <span className="pill danger">{t('off')}</span>}
         </div>
         {busy && <p className="hint">{phase === 'connecting' ? t('voiceConnectingLine') : t('voiceReconnectingLine')}</p>}
-        {phase === 'failed' && st !== 'denied' && st !== 'failed' && (<><p className="danger">{t('voiceFailed')}</p><p className="hint">{t('voiceFailedLine')}</p></>)}
+        {phase === 'failed' && st !== 'denied' && st !== 'failed' && (<><p className="danger">{t('voiceFailed')}</p><p className="hint">{t('voiceFailedLine')}</p><Button kind="secondary" testId="voice-retry" onClick={() => void retry()}>{t('voiceRetry')}</Button></>)}
         {phase === 'live' && <p className="hint">{snap.muted ? t('voiceMuted') : t('micOkVoice')}</p>}
         {st === 'denied' && (<><p className="danger">{t('micDenied')}</p><MicGuide /></>)}
         {st === 'failed' && (<><p className="danger">{t('micFailed')}</p>{snap.micError && <p className="muted" style={{ fontSize: 'var(--fs-0)' }}>{snap.micError}</p>}<MicGuide /></>)}

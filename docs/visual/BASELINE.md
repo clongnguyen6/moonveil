@@ -27,9 +27,9 @@ Earlier scene changes already contained in 44fb793 and part of the baseline: `vi
 
 `low` is what automated tests and low-end devices see. Differences from `high`:
 
-- Canvas at device pixel ratio 1 (softer on retina and phone screens).
-- 30 fps cap; lightmap updated every other frame (fire flicker steps at 15 Hz).
-- No tree sway, no water ripple scrolling, no fireflies, no moon glints on the water, no night fog.
+- Canvas at device pixel ratio 1 (softer on retina and phone screens); no MSAA (edges of sprites and the ground graphics are not antialiased).
+- 30 fps cap on devices, 10 fps under automation (`navigator.webdriver`); lightmap rendered only when night level, lantern levels or the camera change, so the fire's light does not flicker (flames still animate).
+- No tree sway, no water ripple sprites at all (the painted stream stays), no fireflies, no moon glints on the water, no night fog.
 - Fire flames still animate; no sparks and no smoke.
 - Everything else identical: map, palette, lighting colours, avatars and labels, speaking indicator, walk/seat/tent choreography, night and dawn transitions, ghost treatment. Readability is unaffected: name labels are rasterised at 2× regardless of the canvas resolution, the speaking ring and arcs are plain sprites, and the ghost aura and wisps are not among the effects `low` disables.
 

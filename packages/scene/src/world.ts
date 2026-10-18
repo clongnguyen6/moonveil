@@ -13,9 +13,10 @@ export class World {
   private bank: TextureBank;
   private trees: { s: Sprite; phase: number }[] = [];
   private ripples: TilingSprite[] = [];
+  private ripplesOn: boolean;
 
-  constructor(bank: TextureBank, map: MapLayout) {
-    this.bank = bank; this.map = map;
+  constructor(bank: TextureBank, map: MapLayout, ripples = true) {
+    this.bank = bank; this.map = map; this.ripplesOn = ripples;
     const rng = new Rng(2026);
     this.objects.sortableChildren = true;
     this.root.addChild(this.ground, this.water, this.objects);
@@ -67,6 +68,7 @@ export class World {
     for (let y = -100; y <= WORLD.h + 100; y += 25) { const cx = streamX(y); if (y === -100) g.moveTo(cx - 58, y); else g.lineTo(cx - 58, y); }
     g.stroke({ width: 3, color: 0xffffff, alpha: 0.22 });
     this.water.addChild(g);
+    if (!this.ripplesOn) return;   // experimental: no masked tiling sprites (two stencil passes per frame)
     const mask = new Graphics().poly(band(60)).fill(0xffffff);
     this.water.addChild(mask);
     const box = { x: 1150, y: -100, w: 560, h: WORLD.h + 200 };

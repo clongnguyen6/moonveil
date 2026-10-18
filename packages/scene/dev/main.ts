@@ -15,7 +15,11 @@ const viewer = viewerParam === 'moderator' ? 'moderator' : viewerParam && /^s\d+
 const server = new FakeServer(initial, n, viewer);
 if (q.get('speak') === '0') server.autoSpeak = false;
 const host = document.getElementById('scene')!;
-const scene: SceneHandle = mountScene(host, { input: server.input, camera: (q.get('cam') as 'fit' | 'tight') || undefined, perf: q.get('perf') === '1', quality: (q.get('quality') as 'off' | 'low' | 'high' | 'auto') || 'high', labelLayout: q.get('labels') === '0' ? false : q.get('labels') === '1' ? 'v1' : true });
+// experimental cost knobs: ?x=aa0,fps15,lmc,rip0,vig0 (A/B measurement only)
+const xs = new Set((q.get('x') ?? '').split(',').filter(Boolean));
+const fpsX = [...xs].find((k) => k.startsWith('fps'));
+const experimental = { antialias: xs.has('aa0') ? false : undefined, fpsCap: fpsX ? parseInt(fpsX.slice(3), 10) : undefined, lightmapOnChange: xs.has('lmc') || undefined, ripples: xs.has('rip0') ? false : undefined, vignette: xs.has('vig0') ? false : undefined };
+const scene: SceneHandle = mountScene(host, { experimental, input: server.input, camera: (q.get('cam') as 'fit' | 'tight') || undefined, perf: q.get('perf') === '1', quality: (q.get('quality') as 'off' | 'low' | 'high' | 'auto') || 'high', labelLayout: q.get('labels') === '0' ? false : q.get('labels') === '1' ? 'v1' : true });
 server.onPoses((f) => scene.setPoses(f));
 server.onSpeaking((s) => scene.setSpeaking(s));
 scene.on('move', (p: Pose) => { server.move(p.seat, p.x, p.y, p.facing); });

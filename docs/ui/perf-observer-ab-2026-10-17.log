@@ -1,0 +1,13 @@
+CONDITIONS {"label":"perf-acb9c82-run1-start","at":"2026-10-17T21:30:22.737Z","loadavg":[3.9,3.2,4.05],"cpus":11,"freeGB":0.7,"totalGB":36}
+{"label":"acb9c82 run1","step":"night.main","wallSec":41,"taskDurationSec":28.024,"busyPct":68.3,"scriptSec":0.11,"layoutSec":0.004,"styleSec":0.007,"layoutCount":42,"styleCount":164,"longTasks":178,"longTaskMaxMs":1641,"clicks":27,"clickMisses":0,"clickP95Ms":46}
+CONDITIONS {"label":"perf-acb9c82-run1-end","at":"2026-10-17T21:31:11.932Z","loadavg":[6.67,3.96,4.27],"cpus":11,"freeGB":1,"totalGB":36}
+CONDITIONS {"label":"perf-3ceaeae-run1-start","at":"2026-10-17T21:31:14.308Z","loadavg":[6.67,3.96,4.27],"cpus":11,"freeGB":0.7,"totalGB":36}
+{"label":"3ceaeae run1","step":"night.main","wallSec":40.3,"taskDurationSec":28.805,"busyPct":71.5,"scriptSec":0.124,"layoutSec":0.005,"styleSec":0.009,"layoutCount":43,"styleCount":212,"longTasks":176,"longTaskMaxMs":1655,"clicks":25,"clickMisses":0,"clickP95Ms":241}
+CONDITIONS {"label":"perf-3ceaeae-run1-end","at":"2026-10-17T21:32:02.699Z","loadavg":[10.69,5.44,4.8],"cpus":11,"freeGB":1.4,"totalGB":36}
+CONDITIONS {"label":"perf-acb9c82-run2-start","at":"2026-10-17T21:32:05.025Z","loadavg":[10.69,5.44,4.8],"cpus":11,"freeGB":1.5,"totalGB":36}
+{"label":"acb9c82 run2","step":"night.main","wallSec":41.6,"taskDurationSec":28.903,"busyPct":69.5,"scriptSec":0.127,"layoutSec":0.005,"styleSec":0.008,"layoutCount":44,"styleCount":218,"longTasks":180,"longTaskMaxMs":1928,"clicks":26,"clickMisses":0,"clickP95Ms":209}
+CONDITIONS {"label":"perf-acb9c82-run2-end","at":"2026-10-17T21:32:55.020Z","loadavg":[9.11,5.87,5],"cpus":11,"freeGB":1.4,"totalGB":36}
+CONDITIONS {"label":"perf-3ceaeae-run2-start","at":"2026-10-17T21:32:57.357Z","loadavg":[9.1,5.92,5.02],"cpus":11,"freeGB":1.8,"totalGB":36}
+{"label":"3ceaeae run2","step":"night.main","wallSec":41.1,"taskDurationSec":27.134,"busyPct":66.1,"scriptSec":0.12,"layoutSec":0.005,"styleSec":0.008,"layoutCount":43,"styleCount":219,"longTasks":178,"longTaskMaxMs":1938,"clicks":26,"clickMisses":0,"clickP95Ms":205}
+CONDITIONS {"label":"perf-3ceaeae-run2-end","at":"2026-10-17T21:33:46.813Z","loadavg":[11.64,7.09,5.5],"cpus":11,"freeGB":2,"totalGB":36}
+ab done
