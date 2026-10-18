@@ -1,13 +1,17 @@
 import type { Costume } from '../rig.ts';
 import { MATERIAL as M, paint } from './materials.ts';
 import { pufferHatFront, pufferHoodBack } from './puffer.ts';
+import { sharkHatFront, sharkHoodBack } from './shark.ts';
 
 export const fish: Costume = {
   id: 'fish',
   top: 0xe08a3c,
   hidesHat: true,
   hidesHair: false,
-  crownY: (choice) => choice.hat === 'fishHeadgear' && choice.variant === 'puffer' ? -88 : -75,
+  crownY: (choice) => {
+    if (choice.hat !== 'fishHeadgear') return -75;
+    return choice.variant === 'puffer' ? -88 : choice.variant === 'shark' ? -91 : -75;
+  },
   pieces: {
     back: (ctx) => {
       if (ctx.choice.back !== 'finPouch') return;
@@ -27,10 +31,12 @@ export const fish: Costume = {
     hoodBack: (ctx) => {
       if (ctx.choice.hat !== 'fishHeadgear') return;
       if (ctx.choice.variant === 'puffer') pufferHoodBack(ctx);
+      if (ctx.choice.variant === 'shark') sharkHoodBack(ctx);
     },
     hatFront: (ctx) => {
       if (ctx.choice.hat !== 'fishHeadgear') return;
       if (ctx.choice.variant === 'puffer') pufferHatFront(ctx);
+      if (ctx.choice.variant === 'shark') sharkHatFront(ctx);
     },
   },
 };

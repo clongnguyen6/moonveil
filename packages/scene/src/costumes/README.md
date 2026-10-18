@@ -65,3 +65,14 @@ Browser lock not requested/held for this implementation. Preview remains pending
 - `mushroom`: `mushroomCap | none`, `scarf | none`, `woodPack | none`; bark/pine tops. Crown -89 with hat. Broad irregular cap spots, short sand scarf and three-slat wooden pack.
 - Both preserve base hair when hat is off. All choices remain independent; tests include every combination, living/ghost fills and strokes, outline-inclusive bounds/crown/arcs and face/hand clearance. These are node geometry checks, not scene screenshots.
 - Scene composition follow-up: `avatar.ts` still paints the legacy scarf whenever `choice.front === 'scarf'`, even for a costume. Mushroom also owns that piece, so it would be painted twice. Scene owner should reserve legacy scarf drawing for the base camper (or delegate only when no costume front handles it); keep legacy camper behavior. Art does not repaint/mask the base scarf to hide this seam issue.
+
+## Fish handoff
+
+Registry ID `fish`, variants `puffer | shark`; one `fishHeadgear | none` selector, `back: none | finPouch`, front none. Body colors clay/sand/slate/river; hats and pouch retain their fixed material colors.
+
+- Puffer: compact sand hat, rounded side fins and broad toy eyes. Crown -88.
+- Shark: slate canvas hood, short swept dorsal fin, two blunt felt tabs and toy eyes. Crown -91. Rim/cheek paths preserve the human face; base hair remains available under the hood and when headgear is off.
+- Fin pouch: shared compact canvas tail bag, default off, independent of variant/headgear. No long tail or species body.
+- Crown falls back to -75 with headgear off. Every color/headgear/pouch combination is checked living/ghost; headgear geometry includes stroke clearance from the arcs and human eyes. Variant-switch test verifies the pouch is unchanged and old pufferHat/sharkHat IDs cannot select conflicting headgear.
+
+Frog, mushroom, puffer and shark are separate art commits. Scene screenshots remain queued behind the rendering lock; node checks do not establish phone-scale or seated visual acceptance.
