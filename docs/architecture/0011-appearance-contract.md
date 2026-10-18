@@ -37,3 +37,13 @@ Status: proposal, 2026-10-18. Foundation owns the shape, validation and persiste
 3. **Art:**
    - fill in the ids and per-outfit lists, including the shark and the duck with and without its ring;
    - say whether any outfit needs a fourth choosable slot. Only that would change the shape.
+
+## Decisions so far (Lead, 2026-10-18; the UI owner may challenge them)
+- **Refusal:** a whole-profile refusal with `invalid-appearance` (the picker only offers valid options).
+- **`body`:** not a picker option this round. It stays optional and seat-seeded.
+- **Open (art owner): the fish mismatch.** The variant (`puffer`/`shark`) and the hat list (`pufferHat`/`sharkHat`) both carry the choice, so mismatched combinations are possible. Two ways out:
+  - one of them carries the choice (for example the variant only, with a single fixed headgear per variant);
+  - or a small shape extension: per-variant overrides of the outfit's lists, e.g. `variants: { puffer: { hats: ['pufferHat'] }, shark: { hats: ['sharkHat'] } }`. Validation would read the variant's list first.
+
+  Either stays a catalog-level change. The extension is a shape change, so it's foundation's if chosen.
+
