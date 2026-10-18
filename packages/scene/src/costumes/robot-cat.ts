@@ -48,16 +48,16 @@ export const robotCat: Costume = {
         paint(ctx, M.river);
       }
       // Low rectangular mechanical tabs, not a recognizable character's ears.
-      for (const x of [-19, 14]) {
-        b.roundRect(x, crown - 2, 5, 10, 2);
+      for (const x of [-19, 12]) {
+        b.roundRect(x, crown - 2, 7, 12, 2);
         paint(ctx, M.slate, 1.6);
-        b.roundRect(x + 1, crown, 3, 6, 1).fill(ctx.color(M.oatmeal));
+        b.roundRect(x + 1, crown, 5, 8, 1).fill(ctx.color(M.oatmeal));
       }
       // Short offset cloth tab and silent bell; no neck collar or extra motion.
       b.roundRect(-18, crown + 18, 2, 4, 1).fill(ctx.color(M.bark));
-      b.circle(-17, crown + 25, 3.2);
+      b.circle(-17, crown + 25, 4.2);
       paint(ctx, M.sand, 1.6);
-      b.moveTo(-18.3, crown + 25.5).lineTo(-15.7, crown + 25.5)
+      b.moveTo(-19, crown + 25.5).lineTo(-15, crown + 25.5)
         .stroke(ctx.outline(M.sand), 1);
     },
   },

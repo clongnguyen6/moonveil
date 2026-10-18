@@ -85,3 +85,5 @@ Frog readability revision: eye bumps grow from radius6.5 to7.5; cream sockets fr
 Puffer readability revision: broad ember felt fins replace thin sand flaps. Fins project above the speaking-arcs band; all declared combinations remain clear. The art test helper now checks each painted/stroked shape against the actual band (matching rig inspection), rather than forbidding all headgear wider than20 units even above that band. Crown remains -88; phone read still needs screenshots.
 
 Shark readability revision: wider/taller single swept dorsal fin with a broad cream seam; chosen crown is now -96 (still inside the box including strokes). Human face and hood aperture are unchanged. Node checks pass all fish choices; screenshot validation remains pending.
+
+Robot readability revision: mechanical tabs widen from5 to7 units with larger light inserts; brass bell radius grows from3.2 to4.2. Crown/arcs/face constraints unchanged. Bow ears/bow and mushroom cap/spots already use broad features; no speculative redraw for those looks before their phone captures.
