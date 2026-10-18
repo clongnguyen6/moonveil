@@ -4,7 +4,7 @@ import { FIRE, isWalkable, type MapLayout, type Pt } from './map.ts';
 import type { AvatarMode } from './avatar.ts';
 
 export function appearanceKey(a: SceneAppearance): string {
-  return `${a.skin}|${a.top}|${a.hair}|${a.hairColor}|${a.hat}|${a.extra}`;
+  return `${a.skin}|${a.top}|${a.hair}|${a.hairColor}|${a.hat}|${a.extra}|${a.costume ?? ''}`;
 }
 
 export interface PlayersDiff { added: SeatId[]; removed: SeatId[]; changedAppearance: SeatId[]; renamed: SeatId[] }

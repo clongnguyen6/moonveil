@@ -13,6 +13,9 @@ const viewerParam = q.get('viewer');
 const viewer = viewerParam === 'moderator' ? 'moderator' : viewerParam && /^s\d+$/.test(viewerParam) ? viewerParam : undefined;   // seat id, e.g. s1
 
 const server = new FakeServer(initial, n, viewer);
+// ?costume=<id> dresses every seat in that costume (scene-side field only; the wire contract is foundation's)
+const costumeId = q.get('costume');
+if (costumeId) server.input = { ...server.input, players: server.input.players.map((p) => ({ ...p, appearance: { ...p.appearance, costume: costumeId } })) };
 if (q.get('speak') === '0') server.autoSpeak = false;
 const host = document.getElementById('scene')!;
 // experimental cost knobs: ?x=aa0,fps15,lmc,rip0,vig0 (A/B measurement only)

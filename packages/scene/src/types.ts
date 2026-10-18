@@ -19,6 +19,7 @@ export interface SceneAppearance {
   hairColor: (typeof HAIR_COLORS)[number];
   hat: (typeof HATS)[number];
   extra: (typeof EXTRAS)[number];
+  costume?: string;   // scene-side only until the wire appearance contract lands: id in src/costumes/index.ts
 }
 
 export interface ScenePlayer { seat: SeatId; name: string; appearance: SceneAppearance; connected: boolean }
