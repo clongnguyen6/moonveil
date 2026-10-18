@@ -226,6 +226,7 @@ Grant c merges into `dev`, newest last. Format: date · branch · ff from → he
 - 2026-10-16 · game-ui · → e181de0 · first screens (owner report pending in this log).
 - 2026-10-16 · rules-7 · → 69b0c76 · offline tests + participation-only voted status (superseded by open ballots).
 - 2026-10-16 · voice · → 30a95ea · candidate reviewed by Lead; owner on 30a95ea: plain 4/4 + 52/52, TLS 4/4 + 52/52, headless shell.
+- 2026-10-18 · visual-costumes · ff 235358e → 7f387e5 · Human go. Scope packages/scene (seam rig.ts, seed, placeholder, tests), docs/visual/costumes. Owner c4495920 on 7f387e5: scene check 51/51; root check exit 0 (E2E_PORT 4250): rules 216, scene 51, voice 54, server 110, harness 3, e2e 13/13. No scene captures. Placeholder reachable only via scene dev page. Next: foundation-appearance.
 
 ## Acceptance evidence
 - foundation b3d9ece: Lead re-ran `node scripts/env.mjs npm run check` 14:31 → typecheck ok, server 10/10, e2e 7/7 (8-browser auto isolation, 7+mod isolation, lobby, reconnect, 2nd tab, Pixel 7 emu). Chromium only. No new ~/.npm logs. Superseded by the merged revision (see Merge log).

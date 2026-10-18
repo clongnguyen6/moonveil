@@ -2,7 +2,9 @@
 import { Container, Graphics, Sprite, Text } from 'pixi.js';
 import { type TextureBank, type Baked, spriteOf } from './textures.ts';
 import { shade, lerp, clamp, hashString } from './rng.ts';
-import { avatarVisible, LookTracker } from './reconcile.ts';
+import { avatarVisible, LookTracker, baseItems, choiceFor, outfitOf } from './reconcile.ts';
+import { PixiBrush, makeContext, labelAnchorFor, GHOST, ghostTint, type Costume } from './rig.ts';
+import { costumeById } from './costumes/index.ts';
 import type { SceneAppearance } from './types.ts';
 import { HAIR_COLOR_VALUES, SKIN_COLORS, TOP_COLORS } from './appearance.ts';
 
@@ -10,20 +12,34 @@ const PANTS = [0x3a4457, 0x4f3f33, 0x2f3a3f, 0x5a5460] as const;
 const HAT_TINTS = [0xe9e0c8, 0x9bc1d9, 0xd8c9a0, 0xd9603b, 0x3f8f7a, 0xf0d7a0] as const;
 const O = (c: number) => ({ width: 2, color: shade(c, 0.55), alpha: 0.6, join: 'round' as const, cap: 'round' as const });
 
+// Label anchor (world units above the feet) for a look: clears tall headgear. Computed at bake, not per frame.
+export function labelAnchorOf(a: SceneAppearance): number { return labelAnchorFor(costumeById(outfitOf(a)), choiceFor(a)); }
+
 // Draws a camper facing right, feet at (0,0). ghost=true draws the spectral variant (no legs, tail, pale).
+// Draws a camper facing right, feet at (0,0). ghost=true draws the spectral variant (no legs, tail, pale).
+// Costume pieces are layered into fixed slots of this unchanged base rig (see rig.ts for the order).
 export function drawAvatar(a: SceneAppearance, ghost: boolean, seedKey: string): Graphics {
   const g = new Graphics();
   const h = hashString(seedKey);
-  const skin = ghost ? 0xdbe8ff : SKIN_COLORS[a.skin];
-  const top = ghost ? 0xc3d4f5 : TOP_COLORS[a.top];
-  const pants = ghost ? 0xb4c6ec : PANTS[h % PANTS.length]!;
-  const hairC = ghost ? 0xa7b8dd : HAIR_COLOR_VALUES[a.hairColor];
-  const hatC = ghost ? 0xb9c8ea : a.hat === 'hood' ? TOP_COLORS[a.top] : HAT_TINTS[(h >>> 4) % HAT_TINTS.length]!;
-  const extraC = ghost ? 0xd0dcf5 : a.extra === 'scarf' ? HAT_TINTS[(h >>> 8) % HAT_TINTS.length]! : 0x6b4f3a;
+  const costume: Costume | null = costumeById(outfitOf(a));
+  const choice = choiceFor(a);
+  const ctx = makeContext(new PixiBrush(g), ghost, h, choice);
+  const piece = (layer: 'back' | 'hoodBack' | 'front' | 'hatFront') => { const fn = costume?.pieces[layer]; if (fn) fn(ctx); };
+  const skin = ghost ? GHOST.skin : SKIN_COLORS[a.skin];
+  // the selected colour always wins; costume.top is only a fallback for an appearance without a valid top
+  const topBase = TOP_COLORS[a.top] ?? costume?.top ?? TOP_COLORS.ember;
+  const top = ghost ? (costume ? ghostTint(topBase) : GHOST.top) : topBase;
+  const pants = ghost ? GHOST.pants : PANTS[h % PANTS.length]!;
+  const hairC = ghost ? GHOST.hair : HAIR_COLOR_VALUES[a.hairColor];
+  const hatC = ghost ? GHOST.hat : a.hat === 'hood' ? topBase : HAT_TINTS[(h >>> 4) % HAT_TINTS.length]!;
+  const { hair: showHair, hat: showHat, scarf, backpack } = baseItems(a, costume);   // camper-only base items (rig.ts)
+  const extraC = ghost ? GHOST.extra : scarf ? HAT_TINTS[(h >>> 8) % HAT_TINTS.length]! : 0x6b4f3a;
 
-  if (a.extra === 'backpack') g.roundRect(-24, -44, 16, 26, 6).fill(extraC).stroke(O(extraC));
-  if (a.hat === 'hood') g.circle(0, -58, 20).fill(hatC).stroke(O(hatC));
-  else if (a.hair === 'long') g.roundRect(-16, -72, 32, 42, 12).fill(hairC).stroke(O(hairC));
+  piece('back');
+  if (backpack) g.roundRect(-24, -44, 16, 26, 6).fill(extraC).stroke(O(extraC));
+  if (showHat && a.hat === 'hood') g.circle(0, -58, 20).fill(hatC).stroke(O(hatC));
+  else if (showHair && a.hair === 'long') g.roundRect(-16, -72, 32, 42, 12).fill(hairC).stroke(O(hairC));
+  piece('hoodBack');
   if (!ghost) {
     g.roundRect(-10, -16, 9, 16, 3).fill(pants).stroke(O(pants));
     g.roundRect(1, -16, 9, 16, 3).fill(pants).stroke(O(pants));
@@ -39,9 +55,10 @@ export function drawAvatar(a: SceneAppearance, ghost: boolean, seedKey: string):
   g.roundRect(13, -44, 8, 22, 4).fill(top).stroke(O(top));
   g.circle(-17, -22, 4).fill(skin);
   g.circle(17, -22, 4).fill(skin);
-  if (a.extra === 'scarf') { g.roundRect(-14, -50, 28, 9, 4).fill(extraC).stroke(O(extraC)); g.roundRect(6, -48, 8, 16, 3).fill(extraC); }
+  if (scarf) { g.roundRect(-14, -50, 28, 9, 4).fill(extraC).stroke(O(extraC)); g.roundRect(6, -48, 8, 16, 3).fill(extraC); }
+  piece('front');
   g.circle(0, -60, 15).fill(skin).stroke(O(skin));
-  if (a.hair !== 'bald' && a.hat !== 'hood') {
+  if (showHair && a.hair !== 'bald' && !(showHat && a.hat === 'hood')) {
     if (a.hair === 'curly') { g.circle(-9, -70, 8).fill(hairC); g.circle(2, -74, 8).fill(hairC); g.circle(11, -68, 7).fill(hairC); g.circle(-13, -60, 6).fill(hairC); }
     else g.moveTo(-15, -62).quadraticCurveTo(-14, -78, 0, -77).quadraticCurveTo(14, -78, 15, -64).quadraticCurveTo(8, -70, 2, -72).quadraticCurveTo(-6, -71, -15, -62).fill(hairC);
     if (a.hair === 'bun') g.circle(-6, -78, 6).fill(hairC).stroke(O(hairC));
@@ -49,20 +66,23 @@ export function drawAvatar(a: SceneAppearance, ghost: boolean, seedKey: string):
   g.circle(5, -60, 2).fill(0x2a2229);
   g.circle(11, -59, 2).fill(0x2a2229);
   g.ellipse(9, -54, 4, 2).fill({ color: 0xff8a8a, alpha: ghost ? 0.15 : 0.35 });
-  if (a.hat === 'beanie') {
-    g.moveTo(-15, -64).quadraticCurveTo(-13, -84, 0, -84).quadraticCurveTo(14, -84, 15, -64).closePath().fill(hatC).stroke(O(hatC));
-    g.roundRect(-16, -68, 32, 7, 3).fill(shade(hatC, 0.85));
-    g.circle(0, -85, 4).fill(shade(hatC, 1.15));
-  } else if (a.hat === 'cap') {
-    g.moveTo(-15, -66).quadraticCurveTo(-12, -82, 0, -82).quadraticCurveTo(13, -82, 15, -66).closePath().fill(hatC).stroke(O(hatC));
-    g.roundRect(4, -69, 20, 5, 2).fill(shade(hatC, 0.9)).stroke(O(hatC));
-  } else if (a.hat === 'bucket') {
-    g.poly([-13, -84, 13, -84, 15, -68, -15, -68]).fill(hatC).stroke(O(hatC));
-    g.ellipse(0, -67, 22, 5).fill(shade(hatC, 0.9)).stroke(O(hatC));
-  } else if (a.hat === 'flower') {
-    for (let i = 0; i < 5; i++) { const an = (i / 5) * Math.PI * 2; g.circle(-9 + Math.cos(an) * 4.5, -77 + Math.sin(an) * 4.5, 3).fill(ghost ? 0xe6eeff : 0xf2e6c8); }
-    g.circle(-9, -77, 2.2).fill(ghost ? 0xc8d6ff : 0xf0c060);
+  if (showHat) {
+    if (a.hat === 'beanie') {
+      g.moveTo(-15, -64).quadraticCurveTo(-13, -84, 0, -84).quadraticCurveTo(14, -84, 15, -64).closePath().fill(hatC).stroke(O(hatC));
+      g.roundRect(-16, -68, 32, 7, 3).fill(shade(hatC, 0.85));
+      g.circle(0, -85, 4).fill(shade(hatC, 1.15));
+    } else if (a.hat === 'cap') {
+      g.moveTo(-15, -66).quadraticCurveTo(-12, -82, 0, -82).quadraticCurveTo(13, -82, 15, -66).closePath().fill(hatC).stroke(O(hatC));
+      g.roundRect(4, -69, 20, 5, 2).fill(shade(hatC, 0.9)).stroke(O(hatC));
+    } else if (a.hat === 'bucket') {
+      g.poly([-13, -84, 13, -84, 15, -68, -15, -68]).fill(hatC).stroke(O(hatC));
+      g.ellipse(0, -67, 22, 5).fill(shade(hatC, 0.9)).stroke(O(hatC));
+    } else if (a.hat === 'flower') {
+      for (let i = 0; i < 5; i++) { const an = (i / 5) * Math.PI * 2; g.circle(-9 + Math.cos(an) * 4.5, -77 + Math.sin(an) * 4.5, 3).fill(ghost ? 0xe6eeff : 0xf2e6c8); }
+      g.circle(-9, -77, 2.2).fill(ghost ? 0xc8d6ff : 0xf0c060);
+    }
   }
+  piece('hatFront');
   return g;
 }
 
@@ -98,6 +118,7 @@ export class Avatar {
   target: { x: number; y: number } | null = null;
   onArrive: (() => void) | null = null;
   labelBaseY = 0;   // label anchor (world units, relative to the feet) before layout offsets
+  private labelAnchor: number;   // rig label anchor for the current look; changes only on re-bake
 
   constructor(seat: string, name: string, appearance: SceneAppearance, bank: TextureBank) {
     this.seat = seat;
@@ -105,6 +126,7 @@ export class Avatar {
     this.bank = bank; this.look = new LookTracker(appearance);
     this.bodyTex = bank.bake(drawAvatar(appearance, false, seat), 0, 0, 3);
     this.ghostTex = bank.bake(drawAvatar(appearance, true, seat), 0, 0, 3);
+    this.labelAnchor = labelAnchorOf(appearance);
     this.shadow = new Sprite(bank.shadow); this.shadow.anchor.set(0.5); this.shadow.scale.set(1.1, 0.5);
     this.ring = spriteOf(bank.ring); this.ring.anchor.set(0.5); this.ring.visible = false; this.ring.tint = 0xffe28a;
     this.body = spriteOf(this.bodyTex);
@@ -125,6 +147,7 @@ export class Avatar {
     const oldBody = this.bodyTex, oldGhost = this.ghostTex;
     this.bodyTex = this.bank.bake(drawAvatar(a, false, this.seat), 0, 0, 3);
     this.ghostTex = this.bank.bake(drawAvatar(a, true, this.seat), 0, 0, 3);
+    this.labelAnchor = labelAnchorOf(a);
     const tex = this.mode === 'ghost' ? this.ghostTex : this.bodyTex;
     this.body.texture = tex.texture; this.body.anchor.set(tex.ax, tex.ay);
     oldBody.texture.destroy(true); oldGhost.texture.destroy(true);
@@ -229,7 +252,7 @@ export class Avatar {
     this.arcs.position.set(this.facing * 17, this.body.y - 50 - (ghost ? 12 : 0));
     this.arcs.scale.set(this.facing * (0.9 + Math.sin(this.t * 9) * 0.1) * this.speakT, (0.9 + Math.sin(this.t * 9) * 0.1) * this.speakT);
     this.label.scale.set(labelScale);
-    this.labelBaseY = this.body.y - 78 - (ghost ? 12 : 0);
+    this.labelBaseY = this.body.y + this.labelAnchor - (ghost ? 12 : 0);
     this.label.y = this.labelBaseY;
     this.label.style.fill = this.speaking ? 0xffe28a : ghost ? 0xcfe0ff : 0xfff6e6;
     this.label.alpha = ghost ? 0.85 : 1;

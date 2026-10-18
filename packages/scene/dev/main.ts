@@ -1,5 +1,5 @@
 // Dev harness: runs the scene against the fixture stub server (no real server). Also the capture/perf target.
-// URL: ?scene=lobby|seating|night|day|ghost|ended  ?quality=off|low|high|auto (default high)  ?labels=0|1|2 (off | v1: lift ≤3 no leaders | default v2)  ?n=4..16  ?viewer=moderator|s1..s16  ?cam=fit|tight  ?panel=0  ?audio=0  ?speak=0  ?perf=1
+// URL: ?outfit=<id>&variant=&hat=&front=&back=&color= (costume preview)  ?scene=lobby|seating|night|day|ghost|ended  ?quality=off|low|high|auto (default high)  ?labels=0|1|2 (off | v1: lift ≤3 no leaders | default v2)  ?n=4..16  ?viewer=moderator|s1..s16  ?cam=fit|tight  ?panel=0  ?audio=0  ?speak=0  ?perf=1
 import { mountScene } from '../src/index.ts';
 import { phaseLabel } from '../src/choreo.ts';
 import { FakeServer, type FixtureScene } from '../fixtures/index.ts';
@@ -13,6 +13,13 @@ const viewerParam = q.get('viewer');
 const viewer = viewerParam === 'moderator' ? 'moderator' : viewerParam && /^s\d+$/.test(viewerParam) ? viewerParam : undefined;   // seat id, e.g. s1
 
 const server = new FakeServer(initial, n, viewer);
+// Dress every seat: ?outfit=duck (alias ?costume=) &variant=ring|plain &hat=duckCap|none &front=.. &back=.. &color=sand
+// Scene-side fields only; the wire contract is foundation's.
+const outfitId = q.get('outfit') ?? q.get('costume');
+if (outfitId) {
+  const pick = (k: string) => q.get(k) ?? undefined;
+  server.input = { ...server.input, players: server.input.players.map((p) => ({ ...p, appearance: { ...p.appearance, outfit: outfitId, variant: pick('variant'), hat: (pick('hat') ?? p.appearance.hat) as typeof p.appearance.hat, front: pick('front'), back: pick('back'), top: (pick('color') ?? p.appearance.top) as typeof p.appearance.top } })) };
+}
 if (q.get('speak') === '0') server.autoSpeak = false;
 const host = document.getElementById('scene')!;
 // experimental cost knobs: ?x=aa0,fps15,lmc,rip0,vig0 (A/B measurement only)
