@@ -59,7 +59,7 @@ All retain base hair under headgear and when headgear is off. Fixed headgear/pro
 
 Every hat list also permits none. Bow/bell/fins/leaf are part of headgear, not extra slots. Fish variant alone chooses puffer/shark; the same optional fin pouch works for either. No round white robot belly, red collar, logos, character replicas, wolf shapes or role cues. Materials are matte canvas/felt/rubber/wood, broad fills and soft outlines.
 
-Duck ring halves are fixed art of `variant: ring`, unaffected by hat/front/back choices. Rear rim/nub sit behind the arm; shallow front rim clears both hand disks and leaves legs/ghost tail visible. Plain removes both halves/nub but keeps identical cap paths, ghost colors and crown. The ring remains a real option; escalate unresolved scene collisions rather than remove it.
+Duck ring halves are fixed art of `variant: ring`, unaffected by hat/front/back choices. Rear rim sits behind the torso; broad raised front tube and outer lobes clear both hand disks and leave legs/ghost tail visible. The duck head is attached outside the arm. A brighter cream tube separates the ring from the sand/clay shirt; width uses the inspection box rather than the earlier 52-unit concept target. Plain removes both halves/nub but keeps identical cap paths, ghost colors and crown. The ring remains a real option; escalate unresolved scene collisions rather than remove it.
 
 ## Checks and preview
 
@@ -74,3 +74,8 @@ Dev page choices: `?outfit=duck&variant=ring&hat=duckCap&color=sand&front=none&b
 Browser lock remains with the coordinator until the chat owner's re-check. No browser rendering without the explicit lock. First Human preview: duck ring/plain, living/ghost, both facings, idle/walk/seated, day/night, phone/laptop, hat on/off; name label, speaking ring and arcs clear. Full set follows. Scene's scripts/check-costume.mjs supports choice parameters via --q, but additional phone/night/plain/hat-off coverage is still required.
 
 Original Moonveil procedural art; no purchased/downloaded assets or new runtime dependencies. Construction and verification stay repo-local. Retain the placeholder for seam regressions; its existing scene-owned test depends on it.
+
+
+## Phone readability revision — duck
+
+Current captures at 39e5af9 are an in-progress checkpoint: the original thin ring failed phone readability. New ring geometry spans about 74 units including the bill, with a 7-unit central front tube at y≈-34..-27, raised above the seat's main occlusion area. Outer lobes remain outside the torso/stump silhouette; head/bill moved to the near outer edge. Cap bill is broader and deeper, with a distinct lower lip. Node checks protect hands, legs, face, arcs, bounds, pale ghosts and plain/ring equivalence. These are structural improvements, not a claim of phone acceptance: short locked seated/pose re-capture still required.

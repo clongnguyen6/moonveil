@@ -37,7 +37,7 @@ test('duck: every variant/color/hat combination draws safely in living and ghost
         assert.equal(back.rec.ops.length > 0, variant === 'ring');
         assert.equal(front.rec.ops.length > 0, variant === 'ring');
         if (variant === 'ring') {
-          assert.ok(back.rec.maxX - back.rec.minX + 1.6 <= 52);
+          assert.ok(back.rec.maxX - back.rec.minX + 2 <= 70);
           assert.ok(front.rec.maxY < -9, 'leave legs and ghost tail visible');
         }
       }
@@ -53,47 +53,8 @@ test('duck: every variant/color/hat combination draws safely in living and ghost
   assert.equal(labelAnchorFor(duck, choice('ring', 'none')), RIG.labelAnchorY);
 });
 
-type Point = [number, number];
-class PathProbe extends RecordingBrush {
-  path: Point[] = [];
-  shapes: { points: Point[]; stroke: number }[] = [];
-  override moveTo(x: number, y: number) { this.path = [[x, y]]; return super.moveTo(x, y); }
-  override lineTo(x: number, y: number) { this.path.push([x, y]); return super.lineTo(x, y); }
-  override quadraticCurveTo(cx: number, cy: number, x: number, y: number) {
-    const [sx, sy] = this.path.at(-1)!;
-    for (let i = 1; i <= 64; i++) {
-      const t = i / 64, u = 1 - t;
-      this.path.push([u * u * sx + 2 * u * t * cx + t * t * x, u * u * sy + 2 * u * t * cy + t * t * y]);
-    }
-    return super.quadraticCurveTo(cx, cy, x, y);
-  }
-  override closePath() { this.path.push(this.path[0]!); return super.closePath(); }
-  override fill(c: number, alpha?: number) {
-    this.shapes.push({ points: [...this.path], stroke: 0 }); return super.fill(c, alpha);
-  }
-  override stroke(c: number, width = 2, alpha?: number) {
-    this.shapes.push({ points: [...this.path], stroke: width }); return super.stroke(c, width, alpha);
-  }
-  covers(x: number, y: number) {
-    return this.shapes.some(({ points, stroke }) => {
-      let inside = false;
-      for (let i = 1; i < points.length; i++) {
-        const [ax, ay] = points[i - 1]!, [bx, by] = points[i]!;
-        if (!stroke) {
-          if ((ay > y) !== (by > y) && x < (bx - ax) * (y - ay) / (by - ay) + ax) inside = !inside;
-        } else {
-          const dx = bx - ax, dy = by - ay;
-          const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1)));
-          if (Math.hypot(x - ax - t * dx, y - ay - t * dy) <= stroke / 2) return true;
-        }
-      }
-      return inside;
-    });
-  }
-}
-
 test('duck ring front preserves both hand disks, the open center, legs and ghost tail', () => {
-  const b = new PathProbe();
+  const b = new GeometryProbe();
   duck.pieces.front!(makeContext(b, false, 1, choice()));
   for (const cx of [RIG.armL.x + 4, RIG.armR.x + 4]) {
     for (let dx = -4; dx <= 4; dx += 0.125) for (let dy = -4; dy <= 4; dy += 0.125) {
@@ -104,7 +65,7 @@ test('duck ring front preserves both hand disks, the open center, legs and ghost
   assert.equal(b.covers(0, -24), false, 'keep the center open');
   assert.equal(b.covers(0, -6), false, 'keep ghost tail visible');
   for (const x of [-5, 5]) assert.equal(b.covers(x, -9), false, 'keep both legs visible');
-  assert.equal(b.covers(0, -14.5), true, 'a real front rim must remain');
+  assert.equal(b.covers(0, -30), true, 'raised front tube must remain above stump tops');
 });
 
 test('duck plain removes only the ring; cap geometry, ghost colors and label clearance match ring', () => {
@@ -128,4 +89,17 @@ test('duck plain removes only the ring; cap geometry, ghost colors and label cle
       }
     }
   }
+});
+
+
+test('duck ring has broad visible lobes above the seat, a raised tube and an unhidden duck head', () => {
+  const b = new GeometryProbe();
+  duck.pieces.front!(makeContext(b, false, 1, choice()));
+  // Screen-readability is for the next browser pass; these protect the structural change.
+  for (const x of [-30, -27, 27, 30]) {
+    assert.ok(b.covers(x, -33), `outer float lobe missing at ${x}`);
+  }
+  for (const y of [-32, -31, -30, -29]) assert.ok(b.covers(0, y), 'front tube became thin');
+  assert.ok(b.covers(27, -41), 'duck head must sit outside the right arm');
+  assert.equal(b.covers(0, -40), false, 'keep the chest opening');
 });
