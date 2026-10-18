@@ -27,7 +27,7 @@ export const bowCat: Costume = {
 };
 ```
 
-Register in `index.ts` under `COSTUMES[costume.id]`. `placeholder` remains a dev-only four-layer fixture with explicit singleton options; it is not a production/wire catalog entry.
+Register in `index.ts` under `COSTUMES[costume.id]` and declare options: the adapter dresses only registered costumes with options. Registry lookup accepts own keys only, never inherited names such as toString. `placeholder` remains a dev-only four-layer fixture with explicit singleton options; it is not a production/wire catalog entry.
 
 ## Drawing ownership and order
 
@@ -69,7 +69,7 @@ node scripts/env.mjs npm run check -w @moonveil/scene
 
 Package tests include `src/costumes/**/*.test.ts`. Rig inspection enumerates every declared option combination, living and ghost: box, crown, arcs on all layers, pale fills and outlines. Art tests additionally check independent toggles, human eyes/hands, ring opening/legs/tail, and ring/plain cap equivalence. Node checks do not establish screenshot readability or seated visual acceptance.
 
-Dev page choices: `?scene=lobby&outfit=duck&variant=ring&hat=duckCap&color=sand&front=none&back=none`; use plain, hat=none, scene=ghost or scene=seating as needed.
+Dev page choices: `?outfit=duck&variant=ring&hat=duckCap&color=sand&front=none&back=none&scene=lobby`; use plain, hat=none, scene=ghost or scene=seating as needed.
 
 Browser lock remains with the coordinator until the chat owner's re-check. No browser rendering without the explicit lock. First Human preview: duck ring/plain, living/ghost, both facings, idle/walk/seated, day/night, phone/laptop, hat on/off; name label, speaking ring and arcs clear. Full set follows. Scene's scripts/check-costume.mjs supports choice parameters via --q, but additional phone/night/plain/hat-off coverage is still required.
 

@@ -1,4 +1,4 @@
-// Costume registry (art-themes owner adds modules here). Ids are the scene-side costume ids.
+// Costume registry (art-themes owner). Production ids equal wire OutfitId; placeholder is dev-only.
 import type { Costume } from '../rig.ts';
 import { placeholder } from './placeholder.ts';
 import { duck } from './duck.ts';
@@ -18,5 +18,5 @@ export const COSTUMES: Record<string, Costume> = {
   [robotCat.id]: robotCat,
 };
 export function costumeById(id: string | undefined | null): Costume | null {
-  return id ? COSTUMES[id] ?? null : null;
+  return id && Object.hasOwn(COSTUMES, id) ? COSTUMES[id] ?? null : null;
 }
