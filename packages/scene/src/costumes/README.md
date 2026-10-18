@@ -22,7 +22,9 @@ export const bowCat: Costume = {
 ```
 Register it in `index.ts` (`COSTUMES[bowCat.id] = bowCat`).
 
-`ctx.choice` carries the player's picks for the outfit (`variant`, `color`, `hat`, `front`, `back`, catalog ids per the appearance contract); draw the chosen pieces and ignore the rest.
+`ctx.choice` carries the player's picks for the outfit (`variant`, `color` as 0xRRGGBB, `hat`, `front`, `back`; catalog ids per the appearance contract); draw the chosen pieces and ignore the rest. The rig derives it from the scene appearance (`outfit`, `variant`, `top`, `hat`, `front`, `back`; legacy `extra` maps onto front/back). The selected `top` colours the body; `costume.top` is only a fallback. A base hat id (`none`, `beanie`, `cap`, `bucket`, `hood`, `flower`) is drawn by the base rig; any other `hat` id is yours to draw in `hatFront` (and `hoodBack`), and `crownY` may be a function of the choice.
+
+Dev page: `?scene=lobby&outfit=duck&variant=ring&hat=duckCap&color=sand&front=none&back=none` dresses every seat with those choices (`&scene=ghost` for ghosts, `&scene=seating` for the seated squash). `npm run check -w @moonveil/scene` runs typecheck and all tests, including `src/costumes/**/*.test.ts`.
 
 ## Rules the rig enforces (unit test `test/costumes.test.ts` runs them for every registered costume)
 
