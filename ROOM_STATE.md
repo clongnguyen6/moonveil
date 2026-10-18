@@ -124,7 +124,11 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Live 35151f2; candidate f12761a (accepted); dev a11737d (+ low scene profile for next release).
 - Deploy request for f12761a: docs/architecture/0010 §7f (foundation-15 8a73d3d). Decisions asked: approve deploy + timing; 2 h idle timeout yes/no.
 
-## LIVE 2026-10-18 04:32Z: f12761a (deploy-trial = f12761aa730b…)
+## LIVE 2026-10-18 07:13Z: 671fd4f (deploy-trial = 671fd4ff8ffb…)
+- 2026-10-18 · deploy-trial · ff f12761a → 671fd4f (07:12:03Z) · push-triggered Railway build; /api/status revision 671fd4f (RAILWAY_GIT_COMMIT_SHA), volume, voice configured; test lobby 2HUQ5A resumed (1012, ~16 s, same seats); both origins ok, foreign refused; fresh www room ok; look broadcast ok (scene update proven by unit tests + captures). Evidence foundation .cache/postdeploy/deploy3/. Full acceptance on 671fd4f 05:37–06:25Z all rc=0, strict UI 16/16 711/711.
+- Pending Human: auto-deploy OFF; optional restoredRooms/skippedRooms.
+
+## (previous) LIVE 2026-10-18 04:32Z: f12761a (deploy-trial = f12761aa730b…)
 - Deployment CLOSED: Human disabled auto-deploy after DEPLOY OK. No further dashboard changes needed; post-release usage snapshot not yet supplied (last known $4.98 / 29 days, pre-release).
 - Mobile two-deploy path: deploy 1 = 35151f2 + origin vars (www public, railway.app allowed), verified 04:29Z; deploy 2 = push-triggered build of f12761a (auto-deploy ON, to be turned OFF by Human).
 - Proof: /api/status JSON revision f12761a (Railway SHA, MOONVEIL_REVISION unset), persist volume /data/rooms, voice configured. Lobby TKZ4FS survived version change (1012, ~16 s, same seats). Railway Restart test passed earlier (CYR2J8, 1012, ~5 s). Fresh room on www OK.
