@@ -31,6 +31,9 @@ const THEN = (opt('then-origin', '') || '').replace(/\/+$/, '');
 // --expect-revision=<sha>: at the end, GET /api/status must report this revision, persistence on the volume and voice
 // configured (servers older than /api/status fail this check).
 const EXPECT_REV = opt('expect-revision', '');
+// --look-check: after the actions, the host page changes its look (profile message) and every other page's SeatView
+// must show it (server broadcast). Lobby only.
+const LOOK = args.includes('--look-check');
 const OUT = opt('out', `.cache/postdeploy/check-${new Date().toISOString().replace(/[:.]/g, '-')}.jsonl`);
 if (!/^https?:\/\/[^/]+$/.test(url)) {
   console.error('usage: postdeploy-check.mjs https://<domain> [--idle-min=16] [--actions=2] [--no-voice]');
@@ -234,6 +237,19 @@ try {
     const pageOrigin = await h2.page.evaluate(() => location.origin);
     log({ check: 'fresh create + join on new origin', code: code2, players: (await st(h2.page)).players, inviteOrigin: pageOrigin, ok: pageOrigin === new URL(THEN).origin });
     for (const p of fresh) await p.page.getByTestId('leave').click({ timeout: 5_000 }).catch(() => {});
+  }
+  if (LOOK) {
+    const [h, ...others] = pages;
+    const look = { color: 'berry', hat: 'flower' };
+    const name = h.name;
+    await h.page.evaluate(([n, a]) => globalThis.__moonveil.send({ t: 'profile', profile: { name: n, appearance: a } }), [name, look]);
+    let seen = [];
+    for (let i = 0; i < 40; i++) {
+      seen = await Promise.all(others.map((p) => p.page.evaluate((n) => globalThis.__moonveil.getState().view?.players?.find((x) => x.name === n)?.appearance ?? null, name)));
+      if (seen.every((a) => a && a.color === look.color && a.hat === look.hat)) break;
+      await sleep(250);
+    }
+    log({ check: 'look change reaches other pages (SeatView broadcast)', look, seen, ok: seen.every((a) => a && a.color === look.color && a.hat === look.hat) });
   }
   if (EXPECT_REV) {
     const base = THEN || url;
