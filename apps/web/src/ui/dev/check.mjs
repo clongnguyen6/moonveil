@@ -418,7 +418,7 @@ ok('look: reconnect discards the draft', (await lookState()).draft === null);
 await page.waitForTimeout(600);
 await page.getByTestId('edit-profile').click();
 await page.getByTestId('color-river').click();
-await stub((r) => { r.players.forEach((p) => (p.ready = true)); r.start(); });
+await stub((r) => { r.players.forEach((p) => (p.ready = true)); r.start(); r.setViewer(r.viewer); /* stub start() does not emit by itself */ });
 await page.waitForTimeout(150);
 ok('look: match start discards the draft', (await lookState()).draft === null);
 await page.evaluate(() => { delete globalThis.__MOONVEIL_LOOK_BOUND_MS; });
