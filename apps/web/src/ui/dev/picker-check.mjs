@@ -1,5 +1,6 @@
-// Costume picker against the real server (scene off unless CAPTURE=1, which turns it on for seat B only and saves
-// "a saved costume as others see it" to docs/ui/screens-picker/; CAPTURE needs the lock).
+// Costume picker against the real server (scene off unless CAPTURE=1: scene on for seats B (phone) and E (laptop),
+// then at day 1 (everyone seated at the fire from public state; nobody acts at night, so An is alive) both capture An's
+// saved costume as others see it → docs/ui/screens-picker/others-see-saved-costume-{phone,laptop}.png; needs the lock).
 //   node scripts/env.mjs node apps/web/src/ui/dev/picker-check.mjs      (builds dist; real engine on PICKER_PORT, default 4464)
 // Proves: pick → Save reaches every seat in canonical form; Cancel restores the saved look and sends nothing; the
 // look survives a reload and the editor reopens on it; invalid input is refused (raw message and a UI save the server
@@ -14,7 +15,7 @@ await sh('npm', ['run', 'build', '-w', '@moonveil/web']);
 const server = spawn('node', ['apps/server/src/main.ts'], { stdio: ['ignore', 'ignore', 'inherit'], env: { ...process.env, PORT: String(port), HOST: '127.0.0.1', MOONVEIL_ENGINE: 'rules', MOONVEIL_PERSIST: '0' } });
 process.on('exit', () => server.kill('SIGTERM'));
 for (let i = 0; i < 100; i++) { try { if ((await fetch(`${base}/healthz`)).ok) break; } catch {} await new Promise((r) => setTimeout(r, 200)); }
-console.log(`[scene] ${CAPTURE ? 'on (low) for seat B only, capture' : 'off'}`);
+console.log(`[scene] ${CAPTURE ? 'on (low) for seats B and E, capture at day 1' : 'off'}`);
 let fails = 0; const ok = (n, c, extra = '') => { console.log(`${c ? 'PASS' : 'FAIL'}  ${n}${c ? '' : '  ' + extra}`); if (!c) fails++; };
 const browser = await chromium.launch();
 const NAMES = ['An', 'Binh', 'Chi', 'Dung', 'Ha', 'Khoa', 'Linh'];
@@ -22,9 +23,10 @@ const PHONE = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isM
 const LAPTOP = { viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' };
 const ps = [];
 for (const [i, n] of NAMES.entries()) {
-  const scene = CAPTURE && i === 1;
-  const ctx = await browser.newContext(i % 2 ? PHONE : LAPTOP);
-  await ctx.addInitScript((on) => { globalThis.__MOONVEIL_SCENE = on ? 'low' : 'off'; localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'en', sound: false, reducedMotion: 'on', scene: on })); }, scene);
+  const scene = CAPTURE && (i === 1 || i === 4);
+  // capture pages run at normal motion so the walk to the seats finishes (~7 s); every other page reduced
+  const ctx = await browser.newContext({ ...(i % 2 ? PHONE : LAPTOP), ...(scene ? { reducedMotion: 'no-preference' } : {}) });
+  await ctx.addInitScript((on) => { globalThis.__MOONVEIL_SCENE = on ? 'low' : 'off'; localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'en', sound: false, reducedMotion: on ? 'off' : 'on', scene: on })); }, scene);
   const page = await ctx.newPage(); const got = [], sent = [];
   page.on('websocket', (ws) => { ws.on('framereceived', ({ payload }) => got.push(JSON.parse(String(payload)))); ws.on('framesent', ({ payload }) => sent.push(JSON.parse(String(payload)))); });
   ps.push({ n, page, got, sent, state: () => page.evaluate(() => globalThis.__moonveil.getState()) });
@@ -82,11 +84,12 @@ await C.page.getByTestId('save-profile').click();
 await C.page.waitForSelector('[data-testid=look-not-saved]', { timeout: 8000 }).catch(() => {});
 ok('UI save refused: notice shown, editor closed, saved look shown, nothing changed for others', (await C.page.locator('[data-testid=look-not-saved]').count()) === 1 && (await C.page.locator('[data-testid=edit-look]').count()) === 0 && (await C.page.getByTestId('you-look').getAttribute('data-outfit')) === cBefore.outfit && JSON.stringify(await lookIn(A, cSeat)) === JSON.stringify(cBefore));
 
+// capture only: two more seats save distinctive looks (goofy shark with fin pouch; duck with ring and cap)
 if (CAPTURE) {
-  mkdirSync('docs/ui/screens-picker', { recursive: true });
-  await B.page.waitForTimeout(1500);
-  await B.page.screenshot({ path: 'docs/ui/screens-picker/others-see-saved-costume-phone.png' });
-  console.log('captured docs/ui/screens-picker/others-see-saved-costume-phone.png (seat B sees An in the saved outfit)');
+  for (const [p, steps] of [[ps[3], async (pg) => { await pg.getByTestId('outfit-fish').click(); await pg.getByTestId('variant-shark').click(); await pg.getByTestId('color-slate').click(); await pg.getByTestId('back').selectOption('finPouch'); }], [ps[6], async (pg) => { await pg.getByTestId('outfit-duck').click(); }]]) {
+    await p.page.getByTestId('edit-profile').click(); await steps(p.page); await p.page.getByTestId('save-profile').click(); await p.page.waitForTimeout(400);
+  }
+  ok('capture setup: Dung saved the goofy shark, Linh the duck with ring', (await lookIn(B, await seatOf(ps[3])))?.variant === 'shark' && (await lookIn(B, await seatOf(ps[6])))?.variant === 'ring');
 }
 
 // 5. no change mid-match: no editor in the match UI, server refuses a raw profile
@@ -99,5 +102,14 @@ await A.page.evaluate(() => globalThis.__moonveil.send({ t: 'profile', profile: 
 await A.page.waitForTimeout(400);
 ok('match: a profile change is refused (not-allowed) and the look stays', A.got.some((f) => f.t === 'error' && f.code === 'not-allowed') && (await lookIn(B, aSeat))?.outfit === 'duck');
 
+if (CAPTURE) {
+  mkdirSync('docs/ui/screens-picker', { recursive: true });
+  const E = ps[4];   // a laptop seat untouched by the error tests above
+  for (const p of [B, E]) await p.page.waitForSelector('[data-testid=room][data-step="day.discussion"]', { timeout: 120000 });
+  await B.page.waitForTimeout(15000);   // dawn overlay fades; the walk from the tents to the seats (~7 s) finishes
+  for (const [p, tag] of [[B, 'phone'], [E, 'laptop']]) await p.page.screenshot({ path: `docs/ui/screens-picker/others-see-saved-costume-${tag}.png` });
+  ok('capture: still discussion, An still the saved duck in what others render', (await lookIn(E, aSeat))?.outfit === 'duck' && (await E.page.evaluate(() => globalThis.__moonveil.getState().view.game.step.kind)) === 'day.discussion');
+  console.log('captured docs/ui/screens-picker/others-see-saved-costume-{phone,laptop}.png (Binh and Ha see An duck/plain/clay, Dung shark, Linh duck with ring at the fire, day 1)');
+}
 await browser.close(); server.kill('SIGTERM');
 console.log(fails ? `${fails} FAILED` : 'ALL PASS'); process.exit(fails ? 1 : 0);
