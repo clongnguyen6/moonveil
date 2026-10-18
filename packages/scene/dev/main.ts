@@ -82,6 +82,8 @@ window.__moonveil = {
   // local-only draft of my look (editor preview): patch merges into the snapshot appearance; null clears
   setLocalLook: (patch: Record<string, string> | null) => { const me = server.input.players.find((p) => p.seat === server.input.me.seat); scene.setLocalAppearanceOverride(patch && me ? ({ ...me.appearance, ...patch } as typeof me.appearance) : null); },
   debugAppearance: (seat: string) => scene.debugAppearance(seat),
+  debugCamera: () => scene.debugCamera(),
+  debugLabels: () => scene.debugLabels(),
   setLook: (seat: string, patch: Record<string, string>) => { server.input = { ...server.input, players: server.input.players.map((p) => (p.seat === seat ? { ...p, appearance: { ...p.appearance, ...patch } } : p)) }; scene.setInput(server.input); },
   time: () => scene.time(),
   perf: () => scene.perf(),

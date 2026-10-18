@@ -39,3 +39,13 @@ export function layoutLabels(labels: readonly LabelRect[], vp: Viewport, maxLift
   }
   return out;
 }
+
+// Stage layers bottom to top; the scene builds its stage from this list. Name labels (+ leaders) come after every
+// layer that draws scene effects or light (fire, glow, sparks, smoke, fog, fireflies, ghost aura), so effects never cover them.
+export const STAGE_ORDER = ['world', 'lighting', 'nightTint', 'emissive', 'fx', 'labels', 'vignette'] as const;
+export type StageLayer = (typeof STAGE_ORDER)[number];
+export const EFFECT_LAYERS: readonly StageLayer[] = ['world', 'lighting', 'nightTint', 'emissive', 'fx'];
+export function labelsAboveEffects(order: readonly string[]): boolean {
+  const at = order.indexOf('labels');
+  return at >= 0 && EFFECT_LAYERS.every((l) => { const i = order.indexOf(l); return i >= 0 && i < at; });
+}

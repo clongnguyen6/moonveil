@@ -117,6 +117,7 @@ export class Avatar {
   target: { x: number; y: number } | null = null;
   onArrive: (() => void) | null = null;
   labelBaseY = 0;   // label anchor (world units, relative to the feet) before layout offsets
+  private labelDx = 0; private labelDy = 0;   // layout offsets (world units); the label lives in the scene's label layer, in world coordinates
   private labelAnchor: number;   // rig label anchor for the current look; changes only on re-bake
 
   constructor(seat: string, name: string, appearance: SceneAppearance, bank: TextureBank) {
@@ -135,7 +136,7 @@ export class Avatar {
     this.emote = new Text({ text: '', style: { fontSize: 22 } }); this.emote.anchor.set(0.5, 1); this.emote.visible = false; this.emote.resolution = 2;
     this.glow = new Sprite(bank.lightSoft); this.glow.anchor.set(0.5); this.glow.blendMode = 'add'; this.glow.tint = 0x9fc0ff; this.glow.alpha = 0; this.glow.scale.set(0.5);
     for (let i = 0; i < 4; i++) { const w = new Sprite(bank.dot); w.anchor.set(0.5); w.blendMode = 'add'; w.tint = 0xbfd8ff; w.alpha = 0; w.scale.set(0.3 - i * 0.05); this.wisps.push(w); }
-    this.root.addChild(this.shadow, this.ring, this.body, this.arcs, this.label, this.emote);
+    this.root.addChild(this.shadow, this.ring, this.body, this.arcs, this.emote);   // label: added to the label layer by the scene
     this.root.visible = false; this.glow.visible = false;   // nothing renders until the first update positions the avatar
   }
 
@@ -164,11 +165,11 @@ export class Avatar {
   get isGhost() { return this.mode === 'ghost'; }
 
   // called by the scene after update(): screen-space layout result in world units
-  setLabelOffset(dx: number, dy: number) { this.label.x = dx; this.label.y = this.labelBaseY + dy; }
+  setLabelOffset(dx: number, dy: number) { this.labelDx = dx; this.labelDy = dy; this.label.position.set(this.x + dx, this.y + this.labelBaseY + dy); }
 
   destroy() {
     this.root.destroy({ children: true });
-    this.glow.destroy(); for (const w of this.wisps) w.destroy();
+    this.label.destroy(); this.glow.destroy(); for (const w of this.wisps) w.destroy();
     this.bodyTex.texture.destroy(true); this.ghostTex.texture.destroy(true);
   }
 
@@ -252,15 +253,17 @@ export class Avatar {
     this.arcs.scale.set(this.facing * (0.9 + Math.sin(this.t * 9) * 0.1) * this.speakT, (0.9 + Math.sin(this.t * 9) * 0.1) * this.speakT);
     this.label.scale.set(labelScale);
     this.labelBaseY = this.body.y + this.labelAnchor - (ghost ? 12 : 0);
-    this.label.y = this.labelBaseY;
+    this.labelDx = 0; this.labelDy = 0;   // the scene's label layout re-applies offsets after update
     this.label.style.fill = this.speaking ? 0xffe28a : ghost ? 0xcfe0ff : 0xfff6e6;
-    this.label.alpha = ghost ? 0.85 : 1;
-    if (this.emoteT > 0) { this.emoteT -= dt; this.emote.y = this.label.y - 18 * labelScale - Math.sin((2.2 - this.emoteT) * 3) * 3; this.emote.scale.set(labelScale); this.emote.alpha = clamp(this.emoteT * 2, 0, 1); if (this.emoteT <= 0) this.emote.visible = false; }
+    this.label.alpha = (ghost ? 0.85 : 1) * this.alpha;
+    if (this.emoteT > 0) { this.emoteT -= dt; this.emote.y = this.labelBaseY - 18 * labelScale - Math.sin((2.2 - this.emoteT) * 3) * 3; this.emote.scale.set(labelScale); this.emote.alpha = clamp(this.emoteT * 2, 0, 1); if (this.emoteT <= 0) this.emote.visible = false; }
 
     this.root.position.set(this.x, this.y);
     this.root.zIndex = ghost ? this.y + 400 : this.y;
+    this.label.zIndex = this.root.zIndex;
     this.root.visible = avatarVisible(this.mode, this.alpha);
     this.label.visible = this.root.visible;   // explicit: the label must never outlive a hidden avatar
+    this.label.position.set(this.x + this.labelDx, this.y + this.labelBaseY + this.labelDy);
     this.root.alpha = this.alpha;
     this.glow.visible = this.root.visible && ghost;
     for (const w of this.wisps) w.visible = this.glow.visible;
