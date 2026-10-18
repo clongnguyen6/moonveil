@@ -14,9 +14,10 @@
     "build": "vite build",
     "preview": "vite preview --port 4201 --strictPort --host 127.0.0.1",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "node --test 'test/**/*.test.ts'",
+    "test": "node --test 'test/**/*.test.ts' 'src/costumes/**/*.test.ts'",
     "capture": "node scripts/capture.mjs",
-    "perf": "node scripts/perf.mjs"
+    "perf": "node scripts/perf.mjs",
+    "check": "npm run typecheck && npm test"
   },
   "dependencies": {
     "pixi.js": "8.22.0"

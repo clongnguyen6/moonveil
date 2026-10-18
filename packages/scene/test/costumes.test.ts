@@ -38,3 +38,22 @@ test('costume is part of the appearance key, so dressing a seat re-bakes it', ()
   assert.notEqual(appearanceKey(a), appearanceKey({ ...a, costume: 'placeholder' }));
   assert.equal(appearanceKey(a), appearanceKey({ ...a, costume: undefined }));
 });
+
+import { choiceFor, outfitOf } from '../src/reconcile.ts';
+import { TOP_COLORS } from '../src/appearance.ts';
+
+test('choices reach the art: variant, colour, hat, front, back derive from the appearance; legacy extra maps to front/back', () => {
+  const base = PRESETS[0]!;
+  const duck = { ...base, outfit: 'duck', variant: 'ring', hat: 'duckCap', top: 'sand' as const, front: 'none', back: 'none' };
+  assert.deepEqual(choiceFor(duck), { variant: 'ring', color: TOP_COLORS.sand, hat: 'duckCap', front: 'none', back: 'none' });
+  assert.equal(outfitOf(duck), 'duck'); assert.equal(outfitOf(base), ''); assert.equal(outfitOf({ ...base, outfit: 'camper' }), '');
+  const legacy = { ...base, extra: 'backpack' as const };
+  assert.deepEqual(choiceFor(legacy), { variant: 'default', color: TOP_COLORS[base.top], hat: base.hat, front: 'none', back: 'backpack' });
+  // the chosen hat drives crown and label clearance when crownY is a function
+  const tall = { id: 't', crownY: (c: { hat: string }) => (c.hat === 'bigHat' ? -94 : -75), pieces: {} };
+  assert.ok(labelAnchorFor(tall, choiceFor({ ...base, outfit: 't', hat: 'bigHat' })) < RIG.labelAnchorY);
+  assert.equal(labelAnchorFor(tall, choiceFor({ ...base, outfit: 't', hat: 'none' })), RIG.labelAnchorY);
+  // every choice field is part of the re-bake key
+  for (const patch of [{ variant: 'plain' }, { hat: 'none' }, { front: 'scarf' }, { back: 'backpack' }, { top: 'clay' as const }])
+    assert.notEqual(appearanceKey(duck), appearanceKey({ ...duck, ...patch }), JSON.stringify(patch));
+});

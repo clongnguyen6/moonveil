@@ -1,10 +1,29 @@
 // Pure helpers for reconciling SceneInput snapshots with live avatars.
 import type { SceneAppearance, ScenePlayer, SeatId } from './types.ts';
+import { TOP_COLORS } from './appearance.ts';
+import { DEFAULT_CHOICE, type CostumeChoice } from './rig.ts';
 import { FIRE, isWalkable, type MapLayout, type Pt } from './map.ts';
 import type { AvatarMode } from './avatar.ts';
 
+// Outfit id (costume module) for an appearance; '' = base camper look.
+export function outfitOf(a: SceneAppearance): string {
+  const o = a.outfit ?? a.costume ?? '';
+  return o === 'camper' ? '' : o;
+}
+
+// The player's choices as the costume pieces see them. Legacy `extra` maps onto front/back when those are absent.
+export function choiceFor(a: SceneAppearance): CostumeChoice {
+  return {
+    variant: a.variant ?? DEFAULT_CHOICE.variant,
+    color: TOP_COLORS[a.top] ?? DEFAULT_CHOICE.color,
+    hat: a.hat,
+    front: a.front ?? (a.extra === 'scarf' ? 'scarf' : 'none'),
+    back: a.back ?? (a.extra === 'backpack' ? 'backpack' : 'none'),
+  };
+}
+
 export function appearanceKey(a: SceneAppearance): string {
-  return `${a.skin}|${a.top}|${a.hair}|${a.hairColor}|${a.hat}|${a.extra}|${a.costume ?? ''}`;
+  return `${a.skin}|${a.top}|${a.hair}|${a.hairColor}|${a.hat}|${a.extra}|${outfitOf(a)}|${a.variant ?? ''}|${a.front ?? ''}|${a.back ?? ''}`;
 }
 
 export interface PlayersDiff { added: SeatId[]; removed: SeatId[]; changedAppearance: SeatId[]; renamed: SeatId[] }
