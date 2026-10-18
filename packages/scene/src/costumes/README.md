@@ -76,3 +76,9 @@ Registry ID `fish`, variants `puffer | shark`; one `fishHeadgear | none` selecto
 - Crown falls back to -75 with headgear off. Every color/headgear/pouch combination is checked living/ghost; headgear geometry includes stroke clearance from the arcs and human eyes. Variant-switch test verifies the pouch is unchanged and old pufferHat/sharkHat IDs cannot select conflicting headgear.
 
 Frog, mushroom, puffer and shark are separate art commits. Scene screenshots remain queued behind the rendering lock; node checks do not establish phone-scale or seated visual acceptance.
+
+## Bow cat handoff
+
+Catalog/registry ID `bowCat`; `catHood | none`, `fishSling | none`, rose/berry tops, back none. Oatmeal hood, rounded canvas ears, berry bow and compact clay fish sling. Crown -93 with hood, -75 otherwise. Human face/hair stay intact; every choice combination has outline-inclusive box/crown/arcs, eye/hand and living/ghost checks.
+
+Catalog naming follow-up for scene owner: the accepted IDs `bowCat` and `robotCat` contain uppercase letters, while `test/costumes.test.ts` restricts registry IDs to `/^[a-z][a-z0-9-]*$/`. Runtime lookup supports the accepted names. Keep those IDs; update the scene-owned test/rig documentation to permit the accepted catalog keys. No aliases, changed wire IDs or edits outside this directory introduced here.
