@@ -34,6 +34,9 @@ const EXPECT_REV = opt('expect-revision', '');
 // --look-check: after the actions, the host page changes its look (profile message) and every other page's SeatView
 // must show it (server broadcast). Lobby only.
 const LOOK = args.includes('--look-check');
+// --costume-check: the host saves a costume in the canonical form (ADR 0011: duck / ring) and every other page's
+// SeatView must show exactly that object. Lobby only; needs a server with the appearance contract.
+const COSTUME = args.includes('--costume-check');
 const OUT = opt('out', `.cache/postdeploy/check-${new Date().toISOString().replace(/[:.]/g, '-')}.jsonl`);
 if (!/^https?:\/\/[^/]+$/.test(url)) {
   console.error('usage: postdeploy-check.mjs https://<domain> [--idle-min=16] [--actions=2] [--no-voice]');
@@ -250,6 +253,21 @@ try {
       await sleep(250);
     }
     log({ check: 'look change reaches other pages (SeatView broadcast)', look, seen, ok: seen.every((a) => a && a.color === look.color && a.hat === look.hat) });
+  }
+  if (COSTUME) {
+    const [h, ...others] = pages;
+    const costume = { outfit: 'duck', variant: 'ring', color: 'sand', hat: 'duckCap', front: 'none', back: 'none' };
+    await h.page.evaluate(([n, a]) => globalThis.__moonveil.send({ t: 'profile', profile: { name: n, appearance: a } }), [h.name, costume]);
+    const canon = (o) => (o ? JSON.stringify(Object.fromEntries(Object.entries(o).sort())) : 'null');
+    const want = canon(costume);
+    let seen = [];
+    for (let i = 0; i < 40; i++) {
+      seen = await Promise.all(others.map((p) => p.page.evaluate((n) => globalThis.__moonveil.getState().view?.players?.find((x) => x.name === n)?.appearance ?? null, h.name)));
+      if (seen.every((a) => canon(a) === want)) break;
+      await sleep(250);
+    }
+    const err = await h.page.evaluate(() => globalThis.__moonveil.getState().error);
+    log({ check: 'costume save reaches other pages exactly (canonical)', costume, seen, hostError: err, ok: seen.every((a) => canon(a) === want) });
   }
   if (EXPECT_REV) {
     const base = THEN || url;
