@@ -53,6 +53,7 @@ export interface SceneOptions {
   // or on ≤4 cores / ≤4 GB, else 'high'. 'off' mounts nothing (no canvas, no frame loop).
   quality?: 'off' | 'low' | 'high' | 'auto';
   labelLayout?: boolean | 'v1';
+  debug?: boolean;                // enables debug read hooks (debugAppearance); off in production
   // Experimental cost knobs for A/B measurement (harness only; defaults = current behaviour).
   experimental?: { antialias?: boolean; fpsCap?: number; lightmapOnChange?: boolean; ripples?: boolean; vignette?: boolean };   // default true: clamp on screen, lift ≤ 1 label height, leader line when displaced, smaller labels at 13+ seats; 'v1' = first version (lift ≤ 3, no leaders); false = off (captures only)
 }
@@ -75,6 +76,12 @@ export interface SceneHandle {
   setCamera(mode: CameraMode): void;
   setSafeArea(insets: Partial<SafeArea>): void;   // HUD overlap in CSS px; the camera frames the remaining area
   resize(): void;                                 // optional: the scene also observes the host with ResizeObserver
+  // Local-only draft of the local seat's look while the player edits it. Renders on the local avatar only,
+  // re-baked in place (position, pose, facing, animation and intent preserved); emits nothing; other seats are
+  // unaffected. Stays active across snapshot updates until cleared with null, which restores the snapshot look.
+  setLocalAppearanceOverride(appearance: SceneAppearance | null): void;
+  // Test-only (requires opts.debug): the appearance an avatar currently renders, or null.
+  debugAppearance(seat: SeatId): SceneAppearance | null;
   // dev/test helpers
   time(): number;
   perf(): PerfStats | null;

@@ -2,7 +2,7 @@
 import { Container, Graphics, Sprite, Text } from 'pixi.js';
 import { type TextureBank, type Baked, spriteOf } from './textures.ts';
 import { shade, lerp, clamp, hashString } from './rng.ts';
-import { appearanceKey, avatarVisible } from './reconcile.ts';
+import { avatarVisible, LookTracker } from './reconcile.ts';
 import type { SceneAppearance } from './types.ts';
 import { HAIR_COLOR_VALUES, SKIN_COLORS, TOP_COLORS } from './appearance.ts';
 
@@ -82,7 +82,7 @@ export class Avatar {
   private bodyTex: Baked;
   private ghostTex: Baked;
   private bank: TextureBank;
-  private appKey: string;
+  private look: LookTracker;
   private trail: { x: number; y: number }[] = [];
   x = 0; y = 0;
   facing: 1 | -1 = 1;
@@ -102,7 +102,7 @@ export class Avatar {
   constructor(seat: string, name: string, appearance: SceneAppearance, bank: TextureBank) {
     this.seat = seat;
     this.t = (hashString(seat) % 1000) / 137;
-    this.bank = bank; this.appKey = appearanceKey(appearance);
+    this.bank = bank; this.look = new LookTracker(appearance);
     this.bodyTex = bank.bake(drawAvatar(appearance, false, seat), 0, 0, 3);
     this.ghostTex = bank.bake(drawAvatar(appearance, true, seat), 0, 0, 3);
     this.shadow = new Sprite(bank.shadow); this.shadow.anchor.set(0.5); this.shadow.scale.set(1.1, 0.5);
@@ -121,9 +121,7 @@ export class Avatar {
   // Re-bake the look when the player saves a new appearance; position, mode, facing and intent are untouched.
   // Same appearance → no work. Old textures are destroyed so nothing leaks.
   setAppearance(a: SceneAppearance): boolean {
-    const key = appearanceKey(a);
-    if (key === this.appKey) return false;
-    this.appKey = key;
+    if (!this.look.apply(a)) return false;
     const oldBody = this.bodyTex, oldGhost = this.ghostTex;
     this.bodyTex = this.bank.bake(drawAvatar(a, false, this.seat), 0, 0, 3);
     this.ghostTex = this.bank.bake(drawAvatar(a, true, this.seat), 0, 0, 3);
@@ -132,7 +130,7 @@ export class Avatar {
     oldBody.texture.destroy(true); oldGhost.texture.destroy(true);
     return true;
   }
-  get appearanceKey() { return this.appKey; }
+  get appearance(): SceneAppearance { return this.look.current; }
 
   setName(name: string) { if (this.label.text !== name) this.label.text = name; }
   setLabelSize(px: number) { if (this.label.style.fontSize !== px) this.label.style.fontSize = px; }

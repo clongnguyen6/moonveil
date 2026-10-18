@@ -42,3 +42,25 @@ export function spawnPoint(map: MapLayout, index: number): Pt {
 export function avatarVisible(mode: AvatarMode, alpha: number): boolean {
   return mode !== 'hidden' && alpha > 0.01;
 }
+
+// Appearance a seat should render: the local-only draft override for the local seat while one is set,
+// otherwise the snapshot's appearance. Never applies to other seats.
+export function effectiveAppearance(input: { me: { seat: SeatId }; players: readonly ScenePlayer[] }, seat: SeatId, override: SceneAppearance | null): SceneAppearance | null {
+  const p = input.players.find((x) => x.seat === seat);
+  if (!p) return null;
+  return seat === input.me.seat && override ? override : p.appearance;
+}
+
+// Tracks the rendered look of one avatar: apply() reports whether a re-bake is needed.
+export class LookTracker {
+  current: SceneAppearance;
+  private key: string;
+  rebakes = 0;
+  constructor(a: SceneAppearance) { this.current = a; this.key = appearanceKey(a); }
+  apply(a: SceneAppearance): boolean {
+    const k = appearanceKey(a);
+    if (k === this.key) return false;
+    this.key = k; this.current = a; this.rebakes++;
+    return true;
+  }
+}

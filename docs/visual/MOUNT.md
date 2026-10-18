@@ -40,6 +40,12 @@ Keyboard (WASD/arrows, Space = push-to-talk callback via `setSpeakingLocal` is t
 
 `mountScene(slot, { input, quality })` with `quality: 'off' | 'low' | 'high' | 'auto'` (default `auto`). `off` mounts no canvas and runs no loop; harnesses can force it without touching the shell by setting `globalThis.__MOONVEIL_SCENE = 'off'` (or `'low'`) in a page init script, which `auto` honours. `auto` also picks `low` under `navigator.webdriver` and on ≤ 4 cores / ≤ 4 GB. The loop stops while the document is hidden; `prefers-reduced-motion` caps it at 4 fps. The Settings "scene" switch stays the user-facing off.
 
+## Appearance editor preview (local-only draft)
+
+While the player edits their look, call `scene.setLocalAppearanceOverride(draft)` on every colour or hat change (a full `SceneAppearance`; build it from the saved appearance plus the edited fields). The local avatar re-renders the draft in place: position, pose, facing, animation and intent are preserved, nothing is sent, and other seats keep rendering the snapshot. Snapshot updates arriving during the draft (anyone's `setInput`) do not clear it. On Save, send the profile to the server as today and call `setLocalAppearanceOverride(null)` once the saved snapshot arrives (or immediately; the next snapshot re-renders the saved look either way). On Cancel, call `setLocalAppearanceOverride(null)`: the snapshot look returns.
+
+Test hook, gated: with `mountScene(slot, { debug: true })`, `scene.debugAppearance(seatId)` returns the appearance that avatar currently renders (`null` for unknown seats or when `debug` is off). Not a production surface; the harness enables it.
+
 ## Resize and safe areas
 
 - The canvas fills the slot (`position:absolute; inset:0` as in layout.css). The scene observes the slot with `ResizeObserver` and resizes itself; `scene.resize()` exists for shells that prefer to drive it.

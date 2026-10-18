@@ -11,10 +11,10 @@ import { PoseBuffer } from './poses.ts';
 import { createMap, frameRect, FIRE, WORLD, inWorld, type MapLayout } from './map.ts';
 import { intentFor, canMove, nightLevelFor, type SeatIntent } from './choreo.ts';
 import { lerp, clamp, mixColor, smooth } from './rng.ts';
-import type { CameraMode, Pose, PoseFrame, SafeArea, SceneHandle, SceneInput, SceneOptions, SeatId, PerfStats } from './types.ts';
+import type { CameraMode, Pose, PoseFrame, SafeArea, SceneAppearance, SceneHandle, SceneInput, SceneOptions, SeatId, PerfStats } from './types.ts';
 import { resolveQuality, renderProfile, readQualityEnv } from './quality.ts';
 import { layoutLabels, type LabelRect } from './labels.ts';
-import { playersDiff, spawnPoint } from './reconcile.ts';
+import { playersDiff, spawnPoint, effectiveAppearance } from './reconcile.ts';
 
 const SMALL_LABEL_FROM = 13;   // seats from which labels drop one size step (12 → 11 px)
 
@@ -31,7 +31,7 @@ function offHandle(input: SceneInput): SceneHandle {
   return {
     ready: Promise.resolve(), quality: 'off',
     setInput(next) { inp = next; }, setPoses() {}, setSpeaking() {}, on() { return () => {}; }, emote() {}, setSpeakingLocal() {},
-    async setAudio() {}, setCamera() {}, setSafeArea() {}, resize() {},
+    async setAudio() {}, setCamera() {}, setSafeArea() {}, resize() {}, setLocalAppearanceOverride() {}, debugAppearance: () => null,
     time: () => 0, perf: () => null, perfReset() {}, walkLocal() {}, localPose: () => null, night: () => (inp.phase === 'night' ? 1 : 0), destroy() {},
   };
 }
@@ -47,6 +47,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   const x = { antialias: prof.antialias, ripples: prof.ripples, lightmapOnChange: prof.lightmapOnChange, fpsCap: prof.fpsCap, vignette: true, ...stripUndefined(opts.experimental ?? {}) };
   let input = opts.input;
   let destroyed = false;
+  let localOverride: SceneAppearance | null = null;   // local-only look draft for the local seat
   const listeners: Listener = { move: [], emote: [], tap: [] };
   const poses = new PoseBuffer();
   let speakingSet = new Set<SeatId>();
@@ -187,11 +188,11 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     for (const p of next.players) {
       let av = avatars.get(p.seat);
       if (!av) {
-        av = new Avatar(p.seat, p.name, p.appearance, bank);
+        av = new Avatar(p.seat, p.name, effectiveAppearance(next, p.seat, localOverride) ?? p.appearance, bank);
         world.objects.addChild(av.root); emissive.addChild(av.glow, ...av.wisps);
         avatars.set(p.seat, av);
         av.mode = 'hidden'; // until positioned
-      } else av.setAppearance(p.appearance);   // no-op when unchanged
+      } else av.setAppearance(effectiveAppearance(next, p.seat, localOverride) ?? p.appearance);   // no-op when unchanged; keeps the local draft
       av.setName(p.name + (next.reveal?.[p.seat] ? ` · ${next.reveal[p.seat]}` : ''));
     }
     for (const seat of diff.removed) { const av = avatars.get(seat); if (av) { av.destroy(); avatars.delete(seat); intents.delete(seat); poses.drop(seat); } }
@@ -420,6 +421,13 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     },
     emote(e) { emoteReq = e; for (const cb of listeners.emote) cb(e); },
     setSpeakingLocal(on) { localSpeaking = on; },
+    setLocalAppearanceOverride(a) {
+      localOverride = a;
+      const av = avatars.get(input.me.seat);
+      const eff = effectiveAppearance(input, input.me.seat, localOverride);
+      if (av && eff) av.setAppearance(eff);   // in place: position, pose, facing, intent untouched; nothing emitted
+    },
+    debugAppearance(seat) { return opts.debug ? (avatars.get(seat)?.appearance ?? null) : null; },
     async setAudio(on) { if (on) await ambience.enable(); else ambience.disable(); },
     setCamera(mode) { cameraMode = mode; },
     setSafeArea(insets) { Object.assign(safe, insets); },
