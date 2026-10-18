@@ -239,5 +239,7 @@ Grant c merges into `dev`, newest last. Format: date · branch · ff from → he
 
 - 2026-10-18 · art-themes · ff a8ae555 → bc46d41 · Lead go (grant c), docs-only. Reviewed candidate bc46d4100f451ffa7ca8fe442c776b6d8529c2ea: 13 files under docs/visual/themes/** only (catalog, concept sheet, phone-scale references, prompts/provenance, shark construction). Diff check passed; no tests run for docs-only changes. Remote dev verified at bc46d41 before this separate log-only commit.
 
+- 2026-10-18 · art-themes · ff cda935d → 837b3f8 · Lead go (grant c), docs-only. Reviewed candidate 837b3f8ecc9dc9160429378e232abfdaad6daf03: docs/visual/themes/CATALOG.md only; Vietnamese display names for all seven outfits and nine variants, camper included. Diff check passed; no tests run for docs-only changes. Remote dev verified at 837b3f8 before this separate log-only commit.
+
 ## Acceptance evidence
 - foundation b3d9ece: Lead re-ran `node scripts/env.mjs npm run check` 14:31 → typecheck ok, server 10/10, e2e 7/7 (8-browser auto isolation, 7+mod isolation, lobby, reconnect, 2nd tab, Pixel 7 emu). Chromium only. No new ~/.npm logs. Superseded by the merged revision (see Merge log).

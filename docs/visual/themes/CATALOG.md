@@ -6,16 +6,31 @@ All six themes, shark and both ducks approved. Supersedes README.md selection qu
 
 Source for catalog lists in the proposed `{ outfit, variant, color, hat, front, back, body? }` contract. Foundation owns implementation/validation. This replaces the earlier document-only flat IDs; no shipped IDs change. Eight looks are identified by `(outfit, variant)`, not an additional saved look ID.
 
-| Stable outfit / variant | Display name | Headgear when enabled |
+### Display names
+
+Authoritative outfit names (`outfit.<id>`) and variant labels (`variant.<outfit>.<variant>`) for the picker. Keep names separate from stable IDs. Reviewed Vietnamese draft in `game-ui-picker` f82c0a9: retain theme/variant names; replace camper's “Dân cắm trại” with “Người cắm trại”. Singleton `default` variants use “Mặc định”; no extra picker control is needed for them. This is display copy only; lists/defaults below are unchanged.
+
+| Outfit | en | vi |
 |---|---|---|
-| `bowCat / default` | Bow cat | Oatmeal cat hood + berry bow |
-| `robotCat / default` | Robot cat | Blue mechanical-tab hood + brass bell |
-| `fish / puffer` | Chubby fish | Ochre puffer hat + small fins |
-| `fish / shark` | Goofy shark | Slate-blue shark hood + dorsal fin + blunt tooth tabs |
-| `frog / default` | Camping frog | Moss frog-eye rain hat |
-| `duck / ring` | Yellow duck · ring | Yellow beak cap + flat leaf |
-| `duck / plain` | Yellow duck | Same beak cap + leaf |
-| `mushroom / default` | Forest mushroom | Red cap + cream spots |
+| `camper` | Camper | Người cắm trại |
+| `bowCat` | Bow cat | Mèo nơ |
+| `robotCat` | Robot cat | Mèo robot |
+| `fish` | Fish | Cá |
+| `frog` | Camping frog | Ếch cắm trại |
+| `duck` | Yellow duck | Vịt vàng |
+| `mushroom` | Forest mushroom | Nấm rừng |
+
+| Stable outfit / variant | en (variant label) | vi | Headgear when enabled |
+|---|---|---|---|
+| `camper / default` | Default | Mặc định | Selected camper hat, or none |
+| `bowCat / default` | Default | Mặc định | Oatmeal cat hood + berry bow |
+| `robotCat / default` | Default | Mặc định | Blue mechanical-tab hood + brass bell |
+| `fish / puffer` | Chubby fish | Cá nóc mũm mĩm | Ochre puffer hat + small fins |
+| `fish / shark` | Goofy shark | Cá mập ngố | Slate-blue shark hood + dorsal fin + blunt tooth tabs |
+| `frog / default` | Default | Mặc định | Moss frog-eye rain hat |
+| `duck / ring` | With ring | Có phao | Yellow beak cap + flat leaf |
+| `duck / plain` | Without ring | Không phao | Same beak cap + leaf |
+| `mushroom / default` | Default | Mặc định | Red cap + cream spots |
 
 ### Authoritative OUTFITS lists
 
