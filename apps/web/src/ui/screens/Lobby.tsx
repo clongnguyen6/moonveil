@@ -31,6 +31,8 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat, onSettings }: { s: S
   const draft = look.draft;
   const ctx = `${view.code}:${view.me.seat}`;
   const shown = (p: typeof view.players[number]) => (draft && p.seat === view.me.seat ? { name: p.name, appearance: draft.appearance } : p);
+  // When the draft ends for any reason (confirmed, rejected, discarded by reconnect/context), close the editor too.
+  useEffect(() => { setEditing(false); }, [look.ended]);
   const [copied, setCopied] = useState<'link' | 'code' | null>(null);
   const [manual, setManual] = useState(false);
   const copy = async (what: 'link' | 'code') => {
