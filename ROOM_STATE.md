@@ -38,6 +38,12 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Delivered art-themes 17b1c75 (docs/visual/themes only; Lead reviewed images). Sent to Human for selection. Peer recommends: pufferfish hat (shark not drawn), keep procedural vector for production, generated rasters review-only. Seam: `extra` (one of none/scarf/backpack) and wire {color,hat} can't express these; appearance contract needed before production.
 - Outside-Moonveil write (image tool auto-save, no output-dir control): /Users/long/.codex-runtime/peer/generated_images/01a14e4b-…/ 3 PNGs, 2,634,923 bytes. Not deleted; reported.
 
+## LIVE 2026-10-18 15:16Z: f91f425 (deploy-trial = f91f425b3f65…)
+- 2026-10-18 · deploy-trial · ff 3b1dbde → f91f425 (15:15:32Z) · Human-approved; push-triggered Railway build; /api/status revision f91f425 (RAILWAY_GIT_COMMIT_SHA; Lead watcher 15:16:57Z, both domains), volume, voice configured; test lobby XFF9YG (created on 3b1dbde, legacy looks) resumed (1012, ~16 s, same seats), upgraded to canonical campers with seeded extras; both origins ok, foreign + http refused; fresh www room VU67PV; look-check (legacy) and costume-check (duck/ring exact) ok. Evidence foundation .cache/postdeploy/deploy5/. Other rooms untouched; Human did not state whether games were active.
+- Auto-deploy: ON for this deploy; Human asked to turn OFF (pending confirmation). restoredRooms/skippedRooms not supplied.
+- Rollback to 3b1dbde (tested): f91f425 rooms restore; costumes show as campers; costume-wearers can't edit looks in those rooms until rejoin/forward deploy.
+- Pending into dev: foundation-postdeploy b941bbd (postdeploy script --costume-check + --look-check).
+
 ## Release candidate f91f425 (2026-10-18)
 - dev f91f425 = chat + costumes (contract, seam, adapter, 8 looks, picker) + small-phone framing + fire labels + stale-error fix + leave fix. FF from live 3b1dbde; STATE_VERSION 2.
 - Full acceptance 14:14–15:02Z (foundation, exclusive lock): npm ci; check (467 unit, e2e 13/13); matches 10/10; voice 10/10; strict UI 16/16, 711/711, 0 misses (mitigations: 3 s click wait, one 4 fps observer). Summary foundation .cache/runs/full-f91f425/summary.txt.
@@ -160,7 +166,7 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Live 35151f2; candidate f12761a (accepted); dev a11737d (+ low scene profile for next release).
 - Deploy request for f12761a: docs/architecture/0010 §7f (foundation-15 8a73d3d). Decisions asked: approve deploy + timing; 2 h idle timeout yes/no.
 
-## LIVE 2026-10-18 08:58Z: 3b1dbde (deploy-trial = 3b1dbdeb43d9…)
+## (previous) LIVE 2026-10-18 08:58Z: 3b1dbde (deploy-trial = 3b1dbdeb43d9…)
 - 2026-10-18 · deploy-trial · ff 671fd4f → 3b1dbde (08:57:46Z) · push-triggered Railway build; /api/status revision 3b1dbde (RAILWAY_GIT_COMMIT_SHA, Lead watcher 08:58:46Z + foundation), volume, voice configured; test lobby UHFAGM resumed (1012, ~16 s, same seats); both origins ok, foreign refused; fresh www room 84FN5J; look broadcast ok. Live rendered preview not checked live (scene off in harness; proven by UI two-seat check). Evidence foundation .cache/postdeploy/deploy4/. Other rooms untouched; Human did not confirm no active games.
 - Auto-deploy: ON for this deploy; Human asked to turn OFF (pending confirmation). Optional restoredRooms/skippedRooms (expect ≥1 / 0).
 
