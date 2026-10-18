@@ -118,13 +118,17 @@ test('LiveKit Cloud through the deployed app: connect, region, publish/subscribe
     const livingBefore = players.filter((p) => game(p)?.me?.alive);
     const victim = livingBefore[livingBefore.length - 1]!; // nominate the last living seat
     const victimIdx = game(victim)!.me!.seat;
-    const victimPublicToken = (voiceFrames(victim).at(-1)?.msg as unknown as { sessions: { channel: string; token: string; url: string }[] }).sessions.find((s) => s.channel === 'public');
+    const victimPublicToken = (voiceFrames(victim).at(-1)?.msg as unknown as { sessions: { channel: string; token: string; url: string; room?: string }[] }).sessions.find((s) => s.channel === 'public');
     await moderatorClose(mod); await waitStepChange(players, 'day.discussion');
     // day.vote: all nominate the victim
     for (const p of players) if (game(p)?.me?.alive) await p.page.evaluate((t) => (globalThis as any).__moonveil.send({ t: 'act', action: { type: 'vote.nominate', target: t } }), victimIdx);
     await moderatorClose(mod); await waitStepChange(players, 'day.vote');
     if (step(players[0]!) === 'day.defense') {
       await voiceSettled(all);
+      const pubBefore = victimPublicToken?.room;
+      const pubNow = (voiceFrames(players[0]!).at(-1)?.msg as unknown as { sessions: { channel: string; room?: string }[] }).sessions.find((x) => x.channel === 'public')?.room;
+      const speakers = players.filter((p) => grants(p).some((g) => g.channel === 'public' && g.speak)).length;
+      note(`defense: ${speakers} living seats hold public speak; public room generation ${pubBefore === pubNow ? 'unchanged' : `CHANGED ${pubBefore} -> ${pubNow}`} (expect unchanged under the 2026-10-18 rule)`);
       reports.push(await checkHearMatrix(all, 'day.defense'));
       budget.log('day.defense');
       await moderatorClose(mod); await waitStepChange(players, 'day.defense');
