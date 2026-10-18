@@ -25,6 +25,7 @@ export const en = {
   connReplaced: 'Opened in another tab.', connUseHere: 'Use here', connEnded: 'You left the room.', connOffline: 'Offline',
 
   entryTagline: 'Werewolf by the campfire. One phone each, your voices in the game.',
+  lookOutfit: 'Outfit', lookStyle: 'Style', lookHeadgear: 'Headgear', lookFront: 'Front', lookBack: 'Back', 
   entryName: 'Your name', entryNamePh: 'e.g. Linh', entryLook: 'Your look', entryColour: 'Colour', entryHat: 'Hat',
   entryCode: 'Room code', entryJoin: 'Join room', entryOr: 'or start a new room', entryCreateAuto: 'Create & play', entryCreateAutoHint: 'The app runs the night and day.',
   entryCreateMod: 'Create & moderate', entryCreateModHint: "You narrate and run the match. You don't play.",
@@ -134,11 +135,13 @@ export const en = {
   provisional: 'provisional', ambience: 'Camp ambience', sceneSetting: 'Camp scene', wakeHint: 'Keep your screen on during the match.', copyManual: 'Copy not available here. Long-press the link to copy it.', youLabel: 'You', modNarrationSetting: 'Narration cues (provisional)', 
   errRoomNotFound: 'There is no such room. Check the link or ask the host for a new one.', errRoomFull: 'This room is full.', errGameStarted: 'This match has already started. Ask the host for the next one.',
   errNameTaken: 'That name is already used in this room. Pick another name.', errBadToken: 'Your seat in this room has expired. Join again.', errCannotStart: 'Everyone must be connected and ready, and the deck must be valid.',
-  errRateLimited: 'Slow down a little.', errNetwork: 'No connection. Check your network.', errNotAllowed: 'That is not allowed right now.',
+  errInvalidAppearance: 'That look is not available. Showing your saved look.', errRateLimited: 'Slow down a little.', errNetwork: 'No connection. Check your network.', errNotAllowed: 'That is not allowed right now.',
   entryInvited: 'You are invited to room {code}', entryInvitedHint: 'Pick a name and a look, then join.',
   modNow: 'Now', modDawnDead: 'Died at dawn: {names}', modDawnNobody: 'Nobody died at dawn.', modAccused: 'On trial: {name}', modNoTrial: 'No trial today.', modBallots: 'Ballots (public)', modYesInPerson: 'Only if you count hands at the table; in-app votes count by themselves.',
   a11yGrid: 'Players: use arrow keys to move, Enter to choose',
   a11yTimer: '{s} seconds left', a11ySeat: '{name}, {state}', a11yDead: 'dead', a11yAlive: 'alive', a11ySpeaking: 'speaking', a11yYou: 'you', a11yTarget: 'choose {name}',
+  // Costume display names: English from docs/visual/themes/CATALOG.md (art-themes 3776e4d); keys = catalog ids.
+  lookNames: { 'outfit.camper': 'Camper', 'outfit.bowCat': 'Bow cat', 'outfit.robotCat': 'Robot cat', 'outfit.fish': 'Fish', 'outfit.frog': 'Camping frog', 'outfit.duck': 'Yellow duck', 'outfit.mushroom': 'Forest mushroom', 'variant.fish.puffer': 'Chubby fish', 'variant.fish.shark': 'Goofy shark', 'variant.duck.ring': 'With ring', 'variant.duck.plain': 'Plain', 'hat.none': 'None', 'hat.beanie': 'Beanie', 'hat.cap': 'Cap', 'hat.bucket': 'Bucket hat', 'hat.flower': 'Flower', 'hat.hood': 'Hood', 'hat.catHood': 'Cat hood', 'hat.robotHood': 'Robot hood', 'hat.fishHeadgear': 'Fish hat', 'hat.frogHat': 'Frog rain hat', 'hat.duckCap': 'Duck cap', 'hat.mushroomCap': 'Mushroom cap', 'acc.none': 'None', 'acc.scarf': 'Scarf', 'acc.backpack': 'Backpack', 'acc.fishSling': 'Fish sling bag', 'acc.utilityPocket': 'Utility pocket', 'acc.raincoatPockets': 'Raincoat pockets', 'acc.leafPack': 'Leaf pack', 'acc.woodPack': 'Wood pack', 'acc.finPouch': 'Fin pouch', 'color.ember': 'Ember', 'color.moss': 'Moss', 'color.river': 'River', 'color.dusk': 'Dusk', 'color.sand': 'Sand', 'color.berry': 'Berry', 'color.pine': 'Pine', 'color.slate': 'Slate', 'color.clay': 'Clay', 'color.sky': 'Sky', 'color.bark': 'Bark', 'color.rose': 'Rose' } as Record<string, string>,
   stepDisplay: { 'night.main': 'Night', 'night.witch': 'Witch', hunter: 'Hunter', 'day.discussion': 'Discussion', 'day.vote': 'Nomination', 'day.defense': 'Defense', 'day.confirm': 'Verdict', ended: 'Ended' } as Record<string, string>,
 };
 export type Strings = typeof en;

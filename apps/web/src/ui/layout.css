@@ -57,7 +57,13 @@ ul { padding: 0; list-style: none; }
 .entry .logo { font-size: var(--fs-5); font-weight: 800; letter-spacing: -.02em; }
 .swatches { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 .swatch { width: var(--tap); height: var(--tap); border-radius: var(--r-pill); border: 3px solid transparent; padding: 0; cursor: pointer; }
-.swatch[aria-pressed="true"] { border-color: var(--ink); }
+.swatch[aria-pressed="true"], .swatch[aria-checked="true"] { border-color: var(--ink); }
+/* look picker: outfit + style chips (radio), colour swatches, selects for headgear/front/back; 44 px targets */
+.look-picker { gap: var(--sp-3); }
+.chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.chip { min-height: var(--tap); padding: 0 var(--sp-3); border-radius: var(--r-pill); font: inherit; font-size: var(--fs-1); cursor: pointer; }
+.look-selects { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--sp-2); }
+.look-selects .input { min-height: var(--tap); width: 100%; }
 .lobby { max-width: 720px; margin: 0 auto; width: 100%; padding: var(--sp-3) var(--sp-3) max(var(--sp-4), env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: var(--sp-3); }
 .lobby .card { padding: var(--sp-4); }
 .player-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--sp-2); }

@@ -26,6 +26,7 @@ export const vi: Strings = {
   connReplaced: 'Đã mở ở tab khác.', connUseHere: 'Dùng ở đây', connEnded: 'Bạn đã rời phòng.', connOffline: 'Ngoại tuyến',
 
   entryTagline: 'Ma Sói bên lửa trại. Mỗi người một điện thoại, nói chuyện ngay trong game.',
+  lookOutfit: 'Bộ đồ', lookStyle: 'Kiểu', lookHeadgear: 'Mũ', lookFront: 'Phía trước', lookBack: 'Sau lưng', 
   entryName: 'Tên của bạn', entryNamePh: 'vd: Linh', entryLook: 'Diện mạo', entryColour: 'Màu', entryHat: 'Mũ',
   entryCode: 'Mã phòng', entryJoin: 'Vào phòng', entryOr: 'hoặc tạo phòng mới', entryCreateAuto: 'Tạo & chơi', entryCreateAutoHint: 'Ứng dụng tự điều khiển đêm và ngày.',
   entryCreateMod: 'Tạo & làm quản trò', entryCreateModHint: 'Bạn dẫn dắt ván chơi, không tham gia.',
@@ -134,10 +135,12 @@ export const vi: Strings = {
   provisional: 'tạm thời', ambience: 'Âm thanh trại', sceneSetting: 'Cảnh trại', wakeHint: 'Giữ màn hình sáng trong ván.', copyManual: 'Không chép tự động được. Nhấn giữ link để chép.', youLabel: 'Bạn', modNarrationSetting: 'Gợi ý lời dẫn (tạm thời)', 
   errRoomNotFound: 'Không có phòng với mã này. Kiểm tra link hoặc xin chủ phòng mã mới.', errRoomFull: 'Phòng đã đầy.', errGameStarted: 'Ván này đã bắt đầu. Hãy đợi ván sau.',
   errNameTaken: 'Tên này đã có người dùng trong phòng. Chọn tên khác.', errBadToken: 'Ghế của bạn trong phòng này đã hết hạn. Vào lại nhé.', errCannotStart: 'Mọi người phải kết nối và sẵn sàng, bộ vai phải hợp lệ.',
-  errRateLimited: 'Chậm lại một chút.', errNetwork: 'Mất kết nối. Kiểm tra mạng.', errNotAllowed: 'Lúc này không làm được việc đó.',
+  errInvalidAppearance: 'Diện mạo này không dùng được. Đang hiện diện mạo đã lưu.', errRateLimited: 'Chậm lại một chút.', errNetwork: 'Mất kết nối. Kiểm tra mạng.', errNotAllowed: 'Lúc này không làm được việc đó.',
   entryInvited: 'Bạn được mời vào phòng {code}', entryInvitedHint: 'Chọn tên và diện mạo rồi vào phòng.',
   modNow: 'Hiện tại', modDawnDead: 'Chết lúc bình minh: {names}', modDawnNobody: 'Bình minh không ai chết.', modAccused: 'Bị xét xử: {name}', modNoTrial: 'Hôm nay không xét xử.', modBallots: 'Phiếu (công khai)', modYesInPerson: 'Chỉ khi bạn đếm giơ tay tại bàn; phiếu trong ứng dụng tự được tính.',
   a11yGrid: 'Người chơi: dùng phím mũi tên để di chuyển, Enter để chọn',
   a11yTimer: 'còn {s} giây', a11ySeat: '{name}, {state}', a11yDead: 'đã chết', a11yAlive: 'còn sống', a11ySpeaking: 'đang nói', a11yYou: 'bạn', a11yTarget: 'chọn {name}',
+  // PROVISIONAL vi names (UI draft; CATALOG.md has English only): replace with the art owner's names when supplied.
+  lookNames: { 'outfit.camper': 'Dân cắm trại', 'outfit.bowCat': 'Mèo nơ', 'outfit.robotCat': 'Mèo robot', 'outfit.fish': 'Cá', 'outfit.frog': 'Ếch cắm trại', 'outfit.duck': 'Vịt vàng', 'outfit.mushroom': 'Nấm rừng', 'variant.fish.puffer': 'Cá nóc mũm mĩm', 'variant.fish.shark': 'Cá mập ngố', 'variant.duck.ring': 'Có phao', 'variant.duck.plain': 'Không phao', 'hat.none': 'Không', 'hat.beanie': 'Mũ len', 'hat.cap': 'Mũ lưỡi trai', 'hat.bucket': 'Mũ tai bèo', 'hat.flower': 'Hoa', 'hat.hood': 'Mũ trùm', 'hat.catHood': 'Mũ mèo', 'hat.robotHood': 'Mũ robot', 'hat.fishHeadgear': 'Mũ cá', 'hat.frogHat': 'Mũ ếch đi mưa', 'hat.duckCap': 'Mũ vịt', 'hat.mushroomCap': 'Mũ nấm', 'acc.none': 'Không', 'acc.scarf': 'Khăn quàng', 'acc.backpack': 'Ba lô', 'acc.fishSling': 'Túi đeo hình cá', 'acc.utilityPocket': 'Túi đồ nghề', 'acc.raincoatPockets': 'Áo mưa có túi', 'acc.leafPack': 'Ba lô lá', 'acc.woodPack': 'Gùi củi', 'acc.finPouch': 'Túi vây', 'color.ember': 'Cam lửa', 'color.moss': 'Rêu', 'color.river': 'Xanh sông', 'color.dusk': 'Tím chiều', 'color.sand': 'Cát', 'color.berry': 'Dâu', 'color.pine': 'Thông', 'color.slate': 'Xám đá', 'color.clay': 'Đất nung', 'color.sky': 'Trời', 'color.bark': 'Vỏ cây', 'color.rose': 'Hồng' },
   stepDisplay: { 'night.main': 'Đêm', 'night.witch': 'Phù thủy', hunter: 'Thợ săn', 'day.discussion': 'Thảo luận', 'day.vote': 'Đề cử', 'day.defense': 'Biện hộ', 'day.confirm': 'Phán quyết', ended: 'Kết thúc' },
 };

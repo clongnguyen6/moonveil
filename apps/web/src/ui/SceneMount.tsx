@@ -4,7 +4,7 @@ import { type SceneHandle, fromWirePoses, mountScene, toSceneInput } from '@moon
 import { useEffect, useRef } from 'react';
 import { useSettings } from '../game/local-store.ts';
 import { useLookDraft } from '../game/look-draft.ts';
-import { appearanceFromProtocol } from '@moonveil/scene';
+import { sceneAppearance } from '@moonveil/scene';
 import { projection } from '../game/select.ts';
 import type { SessionState } from '../game/session.ts';
 import { useSession } from './session-context.ts';
@@ -47,7 +47,7 @@ export function SceneMount({ s, topbarRef, micOn }: { s: SessionState; topbarRef
   // Local-only preview of the draft look on the local avatar (MOUNT.md: setLocalAppearanceOverride; null restores the snapshot look).
   useEffect(() => {
     if (!scene.current || !view) return;
-    scene.current.setLocalAppearanceOverride(look.draft ? appearanceFromProtocol(look.draft.appearance, view.me.seat) : null);
+    scene.current.setLocalAppearanceOverride(look.draft ? sceneAppearance(look.draft.appearance, view.me.seat) : null);
   }, [look.draft, view]);
   useEffect(() => {
     scene.current?.setSpeakingLocal(micOn);

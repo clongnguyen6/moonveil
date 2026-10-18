@@ -1,5 +1,5 @@
 // Join / create. Profile is public (name + look); it never relates to a role.
-import { APPEARANCE_COLORS, APPEARANCE_HATS, type Appearance, type Mode, NAME_MAX, type Profile, normalizeName } from '@moonveil/protocol';
+import { APPEARANCE_COLORS, APPEARANCE_HATS, type Appearance, type AppearanceInput, type Mode, NAME_MAX, type Profile, normalizeName } from '@moonveil/protocol';
 import { useState } from 'react';
 import type { SessionState } from '../../game/session.ts';
 import { Button } from '../components/index.tsx';
@@ -16,7 +16,7 @@ export function loadProfile(): Profile {
   } catch {}
   return { name: '', appearance: { color: APPEARANCE_COLORS[0], hat: 'none' } };
 }
-export function saveProfile(p: Profile) {
+export function saveProfile(p: { name: string; appearance: AppearanceInput }) {
   localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
 }
 

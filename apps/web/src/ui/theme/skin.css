@@ -36,6 +36,9 @@ label.field.row { min-height: var(--tap); gap: var(--sp-3); cursor: pointer; }
 .avatar.ghost { opacity: .7; box-shadow: 0 0 0 2px var(--ghost), 0 0 16px var(--ghost); }
 .c-ember { background: #e0703a; } .c-moss { background: #7aa34a; } .c-river { background: #3f8fc4; } .c-dusk { background: #a98ad8; }
 .c-sand { background: #d8b878; } .c-berry { background: #d1628a; } .c-pine { background: #3f9a74; } .c-slate { background: #8a98a6; }
+.c-clay { background: #e08a3c; } .c-sky { background: #6f8fdf; } .c-bark { background: #b07d4f; } .c-rose { background: #cf7aa8; } /* catalog colours (CATALOG.md palette; sky = scene TOPS sky, lightened for the avatar dot) */
+.chip { background: var(--surface-2); border: 1px solid var(--line); color: var(--ink); }
+.chip[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: var(--ink-on-accent, #1a1208); font-weight: 700; }
 
 .seat-chip { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-2); color: var(--ink); transition: background var(--dur-2), border-color var(--dur-2), transform var(--dur-1); }
 .seat-chip[aria-pressed="true"], .seat-chip.selected { background: var(--accent-soft); border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }

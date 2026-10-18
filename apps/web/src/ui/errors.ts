@@ -14,6 +14,7 @@ export function errorText(t: T, err: { code: string; message: string } | null): 
     case 'rate-limited': return t('errRateLimited');
     case 'network': return t('errNetwork');
     case 'not-allowed': return t('errNotAllowed');
+    case 'invalid-appearance': return t('errInvalidAppearance');
     default: return err.message;
   }
 }

@@ -1,17 +1,17 @@
-// Look editor draft: the chosen colour/hat previews locally (You card, list entry, own scene avatar via the scene's
+// Look editor draft: the chosen costume previews locally (You card, list entry, own scene avatar via the scene's
 // local override) and is NEVER sent until Save. Rules (approved UX):
 //  - change: set the draft (override); nothing sent
 //  - cancel / close / Escape: clear → saved look
 //  - save: send the profile; keep the override until a server snapshot carries the same appearance, then clear;
 //    rejected or no matching snapshot within SAVE_BOUND_MS → clear + notice (no phantom committed look)
 //  - reconnect, seat/room change, leaving the lobby or match start while editing: discard
-import type { Profile } from '@moonveil/protocol';
+import type { LookProfile } from './look.ts';
 import { useSyncExternalStore } from 'react';
 
 export const SAVE_BOUND_MS = () => (globalThis as { __MOONVEIL_LOOK_BOUND_MS?: number }).__MOONVEIL_LOOK_BOUND_MS ?? 6000;
 
 export interface LookState {
-  draft: Profile | null;
+  draft: LookProfile | null;
   /** Set on Save: the override stays until a snapshot matches, or the bound passes. */
   pendingSince: number | null;
   /** Short notice to show once when a save did not apply. */
@@ -30,7 +30,7 @@ export const lookDraft = {
   subscribe(fn: () => void) { subs.add(fn); return () => { subs.delete(fn); }; },
   get: () => state,
   /** Editor change: local preview only. */
-  set(draft: Profile, ctx: string) { state = { ...state, draft, pendingSince: null, ctx }; emit(); },
+  set(draft: LookProfile, ctx: string) { state = { ...state, draft, pendingSince: null, ctx }; emit(); },
   /** Cancel / close / Escape / discard: back to the saved look. */
   clear() { if (state.draft || state.pendingSince || state.ctx) { state = { draft: null, pendingSince: null, notice: state.notice, ctx: null, ended: state.ended + 1 }; emit(); } },
   /** Save sent: keep the preview until the server confirms. */
@@ -45,6 +45,6 @@ export const lookDraft = {
 export function useLookDraft(): LookState {
   return useSyncExternalStore(lookDraft.subscribe, lookDraft.get);
 }
-export const sameLook = (a: { color: string; hat: string }, b: { color: string; hat: string }) => a.color === b.color && a.hat === b.hat;
+export { sameLook } from './look.ts';
 // Test hook (dev/e2e): read the editor state without touching React.
 (globalThis as { __moonveilLook?: typeof lookDraft }).__moonveilLook = lookDraft;
