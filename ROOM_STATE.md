@@ -127,7 +127,8 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 ## LIVE 2026-10-18 07:13Z: 671fd4f (deploy-trial = 671fd4ff8ffb…)
 - 2026-10-18 · deploy-trial · ff f12761a → 671fd4f (07:12:03Z) · push-triggered Railway build; /api/status revision 671fd4f (RAILWAY_GIT_COMMIT_SHA), volume, voice configured; test lobby 2HUQ5A resumed (1012, ~16 s, same seats); both origins ok, foreign refused; fresh www room ok; look broadcast ok (scene update proven by unit tests + captures). Evidence foundation .cache/postdeploy/deploy3/. Full acceptance on 671fd4f 05:37–06:25Z all rc=0, strict UI 16/16 711/711.
 - Auto-deploy confirmed OFF by Human (2026-10-18, after 671fd4f deploy). Optional restoredRooms/skippedRooms not supplied.
-- Next candidate 3b1dbde (live look preview) under full acceptance; NOT approved for deploy.
+- Candidate 3b1dbde (live scene-avatar look preview): full acceptance DONE 08:23:19Z all rc=0 (strict UI 16/16, 711/711). Offered for deploy 08:47Z; NOT approved. FF from 671fd4f verified; state version 2.
+- Lead practice: for every long run, start a local background watcher (exits when summary DONE / status changes) so completion wakes Lead; don't rely on Peer notifications or the 30-min cron (missed 3b1dbde completion by 24 min).
 
 ## (previous) LIVE 2026-10-18 04:32Z: f12761a (deploy-trial = f12761aa730b…)
 - Deployment CLOSED: Human disabled auto-deploy after DEPLOY OK. No further dashboard changes needed; post-release usage snapshot not yet supplied (last known $4.98 / 29 days, pre-release).
