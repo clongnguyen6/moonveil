@@ -69,7 +69,7 @@ async function shoot(browser, tag, ctxOpts, list, lang) {
 const cr = await chromium.launch();
 await shoot(cr, 'phone', sizes.phone, SCENARIOS, 'vi');
 await shoot(cr, 'laptop', sizes.laptop, SCENARIOS, 'en');
-await shoot(cr, 'landscape', sizes.landscape, ['night-wolf', 'vote', 'moderator'], 'vi');
+await shoot(cr, 'landscape', sizes.landscape, process.env.CAPTURE_LANDSCAPE?.split(',') ?? ['night-wolf', 'vote', 'moderator'], 'vi');
 await cr.close();
 if (withWebkit) {
   const wk = await webkit.launch();

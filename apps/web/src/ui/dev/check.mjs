@@ -32,6 +32,14 @@ const sV = await shape('night-villager'), sS = await shape('night-seer'), sG = a
 ok(`night panels share one structure (${sV})`, sV === sS && sS === sG && sG === sW);
 const nightBtns = async (sc) => { await open(sc); return page.locator('.topbar .tools .btn').count(); };
 ok('top bar identical button count for villager and wolf at night', (await nightBtns('night-villager')) === (await nightBtns('night-wolf')));
+// No-action night panel: labelled neutral buttons (never blank), identical text for every no-action role, same row box as an action panel.
+const idleRow = async () => page.locator('.dock > .card .btn-row').evaluate((el) => ({ texts: [...el.querySelectorAll('.btn')].map((b) => b.textContent.trim()), disabled: [...el.querySelectorAll('.btn')].every((b) => b.disabled), box: (({ width, height }) => `${Math.round(width)}x${Math.round(height)}`)(el.getBoundingClientRect()) }));
+await open('night-villager'); const idleV = await idleRow();
+await stub((r) => r.setViewer(r.game.seatIds[r.game.match.seats.find((x) => x.role === 'hunter').seat])); await page.waitForTimeout(100);
+const idleH = await idleRow();
+await open('night-wolf'); const actW = await idleRow();
+ok(`no-action night panel: labelled, disabled, identical for villager and hunter (${idleV.texts.join(' | ')})`, idleV.texts.length === 2 && idleV.texts.every((x) => x.length > 0) && idleV.disabled && JSON.stringify(idleV) === JSON.stringify(idleH), JSON.stringify({ idleV, idleH }));
+ok('no-action night panel: button row has the same box as the wolf panel', idleV.box === actW.box, JSON.stringify({ idleV: idleV.box, wolf: actW.box }));
 await open('night-villager');
 ok('villager top bar shows no channel label at night', (await page.locator('.topbar .voice-label').count()) === 0);
 ok('villager night DOM carries no role word', !/Wolf|Seer|Guard|Witch|Hunter/.test(await page.locator('.dock').innerText()));

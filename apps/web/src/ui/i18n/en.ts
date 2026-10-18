@@ -66,7 +66,7 @@ export const en = {
   nightWolfTask: 'Choose tonight\'s victim with your pack', nightPackPicks: 'Pack picks', nightPackNone: 'No pick yet', nightPackPass: 'passes',
   nightSeerTask: 'Who do you want to see?', nightSeerResult: '{name} is', resultWolf: 'a Wolf', resultNotWolf: 'not a Wolf', nightSeerDone: 'Seen. One look per night.',
   nightGuardTask: 'Who do you protect tonight?', nightGuardLast: 'Last night you protected {name}.',
-  nightWaitHint: 'Nothing to do tonight. The night lasts the same for everyone.', votesShort: 'votes', votedCount: '{n} of {total} voted',
+  nightIdleLeft: 'No action tonight', nightIdleRight: 'Waiting for dawn', nightWaitHint: 'Nothing to do tonight. The night lasts the same for everyone.', votesShort: 'votes', votedCount: '{n} of {total} voted',
   nightChoose: 'Choose', nightNoTarget: 'Nobody', nightSelected: 'Selected: {name}',
 
   witchTask: 'The witch\'s hour', witchVictim: 'The wolves attacked {name}.', witchNoVictim: 'Nobody was attacked tonight.', witchVictimHidden: 'You no longer learn who was attacked.',
