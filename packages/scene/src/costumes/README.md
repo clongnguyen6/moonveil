@@ -86,3 +86,5 @@ Catalog naming follow-up for scene owner: the accepted IDs `bowCat` and `robotCa
 ## Robot cat handoff
 
 Catalog/registry ID `robotCat`; `robotHood | none`, `utilityPocket | none`, river/slate tops, back none. River canvas hood, low rectangular mechanical tabs, silent brass bell on a short offset side tab, and an asymmetric slate utility pocket. Crown -84 with hood, -75 otherwise. Hat/bell and pocket toggle independently. Human face/hair retained; outline-inclusive geometry and ghost checks cover every selection. No white belly, red collar, whiskers, logo, audio or secondary animation.
+
+Duck plain coverage: ring/plain already share cap/leaf art and the full choice matrix. A dedicated regression now verifies that plain has no front/rear ring or nub, while cap paths, mapped ghost fills/strokes and label anchors remain identical to ring for both colors and hat on/off. No duck art change was required. Both variants plus ghost remain first in the queued Human preview.

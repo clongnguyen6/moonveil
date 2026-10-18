@@ -5,6 +5,7 @@ import {
   type Costume, type CostumeChoice,
 } from '../rig.ts';
 import { duck } from './duck.ts';
+import { assertSelection, GeometryProbe } from './costume-test-utils.ts';
 
 function choice(variant = 'ring', hat = 'duckCap', color = 0xe0b23c): CostumeChoice {
   return { variant, hat, color, front: 'none', back: 'none' };
@@ -104,4 +105,27 @@ test('duck ring front preserves both hand disks, the open center, legs and ghost
   assert.equal(b.covers(0, -6), false, 'keep ghost tail visible');
   for (const x of [-5, 5]) assert.equal(b.covers(x, -9), false, 'keep both legs visible');
   assert.equal(b.covers(0, -14.5), true, 'a real front rim must remain');
+});
+
+test('duck plain removes only the ring; cap geometry, ghost colors and label clearance match ring', () => {
+  for (const color of [0xe0b23c, 0xe08a3c]) for (const hat of ['duckCap', 'none']) {
+    const plain = choice('plain', hat, color), ring = choice('ring', hat, color);
+    assertSelection(duck, plain);
+    assert.equal(labelAnchorFor(duck, plain), labelAnchorFor(duck, ring));
+    for (const ghost of [false, true]) {
+      for (const layer of ['hoodBack', 'hatFront'] as const) {
+        const a = new GeometryProbe(), b = new GeometryProbe();
+        duck.pieces[layer]!(makeContext(a, ghost, 1, plain));
+        duck.pieces[layer]!(makeContext(b, ghost, 1, ring));
+        assert.deepEqual(a.rec, b.rec);
+        assert.deepEqual(a.shapes, b.shapes);
+        assert.deepEqual(a.strokeColors, b.strokeColors);
+      }
+      for (const layer of ['back', 'front'] as const) {
+        const b = new GeometryProbe();
+        duck.pieces[layer]!(makeContext(b, ghost, 1, plain));
+        assert.equal(b.rec.ops.length, 0, 'plain must not retain a ring half or duck nub');
+      }
+    }
+  }
 });
