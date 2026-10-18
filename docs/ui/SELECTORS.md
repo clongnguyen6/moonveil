@@ -21,7 +21,7 @@ visual changes. Text is localized (vi/en) and must not be asserted on. Everythin
 ## Lobby
 `[data-testid=room-code]`, `[data-testid=copy-link]`, `[data-testid=copy-manual]` (insecure-origin fallback), `[data-testid=seats]` with
 `[data-testid=seat][data-seat=<id>][data-ready][data-connected]`, `[data-testid=ready]` (`aria-pressed`), `[data-testid=start]`,
-`[data-testid=edit-profile]`, `[data-testid=save-profile]`, `[data-testid=leave]`, `[data-testid=mic][data-status=idle|checking|ok|denied|unsupported|insecure|inPerson]`,
+`[data-testid=edit-profile]` (toggles to Cancel while editing), `[data-testid=edit-look]`, `[data-testid=cancel-profile]`, `[data-testid=save-profile]`, `[data-testid=you-look][data-color][data-hat]` (+ `you-preview` while a draft differs), `[data-testid=leave]`, `[data-testid=mic][data-status=idle|checking|ok|denied|unsupported|insecure|inPerson]`,
 `[data-testid=mic-check]`, `[data-testid=mic-retry]`, `[data-testid=mic-text]`.
 
 ## Lobby deck (host customization, P12)

@@ -25,6 +25,9 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat, onSettings }: { s: S
   useEffect(() => { void session.inviteBase?.().then(setOrigin).catch(() => {}); }, [session]);
   const link = `${origin}/r/${view.code}`;
   const [editing, setEditing] = useState(false);
+  // Live preview while editing your look: local draft only (never sent until Save; discarded on Cancel).
+  const [draft, setDraft] = useState<Profile | null>(null);
+  const shown = (p: typeof view.players[number]) => (draft && p.seat === view.me.seat ? { name: p.name, appearance: draft.appearance } : p);
   const [copied, setCopied] = useState<'link' | 'code' | null>(null);
   const [manual, setManual] = useState(false);
   const copy = async (what: 'link' | 'code') => {
@@ -109,7 +112,7 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat, onSettings }: { s: S
           )}
           {view.players.map((p) => (
             <li key={p.seat} className="player-row" data-testid="seat" data-seat={p.seat} data-ready={p.ready} data-connected={p.connected}>
-              <Avatar p={p} />
+              <Avatar p={shown(p)} />
               <span className="nm grow">{p.name}{p.seat === view.me.seat ? ` (${t('you')})` : ''}</span>
               <span className={`dot ${p.connected ? '' : 'off'}`} aria-label={p.connected ? t('online') : t('offline')} />
               <span className={`pill ${p.ready ? 'ok' : ''}`}>{p.ready ? t('ready') : '…'}</span>
@@ -121,15 +124,19 @@ export function LobbyScreen({ s, view, mic, onHelp, onChat, onSettings }: { s: S
       {/* 4. You: ready, look, voice */}
       {view.me.kind === 'player' && me && (
         <section className="card stack" data-testid="you-card">
+          <div className="row" data-testid="you-look" data-color={(draft ?? me).appearance.color} data-hat={(draft ?? me).appearance.hat}>
+            <Avatar p={shown(me)} size="lg" />
+            <div className="col" style={{ gap: 2 }}><strong>{me.name}</strong>{draft && <span className="line" data-testid="you-preview">{t('lookPreview')}</span>}</div>
+          </div>
           <h2 className="panel-title" style={{ fontSize: 'var(--fs-3)' }}>{t('lobbyYouTitle')}</h2>
           <Button wide kind={me.ready ? 'secondary' : 'primary'} testId="ready" pressed={me.ready} onClick={() => session.send({ t: 'ready', ready: !me.ready })}>
             {me.ready ? t('notReady') : t('ready')}
           </Button>
           <div className="btn-row">
-            <Button kind="quiet" testId="edit-profile" onClick={() => setEditing(!editing)}>{editing ? t('done') : t('lobbyEditLook')}</Button>
+            <Button kind="quiet" testId="edit-profile" onClick={() => { if (editing) setDraft(null); setEditing(!editing); }}>{editing ? t('cancel') : t('lobbyEditLook')}</Button>
             <Button kind="quiet" testId="leave" onClick={() => session.leave()}>{t('leave')}</Button>
           </div>
-          {editing && <EditProfile initial={{ name: me.name, appearance: me.appearance }} onDone={() => setEditing(false)} />}
+          {editing && <EditProfile initial={{ name: me.name, appearance: me.appearance }} onChange={setDraft} onDone={() => { setDraft(null); setEditing(false); }} onCancel={() => { setDraft(null); setEditing(false); }} />}
         </section>
       )}
       {view.me.kind === 'player' && <MicCheck mic={mic} voiceMode={s.voiceMode} joined={s.voiceJoined} sessions={s.voiceSessions} serverOff={s.voiceAvailable === false} />}
@@ -215,15 +222,20 @@ function QrCard({ link }: { link: string }) {
   );
 }
 
-function EditProfile({ initial, onDone }: { initial: Profile; onDone: () => void }) {
+function EditProfile({ initial, onChange, onDone, onCancel }: { initial: Profile; onChange: (p: Profile) => void; onDone: () => void; onCancel: () => void }) {
   const t = useT();
   const session = useSession();
   const [p, setP] = useState(initial);
   const name = normalizeName(p.name);
+  const set = (next: Profile) => { setP(next); onChange(next); }; // live preview on the You card + list; nothing sent
   return (
-    <div className="stack">
-      <ProfileEditor value={p} onChange={setP} />
-      <Button wide testId="save-profile" disabled={!name} onClick={() => { saveProfile({ ...p, name }); session.send({ t: 'profile', profile: { ...p, name } }); onDone(); }}>{t('lobbySave')}</Button>
+    <div className="stack" data-testid="edit-look">
+      <ProfileEditor value={p} onChange={set} />
+      <p className="line">{t('lookPreviewLine')}</p>
+      <div className="btn-row">
+        <Button kind="quiet" testId="cancel-profile" onClick={onCancel}>{t('cancel')}</Button>
+        <Button testId="save-profile" disabled={!name} onClick={() => { saveProfile({ ...p, name }); session.send({ t: 'profile', profile: { ...p, name } }); onDone(); }}>{t('lobbySave')}</Button>
+      </div>
     </div>
   );
 }

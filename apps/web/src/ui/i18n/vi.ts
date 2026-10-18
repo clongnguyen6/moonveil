@@ -15,6 +15,7 @@ export const vi: Strings = {
   entryWhere: 'Bạn chơi ở đâu?', entryOnline: 'Trực tuyến, nói chuyện trong game', entryOnlineLine: 'Mỗi người vào thoại từ thiết bị của mình.',
   entryTogether: 'Cùng một phòng', entryTogetherLine: 'Tắt thoại để tránh vọng tiếng; sói nhắn chữ riêng ban đêm.',
   entryNewRoom: 'Tạo phòng mới', entryJoinTitle: 'Vào phòng',
+  lookPreview: 'Xem trước — chưa lưu', lookPreviewLine: 'Mọi người sẽ thấy bạn như thế này sau khi Lưu.',
   lobbyInviteTitle: 'Mời người chơi', lobbyRoomTitle: 'Cài đặt phòng', lobbyRoomHostLine: 'Chỉ chủ phòng đổi được, trước khi ván bắt đầu.',
   lobbyRoomInfo: 'Phòng', lobbyYouTitle: 'Bạn', lobbyStartTitle: 'Bắt đầu', lobbyStartLine: 'Bắt đầu khi mọi người sẵn sàng và bộ vai hợp lệ.',
   voiceModeRemoteLine: 'Người chơi vào thoại từ thiết bị của mình.', voiceModeInPersonLine: 'Không có thoại trong game; sói nhắn chữ riêng ban đêm.',

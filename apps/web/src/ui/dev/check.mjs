@@ -361,6 +361,27 @@ await stub((r) => { r.voiceNoSessions = false; });
 await page.evaluate(() => { delete globalThis.__MOONVEIL_VOICE_TIMEOUT_MS; });
 await open('day');
 
+// 11i. Live look preview while editing (local only), revert on Cancel, applied on Save.
+await open('lobby', '&lang=en');
+const myColor = () => page.locator('[data-testid=you-look]').getAttribute('data-color');
+const listAvatarClass = () => page.evaluate(() => { const s = globalThis.__stub; return document.querySelector(`[data-testid=seat][data-seat="${s.viewer}"] .avatar`)?.className; });
+const serverColor = () => stub((r) => r.players.find((p) => p.id === r.viewer).appearance.color);
+const before = await myColor();
+await page.getByTestId('edit-profile').click();
+await page.getByTestId('color-berry').click();
+await page.getByTestId('hat').selectOption('hood');
+ok('preview: You card shows the chosen colour and hat before Save', (await myColor()) === 'berry' && (await page.locator('[data-testid=you-look][data-hat=hood]').count()) === 1 && (await page.locator('[data-testid=you-preview]').count()) === 1);
+ok('preview: the player-list entry previews too', /c-berry/.test(await listAvatarClass()));
+ok('preview: nothing sent yet (server still has the old colour)', (await serverColor()) === before);
+await page.getByTestId('cancel-profile').click();
+ok('preview: Cancel reverts the You card and the list', (await myColor()) === before && !/c-berry/.test(await listAvatarClass()) && (await page.locator('[data-testid=edit-look]').count()) === 0);
+await page.getByTestId('edit-profile').click();
+await page.getByTestId('color-berry').click();
+await page.getByTestId('save-profile').click();
+await page.waitForTimeout(100);
+ok('preview: Save sends the profile; the server and the card agree', (await serverColor()) === 'berry' && (await myColor()) === 'berry' && (await page.locator('[data-testid=you-preview]').count()) === 0);
+await open('day');
+
 // 12. Full automatic match with bots in live mode: run until ended (speed via stub).
 await open('lobby', '&live=1');
 await stub((r) => { r.players.forEach((p) => (p.ready = true)); r.speed = 40; r.autoBots = true; r.start(); });

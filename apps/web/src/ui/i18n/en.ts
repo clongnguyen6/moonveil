@@ -14,6 +14,7 @@ export const en = {
   entryWhere: 'Where are you playing?', entryOnline: 'Online, voices in the game', entryOnlineLine: 'Each player joins voice from their own device.',
   entryTogether: 'Together in one room', entryTogetherLine: 'Voice stays off to avoid echo; wolves use private text at night.',
   entryNewRoom: 'Start a new room', entryJoinTitle: 'Join a room',
+  lookPreview: 'Preview — not saved yet', lookPreviewLine: 'This is how others will see you after Save.',
   lobbyInviteTitle: 'Invite players', lobbyRoomTitle: 'Room settings', lobbyRoomHostLine: 'Only you, the host, can change these before the match starts.',
   lobbyRoomInfo: 'Room', lobbyYouTitle: 'You', lobbyStartTitle: 'Start', lobbyStartLine: 'Starts when everyone is ready and the deck is valid.',
   voiceModeRemoteLine: 'Players join voice from their devices.', voiceModeInPersonLine: 'No in-game voice; wolves use private text at night.',
