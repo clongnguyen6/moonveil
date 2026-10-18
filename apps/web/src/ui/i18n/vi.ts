@@ -67,7 +67,7 @@ export const vi: Strings = {
   nightWolfTask: 'Cùng bầy chọn nạn nhân đêm nay', nightPackPicks: 'Bầy chọn', nightPackNone: 'Chưa chọn', nightPackPass: 'bỏ qua',
   nightSeerTask: 'Bạn muốn soi ai?', nightSeerResult: '{name} là', resultWolf: 'Sói', resultNotWolf: 'không phải Sói', nightSeerDone: 'Đã soi. Mỗi đêm một lần.',
   nightGuardTask: 'Đêm nay bảo vệ ai?', nightGuardLast: 'Đêm qua bạn bảo vệ {name}.',
-  nightWaitHint: 'Đêm nay bạn không có việc gì. Đêm dài như nhau với mọi người.', votesShort: 'phiếu', votedCount: '{n}/{total} đã bỏ phiếu',
+  nightIdleLeft: 'Không có việc', nightIdleRight: 'Chờ trời sáng', nightWaitHint: 'Đêm nay bạn không có việc gì. Đêm dài như nhau với mọi người.', votesShort: 'phiếu', votedCount: '{n}/{total} đã bỏ phiếu',
   nightChoose: 'Chọn', nightNoTarget: 'Không ai', nightSelected: 'Đã chọn: {name}',
 
   witchTask: 'Giờ của phù thủy', witchVictim: 'Sói đã cắn {name}.', witchNoVictim: 'Đêm nay không ai bị cắn.', witchVictimHidden: 'Bạn không còn biết ai bị cắn.',

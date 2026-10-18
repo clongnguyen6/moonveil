@@ -161,4 +161,10 @@ input[type="checkbox"].switch:checked::after { transform: translateX(20px); back
 @media (max-height: 460px) and (min-aspect-ratio: 1/1) {
   .dock { flex-basis: 52%; }
   .topbar .sub { display: none; }
+  /* phone landscape: the bar spans the scene host (never clipped by it), 44 px icons, tools wrap under the title if needed */
+  .topbar { right: 0; flex-wrap: wrap; row-gap: 4px; }
+  .topbar .titles { flex: 1 1 110px; }
+  .topbar .tools { flex-wrap: wrap; justify-content: flex-end; row-gap: 4px; }
+  .topbar .tools .btn.icon { width: 44px; min-height: 44px; }
+  .topbar .voice-label { display: none; }
 }
