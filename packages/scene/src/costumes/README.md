@@ -1,42 +1,89 @@
-# Drawing costumes against the rig
+# Costume art against the rig
 
-Owner of this directory: art-themes. Everything else in `packages/scene` is visual's. The seam is `../rig.ts`; read it first.
+Owner: art-themes. Only this directory belongs to art; `../rig.ts`, avatar integration and package tests belong to scene. Read the rig before drawing.
 
-## What a costume is
+## Identity and declared options
+
+Production costume IDs equal wire `OutfitId`, including camelCase `bowCat` and `robotCat`. Six outfit modules cover eight looks through fish/duck variants. No aliases or additional saved look IDs.
+
+Each costume declares `options` copied from its row in `packages/protocol/src/appearance.ts` (foundation-appearance 8599dd4; content matches art-themes CATALOG.md). Keep list order: the first entry is the default. Colors are optional in the interface (omitted = all top colors); production costumes explicitly declare the wire row's restricted colors.
 
 ```ts
 import type { Costume } from '../rig.ts';
 export const bowCat: Costume = {
-  id: 'bow-cat',
-  top: 0xcf7aa8,           // body/top colour (design colour; the rig maps it for ghosts)
-  hidesHair: true,         // hoods cover hair
-  hidesHat: true,          // headgear replaces the base hat slot
-  crownY: -88,             // highest point your headgear reaches (negative); or (choice) => number when hats differ; the label moves up to clear it
+  id: 'bowCat',
+  options: {
+    variants: ['default'], colors: ['rose', 'berry'],
+    hats: ['catHood', 'none'], fronts: ['fishSling', 'none'], backs: ['none'],
+  },
+  top: 0xcf7aa8, // fallback only; selected body color wins
+  hidesHair: false,
+  crownY: (choice) => choice.hat === 'catHood' ? -93 : -75,
   pieces: {
-    back:     (ctx) => { /* behind everything: packs, rear half of the swim ring; branch on ctx.choice.back */ },
-    hoodBack: (ctx) => { /* behind the head, over the back item: hood rear, ear backs */ },
-    front:    (ctx) => { /* over torso/arms, under the head: pockets, slings, front half of the ring, scarves */ },
-    hatFront: (ctx) => { /* over the face: hats, ears, bows, bells, fins; branch on ctx.choice.hat / variant */ },
+    hoodBack: (ctx) => { /* draw only when ctx.choice.hat === 'catHood' */ },
+    front: (ctx) => { /* fish sling only when selected */ },
+    hatFront: (ctx) => { /* hood rim, ears, bow only when selected */ },
   },
 };
 ```
-Register it in `index.ts` (`COSTUMES[bowCat.id] = bowCat`).
 
-`ctx.choice` carries the player's picks for the outfit (`variant`, `color` as 0xRRGGBB, `hat`, `front`, `back`; catalog ids per the appearance contract); draw the chosen pieces and ignore the rest. The rig derives it from the scene appearance (`outfit`, `variant`, `top`, `hat`, `front`, `back`; legacy `extra` maps onto front/back). The selected `top` colours the body; `costume.top` is only a fallback. A base hat id (`none`, `beanie`, `cap`, `bucket`, `hood`, `flower`) is drawn by the base rig; any other `hat` id is yours to draw in `hatFront` (and `hoodBack`), and `crownY` may be a function of the choice.
+Register in `index.ts` under `COSTUMES[costume.id]` and declare options: the adapter dresses only registered costumes with options. Registry lookup accepts own keys only, never inherited names such as toString. `placeholder` remains a dev-only four-layer fixture with explicit singleton options; it is not a production/wire catalog entry.
 
-Dev page: `?scene=lobby&outfit=duck&variant=ring&hat=duckCap&color=sand&front=none&back=none` dresses every seat with those choices (`&scene=ghost` for ghosts, `&scene=seating` for the seated squash). `npm run check -w @moonveil/scene` runs typecheck and all tests, including `src/costumes/**/*.test.ts`.
+## Drawing ownership and order
 
-## Rules the rig enforces (unit test `test/costumes.test.ts` runs them for every registered costume)
+The base draws the body, face and hair (unless suppressed). **Only plain camper gets base hats, scarf and backpack. A costume draws every selected item itself**, even when an item ID is shared with camper (`scarf`). Mushroom's sand scarf is therefore drawn once, in its own front layer.
 
-- Draw only through `ctx.b` (the `Brush`: roundRect, circle, ellipse, poly, moveTo/lineTo/quadraticCurveTo/closePath, fill, stroke). No Pixi, no DOM, no imports from outside `costumes/` except `../rig.ts` types.
-- Coordinates: base space, feet at (0, 0), facing +x. The rig flips the whole texture for the other facing, so never draw text or anything whose meaning depends on facing.
-- Stay inside `RIG.box` (x −40..40, y −96..4). Declared `crownY` must cover the top of what you draw.
-- Keep the speaking-arcs band beside the head (`RIG.arcsBand`, x 20..32, y −74..−46) clear of headgear.
-- Pass every colour through `ctx.color(c)`: living returns `c`, ghost returns the pale ghost tint. Use `ctx.outline(c)` for the soft outline, matching the base. Avoid pure whites/blacks (ghost palette must stay pale).
-- The base body geometry (`RIG`) is read-only: head r15 at (0,−60), torso 32×34, arms 8×22, legs 16 high. Costumes layer on it; they never replace or move it.
-- Nothing per-frame: pieces run once per bake (living and ghost), so they can be as detailed as the box allows at no runtime cost. Motion (flip, breathe, walk squash, seated squash) is applied to the baked texture as a whole.
+Piece order: `back` → `hoodBack` → base legs/torso/arms → `front` → base head/hair/face → `hatFront`. All pieces receive `ctx.b`, read-only `ctx.rig`, `ctx.choice`, `ghost`, `seed`, `color()` and `outline()`.
 
-## Checking your work
+- `choice`: variant, numeric body color, hat/front/back IDs. Toggles are independent; no role inputs.
+- Draw through `Brush` only. Production drawing modules import nothing outside this directory except rig types; no Pixi/DOM dependencies.
+- Feet (0,0), facing +x. Body/head/arms/legs stay unchanged. Whole-texture flip, breathe, walk/seated squash and ghost tail/alpha/motion belong to scene; no per-frame art logic.
+- Paint fills with `ctx.color(design)` and strokes with `ctx.outline(design)`. Outline already shades and ghost-tints; never pass it through color() again. Shared `paint()` in materials.ts follows this rule.
+- Stay inside `RIG.box`, including outline width. Keep `RIG.arcsBand` clear on **every layer**, not just headgear. Avoid text/facing-dependent symbols.
+- Declare `crownY` for each headgear choice; hat off returns -75. Inspection checks painted bounds including strokes. Scene derives label clearance from the chosen crown.
 
-- `node --test test/costumes.test.ts` (no browser) validates box, arcs band, crown and ghost palette for every registered costume.
-- Harness (needs the browser lock): `?scene=lobby&costume=<id>` dresses every seat; `?scene=ghost&costume=<id>` shows the ghost variant; `?scene=seating&costume=<id>` the seated squash.
+## Content handoff
+
+All retain base hair under headgear and when headgear is off. Fixed headgear/prop colors stay constant when the player recolors the top.
+
+| ID / variant | Hat; crown on | Front choice | Back choice |
+|---|---|---|---|
+| bowCat / default | catHood; -93 | fishSling / none | none |
+| robotCat / default | robotHood; -84 | utilityPocket / none | none |
+| fish / puffer | fishHeadgear; -88 | none | none / finPouch |
+| fish / shark | fishHeadgear; -96 | none | none / finPouch |
+| frog / default | frogHat; -94 | raincoatPockets / none | leafPack / none |
+| duck / ring | duckCap; -92 | none | none |
+| duck / plain | duckCap; -92 | none | none |
+| mushroom / default | mushroomCap; -89 | scarf / none | woodPack / none |
+
+Every hat list also permits none. Bow/bell/fins/leaf are part of headgear, not extra slots. Fish variant alone chooses puffer/shark; the same optional fin pouch works for either. No round white robot belly, red collar, logos, character replicas, wolf shapes or role cues. Materials are matte canvas/felt/rubber/wood, broad fills and soft outlines.
+
+Duck ring halves are fixed art of `variant: ring`, unaffected by hat/front/back choices. Rear rim sits behind the torso; broad raised front tube and outer lobes clear both hand disks and leave legs/ghost tail visible. The duck head is attached outside the arm. A brighter cream tube separates the ring from the sand/clay shirt; width uses the inspection box rather than the earlier 52-unit concept target. Plain removes both halves/nub but keeps identical cap paths, ghost colors and crown. The ring remains a real option; escalate unresolved scene collisions rather than remove it.
+
+## Checks and preview
+
+```sh
+node scripts/env.mjs npm run check -w @moonveil/scene
+```
+
+Package tests include `src/costumes/**/*.test.ts`. Rig inspection enumerates every declared option combination, living and ghost: box, crown, arcs on all layers, pale fills and outlines. Art tests additionally check independent toggles, human eyes/hands, ring opening/legs/tail, and ring/plain cap equivalence. Node checks do not establish screenshot readability or seated visual acceptance.
+
+Dev page choices: `?outfit=duck&variant=ring&hat=duckCap&color=sand&front=none&back=none&scene=lobby`; use plain, hat=none, scene=ghost or scene=seating as needed.
+
+Browser lock remains with the coordinator until the chat owner's re-check. No browser rendering without the explicit lock. First Human preview: duck ring/plain, living/ghost, both facings, idle/walk/seated, day/night, phone/laptop, hat on/off; name label, speaking ring and arcs clear. Full set follows. Scene's scripts/check-costume.mjs supports choice parameters via --q, but additional phone/night/plain/hat-off coverage is still required.
+
+Original Moonveil procedural art; no purchased/downloaded assets or new runtime dependencies. Construction and verification stay repo-local. Retain the placeholder for seam regressions; its existing scene-owned test depends on it.
+
+
+## Phone readability revision — duck
+
+Current captures at 39e5af9 are an in-progress checkpoint: the original thin ring failed phone readability. New ring geometry spans about 74 units including the bill, with a 7-unit central front tube at y≈-34..-27, raised above the seat's main occlusion area. Outer lobes remain outside the torso/stump silhouette; head/bill moved to the near outer edge. Cap bill is broader and deeper, with a distinct lower lip. Node checks protect hands, legs, face, arcs, bounds, pale ghosts and plain/ring equivalence. These are structural improvements, not a claim of phone acceptance: short locked seated/pose re-capture still required.
+
+Frog readability revision: eye bumps grow from radius6.5 to7.5; cream sockets from4 to5.3 and pupils from1.8 to2.4. Crown remains -94; eye caps stay inside the arcs clearance. Existing full option/ghost/face tests cover the change. Phone visual acceptance remains pending.
+
+Puffer readability revision: broad ember felt fins replace thin sand flaps. Fins project above the speaking-arcs band; all declared combinations remain clear. The art test helper now checks each painted/stroked shape against the actual band (matching rig inspection), rather than forbidding all headgear wider than20 units even above that band. Crown remains -88; phone read still needs screenshots.
+
+Shark readability revision: wider/taller single swept dorsal fin with a broad cream seam; chosen crown is now -96 (still inside the box including strokes). Human face and hood aperture are unchanged. Node checks pass all fish choices; screenshot validation remains pending.
+
+Robot readability revision: mechanical tabs widen from5 to7 units with larger light inserts; brass bell radius grows from3.2 to4.2. Crown/arcs/face constraints unchanged. Bow ears/bow and mushroom cap/spots already use broad features; no speculative redraw for those looks before their phone captures.
