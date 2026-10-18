@@ -124,6 +124,12 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Live 35151f2; candidate f12761a (accepted); dev a11737d (+ low scene profile for next release).
 - Deploy request for f12761a: docs/architecture/0010 §7f (foundation-15 8a73d3d). Decisions asked: approve deploy + timing; 2 h idle timeout yes/no.
 
+## LIVE 2026-10-18 04:32Z: f12761a (deploy-trial = f12761aa730b…)
+- Mobile two-deploy path: deploy 1 = 35151f2 + origin vars (www public, railway.app allowed), verified 04:29Z; deploy 2 = push-triggered build of f12761a (auto-deploy ON, to be turned OFF by Human).
+- Proof: /api/status JSON revision f12761a (Railway SHA, MOONVEIL_REVISION unset), persist volume /data/rooms, voice configured. Lobby TKZ4FS survived version change (1012, ~16 s, same seats). Railway Restart test passed earlier (CYR2J8, 1012, ~5 s). Fresh room on www OK.
+- No MOONVEIL_ROOM_IDLE_MS (30 min idle stays). No main merge, no spend. Credit at start: $4.98 / 29 days.
+- Unverified: real devices/players; Cloud audio on new defense rule.
+
 ## Lead message queue (deliver at owner's next turn end)
 - (cleared)
 - (cleared)
