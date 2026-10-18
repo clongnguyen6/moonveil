@@ -208,7 +208,8 @@ try {
       ['new origin on old host', THEN, wsUrl, 'open'],
       ['foreign on new host', 'https://evil.example', newWs, '403'],
       ['foreign on old host', 'https://evil.example', wsUrl, '403'],
-      ...(THEN.startsWith('https:') ? [['http form of new origin', THEN.replace(/^https:/, 'http:'), newWs, '403']] : []),
+      // Same-origin compares host only, so the http form passes on its own host; cross-host it must be refused.
+      ...(THEN.startsWith('https:') ? [['http form of new origin on old host', THEN.replace(/^https:/, 'http:'), wsUrl, '403']] : []),
     ]) {
       const r = await tryWs(origin, at);
       log({ check: `ws after switch: ${label}`, result: r, ok: want === 'open' ? r === 'open' : /403/.test(r) });
