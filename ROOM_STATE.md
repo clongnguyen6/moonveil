@@ -24,17 +24,33 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 |---|---|---|---|
 | foundation: root tooling, server, protocol, client.ts/main.tsx/vite.config/web manifest, e2e harness | 46b279f0 | root config, apps/*, packages/protocol, e2e/, docs/architecture | 4100–4199 |
 | rules: proposal + pure engine | fd99d2a9 | packages/rules, docs/rules | 4500–4599 (E2E_PORT for root check) |
-| visual → scene (branch visual-2) | d9e8c62b | packages/scene, docs/visual (preview/ being retired) | 4200–4299 |
-| game UI | 990963ac | apps/web/src/game/**, apps/web/src/ui/**, App.tsx, styles.css, provisional/** (handed over), docs/ui; user-facing LAN helpers | 4400–4499 |
+| visual → scene (from ~10:10Z; d9e8c62b hit Fable model limit, handed over) | c4495920 | packages/scene, docs/visual (preview/ being retired) | 4200–4299 |
+| game UI (from 2026-10-18 ~10:05Z; 990963ac hit model limit, handed over) | b5491460 | apps/web/src/game/**, apps/web/src/ui/**, App.tsx, styles.css, provisional/** (handed over), docs/ui; user-facing LAN helpers | 4400–4499 |
 | voice (spike → product) | 87bbae25 | spikes/voice, docs/voice, packages/voice (new) | 4300–4399 |
 | review (read-only, done): rules 9af74b8 | 09a95d56 (codex) | none | — |
-| art-themes: six cosmetic outfit concepts (concept sheet only; no code) | 69dc0d82 (codex, owner-chosen Codex) | docs/visual/themes/** on branch art-themes | none (ask Lead before scene rendering) |
+| art-themes: costume creative/asset owner (Human chose Codex) | 69dc0d82 (codex) | docs/visual/themes/**; costume art code packages/scene/src/costumes/** (proposed) | ask Lead before scene rendering |
 
 ## Art themes (Human-approved 2026-10-18, concepts only)
 - Six original themes: bow cat, robot cat, chubby fish (puffer/shark), camping frog, yellow duck, forest mushroom. Inspired-by, not replicas; appearance-only, role-independent; camping world kept.
 - Working assumption (reversible): costumes/headgear on current base, not full-species. Open: puffer vs shark; costume vs species.
 - First deliverable: concept sheet + phone-scale strip + layer/animation/route notes. Human reviews before final assets/integration. Planned UX: pick outfit, then customise, with local preview + Save/Cancel; no random button/unlocks/economy unless Human confirms.
 - Integration later touches visual (scene), game UI (picker), foundation (protocol appearance schema).
+- Delivered art-themes 17b1c75 (docs/visual/themes only; Lead reviewed images). Sent to Human for selection. Peer recommends: pufferfish hat (shark not drawn), keep procedural vector for production, generated rasters review-only. Seam: `extra` (one of none/scarf/backpack) and wire {color,hat} can't express these; appearance contract needed before production.
+- Outside-Moonveil write (image tool auto-save, no output-dir control): /Users/long/.codex-runtime/peer/generated_images/01a14e4b-…/ 3 PNGs, 2,634,923 bytes. Not deleted; reported.
+
+## Costumes production (Human-approved 2026-10-18; no deploy)
+- Scope: all six themes + goofy shark + duck with/without ring (8 looks); more coherent variants later, no numeric target. Costumes on camper (reversible baseline). Picker: outfit → customise → local preview → Save/Cancel; no economy/unlocks; never role.
+- Ownership: Codex = creative/catalog content + costume art code; visual = scene seam/pipeline; foundation = wire/server contract + restore compat; game UI = picker (after chat). Don't shift creative work to Claude seats.
+- Phase 1 (now): foundation contract proposal (branch foundation-appearance, stop for review); visual seam + placeholder (visual-costumes); Codex CATALOG.md + shark design.
+- Phase 1 results: contract proposal foundation-appearance c913147 (reviewed); catalog source art-themes 3776e4d CATALOG.md (fish choice = variant, fishHeadgear, finPouch, headgear-off `none`); seam visual-costumes af2afd2 (rig.ts; costumes/** handed to Codex). Decisions: legacy upgrade reproduces seeded scarf/backpack via @moonveil/scene/seed; variant change = appearance changed; whole-profile invalid-appearance; body not chosen this round. Foundation building; Codex building duck/ring on art-costumes from af2afd2.
+- Seam 51431c8 (choices → pieces/crown/label/body colour; dev page ?outfit=…; costume tests in package check). Duck 7166772 on art-costumes (Codex merging seam next).
+- Placeholder check done (visual-costumes 5ec35e6, docs/visual/costumes/). Visual integration window open (scene check + root check, no browser).
+- Foundation contract built: foundation-appearance 3bc0e8a (includes visual-costumes 14c9dea). Catalog from CATALOG.md; invalid-appearance; legacy upgrade with seededExtras; STATE_VERSION 2 unchanged; restore tests from real 3b1dbde snapshots. One-off handover to foundation: 4 type-only UI call sites (local-room.ts:149, look-draft sameLook, components/index.tsx:15, Lobby.tsx:144). Order into dev: visual-costumes → foundation-appearance.
+- Browser lock: game UI b5491460 (chat re-check) → Codex (duck preview).
+- Model limits: Fable seats (old game UI, old visual) hit usage limits; replaced by Opus 5.5 seats. Voice 87bbae25 is also Fable (idle); re-seat if needed.
+- Chat candidate 724ae36 (local, unpushed) NOT go: wrong avatar on a message (Bình shown with Chi's "CH"), phone box hides whole campfire circle (blur), root cause not stated. Laptop + isolation good.
+- Phase 2: duck-with-ring + ghost in real scene (layering, seated, flip, label/ring clearance, phone/laptop day/night) = next Human preview.
+- Phase 3: batch remaining looks + ghosts; picker; candidate checks; ff into dev. Deploy needs approval.
 
 ## Chat overlay (Human-approved 2026-10-18, implement + review, no deploy)
 - Owner game UI 990963ac, branch game-ui-chat from dev. Persistent corner overlay (working default bottom-left), auto-visible recent messages, clear sender name + content + channel label, translucent bg with readable text, bounded history + full access, no overlap with joystick/vote/night actions/mic, safe areas/keyboard, typing never moves avatar.
