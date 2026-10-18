@@ -56,10 +56,10 @@ export const frog: Costume = {
         .quadraticCurveTo(0, crown + 3, -17, crown + 8).closePath();
       paint(ctx, M.moss);
       for (const x of [-10, 10]) {
-        b.circle(x, crown - 11, 6.5);
+        b.circle(x, crown - 10, 7.5);
         paint(ctx, M.moss);
-        b.circle(x + 0.5, crown - 11, 4).fill(ctx.color(M.oatmeal));
-        b.circle(x + 1.3, crown - 10.8, 1.8).fill(ctx.color(M.ink));
+        b.circle(x + 0.5, crown - 10, 5.3).fill(ctx.color(M.oatmeal));
+        b.circle(x + 1.3, crown - 9.8, 2.4).fill(ctx.color(M.ink));
       }
       b.moveTo(-18, crown + 8).quadraticCurveTo(0, crown + 3, 18, crown + 8)
         .quadraticCurveTo(0, crown + 12, -18, crown + 8).closePath();

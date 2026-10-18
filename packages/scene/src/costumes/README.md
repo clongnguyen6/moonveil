@@ -79,3 +79,5 @@ Original Moonveil procedural art; no purchased/downloaded assets or new runtime 
 ## Phone readability revision — duck
 
 Current captures at 39e5af9 are an in-progress checkpoint: the original thin ring failed phone readability. New ring geometry spans about 74 units including the bill, with a 7-unit central front tube at y≈-34..-27, raised above the seat's main occlusion area. Outer lobes remain outside the torso/stump silhouette; head/bill moved to the near outer edge. Cap bill is broader and deeper, with a distinct lower lip. Node checks protect hands, legs, face, arcs, bounds, pale ghosts and plain/ring equivalence. These are structural improvements, not a claim of phone acceptance: short locked seated/pose re-capture still required.
+
+Frog readability revision: eye bumps grow from radius6.5 to7.5; cream sockets from4 to5.3 and pupils from1.8 to2.4. Crown remains -94; eye caps stay inside the arcs clearance. Existing full option/ghost/face tests cover the change. Phone visual acceptance remains pending.
