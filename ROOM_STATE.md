@@ -24,8 +24,8 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 |---|---|---|---|
 | foundation: root tooling, server, protocol, client.ts/main.tsx/vite.config/web manifest, e2e harness | 46b279f0 | root config, apps/*, packages/protocol, e2e/, docs/architecture | 4100–4199 |
 | rules: proposal + pure engine | fd99d2a9 | packages/rules, docs/rules | 4500–4599 (E2E_PORT for root check) |
-| visual → scene (branch visual-2) | d9e8c62b | packages/scene, docs/visual (preview/ being retired) | 4200–4299 |
-| game UI | 990963ac | apps/web/src/game/**, apps/web/src/ui/**, App.tsx, styles.css, provisional/** (handed over), docs/ui; user-facing LAN helpers | 4400–4499 |
+| visual → scene (from ~10:10Z; d9e8c62b hit Fable model limit, handed over) | c4495920 | packages/scene, docs/visual (preview/ being retired) | 4200–4299 |
+| game UI (from 2026-10-18 ~10:05Z; 990963ac hit model limit, handed over) | b5491460 | apps/web/src/game/**, apps/web/src/ui/**, App.tsx, styles.css, provisional/** (handed over), docs/ui; user-facing LAN helpers | 4400–4499 |
 | voice (spike → product) | 87bbae25 | spikes/voice, docs/voice, packages/voice (new) | 4300–4399 |
 | review (read-only, done): rules 9af74b8 | 09a95d56 (codex) | none | — |
 | art-themes: costume creative/asset owner (Human chose Codex) | 69dc0d82 (codex) | docs/visual/themes/**; costume art code packages/scene/src/costumes/** (proposed) | ask Lead before scene rendering |
@@ -42,6 +42,13 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - Scope: all six themes + goofy shark + duck with/without ring (8 looks); more coherent variants later, no numeric target. Costumes on camper (reversible baseline). Picker: outfit → customise → local preview → Save/Cancel; no economy/unlocks; never role.
 - Ownership: Codex = creative/catalog content + costume art code; visual = scene seam/pipeline; foundation = wire/server contract + restore compat; game UI = picker (after chat). Don't shift creative work to Claude seats.
 - Phase 1 (now): foundation contract proposal (branch foundation-appearance, stop for review); visual seam + placeholder (visual-costumes); Codex CATALOG.md + shark design.
+- Phase 1 results: contract proposal foundation-appearance c913147 (reviewed); catalog source art-themes 3776e4d CATALOG.md (fish choice = variant, fishHeadgear, finPouch, headgear-off `none`); seam visual-costumes af2afd2 (rig.ts; costumes/** handed to Codex). Decisions: legacy upgrade reproduces seeded scarf/backpack via @moonveil/scene/seed; variant change = appearance changed; whole-profile invalid-appearance; body not chosen this round. Foundation building; Codex building duck/ring on art-costumes from af2afd2.
+- Seam 51431c8 (choices → pieces/crown/label/body colour; dev page ?outfit=…; costume tests in package check). Duck 7166772 on art-costumes (Codex merging seam next).
+- Placeholder check done (visual-costumes 5ec35e6, docs/visual/costumes/). Visual integration window open (scene check + root check, no browser).
+- Foundation contract built: foundation-appearance 3bc0e8a (includes visual-costumes 14c9dea). Catalog from CATALOG.md; invalid-appearance; legacy upgrade with seededExtras; STATE_VERSION 2 unchanged; restore tests from real 3b1dbde snapshots. One-off handover to foundation: 4 type-only UI call sites (local-room.ts:149, look-draft sameLook, components/index.tsx:15, Lobby.tsx:144). Order into dev: visual-costumes → foundation-appearance.
+- Browser lock: game UI b5491460 (chat re-check) → Codex (duck preview).
+- Model limits: Fable seats (old game UI, old visual) hit usage limits; replaced by Opus 5.5 seats. Voice 87bbae25 is also Fable (idle); re-seat if needed.
+- Chat candidate 724ae36 (local, unpushed) NOT go: wrong avatar on a message (Bình shown with Chi's "CH"), phone box hides whole campfire circle (blur), root cause not stated. Laptop + isolation good.
 - Phase 2: duck-with-ring + ghost in real scene (layering, seated, flip, label/ring clearance, phone/laptop day/night) = next Human preview.
 - Phase 3: batch remaining looks + ghosts; picker; candidate checks; ff into dev. Deploy needs approval.
 
@@ -219,6 +226,7 @@ Grant c merges into `dev`, newest last. Format: date · branch · ff from → he
 - 2026-10-16 · game-ui · → e181de0 · first screens (owner report pending in this log).
 - 2026-10-16 · rules-7 · → 69b0c76 · offline tests + participation-only voted status (superseded by open ballots).
 - 2026-10-16 · voice · → 30a95ea · candidate reviewed by Lead; owner on 30a95ea: plain 4/4 + 52/52, TLS 4/4 + 52/52, headless shell.
+- 2026-10-18 · visual-costumes · ff 235358e → 7f387e5 · Human go. Scope packages/scene (seam rig.ts, seed, placeholder, tests), docs/visual/costumes. Owner c4495920 on 7f387e5: scene check 51/51; root check exit 0 (E2E_PORT 4250): rules 216, scene 51, voice 54, server 110, harness 3, e2e 13/13. No scene captures. Placeholder reachable only via scene dev page. Next: foundation-appearance.
 
 ## Acceptance evidence
 - foundation b3d9ece: Lead re-ran `node scripts/env.mjs npm run check` 14:31 → typecheck ok, server 10/10, e2e 7/7 (8-browser auto isolation, 7+mod isolation, lobby, reconnect, 2nd tab, Pixel 7 emu). Chromium only. No new ~/.npm logs. Superseded by the merged revision (see Merge log).
