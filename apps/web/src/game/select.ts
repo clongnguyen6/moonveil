@@ -12,6 +12,13 @@ export function nameOf(view: SeatView, id: SeatId): string {
   return view.players.find((p) => p.seat === id)?.name ?? view.moderator?.name ?? id;
 }
 
+/** Chat sender: name AND look come from the one seat `msg.from` (never mix `msg.name` with another seat's look).
+ *  `player` is null when the seat is gone from the view (left the lobby); then only the send-time name is shown. */
+export function senderOf(view: SeatView, msg: { from: SeatId; name: string }): { name: string; player: PublicSeat | null } {
+  const p = view.players.find((x) => x.seat === msg.from) ?? null;
+  return { name: p?.name ?? msg.name, player: p };
+}
+
 /** Player record for engine seat index i. */
 export function playerAt(view: SeatView, g: GameView, i: Seat): PublicSeat | undefined {
   const id = g.seatIds[i];

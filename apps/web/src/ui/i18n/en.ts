@@ -115,7 +115,7 @@ export const en = {
   confirmYesOnly: 'Yes {yes} (counted by the moderator)',
   modAlive: 'alive', modDead: 'dead', modDisconnected: 'disconnected', modInPerson: 'In-person room',
 
-  chatTitle: 'Chat', chatHistory: 'History', chatPh: 'Message…', chatNone: 'No messages yet.', chatQuiet: 'Quiet for now. Chat opens when you may talk.', chatListenOnly: 'You can read, not write, here now.', chatPublic: 'Camp', chatWolves: 'Wolves', chatGhosts: 'Ghosts',
+  chatTitle: 'Chat', chatOpen: 'Open chat', chatHistory: 'History', chatPh: 'Message…', chatNone: 'No messages yet.', chatQuiet: 'Quiet for now. Chat opens when you may talk.', chatListenOnly: 'You can read, not write, here now.', chatPublic: 'Camp', chatWolves: 'Wolves', chatGhosts: 'Ghosts',
   voiceMic: 'Mic', voiceMicOff: 'Mic unavailable', voiceUnlock: 'Enable audio',
   deckTitle: 'Roles', deckDefault: 'default', deckCustom: 'custom', deckNone: 'No default deck for {n} players yet.', deckTotal: '{n} roles · {players} players', deckEdit: 'Customize', deckReset: 'Use default', deckApply: 'Apply', voiceMute: 'Mute', voiceUnmute: 'Unmute', voiceMuted: 'Muted', voiceListen: 'Listen only', voiceOff: 'Voice off', voiceTalking: 'Talking', voiceChannel: 'Channel',
 

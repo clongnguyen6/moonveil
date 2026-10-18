@@ -35,7 +35,7 @@ async function shoot(browser, tag, ctxOpts, list, lang) {
     if (only && sc !== only) continue;
     await page.goto(`${base}?scenario=${sc}&lang=${lang}&bar=0&sound=0`);
     await page.waitForSelector('[data-testid=app]');
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(SCENE === 'on' ? 1000 : 400); // scene: reduced motion = 4 fps; let the camera settle
     await page.screenshot({ path: join(out, `${tag}-${sc}.png`) });
     if (sc === 'role') {
       await page.getByTestId('open-role').click();

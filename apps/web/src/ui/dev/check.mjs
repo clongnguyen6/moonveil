@@ -4,8 +4,7 @@ import { chromium, devices } from '@playwright/test';
 
 const port = process.env.WEB_PORT ?? '4401';
 const base = `http://127.0.0.1:${port}/src/ui/dev/index.html`;
-const SCENE = process.env.SCENE === 'on' ? 'on' : 'off';
-const ok0 = null; // heavy-run rule: scene renders only under the lock (SCENE=on)
+const SCENE = process.env.SCENE === 'on' ? 'on' : 'off'; // heavy-run rule: scene renders only under the lock (SCENE=on)
 console.log(`[scene] ${SCENE}`);
 const browser = await chromium.launch(); const b = browser;
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
@@ -15,7 +14,7 @@ const errs = [];
 page.on('pageerror', (e) => errs.push(e.message));
 page.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
 let fails = 0;
-const ok = (name, cond) => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}`); if (!cond) fails++; };
+const ok = (name, cond, extra = '') => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}${cond || !extra ? '' : '  ' + extra}`); if (!cond) fails++; };
 const open = (sc, extra = '') => page.goto(`${base}?scenario=${sc}&lang=en&bar=0&sound=0${extra}`).then(() => page.waitForSelector('[data-testid=app]'));
 const stub = (fn, ...args) => page.evaluate(([f, a]) => { const r = globalThis.__stub; return new Function('r', 'a', `return (${f})(r, ...a)`)(r, a); }, [fn.toString(), args]);
 
@@ -426,25 +425,70 @@ await page.evaluate(() => { delete globalThis.__MOONVEIL_LOOK_BOUND_MS; });
 await open('day');
 
 // 11k. Chat overlay: always visible, names + content, channel labels, isolation, same footprint for every seat.
+// Sender consistency: every rendered message's name AND avatar come from the seat that sent it (stub chat log `from`).
+const senderMismatches = () => page.evaluate(() => {
+  const r = globalThis.__stub, bad = [];
+  const items = [...document.querySelectorAll('[data-testid=chat-overlay] [data-testid=chat-item], [data-testid=chat-log] [data-testid=chat-item]')];
+  for (const el of items) {
+    const p = r.players.find((x) => x.id === el.dataset.from);
+    const name = el.querySelector('.co-from')?.firstChild?.textContent?.trim();
+    const av = el.querySelector('.avatar');
+    const okName = !!p && name === p.name;
+    const okAv = (!!av && !!p && av.classList.contains(`c-${p.appearance.color}`) && av.textContent.startsWith(p.name.trim().slice(0, 2).toUpperCase()));
+    const okLog = r.chat.some((c) => c.msg.from === el.dataset.from && el.textContent.includes(c.msg.text));
+    if (!okName || !okAv || !okLog) bad.push({ from: el.dataset.from, name, seatName: p?.name, av: av?.className, avText: av?.textContent });
+  }
+  return { n: items.length, bad };
+});
 await open('day', '&lang=en');
-ok('chat overlay: visible by day with the recent public messages, sender names and content', (await page.locator('[data-testid=chat-overlay] [data-testid=chat-item]').count()) >= 2 && /Bình/.test(await page.locator('[data-testid=chat-overlay] .co-from').last().innerText()) && /thông tin/.test(await page.locator('[data-testid=chat-overlay] .co-text').last().innerText()));
-ok('chat overlay: input live for a seat with a public speak grant', (await page.locator('[data-testid=chat-overlay-input]:not([disabled])').count()) === 1);
+const dayItems = await page.locator('[data-testid=chat-overlay] [data-testid=chat-item]').count();
+ok('chat overlay (phone): compact row with exactly the latest message, sender and content', dayItems === 1 && (await page.getByTestId('chat-overlay').getAttribute('data-compact')) === 'true' && /thông tin/.test(await page.locator('[data-testid=chat-overlay] .co-text').last().innerText()));
+let sm = await senderMismatches();
+ok(`chat overlay: name and avatar come from the sender seat (${sm.n} items)`, sm.n >= 1 && sm.bad.length === 0, JSON.stringify(sm.bad));
+ok('chat overlay (phone): the chat button opens the sheet; sending there shows my message as the latest in the overlay', await (async () => {
+  await page.getByTestId('chat-history').click(); await page.waitForTimeout(150);
+  if ((await page.locator('[data-testid=chat-sheet]').count()) !== 1) return false;
+  await page.getByTestId('chat-input').fill('sheet hello'); await page.getByTestId('chat-send').click(); await page.waitForTimeout(100);
+  sm = await senderMismatches();
+  await page.keyboard.press('Escape'); await page.waitForTimeout(100);
+  return /sheet hello/.test(await page.locator('[data-testid=chat-overlay] .co-text').last().innerText()) && (await page.locator('[data-testid=chat-overlay] .co-msg.mine').count()) === 1;
+})());
+ok(`chat sheet + overlay: every message's name and avatar match its sender seat (${sm.n} items)`, sm.n >= 4 && sm.bad.length === 0, JSON.stringify(sm.bad));
+const boxOf = async () => { const b = await page.getByTestId('chat-overlay').boundingBox(); return { w: Math.round(b.width), h: Math.round(b.height), x: Math.round(b.x), y: Math.round(b.y) }; };
+const longWolfMsg = () => stub((r) => { const w = r.chat.find((c) => c.channel === 'wolves').msg; r.chat.push({ channel: 'wolves', msg: { ...w, id: 'w2', text: 'x '.repeat(240), at: Date.now() } }); r.emit(); });
+const nightBoxes = async (label) => {
+  await open('night-wolf', '&lang=en');
+  const wolfBox = await boxOf();
+  ok(`chat overlay (${label}): wolf at night sees the wolves message with the channel label`, (await page.locator('[data-testid=chat-overlay] [data-testid=chat-item][data-channel=wolves]').count()) === 1 && /Wolves/.test(await page.locator('[data-testid=chat-overlay] .co-ch').first().innerText()));
+  sm = await senderMismatches();
+  ok(`chat overlay (${label}): wolf message name and avatar match the sending wolf seat`, sm.n === 1 && sm.bad.length === 0, JSON.stringify(sm.bad));
+  await longWolfMsg(); await page.waitForTimeout(100);   // a long pack message must not grow the wolf's box
+  const wolfBox2 = await boxOf();
+  await open('night-villager', '&lang=en');
+  const villBox = await boxOf();
+  ok(`chat overlay (${label}): villager at night sees no message, no channel, no badge`, (await page.locator('[data-testid=chat-overlay] [data-testid=chat-item]').count()) === 0 && (await page.getByTestId('chat-overlay').getAttribute('data-channels')) === '' && !/Wolves|Sói|Lấy An/.test(await page.getByTestId('chat-overlay').innerText()) && (await page.locator('[data-testid=chat-overlay-input]').count()) === 0);
+  ok(`chat overlay (${label}): identical footprint for wolf (short and long message) and villager at night`, [wolfBox2, villBox].every((b) => b.w === wolfBox.w && b.h === wolfBox.h && b.x === wolfBox.x && b.y === wolfBox.y), JSON.stringify({ wolfBox, wolfBox2, villBox }));
+};
+await nightBoxes('phone');
+// laptop size: full box, inline input
+await page.setViewportSize({ width: 1440, height: 900 });
+await open('day', '&lang=en');
+ok('chat overlay (laptop): full box with recent messages and a live input', (await page.getByTestId('chat-overlay').getAttribute('data-compact')) === 'false' && (await page.locator('[data-testid=chat-overlay] [data-testid=chat-item]').count()) === 2 && (await page.locator('[data-testid=chat-overlay-input]:not([disabled])').count()) === 1);
 await page.getByTestId('chat-overlay-input').fill('overlay hello');
 await page.getByTestId('chat-overlay-send').click();
 await page.waitForTimeout(100);
-ok('chat overlay: sending from the overlay appends the message with my name', /overlay hello/.test(await page.locator('[data-testid=chat-overlay] .co-text').last().innerText()) && (await page.locator('[data-testid=chat-overlay] .co-msg.mine').count()) >= 1);
-ok('chat overlay: History opens the full sheet', (await page.getByTestId('chat-history').click(), await page.waitForTimeout(150), (await page.locator('[data-testid=chat-sheet]').count()) === 1));
+sm = await senderMismatches();
+ok('chat overlay (laptop): sending from the overlay appends the message with my name and avatar', /overlay hello/.test(await page.locator('[data-testid=chat-overlay] .co-text').last().innerText()) && (await page.locator('[data-testid=chat-overlay] .co-msg.mine').count()) === 1 && sm.bad.length === 0, JSON.stringify(sm.bad));
+ok('chat overlay (laptop): History opens the full sheet', (await page.getByTestId('chat-history').click(), await page.waitForTimeout(150), (await page.locator('[data-testid=chat-sheet]').count()) === 1));
 await page.keyboard.press('Escape');
-const boxOf = async () => { const b = await page.getByTestId('chat-overlay').boundingBox(); return { w: Math.round(b.width), h: Math.round(b.height), x: Math.round(b.x), y: Math.round(b.y) }; };
-await open('night-wolf', '&lang=en');
-const wolfBox = await boxOf();
-ok('chat overlay: wolf at night sees the wolves message with the channel label and a live input', (await page.locator('[data-testid=chat-overlay] [data-testid=chat-item][data-channel=wolves]').count()) === 1 && /Wolves/.test(await page.locator('[data-testid=chat-overlay] .co-ch').first().innerText()) && (await page.locator('[data-testid=chat-overlay-input]:not([disabled])').count()) === 1);
+await nightBoxes('laptop');
 await open('night-villager', '&lang=en');
-const villBox = await boxOf();
-ok('chat overlay: villager at night sees no message, no channel, no badge; input reserved but inert', (await page.locator('[data-testid=chat-overlay] [data-testid=chat-item]').count()) === 0 && (await page.getByTestId('chat-overlay').getAttribute('data-channels')) === '' && !/Wolves|Sói|Lấy An/.test(await page.getByTestId('chat-overlay').innerText()) && (await page.locator('[data-testid=chat-overlay-input]').count()) === 0 && (await page.locator('[data-testid=chat-overlay] .co-form input[disabled]').count()) === 1);
-ok('chat overlay: identical footprint for wolf and villager at night (position and size)', wolfBox.w === villBox.w && wolfBox.h === villBox.h && wolfBox.x === villBox.x && wolfBox.y === villBox.y, JSON.stringify({ wolfBox, villBox }));
+ok('chat overlay (laptop): villager input row reserved but inert', (await page.locator('[data-testid=chat-overlay] .co-form input[disabled]').count()) === 1);
+await page.setViewportSize({ width: 390, height: 844 });
 await open('ghost', '&lang=en');
 ok('chat overlay: ghost sees the ghosts channel labelled', (await page.locator('[data-testid=chat-overlay] [data-testid=chat-item][data-channel=ghosts]').count()) === 1);
+sm = await senderMismatches();
+ok('chat overlay: ghost message name and avatar match the sender seat', sm.n === 1 && sm.bad.length === 0, JSON.stringify(sm.bad));
 // overlap: overlay inside the scene host, below the top bar, above the dock
 await open('vote', '&lang=en');
 const ov = await page.getByTestId('chat-overlay').boundingBox(); const dock = await page.locator('.dock').boundingBox(); const bar = await page.locator('.topbar').boundingBox();
