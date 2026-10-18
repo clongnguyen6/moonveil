@@ -25,3 +25,18 @@ Columns: frame = wall time between frames (vsync-locked at 60 Hz when under budg
 - Phone GPU fill-rate (lightmap, vignette, night fog and tint quads, ripple tiling). First cuts if a phone struggles: fog off, lightmap at 1/8 resolution, one ripple layer. None change the look.
 - CPU-throttled frame times this round. Option if needed later: a sandboxed full-Chrome run that cannot write outside the repo (needs a `sandbox-exec` profile verified first), or a real device.
 - Memory on low-end devices; iOS Safari specifics beyond WebKit emulation.
+
+## Software-WebGL cost of `low` (2026-10-18, headless Chromium with SwiftShader, as the test harnesses see it)
+
+Probe: `packages/scene/scripts/longtask-probe.mjs` and `longtask-contention.mjs`, 1280×720, night scene, 10 players. Emulation, not a device.
+
+| config (single page, 20 s) | fps | p95 frame gap ms |
+|---|---|---|
+| `low` before this change | 7.7 | 150 |
+| + antialias off | 11.2 | 117 |
+| + ripples off | 8.5 | 150 |
+| + lightmap on change | 7.7 | 150 |
+| + fps cap 15 | 7.7 | 150 |
+| all four | 14.9 | 83 |
+
+Four concurrent pages, 15 s: 1.9–2.0 fps per page before, 3.6–3.7 after (≈1.9× throughput). WebKit on the GPU: 60 fps in every configuration, no long tasks. No main-thread long tasks were recorded in these runs; the UI's 1.6–1.9 s tasks appear under 11-page contention, where GPU-process flushes block the main thread. MSAA was the dominant software cost, so `low` now renders without MSAA and without the masked ripple sprites, renders the lightmap only on change (flicker off), and under automation caps at 10 fps. `high` is unchanged.

@@ -28,6 +28,10 @@ export interface SessionState {
   voiceMode: VoiceMode;
   /** D2: voice connects only after the player's explicit Join voice tap. */
   voiceJoined: boolean;
+  /** Voice sessions received from the server for this seat (0 = none yet, or voice off server-side). */
+  voiceSessions: number;
+  /** Server-side voice availability (`SeatView.voiceAvailable`, foundation-15): false = no voice backend, no Join voice. */
+  voiceAvailable?: boolean;
 }
 
 export interface Session {
@@ -51,5 +55,5 @@ export interface Session {
 }
 
 export function emptySession(): SessionState {
-  return { status: 'idle', code: null, view: null, error: null, chat: [], speaking: [], poses: [], voiceMode: 'remote', serverRestart: false, voiceJoined: false };
+  return { status: 'idle', code: null, view: null, error: null, chat: [], speaking: [], poses: [], voiceMode: 'remote', serverRestart: false, voiceJoined: false, voiceSessions: 0 };
 }

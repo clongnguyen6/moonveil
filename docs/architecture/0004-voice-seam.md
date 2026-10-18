@@ -97,3 +97,9 @@ Accepted from the recommendation: self-hosted LiveKit OSS (grant d), room per ch
   - Leaving the room leaves voice. The VoiceClient is still created lazily; `Client`'s second constructor argument passes `VoiceClientOptions` (tests inject a fake room).
 - Tests: `apps/server/test/client-voice.test.ts` (the real client in Node, fake room and mic). `e2e:matches:voice` checks that nothing connected before join, then joins every page (`joinVoiceAll`).
 
+## Voice availability (P19, foundation-15)
+- `SeatView.voiceAvailable`: true only when the server has a voice backend. The entry builds one only when all four `LIVEKIT_*` are set; the null gateway means false.
+- Same value for every seat and room. Independent of the room's `voiceMode`.
+- Optional in the protocol type for older clients and stubs; this server always sends it.
+- Tests: `apps/server/test/voice-available.test.ts`, including the real entry with and without `LIVEKIT_*`.
+

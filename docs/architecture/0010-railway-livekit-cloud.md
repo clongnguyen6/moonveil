@@ -274,7 +274,21 @@ For the account holder. Approved 2026-10-17: Railway Trial only, revision pinned
 - Create and join work.
 - SIGTERM: both clients get close 1012 and the process exits 0. The restart logs `restoredRooms=1`, and both clients resume the same seats with their lobby state.
 
-### 7d. Live state of the deploy (2026-10-17/18; pinned revision, Railway Trial)
+### 7d. Live state (2026-10-18): `f12761a` deployed
+- **Running:** `f12761aa730b691ec8bebf12bd4c9fecc115f733` on the Railway Trial; `deploy-trial` was fast-forwarded from `35151f2`.
+- **Variables:** `MOONVEIL_PUBLIC_ORIGIN=https://www.moonveil.id.vn` and `MOONVEIL_ALLOWED_ORIGINS=<railway.app URL>`. No `MOONVEIL_REVISION`; `MOONVEIL_ROOM_IDLE_MS` unset (30 min). Approved: no main merge, no spend.
+- **Executed as two documented deploys,** because mobile has no Alt + Deploy and a staged Deploy redeploys the current code:
+  1. **Restart check** on `35151f2`, 23:41Z (lobby `CYR2J8`): close 1012, back in ~5 s, same room and seats.
+  2. **Deploy 1**, "Apply 2 changes → Deploy": `35151f2` with the new variables. From 04:26Z both hosts accept both origins, and foreign and cross-host `http:` origins are refused (403); a fresh room on `www` works (`.cache/postdeploy/deploy1-origins/`).
+  3. **Deploy 2:** auto-deploy turned on, then agents pushed `deploy-trial` → `f12761a` at 04:31:17Z (fast-forward, ref verified). The push built it; the new instance served at 04:32:28Z.
+     - **Revision proof:** `/api/status` returned JSON with `revision=f12761a…`. That comes from Railway's `RAILWAY_GIT_COMMIT_SHA`, since `MOONVEIL_REVISION` isn't set.
+     - **Status:** `persist={mode: volume, path: /data/rooms}`, `voice=configured`.
+     - **Persistence:** test lobby `TKZ4FS` dropped with close 1012 and came back in ~16 s, same room and seats.
+     - **Origins:** both work on both hosts; foreign and cross-host `http:` refused. A fresh room on `www` works (`24G56Q`). Evidence: `.cache/postdeploy/deploy2/`.
+- **Account holder still to do:** auto-deploy back off; screenshot of the source commit; `restoredRooms` / `skippedRooms` from the startup line; usage snapshot.
+- **Fixed by this deploy:** persistence across restart and version change is now verified live (it was on hold), and `Host` preservation still holds.
+
+### 7d-old. Live state before the release (2026-10-17; pinned revision, Railway Trial)
 **Verified from outside** (`scripts/postdeploy-check.mjs`, evidence in `.cache/postdeploy/live/` and `.cache/postdeploy/www-check.jsonl`)
 - **Reachability and app:** `/healthz` ok; `/` and `/r/<CODE>` load; `/api/lan` = `[]`; a foreign origin is refused on `/ws` (403); create + 2 joins through the real UI with 3 pages. All of this on both `https://moonveil-production-b733.up.railway.app` and `https://www.moonveil.id.vn`.
 - **Idle:** 3 pages connected for ~76 min with 0 reconnects.
@@ -347,6 +361,65 @@ For the account holder. Approved 2026-10-17: Railway Trial only, revision pinned
 **Stop rules**
 - Any check fails: stop, report, and revert the variables (step 3) or roll back the deployment (step 4).
 - No upgrades, and no switch of host.
+
+### 7f. Deploy request: release candidate `f12761a` (revised 2026-10-18; approved and executed 2026-10-18 as two deploys, see §7d)
+**One controlled deployment** of Git SHA `f12761aa730b691ec8bebf12bd4c9fecc115f733` with its variables. `deploy-trial` moves from `35151f2` as a fast-forward (`35151f2` is an ancestor, 57 commits).
+
+Railway facts (docs.railway.com, checked 2026-10-18):
+- Services linked to GitHub "automatically deploy when new commits are pushed to the connected branch"; that can be turned off in Service Settings.
+- "Deploy Latest Commit" (⌘K) deploys the connected branch's latest commit.
+- Variable edits are staged; "Hold Alt while clicking Deploy to commit the staged changes without triggering a redeploy. The new values apply on the next deploy."
+- "Wait for CI" holds deployments until GitHub Actions finish, and skips them after 2 h. This repo has **no workflows**, so it must be **off**.
+- Exact labels: *unverified*.
+
+**0. Before (Human, report each)**
+1. No match running.
+2. Usage snapshot: credit and days left. Stop if under $1 or under 5 days.
+3. Service Settings → source and trigger: the branch is `deploy-trial`; auto-deploy on or off; Wait for CI on or off. Wait for CI must be off.
+
+**1. Restart check on the current version** (no build)
+- Agents start the check with 3 pages on railway.app in a lobby: `--actions=2 --then-origin=https://www.moonveil.id.vn --expect-revision=f12761a…`. Then they send **READY FOR RESTART**.
+- Human: deployment ⋮ → **Restart**.
+- Agents check resume on the same seats, then send **RESTART OK, READY TO STAGE**.
+
+**2. Stage the variables, without deploying** (Human: service → Variables)
+- `MOONVEIL_PUBLIC_ORIGIN` = `https://www.moonveil.id.vn`
+- add `MOONVEIL_ALLOWED_ORIGINS` = `https://moonveil-production-b733.up.railway.app`
+- *optional, separate approval:* add `MOONVEIL_ROOM_IDLE_MS` = `7200000`
+- **Don't** set `MOONVEIL_REVISION`. It's only a self-label, and it would hide `RAILWAY_GIT_COMMIT_SHA` in `/api/status`.
+- **Commit with Alt + Deploy** (no redeploy). If there's no such option, or a plain Deploy is the only choice: **don't deploy; stop and report.**
+  - Fallback (two deploys, each honest): first move the revision with the old variables, which `f12761a` accepts; then apply the variables.
+
+**3. The one build: `f12761a`**
+- Agents push `f12761a` to `deploy-trial` and verify `origin/deploy-trial` = `f12761a…`.
+- If auto-deploy is on, that push is the build. If it's off, Human: ⌘K → **Deploy Latest Commit**. Exactly one deployment starts. Send a screenshot.
+
+**4. Proof and persistence**
+- **Revision**, all must agree, else **stop**:
+  - Railway's deployment details show source commit `f12761a…` (Human screenshot);
+  - `/api/status` returns a **JSON body** with `revision`, `persist` and `voice`. An HTTP 200 alone proves nothing: `35151f2` has no such route, and its SPA fallback answers 200 with `index.html`;
+  - `/api/status` `revision` is `f12761a…`, or `unknown` if Railway gives no commit at runtime.
+- **Startup line** (Human, logs): `moonveil server … persist=/data/rooms restoredRooms=N skippedRooms=M`.
+  - `M ≥ 0` is fine: old-version in-progress matches are skipped by design; report `M`.
+  - `N ≥ 1`, and the agents' test lobby has a `room <CODE> restored …` line.
+- **Agents' check:**
+  - the test lobby resumes on the same seats;
+  - `/api/status` shows `persist.mode=volume` and `voice=configured`;
+  - both origins work, foreign origins are refused, a fresh create + join works on `www`.
+  - Then they send **DEPLOY OK**.
+- Human: usage snapshot.
+
+**Stop and roll back**
+- Any failed check, a failed build or health check, more than one deployment, or a revision mismatch: **stop**, screenshot, report.
+- Roll back: Railway → the previous deployment (`35151f2`) → ⋮ → **Rollback** *(unverified)*.
+  - The committed variables can stay: `35151f2` accepts them (§7c).
+  - `deploy-trial` is never moved back (that would need a force push); a later fix moves it forward.
+- An upgrade or payment prompt: stop. Never upgrade.
+
+**Evidence**
+- `.cache/runs/full-f12761a/summary.txt`: `check`, matches and voice matches ×10, strict UI 16/16, 711/711; 3 s click wait; one 4 fps scene observer per match (test mitigation).
+- `restore-compat.test.ts`, with the real 35151f2 fixtures.
+- §7c (origins validated against the deployed code), §7d (live state), `scripts/postdeploy-check.mjs`.
 
 ## 8. Open items
 - **LiveKit Cloud compatibility and testing plan:** voice owner (link pending, as in 0009 §5). LiveKit Cloud probes and credentials remain unapproved.

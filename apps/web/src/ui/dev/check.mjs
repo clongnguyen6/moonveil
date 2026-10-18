@@ -313,6 +313,54 @@ await open('defense', '&lang=en');
 ok('defense: copy follows the grant (engine: all living may speak → "Everyone may speak", no "only" text)', /Everyone may speak/.test(await page.getByTestId('defense-hint').innerText()) && (await page.locator('[data-testid=day-defense][data-everyone=true]').count()) === 1 && (await page.locator('[data-testid=voice][data-speak=public]').count()) === 1);
 await open('day');
 
+// 11g. Voice phases: connecting (~10 s on Cloud) and reconnecting (rotation) are visible, never silence.
+await open('lobby', '&lang=en');
+await stub((r) => r.setViewer(r.players[1].id));
+await page.getByTestId('voice-join').click();
+ok('voice: right after Join the card says "Connecting voice…"', (await page.locator('[data-testid=mic][data-voice=connecting] [data-testid=voice-busy]').count()) === 1 && /Connecting voice/.test(await page.getByTestId('voice-busy').innerText()));
+await stub((r) => r.voiceState('connected'));
+ok('voice: once connected and publishing the card says voice is on', (await page.locator('[data-testid=mic][data-voice=live]').count()) === 1);
+await stub((r) => r.voiceState('reconnecting'));
+ok('voice: a room rotation shows "Reconnecting voice…"', (await page.locator('[data-testid=mic][data-voice=reconnecting]').count()) === 1 && /Reconnecting/.test(await page.getByTestId('voice-busy').innerText()));
+await stub((r) => r.voiceState('connected'));
+ok('voice: back to live after the rotation', (await page.locator('[data-testid=mic][data-voice=live]').count()) === 1);
+await stub((r) => r.voiceState('failed'));
+ok('voice: a failed channel says so with a recovery line', (await page.locator('[data-testid=mic][data-voice=failed]').count()) === 1 && /Leave voice and join again/.test(await page.getByTestId('mic').innerText()));
+await open('day', '&lang=en');
+await page.getByTestId('voice-join').click();
+ok('voice: match top bar shows the connecting label after Join', (await page.locator('[data-testid=voice][data-voice=connecting]').count()) === 1 && /Connecting voice/.test(await page.getByTestId('voice-label').innerText()));
+await stub((r) => r.voiceState('connected'));
+ok('voice: top bar shows the channel once live', (await page.locator('[data-testid=voice][data-voice=live]').count()) === 1);
+await stub((r) => r.voiceState('reconnecting'));
+ok('voice: top bar shows reconnecting during a rotation', (await page.locator('[data-testid=voice][data-voice=reconnecting]').count()) === 1);
+await open('day');
+
+// 11h. Bounded connecting: no sessions → "Voice unavailable" after the timeout, with retry; server-off flag → no Join voice.
+await open('lobby', '&lang=en');
+await page.evaluate(() => { globalThis.__MOONVEIL_VOICE_TIMEOUT_MS = 700; });
+await stub((r) => { r.setViewer(r.players[1].id); r.voiceNoSessions = true; r.setViewer(r.players[1].id); });
+await page.getByTestId('voice-join').click();
+ok('bounded: joined with no sessions shows connecting first', (await page.locator('[data-testid=mic][data-voice=connecting]').count()) === 1);
+await page.waitForTimeout(1000);
+ok('bounded: after the timeout it says "Voice unavailable right now" with a retry', (await page.locator('[data-testid=mic][data-voice=unavailable] [data-testid=voice-retry]').count()) === 1 && /Text chat still works/.test(await page.getByTestId('mic').innerText()));
+await stub((r) => { r.voiceNoSessions = false; });
+await page.getByTestId('voice-retry').click();
+await page.waitForTimeout(150);
+ok('bounded: retry re-joins and shows connecting again (sessions now arrive)', (await page.locator('[data-testid=mic][data-voice=connecting]').count()) === 1);
+await stub((r) => r.voiceState('connected'));
+ok('bounded: then live', (await page.locator('[data-testid=mic][data-voice=live]').count()) === 1);
+await stub((r) => { r.voiceLeave(); r.voiceAvailable = false; r.setViewer(r.players[1].id); });
+ok('server-off (P19 flag): no Join voice, a plain line instead', (await page.locator('[data-testid=mic][data-status=serverOff]').count()) === 1 && (await page.locator('[data-testid=voice-join]').count()) === 0);
+await open('day', '&lang=en');
+await page.evaluate(() => { globalThis.__MOONVEIL_VOICE_TIMEOUT_MS = 700; });
+await stub((r) => { r.voiceNoSessions = true; r.setViewer(r.viewer); });
+await page.getByTestId('voice-join').click();
+await page.waitForTimeout(1000);
+ok('bounded: match top bar turns into a retry button after the timeout', (await page.locator('[data-testid=voice][data-voice=unavailable] [data-testid=voice-retry]').count()) === 1);
+await stub((r) => { r.voiceNoSessions = false; });
+await page.evaluate(() => { delete globalThis.__MOONVEIL_VOICE_TIMEOUT_MS; });
+await open('day');
+
 // 12. Full automatic match with bots in live mode: run until ended (speed via stub).
 await open('lobby', '&live=1');
 await stub((r) => { r.players.forEach((p) => (p.ready = true)); r.speed = 40; r.autoBots = true; r.start(); });

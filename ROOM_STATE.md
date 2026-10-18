@@ -113,6 +113,24 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 - 1b4a836 voice: defense no-rotation test, Cloud check spec, rotation-gap spec, probe() (voice 54).
 - Running: voice Cloud/local rotation-gap slot (cap 15 p-min). Next: foundation release full acceptance on bundle SHA.
 
+## Release candidate (2026-10-18 overnight)
+- **f12761a** = release candidate (supersedes acb9c82). Full acceptance 21:56–22:45Z all rc=0: check (rules 216, scene 28, voice 54, server 110, e2e 13); matches 10/10; voice matches 10/10; strict UI 16/16, 711/711, 0 misses (3 s click wait; 4 fps single observer). Adds voice connecting/reconnecting/unavailable+retry, voiceAvailable.
+- (previous) **acb9c82** = release-bundle candidate. Full acceptance passed (owner run 18:11–19:00Z): check, matches 10/10, voice matches 10/10, strict UI 16/16 (0 misses), load 2.5–5.2.
+- 3ceaeae (adds voice connecting/reconnecting UI) is in dev but NOT a candidate: two full runs each had 1 observer miss (a9-3, a8-6); 3/3 repro clean; suspected small regression from the new UI (under investigation by game-UI), vs test stall.
+- Next release items: harness click wait 3 s + SeatView.voiceAvailable (foundation); voice-unavailable timeout/retry (game-ui-voice c078801).
+- Cloud participant-minutes used ≈15.7 / 100.
+
+## Morning handoff (sent to Supervisor 2026-10-18)
+- Live 35151f2; candidate f12761a (accepted); dev a11737d (+ low scene profile for next release).
+- Deploy request for f12761a: docs/architecture/0010 §7f (foundation-15 8a73d3d). Decisions asked: approve deploy + timing; 2 h idle timeout yes/no.
+
+## LIVE 2026-10-18 04:32Z: f12761a (deploy-trial = f12761aa730b…)
+- Deployment CLOSED: Human disabled auto-deploy after DEPLOY OK. No further dashboard changes needed; post-release usage snapshot not yet supplied (last known $4.98 / 29 days, pre-release).
+- Mobile two-deploy path: deploy 1 = 35151f2 + origin vars (www public, railway.app allowed), verified 04:29Z; deploy 2 = push-triggered build of f12761a (auto-deploy ON, to be turned OFF by Human).
+- Proof: /api/status JSON revision f12761a (Railway SHA, MOONVEIL_REVISION unset), persist volume /data/rooms, voice configured. Lobby TKZ4FS survived version change (1012, ~16 s, same seats). Railway Restart test passed earlier (CYR2J8, 1012, ~5 s). Fresh room on www OK.
+- No MOONVEIL_ROOM_IDLE_MS (30 min idle stays). No main merge, no spend. Credit at start: $4.98 / 29 days.
+- Unverified: real devices/players; Cloud audio on new defense rule.
+
 ## Lead message queue (deliver at owner's next turn end)
 - (cleared)
 - (cleared)

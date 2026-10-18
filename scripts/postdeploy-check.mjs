@@ -208,7 +208,8 @@ try {
       ['new origin on old host', THEN, wsUrl, 'open'],
       ['foreign on new host', 'https://evil.example', newWs, '403'],
       ['foreign on old host', 'https://evil.example', wsUrl, '403'],
-      ...(THEN.startsWith('https:') ? [['http form of new origin', THEN.replace(/^https:/, 'http:'), newWs, '403']] : []),
+      // Same-origin compares host only, so the http form passes on its own host; cross-host it must be refused.
+      ...(THEN.startsWith('https:') ? [['http form of new origin on old host', THEN.replace(/^https:/, 'http:'), wsUrl, '403']] : []),
     ]) {
       const r = await tryWs(origin, at);
       log({ check: `ws after switch: ${label}`, result: r, ok: want === 'open' ? r === 'open' : /403/.test(r) });
@@ -243,7 +244,10 @@ try {
       persist: s?.persist,
       voice: s?.voice,
       uptimeSec: s?.uptimeSec,
-      ok: !!s && String(s.revision).startsWith(EXPECT_REV.toLowerCase().slice(0, 7)) && s.persist?.mode === 'volume' && s.voice === 'configured',
+      // /api/status exists only from the new code (35151f2 has none). 'unknown' = Railway gave no commit at runtime:
+      // not a failure, but then the revision proof is the Railway deployment's source commit (Human), 0010 §7f.
+      revisionVerified: !!s && String(s.revision).startsWith(EXPECT_REV.toLowerCase().slice(0, 7)),
+      ok: !!s && (s.revision === 'unknown' || String(s.revision).startsWith(EXPECT_REV.toLowerCase().slice(0, 7))) && s.persist?.mode === 'volume' && s.voice === 'configured',
     });
   }
   for (const p of pages) await p.page.getByTestId('leave').click({ timeout: 5_000 }).catch(() => {});

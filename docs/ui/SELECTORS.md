@@ -29,7 +29,7 @@ visual changes. Text is localized (vi/en) and must not be asserted on. Everythin
 host only: `[data-testid=deck-edit]` → `[data-role=<role>] button[aria-label^="+"|"-"]` → `[data-testid=deck-apply]`; `[data-testid=deck-reset]` when custom. Server errors also land in `[data-testid=error]`.
 
 ## Voice (single VoiceClient from client.ts, `__moonveil.voice`)
-`[data-testid=voice][data-speak=<channels>][data-mic=idle|requesting|granted|denied|failed|…][data-muted]` in the match top bar; `[data-testid=audio-unlock]` when autoplay is blocked.
+`[data-testid=voice][data-speak=<channels>][data-mic=…][data-muted][data-voice=off|notJoined|connecting|reconnecting|live|listening|denied|failed]` in the match top bar (`voice-label` text); lobby `[data-testid=mic][data-voice=…]` with `voice-busy` while connecting/reconnecting; `[data-testid=audio-unlock]` when autoplay is blocked; `voice-retry` (unavailable/failed), `voice-off` (server-side voice off, P19). Dev knob `__MOONVEIL_VOICE_TIMEOUT_MS` shortens the 30 s bound.
 Lobby `[data-testid=mic][data-status=…]`: with a VoiceClient, `ok|checking|idle|denied|failed` from its snapshot plus `[data-testid=mic-mute]` / `[data-testid=mic-reload]`; without one (in-person, stub), the local check hooks listed above.
 
 ## Match

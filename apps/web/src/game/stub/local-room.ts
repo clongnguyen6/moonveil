@@ -31,6 +31,17 @@ export interface StubOptions {
 let n = 0;
 const sid = () => `s_${(++n).toString(16).padStart(4, '0')}`;
 
+type Snap = import('@moonveil/voice/client').VoiceSnapshot;
+class StubVoice {
+  private snap: Snap = { channels: {}, mic: 'idle', micError: null, muted: false, audioBlocked: false };
+  private subs = new Set<() => void>();
+  subscribe = (fn: () => void) => { this.subs.add(fn); return () => { this.subs.delete(fn); }; };
+  getSnapshot = () => this.snap;
+  set(patch: Partial<Snap>) { this.snap = { ...this.snap, ...patch }; for (const fn of this.subs) fn(); }
+  async setMuted(m: boolean) { this.set({ muted: m }); }
+  async unlockAudio() { this.set({ audioBlocked: false }); }
+}
+
 export class LocalRoom implements Session {
   readonly engine: RulesEngine<HostState>;
   readonly code: string;
@@ -199,13 +210,32 @@ export class LocalRoom implements Session {
   }
   restarting = false;
   voiceJoined = false;
+  /** Dev stand-in for the VoiceClient snapshot (subscribe/getSnapshot/setMuted/unlockAudio) so the UI's phases can be checked. */
+  stubVoice = new StubVoice();
+  /** Dev: simulate a server with no voice backend (no sessions ever) or the P19 flag. */
+  voiceNoSessions = false;
+  voiceAvailable = true;
   voiceJoin() {
-    if (this.voiceMode === 'remote') this.voiceJoined = true;
+    if (this.voiceMode === 'remote') {
+      this.voiceJoined = true;
+      if (this.voiceNoSessions) { this.stubVoice.set({ mic: 'idle', channels: {} }); this.emit(); return; }
+      this.stubVoice.set({ mic: 'requesting', channels: { public: { channel: 'public', room: 'r', state: 'connecting', speak: true, listen: true, visible: true, publishing: false, participants: [], error: null } } });
+    }
     this.emit();
   }
   voiceLeave() {
     this.voiceJoined = false;
+    this.stubVoice.set({ mic: 'idle', channels: {} });
     this.emit();
+  }
+  voice() {
+    return this.voiceJoined ? (this.stubVoice as unknown as import('@moonveil/voice/client').VoiceClient) : null;
+  }
+  /** Dev: move the fake channel to connected / reconnecting / failed. */
+  voiceState(state: 'connected' | 'reconnecting' | 'failed') {
+    const ch = this.stubVoice.getSnapshot().channels['public'];
+    if (!ch) return;
+    this.stubVoice.set({ mic: state === 'connected' ? 'granted' : this.stubVoice.getSnapshot().mic, channels: { public: { ...ch, state, publishing: state === 'connected' } } });
   }
   simulateReconnect(ms = 1800, opts: { restart?: boolean } = {}) {
     this.conn = 'reconnecting';
@@ -343,6 +373,7 @@ export class LocalRoom implements Session {
       phaseEndsAt: this.phaseEndsAt,
       phaseDurationMs: this.game && this.phaseEndsAt !== null ? this.engine.phase(this.game).durationMs : null,
       voiceMode: this.voiceMode,
+      voiceAvailable: this.voiceAvailable,
       deck: this.status === 'lobby' ? { default: defaultDeck(this.players.length), custom: this.customDeck, error: this.deckError() } : null,
       game: this.game ? this.engine.view(this.game, isMod ? { kind: 'moderator' } : { kind: 'seat', seat: me.id }) : null,
       voice: grants,
@@ -359,6 +390,8 @@ export class LocalRoom implements Session {
       voiceMode: this.voiceMode,
       serverRestart: this.conn === 'reconnecting' && this.restarting,
       voiceJoined: this.voiceJoined && this.voiceMode === 'remote',
+      voiceSessions: this.voiceJoined && !this.voiceNoSessions ? 1 : 0,
+      voiceAvailable: this.voiceAvailable,
     };
   }
 }

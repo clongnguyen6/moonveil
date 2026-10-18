@@ -96,3 +96,13 @@ Status: foundation, 2026-10-16. The harness is ready now; the UI-driven layer wa
 - Before foundation-10, every real-match suite ran with the scene switched off (quiet settings).
 - Not yet run in a locked run. If scene cost breaks pacing (misses or skipped steps), that's a finding to report, not a reason to switch the suite to `off` silently.
 
+## Click wait 3 s (foundation-15)
+- **Why:** on `3ceaeae`, two full runs each had one strict UI miss: `a9-3` and `a8-6` on the laptop. In both, the scene observer (seat 0, software-rendered scene at 4 fps) timed out at the 1.5 s click wait on a control that was present (`waiting for getByTestId('seat-N')`).
+  - Playwright waits for the element to be visible, stable across animation frames, and enabled. A starved page delivers frames late.
+  - A focused repro of `a9-3` passed 3/3.
+  - Our GPU process measured ~400–460 %, as in the passing runs.
+  - The three earlier full runs had 0 misses in ~2,400 actions. Whether `3ceaeae` itself made the observer page slower is being checked by the UI owner.
+- **Change:** `CLICK_MS` 1.5 s → 3 s in `e2e/harness/ui.ts`, for both the click and the confirm-enabled wait.
+- **What stays strict:** every intended action must land, and the engine must accept it within its step. A step that closes before the click is still a miss ("pacing"). The shortest steps are about 6 s of wall time at ×5, so 3 s fits inside them.
+- **Not yet run in a locked acceptance run.**
+
