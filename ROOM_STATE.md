@@ -30,6 +30,38 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 | review (read-only, done): rules 9af74b8 | 09a95d56 (codex) | none | — |
 | art-themes: costume creative/asset owner (Human chose Codex) | 69dc0d82 (codex) | docs/visual/themes/**; costume art code packages/scene/src/costumes/** (proposed) | ask Lead before scene rendering |
 
+## V1 RELEASED 2026-10-20 — maintenance, awaiting feedback
+- **Human decision (2026-10-20, "ok"):** v1 released now on the already-live f91f425, without waiting for real-user playtests; issues get fixed from later play feedback. This is release acceptance of the live version only. It does NOT authorize a new deploy, a main merge, spend, destructive cleanup, or Batches C/D/E.
+- **Live:** `deploy-trial` = f91f425b3f65… (Railway Trial, Singapore, volume `/data/rooms`; www.moonveil.id.vn and moonveil-production-b733.up.railway.app).
+  - Evidence: full acceptance in foundation `.cache/runs/full-f91f425/summary.txt`; live proof in `.cache/postdeploy/deploy5/` (see LIVE section below).
+- **v1 contents:**
+  - full Werewolf loop with the six roles and the approved rules, in moderator and automatic modes;
+  - lobby with movement; voice over LiveKit Cloud;
+  - ghosts; reconnect and restart persistence;
+  - always-visible chat;
+  - 8 costumes plus the picker;
+  - small-phone framing; labels above effects;
+  - Leave room returns to the home screen.
+- **Honest limits:**
+  - Real phones, real players, real mics and real networks are unverified. Phone results are browser emulation (Chromium/WebKit), so there is no claim that all devices work.
+  - Test mitigations (3 s click wait, one 4 fps scene observer) are not performance evidence.
+  - Voice: automated checks and earlier Cloud checks only; no real-group session.
+  - Costume reads at phone size: puffer and robot cat are weaker, and duck/plain is subtle.
+  - Rollback to 3b1dbde: rooms restore, but costumes show as campers and costume wearers can't edit their look until they rejoin.
+  - Not supplied by Human: confirmation that auto-deploy is OFF after the f91f425 deploy, and the startup `restoredRooms`/`skippedRooms` counts.
+- **dev beyond live (not deployed, no runtime change):** `scripts/postdeploy-check.mjs` `--look-check` / `--costume-check` (05a213f, b941bbd; landed at 89350b8), plus ROOM_STATE records. dev = b694edb+.
+- **Still pending Human:**
+  - Batches C (moderator powers), D and E;
+  - the remaining rules (listed under Pending Human decisions);
+  - the real-device playtest;
+  - optional costume tweaks;
+  - deleting 3 image-tool originals outside the repo (2.6 MB, `/Users/long/.codex-runtime/peer/generated_images/01a14e4b-…/`), kept until Human decides.
+- **Maintenance mode:**
+  - No new features and no routine test reruns.
+  - On feedback: Lead triages, the owner Peer fixes on a branch, checks run on the exact SHA, then ff into dev under grant c. Any deploy needs explicit Human approval.
+  - All Peers are idle, no lock is held, and Lead's recurring watchers have ended.
+  - The voice seat (87bbae25) is on Fable; re-seat it if voice work comes up.
+
 ## Art themes (Human-approved 2026-10-18, concepts only)
 - Six original themes: bow cat, robot cat, chubby fish (puffer/shark), camping frog, yellow duck, forest mushroom. Inspired-by, not replicas; appearance-only, role-independent; camping world kept.
 - Working assumption (reversible): costumes/headgear on current base, not full-species. Open: puffer vs shark; costume vs species.
@@ -40,7 +72,7 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 
 ## LIVE 2026-10-18 15:16Z: f91f425 (deploy-trial = f91f425b3f65…)
 - 2026-10-18 · deploy-trial · ff 3b1dbde → f91f425 (15:15:32Z) · Human-approved; push-triggered Railway build; /api/status revision f91f425 (RAILWAY_GIT_COMMIT_SHA; Lead watcher 15:16:57Z, both domains), volume, voice configured; test lobby XFF9YG (created on 3b1dbde, legacy looks) resumed (1012, ~16 s, same seats), upgraded to canonical campers with seeded extras; both origins ok, foreign + http refused; fresh www room VU67PV; look-check (legacy) and costume-check (duck/ring exact) ok. Evidence foundation .cache/postdeploy/deploy5/. Other rooms untouched; Human did not state whether games were active.
-- Auto-deploy: ON for this deploy; Human asked to turn OFF (pending confirmation). restoredRooms/skippedRooms not supplied.
+- Auto-deploy: ON for this deploy; Human asked to turn OFF (confirmation not received as of 2026-10-20). restoredRooms/skippedRooms not supplied.
 - Rollback to 3b1dbde (tested): f91f425 rooms restore; costumes show as campers; costume-wearers can't edit looks in those rooms until rejoin/forward deploy.
 - Pending into dev: foundation-postdeploy b941bbd (postdeploy script --costume-check + --look-check).
 
