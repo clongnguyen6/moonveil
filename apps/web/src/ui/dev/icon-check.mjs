@@ -37,5 +37,19 @@ const loaded = await page.evaluate(() => [...document.images].every((i) => i.com
 ok('evidence sheet: every linked icon decodes in Chromium', loaded);
 await page.screenshot({ path: 'docs/ui/screens-icon/icons-from-server.png', fullPage: true });
 console.log('screenshot docs/ui/screens-icon/icons-from-server.png');
+// true size, light and dark (browser-tab-like surfaces), at 1x and 2x device pixels: the served icons at their CSS size,
+// next to a tab label, as a tab strip shows them (headless Chromium has no real tab strip)
+const icons = ['/favicon.ico', '/favicon-16.png', '/favicon-32.png', '/favicon-48.png'];
+const strip = (bg, fg, tab) => `<div style="background:${bg};padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+  <div style="display:flex;align-items:center;gap:8px;background:${tab};border-radius:8px 8px 0 0;padding:6px 10px;width:220px;color:${fg};font:12px system-ui"><img src="${base}/favicon.ico" width="16" height="16">Moonveil</div>
+  <div style="display:flex;align-items:center;gap:14px;color:${fg};font:11px system-ui">${icons.map((h) => { const n = h.includes('ico') ? 16 : Number(h.match(/\d+/)[0]); return `<span style="display:inline-flex;align-items:center;gap:4px"><img src="${base}${h}" width="${n}" height="${n}">${h.slice(1)}</span>`; }).join('')}</div></div>`;
+for (const dpr of [1, 2]) {
+  const tp = await (await browser.newContext({ viewport: { width: 560, height: 200 }, deviceScaleFactor: dpr })).newPage();
+  await tp.setContent(`<body style="margin:0">${strip('#ffffff', '#202124', '#dee1e6')}${strip('#202124', '#e8eaed', '#35363a')}</body>`);
+  await tp.waitForTimeout(400);
+  ok(`true-size sheet @${dpr}x: every served icon decodes`, await tp.evaluate(() => [...document.images].every((i) => i.complete && i.naturalWidth > 0)));
+  await tp.screenshot({ path: `docs/ui/screens-icon/favicon-true-size-${dpr}x.png`, fullPage: true });
+  console.log(`screenshot docs/ui/screens-icon/favicon-true-size-${dpr}x.png`);
+}
 await browser.close(); server.kill('SIGTERM');
 console.log(fails ? `${fails} FAILED` : 'ALL PASS'); process.exit(fails ? 1 : 0);
