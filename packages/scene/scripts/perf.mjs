@@ -1,4 +1,4 @@
-// Frame-time measurement in Playwright WebKit (GPU-backed, grant b). WebKit has no CPU-throttling control,
+// Frame-time measurement in Playwright WebKit (GPU-backed; on macOS it writes only its three ~/Library/…org.webkit.Playwright paths outside the repo). WebKit has no CPU-throttling control,
 // so these are unthrottled numbers on the dev machine: emulation, not a device. Uses the production build
 // served by `vite preview` on :4201. Prints a markdown table.
 import { webkit, devices } from '@playwright/test';

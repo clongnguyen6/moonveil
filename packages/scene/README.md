@@ -23,7 +23,7 @@ node scripts/env.mjs npm run typecheck -w @moonveil/scene
 
 Harness URL params: `?scene=lobby|seating|night|day|ghost|ended`, `?n=4..16`, `?viewer=moderator|s1..s16`, `?cam=fit|tight`, `?panel=0`, `?audio=0`, `?speak=0`, `?perf=1`. Keyboard WASD/arrows, Space to talk; touch: drag anywhere for the joystick.
 
-## Captures and perf (Playwright WebKit, grant b)
+## Captures and perf (Playwright WebKit; on macOS it writes only its three `~/Library/…org.webkit.Playwright` paths outside the repo)
 
 ```sh
 node scripts/env.mjs npx playwright install webkit                                   # once, into root .cache/

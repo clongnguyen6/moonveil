@@ -1,4 +1,5 @@
-// Screenshots of every scenario at phone portrait / phone landscape / laptop, plus WebKit phone (grant b).
+// Screenshots of every scenario at phone portrait / phone landscape / laptop, plus WebKit phone (on macOS, Playwright WebKit also
+// writes its three ~/Library/…org.webkit.Playwright paths, outside the repo).
 // All browser emulation. Run with vite up on WEB_PORT (default 4401):
 //   node scripts/env.mjs node apps/web/src/ui/dev/capture.mjs [--webkit] [--only name]
 import { mkdirSync } from 'node:fs';

@@ -2,7 +2,7 @@
 # A/B: the only difference is revoke-before-delete in the gateway (VOICE_REVOKE_ON_CLOSE=0 vs 1).
 # Same test files, same seeds (MOONVEIL_TEST_SEED fixed for every room), same time scale, back-to-back,
 # machine conditions sampled to .cache/voice-e2e/conditions-ab-<label>.log. Run from the repo root:
-#   sh packages/voice/e2e/ab.sh [label]   (needs the heavy-run lock)
+#   sh packages/voice/e2e/ab.sh [label]   (heavy run: on a shared machine, don't run it alongside other heavy jobs)
 set -u
 cd "$(dirname "$0")/../../.."
 label=${1:-ab}

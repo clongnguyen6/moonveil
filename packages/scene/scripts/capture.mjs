@@ -1,5 +1,5 @@
-// Captures screenshots and one motion video with Playwright WebKit (grant b: WebKit writes only to its three
-// ~/Library/org.webkit.Playwright paths). Everything is browser emulation; no real device.
+// Captures screenshots and one motion video with Playwright WebKit (on macOS WebKit writes only its three
+// ~/Library/…org.webkit.Playwright paths outside the repo). Everything is browser emulation; no real device.
 // Usage: node scripts/capture.mjs [--out ../../docs/visual/preview] [--no-video] [--only <name-substring>] [--video-only]
 import { webkit, devices } from '@playwright/test';
 import { mkdirSync, existsSync, readdirSync, unlinkSync, statSync } from 'node:fs';
