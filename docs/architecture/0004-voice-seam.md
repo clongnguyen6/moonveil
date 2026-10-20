@@ -1,7 +1,7 @@
 # 0004: Voice seam: response to docs/voice/RECOMMENDATION.md (voice f08bf6c)
 
 Status: foundation's position (2026-10-16), for the voice owner and Lead. Nothing implemented yet; gateway work follows agreement.
-Accepted from the recommendation: self-hosted LiveKit OSS (grant d), room per channel, server is the only token issuer, rotation instead of revocation, `auto_create: false`.
+Accepted from the recommendation: self-hosted LiveKit OSS (approved then for local implementation and verification), room per channel, server is the only token issuer, rotation instead of revocation, `auto_create: false`.
 
 ## 1. `visible` bit on VoiceGrant: counter-proposal, derive `visible = speak` in the adapter
 - The need is real: a ghost in public is listen-only and must be hidden, and a seat that speaks must be visible.

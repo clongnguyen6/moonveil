@@ -7,7 +7,9 @@ All caches/tmp/browsers go to `.cache/` (gitignored) via `scripts/env.mjs`. Neve
 
     node scripts/env.mjs npm install
     npm run e2e:install      # Playwright chromium headless shell + webkit into .cache/ms-playwright
-    # WebKit writes 3 ~/Library paths on macOS, allowed only by grant b (WORKSPACE_PROTOCOL.md). Label results "WebKit/browser emulation".
+    # On macOS, Playwright WebKit also writes outside the repo (not redirectable): ~/Library/Preferences/org.webkit.Playwright.plist,
+    # ~/Library/WebKit/org.webkit.Playwright/ and ~/Library/Caches/org.webkit.Playwright/. Every other cache stays in .cache/.
+    # Run WebKit projects only where those writes are acceptable; label results "WebKit/browser emulation", not real devices.
     npm run dev              # server :4100 + vite :4101 -> http://127.0.0.1:4101
     npm run check            # typecheck + all workspace tests + e2e (OS-assigned free ports)
     E2E_SCALE=10,16 npm run e2e:scale   # opt-in N-browser runs; npm run bench = server fan-out cost

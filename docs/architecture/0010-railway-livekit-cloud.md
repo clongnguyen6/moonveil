@@ -165,7 +165,7 @@ For the person holding the Railway account; no programming needed. Do the parts 
    - STOP if it asks for a plan upgrade.
 
 **E. Deploy and read the first log line**
-1. Deploy the revision named in the deploy request (Lead provides it).
+1. Deploy the revision named in the deploy request.
 2. Open the deployment's **logs**. Within a minute or two you should see one line starting `moonveil server`. It must contain all of these:
    - `engine=rules`
    - `voice=off` (or `voice=wss://…` once voice is set up)
@@ -247,7 +247,7 @@ For the account holder. Approved 2026-10-17: Railway Trial only, revision pinned
    - `401` or `unauthenticated` means a wrong key or secret: re-type both once, redeploy, re-check; STOP if it repeats.
    - No `voice` lines means outbound works.
    - What Limited breaks: only the server's calls to LiveKit. The game and text chat still work; players see "voice unavailable".
-10. **Hand-off:** send Lead the domain (not the secrets). Agents then run `scripts/postdeploy-check.mjs` against it, and will ask you once to **Restart** and once to **Redeploy** (the deployment's ⋮ menu, *label unverified*).
+10. **Hand-off:** send the deploy coordinator the domain (not the secrets). Agents then run `scripts/postdeploy-check.mjs` against it, and will ask you once to **Restart** and once to **Redeploy** (the deployment's ⋮ menu, *label unverified*).
 11. **Usage:** record the workspace Usage page (§7a I) before and after each session.
     - STOP if credit drops under **$1** or under **5 days** remain.
     - Never add a card or upgrade.
@@ -426,7 +426,15 @@ Railway facts (docs.railway.com, checked 2026-10-18):
 - **Decisions for Human:** IaC (`railway` npm package, a deploy-time step) vs. dashboard-only settings; deploy approval with the package above.
 
 ## 9. Playtest-readiness gates (draft, 2026-10-17)
-A playtest runs only when every gate in G1–G4 is **met** or explicitly waived by the decision-maker. Status is as of 2026-10-17 from the repo and `ROOM_STATE.md`; "open" means not met.
+A playtest runs only when every gate in G1–G4 is **met** or explicitly waived by the decision-maker.
+
+**The statuses below are historical evidence** (2026-10-17, release candidate `35151f2`); they are not maintained. To check a gate now:
+- **G1 (revision):** the deploy SHA has `.cache/runs/full-<sha>/summary.txt` ending with `DONE`, with every step `rc=0` on that exact SHA; after deploy, `/api/status` reports that `revision`.
+- **G2 (decisions):** each decision is recorded by the project owner. Rules: `docs/rules/DECISIONS_REMAINING.md` and `PROPOSAL.md`. Product: `PROJECT_BRIEF.md`. Deploy: an explicit approval for that SHA.
+- **G3 (limitations):** re-read against the latest acceptance and live checks.
+- **G4 (after deploy):** §7a passes, and `scripts/postdeploy-check.mjs` passes against the public URL.
+
+"open" means not met.
 
 ### G1. Deploy revision
 | Gate | Status | Evidence / owner |
@@ -443,7 +451,7 @@ A playtest runs only when every gate in G1–G4 is **met** or explicitly waived 
 | G2.3 **LiveKit Cloud** probes and credentials. Needed for voice and for the §7 step 5 outbound probe | not approved | Human; the voice owner owns the Cloud compatibility doc and test plan (link pending, §8) |
 | G2.4 **Voice-off first playtest** (if G2.3 isn't granted in time): an explicit yes, since §7 step 5 otherwise stops the deploy | open | Human |
 | G2.5 **Deploy approval** for the §7 package: Railway Trial only; how the revision is pinned (`railway up` from a clean checkout, or a branch at the SHA; a merge into `main` needs its own approval) | not approved | Human; Lead presents |
-| G2.6 Hosting trust: the server host can read secrets (accept, and guide a non-player host) | asked | Human (`ROOM_STATE.md`) |
+| G2.6 Hosting trust: the server host can read secrets (accept, and guide a non-player host) | asked (accepted by Human later on 2026-10-17; recorded in commit `ac71ed8`) | Human |
 | Not blocking | Batches D–E rule details, balance follow-ups, the `railway` npm package (dashboard-only settings avoid it) | as listed in their docs |
 
 ### G3. Known limitations (stated to the decision-maker before the playtest; not gates to clear)
@@ -451,7 +459,7 @@ A playtest runs only when every gate in G1–G4 is **met** or explicitly waived 
 |---|---|---|
 | L1 Scene performance is measured only in test conditions | Headless Chromium renders the scene in software. One `low` scene at laptop size cost ~850 % CPU in its GPU process (A/B on `4408c64`). No real-device numbers yet | visual owner: phone performance on a GPU path |
 | L2 Acceptance runs the scene at 4 fps on one observer per match | Reduced-motion emulation, a test-environment mitigation. It shows the UI works with a scene mounted; it is not performance evidence | foundation (harness); visual owner (product performance) |
-| L3 LiveKit Cloud is untested | Voice is verified only against local LiveKit OSS (grant d). Gateway compatibility on Cloud, revocation, room rotation minutes and the 5,000-minute cap are unverified | voice owner |
+| L3 LiveKit Cloud is untested | Voice is verified only against local LiveKit OSS (approved then for local implementation and verification only). Gateway compatibility on Cloud, revocation, room rotation minutes and the 5,000-minute cap are unverified | voice owner |
 | L4 No real devices | All phone results are browser emulation (Pixel 7 Chromium, iPhone 15 WebKit). No real iPhone or Android, and no real microphone or speaker audio in foundation's suites | first playtest; voice and visual owners for their device checks |
 | L5 Railway facts not confirmed by docs | `Host` preservation (since observed live on the custom domain, §7d), Serverless default off, volume survival wording, trial-type indicator, card requirement, several dashboard labels | checked by §7a; account holder |
 | L6 Restarts interrupt play | A redeploy, restart or host migration drops every player. They see the reconnect overlay and resume with the room restored and paused. The 1012 notice is best effort; crashes give none | foundation (documented, §4) |

@@ -31,7 +31,7 @@ Detailed per-option evidence: `docs/voice/SECURE_CONTEXT.md` (voice owner, teste
 
 ## Foundation's view
 - **Zero cost, zero device setup, in-game voice on LAN: B.** Needs one sign-up (DNS host) and one-time setup on the hosting laptop. That's the best first playtest setup if Human approves the sign-up.
-- **Zero cost, no sign-up: A.** Costs a CA install on every phone (unapproved under grant d) and carries a real security caveat.
+- **Zero cost, no sign-up: A.** Costs a CA install on every phone (not approved at the time) and carries a real security caveat.
 - **Remote voice for 7–10 players at $0:** B or A for the page, plus a reachable SFU. Either the laptop SFU behind NAT (TURN work, untested) or E1 (sign-up, free tier limits). Otherwise E2 (cost).
 - **Plain-http LAN voice-off (old option "A"):** usable only as a partial play test. No mic check, no clipboard, no wake lock.
 

@@ -57,8 +57,9 @@ export default defineConfig({
     { name: 'ui-phone-chromium', use: { ...devices['Pixel 7'] }, testMatch: /real-match-ui\.spec/ },
     { name: 'ui-phone-webkit', use: { ...devices['iPhone 15'] }, testMatch: /real-match-ui\.spec/ },
     { name: 'mobile-chromium', use: { ...devices['Pixel 7'] }, testMatch: /mobile\.spec/ },
-    // Grant b (WORKSPACE_PROTOCOL.md): WebKit may write ONLY ~/Library/{Preferences/org.webkit.Playwright.plist,
-    // WebKit/org.webkit.Playwright/, Caches/org.webkit.Playwright/}. Results = "WebKit/browser emulation", not iPhone.
+    // On macOS, WebKit also writes outside the repo (not redirectable): ~/Library/{Preferences/org.webkit.Playwright.plist,
+    // WebKit/org.webkit.Playwright/, Caches/org.webkit.Playwright/}; all else stays in .cache/ (scripts/env.mjs).
+    // Results = "WebKit/browser emulation", not iPhone.
     { name: 'mobile-webkit', use: { ...devices['iPhone 15'] }, testMatch: /mobile\.spec/ },
   ],
 });
