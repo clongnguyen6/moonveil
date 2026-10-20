@@ -6,3 +6,7 @@ test-results/
 playwright-report/
 *.tsbuildinfo
 .data/
+# Local agent-orchestration files: kept in each checkout, not versioned
+/WORKSPACE_PROTOCOL.md
+/ROOM_STATE.md
+/.claude/
