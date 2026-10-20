@@ -1,4 +1,4 @@
-# Moonveil
+# <img src="apps/web/public/apple-touch-icon.png" alt="Moonveil icon: a campfire under a crescent moon" width="56" height="56" align="middle"> Moonveil
 
 **Werewolf by the campfire.** Moonveil is a social deduction game played in the browser. Each player uses their own phone or laptop, and you talk to each other inside the game. Matches take 7 to 15 players. There's nothing to install and no account to create: you pick a name and a look, then join.
 
