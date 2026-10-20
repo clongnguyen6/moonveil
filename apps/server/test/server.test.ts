@@ -19,6 +19,7 @@ before(async () => {
   mkdirSync(join(dir, 'assets'));
   writeFileSync(join(dir, 'index.html'), '<!doctype html>INDEX');
   writeFileSync(join(dir, 'assets', 'a.js'), 'x');
+  writeFileSync(join(dir, 'favicon.ico'), 'ico');
   srv = createMoonveilServer({ engine: () => createFixtureEngine() as RulesEngine<unknown>, staticDir: dir, heartbeatMs: 200 });
   PORT = await listenFree(srv.http);
   base = `http://127.0.0.1:${PORT}`;
@@ -27,6 +28,7 @@ after(() => srv.stop());
 
 test('static: assets, SPA fallback, traversal, missing asset', async () => {
   assert.equal(await (await fetch(`${base}/assets/a.js`)).text(), 'x');
+  assert.equal((await fetch(`${base}/favicon.ico`)).headers.get('content-type'), 'image/x-icon');
   assert.match(await (await fetch(`${base}/r/ABCDEF`)).text(), /INDEX/);
   assert.equal((await fetch(`${base}/assets/missing.js`)).status, 404);
   assert.notEqual((await fetch(`${base}/..%2f..%2fetc%2fpasswd`)).status, 200);
