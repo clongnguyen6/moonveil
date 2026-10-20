@@ -32,7 +32,7 @@
   &nbsp;
   <img src="docs/ui/screens-picker/phone-editor-shark.png" alt="Choosing a costume on a phone in the lobby: the goofy shark outfit, style and colour" width="30%">
 </p>
-<p align="center"><sub>On a phone: day discussion · night, the Wolves choose in private · picking a costume in the lobby.</sub></p>
+<p align="center"><sub>On a phone: day discussion · night, the Wolves choose in private · picking a costume in the lobby (Vietnamese interface).</sub></p>
 
 ## What's in the game
 
