@@ -48,7 +48,8 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
   - Voice: automated checks and earlier Cloud checks only; no real-group session.
   - Costume reads at phone size: puffer and robot cat are weaker, and duck/plain is subtle.
   - Rollback to 3b1dbde: rooms restore, but costumes show as campers and costume wearers can't edit their look until they rejoin.
-  - Not supplied by Human: confirmation that auto-deploy is OFF after the f91f425 deploy, and the startup `restoredRooms`/`skippedRooms` counts.
+  - Not supplied by Human: the startup `restoredRooms`/`skippedRooms` counts (optional).
+- **Auto-deploy: OFF** — Human confirmed "đã disable rồi" on 2026-10-20, after the f91f425 deploy. Deployment housekeeping closed.
 - **dev beyond live (not deployed, no runtime change):** `scripts/postdeploy-check.mjs` `--look-check` / `--costume-check` (05a213f, b941bbd; landed at 89350b8), plus ROOM_STATE records. dev = b694edb+.
 - **Still pending Human:**
   - Batches C (moderator powers), D and E;
@@ -72,7 +73,7 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 
 ## LIVE 2026-10-18 15:16Z: f91f425 (deploy-trial = f91f425b3f65…)
 - 2026-10-18 · deploy-trial · ff 3b1dbde → f91f425 (15:15:32Z) · Human-approved; push-triggered Railway build; /api/status revision f91f425 (RAILWAY_GIT_COMMIT_SHA; Lead watcher 15:16:57Z, both domains), volume, voice configured; test lobby XFF9YG (created on 3b1dbde, legacy looks) resumed (1012, ~16 s, same seats), upgraded to canonical campers with seeded extras; both origins ok, foreign + http refused; fresh www room VU67PV; look-check (legacy) and costume-check (duck/ring exact) ok. Evidence foundation .cache/postdeploy/deploy5/. Other rooms untouched; Human did not state whether games were active.
-- Auto-deploy: ON for this deploy; Human asked to turn OFF (confirmation not received as of 2026-10-20). restoredRooms/skippedRooms not supplied.
+- Auto-deploy: ON for this deploy; confirmed OFF by Human 2026-10-20 ("đã disable rồi"). restoredRooms/skippedRooms not supplied.
 - Rollback to 3b1dbde (tested): f91f425 rooms restore; costumes show as campers; costume-wearers can't edit looks in those rooms until rejoin/forward deploy.
 - Pending into dev: foundation-postdeploy b941bbd (postdeploy script --costume-check + --look-check).
 
