@@ -201,7 +201,7 @@ Human, 2026-10-16. Same text as WORKSPACE_PROTOCOL.md "Approved grants (2026-10-
 
 ## (previous) LIVE 2026-10-18 08:58Z: 3b1dbde (deploy-trial = 3b1dbdeb43d9…)
 - 2026-10-18 · deploy-trial · ff 671fd4f → 3b1dbde (08:57:46Z) · push-triggered Railway build; /api/status revision 3b1dbde (RAILWAY_GIT_COMMIT_SHA, Lead watcher 08:58:46Z + foundation), volume, voice configured; test lobby UHFAGM resumed (1012, ~16 s, same seats); both origins ok, foreign refused; fresh www room 84FN5J; look broadcast ok. Live rendered preview not checked live (scene off in harness; proven by UI two-seat check). Evidence foundation .cache/postdeploy/deploy4/. Other rooms untouched; Human did not confirm no active games.
-- Auto-deploy: ON for this deploy; Human asked to turn OFF (pending confirmation). Optional restoredRooms/skippedRooms (expect ≥1 / 0).
+- Auto-deploy: ON for this deploy; Human asked to turn OFF (superseded: ON again for f91f425, confirmed OFF 2026-10-20). Optional restoredRooms/skippedRooms (expect ≥1 / 0).
 
 ## (previous) LIVE 2026-10-18 07:13Z: 671fd4f (deploy-trial = 671fd4ff8ffb…)
 - 2026-10-18 · deploy-trial · ff f12761a → 671fd4f (07:12:03Z) · push-triggered Railway build; /api/status revision 671fd4f (RAILWAY_GIT_COMMIT_SHA), volume, voice configured; test lobby 2HUQ5A resumed (1012, ~16 s, same seats); both origins ok, foreign refused; fresh www room ok; look broadcast ok (scene update proven by unit tests + captures). Evidence foundation .cache/postdeploy/deploy3/. Full acceptance on 671fd4f 05:37–06:25Z all rc=0, strict UI 16/16 711/711.
