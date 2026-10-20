@@ -1,16 +1,38 @@
-# <img src="apps/web/public/apple-touch-icon.png" alt="Moonveil icon: a campfire under a crescent moon" width="56" height="56" align="middle"> Moonveil
-
-**Werewolf by the campfire.** Moonveil is a social deduction game played in the browser. Each player uses their own phone or laptop, and you talk to each other inside the game. Matches take 7 to 15 players. There's nothing to install and no account to create: you pick a name and a look, then join.
-
-### ▶ [Play now at www.moonveil.id.vn](https://www.moonveil.id.vn/)
-
-<p>
-  <img src="docs/ui/screens-picker/laptop-editor-duck.png" alt="Lobby on a laptop: players walk around the camp while one edits their costume, with chat on screen" width="62%">
-  <img src="docs/ui/screens-picker/phone-editor-shark.png" alt="Lobby on a phone, in Vietnamese, choosing a fish costume" width="24%">
+<p align="center">
+  <img src="apps/web/public/apple-touch-icon.png" alt="Moonveil icon: a campfire under a crescent moon" width="96" height="96">
 </p>
-<p>
-  <img src="docs/ui/screens-followups/laptop-night-wolf.png" alt="Night on a laptop: the wolves choose a victim together and talk in their private chat" width="62%">
+
+<h1 align="center">Moonveil</h1>
+
+<p align="center"><strong>Werewolf by the campfire, in your browser.</strong></p>
+
+<p align="center">
+  A social deduction game for 7 to 15 players. Everyone plays on their own phone or laptop and talks inside the game.<br>
+  Nothing to install, no account: pick a name and a look, then join.
 </p>
+
+<h3 align="center"><a href="https://www.moonveil.id.vn/">▶ Play now at www.moonveil.id.vn</a></h3>
+
+<p align="center">
+  <a href="#whats-in-the-game">Features</a> ·
+  <a href="#how-to-play">How to play</a> ·
+  <a href="#run-it-locally">Run it locally</a> ·
+  <a href="#documentation-and-contributing">Docs</a>
+</p>
+
+<p align="center">
+  <img src="docs/visual/framing/after/laptop-1440x900-day.jpg" alt="Day one on a laptop: the players sit around the campfire, the chat is on the left and the discussion panel with every seat is on the right" width="100%">
+</p>
+<p align="center"><sub>Day discussion on a laptop: the camp around the fire, chat on screen, every seat in the side panel (Vietnamese interface).</sub></p>
+
+<p align="center">
+  <img src="docs/visual/framing/after/phone-390x844-day.jpg" alt="Day discussion on a phone: players seated around the fire, the latest chat message and the seat list" width="30%">
+  &nbsp;
+  <img src="docs/visual/framing/after/phone-390x844-night-wolf.jpg" alt="Night on a phone as a Wolf: the pack picks a victim together and talks in its private chat" width="30%">
+  &nbsp;
+  <img src="docs/ui/screens-picker/phone-editor-shark.png" alt="Choosing a costume on a phone in the lobby: the goofy shark outfit, style and colour" width="30%">
+</p>
+<p align="center"><sub>On a phone: day discussion · night, the Wolves choose in private · picking a costume in the lobby.</sub></p>
 
 ## What's in the game
 
