@@ -135,6 +135,7 @@ ul { padding: 0; list-style: none; }
 .chat-overlay.compact .co-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; line-clamp: 1; overflow: hidden; }
 .chat-overlay.compact.lines-2 .co-text { -webkit-line-clamp: 2; line-clamp: 2; }
 .chat-overlay.compact .btn.icon { width: 44px; min-height: 44px; padding: 0; }
+.toast-note { position: fixed; left: 50%; bottom: max(var(--sp-4), env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 40; max-width: min(92vw, 420px); padding: var(--sp-2) var(--sp-3); border-radius: var(--r-2); font-size: var(--fs-1); text-align: center; }
 .settings { display: flex; flex-direction: column; gap: var(--sp-4); }
 .setting-group { display: flex; flex-direction: column; gap: var(--sp-2); }
 .setting-group .group-title { font-size: var(--fs-2); font-weight: 700; margin: 0; }

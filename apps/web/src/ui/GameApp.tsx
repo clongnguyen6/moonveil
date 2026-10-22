@@ -23,6 +23,7 @@ import { ChatSheet, ConnOverlay, EndPanel, GhostBar, HelpSheet, RoleCardSheet, V
 import { SettingsPanel } from './screens/Settings.tsx';
 import { SessionContext, useSession, useSessionState } from './session-context.ts';
 import { errorText, screenError, stampError } from './errors.ts';
+import { applyTheme, themeNote, useThemeNote } from './theme/theme.ts';
 import { useMic } from './voice/mic.ts';
 
 export function GameApp({ session, children }: { session: Session; children?: React.ReactNode }) {
@@ -66,6 +67,10 @@ function Root() {
   const { toasts, overlay, live } = useAnnouncer(view, g, t);
   useLookRules(s, view, t);
   const wake = useWakeLock(!!view && view.status === 'playing');
+  // Theme (Settings): UI accents + scene overlay together, consistent on load failure (ui/theme/theme.ts)
+  useEffect(() => { void applyTheme(settings.theme); }, [settings.theme]);
+  const themeFailed = useThemeNote();
+  useEffect(() => { if (themeFailed) { const id = setTimeout(() => themeNote.clear(), 8000); return () => clearTimeout(id); } }, [themeFailed]);
   // Heavy-run rule: automation sets globalThis.__MOONVEIL_SCENE = 'off' (or MOONVEIL_SCENE for the scene package); the
   // shell skips the mount entirely so no software WebGL runs. 'low' | 'high' are passed to the scene (visual-7).
   const sceneKnob = (globalThis as { __MOONVEIL_SCENE?: string }).__MOONVEIL_SCENE;
@@ -100,6 +105,7 @@ function Root() {
         </div>
       )}
       <Toasts items={toasts} />
+      {themeFailed && <p className="toast-note" role="status" data-testid="theme-note">{t('themeFailed')}</p>}
       {/* Polite live region: phase titles + public announcements only (same text as toasts/overlays, never role data). */}
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true" data-testid="live">{live}</div>
       {sheet === 'role' && g && view && <RoleCardSheet view={view} g={g} onClose={closeSheet} />}

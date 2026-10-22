@@ -10,6 +10,7 @@ export const vi: Strings = {
   setSound: 'Âm báo', setSoundLine: 'Tiếng ngắn khi đêm xuống, trời sáng và khi mở bỏ phiếu.',
   setScene: 'Hiện cảnh trại', setSceneLine: 'Tắt nếu máy yếu; ván chơi vẫn như thường.',
   setAmbience: 'Tiếng trại', setAmbienceLine: 'Tiếng suối, lửa và đêm ở nền.',
+  setTheme: 'Giao diện', setThemeLine: 'Chỉ trên thiết bị này. Halloween dễ thương thêm chút trang trí theo mùa.', themeNormal: 'Bình thường', themeHalloween: 'Halloween dễ thương', themeFailed: 'Không tải được giao diện Halloween. Đang dùng Bình thường; thử lại trong Cài đặt.', 
   setMotion: 'Hiệu ứng chuyển động', setMotionLine: '"Giảm" hạn chế tối đa các hiệu ứng chuyển cảnh.',
   setModerator: 'Quản trò', setNarration: 'Gợi ý lời dẫn', setNarrationLine: 'Nên nói gì ở mỗi bước, hiện trong bàn quản trò.',
   entryWhere: 'Bạn chơi ở đâu?', entryOnline: 'Trực tuyến, nói chuyện trong game', entryOnlineLine: 'Mỗi người vào thoại từ thiết bị của mình.',

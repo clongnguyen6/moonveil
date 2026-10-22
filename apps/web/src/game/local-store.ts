@@ -12,6 +12,8 @@ export interface Settings {
   ambience: boolean;
   /** Camp scene canvas. Off = panels only (low-end devices, accessibility, automated checks). */
   scene: boolean;
+  /** Cosmetic theme, this device only (docs/ui/THEMES.md). Default 'normal'; never from the server, no calendar. */
+  theme: 'normal' | 'halloween';
 }
 
 const SETTINGS_KEY = 'moonveil.ui.settings';
@@ -30,7 +32,8 @@ function read<T>(key: string, fallback: T): T {
   }
 }
 
-let settings: Settings = read<Settings>(SETTINGS_KEY, { lang: detectLang(), sound: true, reducedMotion: 'system', modNarration: true, ambience: false, scene: true });
+let settings: Settings = read<Settings>(SETTINGS_KEY, { lang: detectLang(), sound: true, reducedMotion: 'system', modNarration: true, ambience: false, scene: true, theme: 'normal' });
+if (settings.theme !== 'halloween') settings = { ...settings, theme: 'normal' };   // anything else stored reads as Normal
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((fn) => fn());
 

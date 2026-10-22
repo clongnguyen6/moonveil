@@ -9,6 +9,7 @@ export const en = {
   setSound: 'Sound cues', setSoundLine: 'Short sounds when night falls, at dawn and when a vote opens.',
   setScene: 'Show the camp scene', setSceneLine: 'Turn off on a slow phone; the game works the same without it.',
   setAmbience: 'Camp sounds', setAmbienceLine: 'Stream, fire and night ambience in the background.',
+  setTheme: 'Theme', setThemeLine: 'Only on this device. Cute Halloween adds a little seasonal decoration.', themeNormal: 'Normal', themeHalloween: 'Cute Halloween', themeFailed: 'Could not load the Halloween theme. Staying on Normal; try again in Settings.', 
   setMotion: 'Animations', setMotionLine: '"Reduced" keeps transitions to a minimum.',
   setModerator: 'Moderator', setNarration: 'Narration cues', setNarrationLine: 'What to say at each step, shown in the console.',
   entryWhere: 'Where are you playing?', entryOnline: 'Online, voices in the game', entryOnlineLine: 'Each player joins voice from their own device.',

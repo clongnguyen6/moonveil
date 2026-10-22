@@ -35,6 +35,13 @@ export function SettingsPanel({ moderator = false, compact = false }: { moderato
         {!compact && (
           <>
             <Toggle id="set-scene" label={t('setScene')} line={t('setSceneLine')} checked={s.scene} onChange={(v) => set({ scene: v })} />
+            <label className="setting row" htmlFor="set-theme">
+              <span className="meta"><span className="lbl">{t('setTheme')}</span><span className="line">{t('setThemeLine')}</span></span>
+              <select id="set-theme" className="input" style={{ width: 'auto' }} value={s.theme} onChange={(e) => set({ theme: e.target.value as Settings['theme'] })} data-testid="set-theme">
+                <option value="normal">{t('themeNormal')}</option>
+                <option value="halloween">{t('themeHalloween')}</option>
+              </select>
+            </label>
             <Toggle id="set-ambience" label={t('setAmbience')} line={t('setAmbienceLine')} checked={s.ambience} onChange={(v) => set({ ambience: v })} />
             <label className="setting row" htmlFor="set-motion">
               <span className="meta"><span className="lbl">{t('setMotion')}</span><span className="line">{t('setMotionLine')}</span></span>

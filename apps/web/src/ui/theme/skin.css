@@ -114,3 +114,4 @@ kbd.code { font-family: ui-monospace, Menlo, monospace; letter-spacing: .12em; b
 @keyframes pulse { 0%, 100% { opacity: .6 } 50% { opacity: 1 } }
 .overlay-announce { background: radial-gradient(60% 60% at 50% 40%, rgba(0,0,0,.55), rgba(0,0,0,.75)); color: var(--ink); }
 .overlay-announce h2 { font-size: var(--fs-5); }
+.toast-note { background: var(--surface-3); color: var(--ink); border: 1px solid var(--line-strong); box-shadow: var(--shadow-2); }

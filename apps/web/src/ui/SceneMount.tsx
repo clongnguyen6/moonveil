@@ -2,7 +2,8 @@
 // (toSceneInput copies them); poses/speaking come from the session as the server filtered them.
 import { type SceneHandle, fromWirePoses, mountScene, toSceneInput } from '@moonveil/scene';
 import { useEffect, useRef } from 'react';
-import { useSettings } from '../game/local-store.ts';
+import { settingsStore, useSettings } from '../game/local-store.ts';
+import { attachThemeScene } from './theme/theme.ts';
 import { useLookDraft } from '../game/look-draft.ts';
 import { sceneAppearance } from '@moonveil/scene';
 import { projection } from '../game/select.ts';
@@ -22,17 +23,18 @@ export function SceneMount({ s, topbarRef, micOn }: { s: SessionState; topbarRef
     if (!slot.current || !view) return;
     // debug read hooks (debugAppearance) only when the check environment asks for them; never in production
     const debug = (globalThis as { __MOONVEIL_SCENE_DEBUG?: boolean }).__MOONVEIL_SCENE_DEBUG === true;
-    // DEV-ONLY Halloween preview: the stub dev page sets data-theme for ?theme=halloween (ui/dev/main.tsx); production never
-    // does, the DEV guard drops this branch from the build, and the scene itself honours `theme` only in a dev build.
-    const theme = import.meta.env.DEV && document.documentElement.dataset.theme === 'halloween' ? { theme: 'halloween' as const } : {};
-    const h = mountScene(slot.current, { input: toSceneInput(view, g), ...(debug ? { debug: true } : {}), ...theme });
+    // Theme (Settings, this device only): passed at mount so a chosen overlay starts loading early; the theme controller
+    // (ui/theme/theme.ts) then confirms it with setTheme and keeps the UI accents consistent with what the scene shows.
+    const h = mountScene(slot.current, { input: toSceneInput(view, g), ...(debug ? { debug: true } : {}), theme: settingsStore.get().theme });
     scene.current = h;
+    attachThemeScene(h);
     (globalThis as { __moonveilScene?: SceneHandle }).__moonveilScene = h; // test hook (debugAppearance / localPose)
     const off = h.on('move', (pose) => session.send({ t: 'move', x: Math.round(pose.x), y: Math.round(pose.y), facing: pose.facing, moving: pose.moving }));
     const offPoses = session.onPoses?.((poses) => h.setPoses(fromWirePoses(poses, 'world')));
     return () => {
       off();
       offPoses?.();
+      attachThemeScene(null);
       h.destroy();
       scene.current = null;
       delete (globalThis as { __moonveilScene?: SceneHandle }).__moonveilScene;

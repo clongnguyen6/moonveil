@@ -513,17 +513,40 @@ await page.getByTestId('go-home').click(); await page.waitForTimeout(80);
 ok('Back to start: entry, no overlay, no note', (await page.getByTestId('entry').count()) === 1 && (await page.locator('[data-testid=conn][data-status=ended], [data-testid=left-note]').count()) === 0);
 await open('day');
 
-// 11o. Halloween preview theme (dev only): off by default, on only with ?theme=halloween; the night header (incl. the
-// flourish) is identical for every seat.
-await open('night-villager', '&lang=en');
-ok('halloween: off by default (no data-theme)', (await page.evaluate(() => document.documentElement.dataset.theme ?? null)) === null);
-const nightHead = async (sc) => { await open(sc, '&lang=en&theme=halloween'); await page.waitForTimeout(150); return page.evaluate(() => { const t = document.querySelector('.dock .panel-title'); return { theme: document.documentElement.dataset.theme, before: getComputedStyle(t, '::before').content, h: Math.round(t.getBoundingClientRect().height), surface: getComputedStyle(t).getPropertyValue('--surface').trim(), accent: getComputedStyle(t).getPropertyValue('--accent').trim() }; }); };
+// 11o. Theme setting (Settings → Theme, this device only; docs/ui/THEMES.md). Scene off here: the UI side alone.
+// Default Normal with no Halloween request; ?theme= shortcut; persisted; toggles apply/remove the stylesheet; a failed
+// stylesheet load keeps Normal, reverts the setting and shows a note; retry works; night header identical for every seat.
+const themeState = () => page.evaluate(() => ({ theme: document.documentElement.dataset.theme ?? 'normal', link: !!document.getElementById('moonveil-theme-halloween'), setting: JSON.parse(localStorage.getItem('moonveil.ui.settings') ?? '{}').theme ?? 'normal', note: !!document.querySelector('[data-testid=theme-note]') }));
+const reqs = []; const onReq = (r) => { if (/halloween/i.test(r.url())) reqs.push(r.url()); };
+page.on('request', onReq);
+await page.evaluate(() => localStorage.removeItem('moonveil.ui.settings'));
+await open('night-villager', '&lang=en'); await page.waitForTimeout(300);
+ok('theme: default Normal, no Halloween stylesheet or chunk requested', JSON.stringify(await themeState()) === JSON.stringify({ theme: 'normal', link: false, setting: 'normal', note: false }) && reqs.length === 0, JSON.stringify({ s: await themeState(), reqs }));
+const nightHead = async (sc) => { await open(sc, '&lang=en&theme=halloween'); await page.waitForFunction(() => document.documentElement.dataset.theme === 'halloween', null, { timeout: 5000 }).catch(() => {}); return page.evaluate(() => { const t = document.querySelector('.dock .panel-title'); return { theme: document.documentElement.dataset.theme, before: getComputedStyle(t, '::before').content, h: Math.round(t.getBoundingClientRect().height), surface: getComputedStyle(t).getPropertyValue('--surface').trim(), accent: getComputedStyle(t).getPropertyValue('--accent').trim() }; }); };
 const hv = await nightHead('night-villager'), hw = await nightHead('night-wolf');
-ok(`halloween: on with ?theme=halloween; night header flourish identical for villager and wolf (${hv.before})`, hv.theme === 'halloween' && /🦇/.test(hv.before) && JSON.stringify(hv) === JSON.stringify(hw), JSON.stringify({ hv, hw }));
-ok(`halloween: the night panel itself uses the Halloween night tokens (surface ${hv.surface}, accent ${hv.accent})`, /rgba\(30, 22, 52|rgba\(28, 24, 52/.test(hv.surface) && hv.accent.toLowerCase() === '#f08a24', JSON.stringify(hv));
-await open('day', '&lang=en&theme=halloween'); await page.waitForTimeout(150);
-ok('halloween: day header shows the pumpkin', /🎃/.test(await page.evaluate(() => getComputedStyle(document.querySelector('.dock .panel-title'), '::before').content)));
-await open('day');
+ok(`theme: ?theme=halloween applies it; night header (incl. ${hv.before}) identical for villager and wolf`, hv.theme === 'halloween' && /🦇/.test(hv.before) && JSON.stringify(hv) === JSON.stringify(hw), JSON.stringify({ hv, hw }));
+ok(`theme: the night panel uses the Halloween night tokens (surface ${hv.surface}, accent ${hv.accent})`, /rgba\(28, 24, 52/.test(hv.surface) && hv.accent.toLowerCase() === '#f08a24', JSON.stringify(hv));
+await open('day', '&lang=en'); await page.waitForFunction(() => document.documentElement.dataset.theme === 'halloween', null, { timeout: 5000 }).catch(() => {});
+ok('theme: persisted across a reload without the shortcut; day header shows the pumpkin', (await themeState()).setting === 'halloween' && (await themeState()).theme === 'halloween' && /🎃/.test(await page.evaluate(() => getComputedStyle(document.querySelector('.dock .panel-title'), '::before').content)));
+await page.getByTestId('open-settings').click(); await page.waitForTimeout(150);
+await page.getByTestId('set-theme').selectOption('normal'); await page.waitForTimeout(200);
+ok('theme: Settings → Normal removes the stylesheet and data-theme at once', JSON.stringify(await themeState()) === JSON.stringify({ theme: 'normal', link: false, setting: 'normal', note: false }), JSON.stringify(await themeState()));
+await page.getByTestId('set-theme').selectOption('halloween'); await page.waitForFunction(() => document.documentElement.dataset.theme === 'halloween', null, { timeout: 5000 }).catch(() => {});
+ok('theme: Settings → Cute Halloween applies it again without a reload', (await themeState()).theme === 'halloween' && (await themeState()).link);
+await page.getByTestId('set-theme').selectOption('normal'); await page.waitForTimeout(200);
+// failed load: block the stylesheet, choose Halloween → stays Normal, setting reverts, note shown; then retry works
+await page.route(/halloween.*\.css/, (r) => r.abort());
+await page.getByTestId('set-theme').selectOption('halloween'); await page.waitForTimeout(1200);
+const failed = await themeState();
+ok('theme: stylesheet load failure → UI stays Normal, setting back to Normal, short note shown', failed.theme === 'normal' && !failed.link && failed.setting === 'normal' && failed.note && (await page.getByTestId('set-theme').inputValue()) === 'normal', JSON.stringify(failed));
+await page.unroute(/halloween.*\.css/);
+for (let i = errs.length - 1; i >= 0; i--) if (/net::ERR_FAILED/.test(errs[i])) errs.splice(i, 1);   // the deliberately blocked stylesheet
+await page.getByTestId('set-theme').selectOption('halloween'); await page.waitForFunction(() => document.documentElement.dataset.theme === 'halloween', null, { timeout: 5000 }).catch(() => {});
+ok('theme: choosing it again after the failure retries and applies (note cleared)', (await themeState()).theme === 'halloween' && !(await themeState()).note);
+await page.keyboard.press('Escape');
+page.off('request', onReq);
+await open('day', '&theme=normal');
+ok('theme: reset to Normal for the remaining checks', (await themeState()).theme === 'normal' && (await themeState()).setting === 'normal');
 
 // 11k. Chat overlay: always visible, names + content, channel labels, isolation, same footprint for every seat.
 // Sender consistency: every rendered message's name AND avatar come from the seat that sent it (stub chat log `from`).
