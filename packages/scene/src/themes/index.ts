@@ -7,12 +7,3 @@ export type SceneTheme = 'halloween';
 export function activeTheme(option: unknown, devBuild: boolean): SceneTheme | null {
   return devBuild && option === 'halloween' ? 'halloween' : null;
 }
-
-export function isDevBuild(): boolean {
-  return (import.meta as { env?: { DEV?: boolean } }).env?.DEV === true;
-}
-
-// Night colours the theme changes (camp look otherwise unchanged). Base: ambient 0x3a3c92, wash 0x6a5aa8.
-export const THEME_NIGHT: Record<SceneTheme, { ambient: number; wash: number }> = {
-  halloween: { ambient: 0x46346f, wash: 0x7c4c9c },   // slightly plum
-};

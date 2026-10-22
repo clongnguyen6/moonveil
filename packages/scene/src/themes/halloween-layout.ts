@@ -76,17 +76,22 @@ export function halloweenLayout(map: MapLayout): HalloweenLayout {
     const a = apex(p), b = apex(q), len = Math.hypot(b.x - a.x, b.y - a.y), sag = Math.min(40, len * 0.12);
     const m = Math.max(4, Math.min(8, Math.round(len / 48)));
     const s = { a, b, sag };
-    const bulbs: Bulb[] = Array.from({ length: m }, (_, j) => ({ ...wireAt(s, (j + 0.5) / m), color: (j + k) % 2 ? 'purple' : 'orange' }));
+    const bulbs: Bulb[] = Array.from({ length: m }, (_, j) => ({ ...wireAt(s, (j + 0.5) / m), color: (j + k) % 3 === 1 ? 'purple' : 'orange' }));   // amber majority, purple accent (2:1)
     return { ...s, bulbs, ghosts: [wireAt(s, k % 2 ? 0.38 : 0.62)] };
   });
 
-  // dry leaves on the ground: not on the fire-ring dirt, not in the stream
+  // dry leaves: a few small clusters at the camp's edge (beside outer tents and toward the forest), not confetti over
+  // the camp; never on the fire-ring dirt, the seated ring or the stream (PALETTE.md: 30-60 leaves in 5-8 clusters)
   const leaves: Leaf[] = [];
-  for (let i = 0; i < 400 && leaves.length < 150; i++) {
-    const x = rng.range(220, 1480), y = rng.range(260, 1180);
-    if (Math.abs(x - streamX(y)) < 95) continue;
+  const centres: Pt[] = [
+    ...map.tents.filter((_, i) => i % 3 === 0).map((t) => ({ x: t.x - 70, y: t.y + 20 })),
+    { x: FIRE.x - 420, y: FIRE.y + 260 }, { x: FIRE.x + 330, y: FIRE.y + 300 }, { x: FIRE.x - 120, y: FIRE.y + 380 },
+  ].slice(0, 8);
+  for (const c of centres) for (let i = 0, made = 0; i < 20 && made < 7; i++) {
+    const x = c.x + rng.range(-45, 45), y = c.y + rng.range(-24, 24);
+    if (Math.abs(x - streamX(y)) < 95 || inSeatRing(map, { x, y })) continue;
     if (((x - FIRE.x) / FIRE_DIRT.rx) ** 2 + ((y - FIRE.y) / FIRE_DIRT.ry) ** 2 < 1) continue;
-    leaves.push({ x, y, variant: (i % 3) as 0 | 1 | 2, rot: rng.range(0, Math.PI * 2), scale: rng.range(0.7, 1.2) });
+    leaves.push({ x, y, variant: (leaves.length % 3) as 0 | 1 | 2, rot: rng.range(0, Math.PI * 2), scale: rng.range(0.7, 1.15) }); made++;
   }
   return { pumpkins, strands, leaves };
 }

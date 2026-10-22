@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { activeTheme, isDevBuild } from '../src/themes/index.ts';
+import { activeTheme } from '../src/themes/index.ts';
 import { halloweenLayout, inSeatRing, nearSeat, onSeat, pumpkinBox, seatBox, boxesHit, SEAT_CLEAR, FIRE_DIRT } from '../src/themes/halloween-layout.ts';
 import { createMap, FIRE, isWalkable, streamX, MIN_PLAYERS, MAX_PLAYERS } from '../src/map.ts';
 import { toSceneInput } from '../src/adapter.ts';
@@ -9,7 +9,6 @@ test('the theme is dev-only: never active outside a dev build, only for the exac
   assert.equal(activeTheme('halloween', false), null, 'production build');
   assert.equal(activeTheme('halloween', true), 'halloween');
   for (const v of [undefined, null, '', 'Halloween', 'xmas', true, 1]) assert.equal(activeTheme(v, true), null);
-  assert.equal(isDevBuild(), false, 'node / non-Vite: off');
   const input = toSceneInput({ me: { seat: 's1', kind: 'player' }, status: 'lobby', phaseEndsAt: null, voice: [], players: [{ seat: 's1', name: 'A', connected: true, appearance: { color: 'ember', hat: 'none' } }] }, null);
   assert.ok(!('theme' in input), 'the wire never carries a theme');
 });
@@ -31,6 +30,8 @@ test('decorations keep clear of seats, speaking rings, the seated ring, the fire
       assert.ok(!inSeatRing(map, p) && !nearSeat(map, p, 120), `${n}: string lights / ornament near the seats`);
       assert.ok(p.y < FIRE.y - 150, `${n}: string lights hang behind the camp`);
     }
+    assert.ok(L.leaves.length >= 30 && L.leaves.length <= 60, `${n}: sparse leaf clusters (${L.leaves.length})`);
+    assert.ok(L.strands.every((s) => s.bulbs.filter((b) => b.color === 'orange').length > s.bulbs.length / 2), `${n}: amber-majority lights`);
     for (const l of L.leaves) {
       assert.ok(((l.x - FIRE.x) / FIRE_DIRT.rx) ** 2 + ((l.y - FIRE.y) / FIRE_DIRT.ry) ** 2 >= 1, `${n}: leaf on the fire ring`);
       assert.ok(Math.abs(l.x - streamX(l.y)) >= 95, `${n}: leaf in the stream`);

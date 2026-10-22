@@ -17,6 +17,9 @@ export const HALLOWEEN = {
   leaves: [0xd9772a, 0xb0582a, 0xe3a838] as const,
 } as const;
 const P = HALLOWEEN;
+// Night colours (scene base: ambient 0x3a3c92, wash 0x6a5aa8). Warmer plum kept to the night shadows; the stream stays
+// blue and the grass green (PALETTE.md: plum accent #302436, no global purple wash).
+export const HALLOWEEN_NIGHT = { ambient: 0x40387c, wash: 0x5c3a5e } as const;
 const soft = (c: number, w = 1.6) => ({ width: w, color: c, alpha: 0.7, join: 'round' as const, cap: 'round' as const });
 
 // Pumpkin, base at (0,0), ~28 wide. variant 0: carved grin, 1: happy closed eyes, 2: plain.
@@ -74,6 +77,8 @@ function drawLeaves(layout: HalloweenLayout): Graphics {
 
 export class HalloweenOverlay {
   readonly animate: boolean;
+  readonly id = 'halloween';
+  readonly night = HALLOWEEN_NIGHT;
   private bank: TextureBank;
   private tex: { pumpkin: Baked[]; face: Baked[]; ghost: Baked } | null = null;
   private owned: { parent: Container; child: Container }[] = [];
