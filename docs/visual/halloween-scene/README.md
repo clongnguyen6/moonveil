@@ -1,5 +1,8 @@
 # "Cute Halloween" scene preview (dev-only, for direction review)
 
+Status: direction approved. Since this evidence the theme is a player opt-in scene option (`theme`, `setTheme`, lazy
+chunk; docs/visual/MOUNT.md "Theme"). The notes below describe the dev-only preview at the time of capture.
+
 Code: `packages/scene/src/themes/` (branch `visual-halloween`). Switch: scene dev page `?theme=halloween`
 (SceneOptions.theme). Honoured only in a Vite dev build; every theme reference sits behind `import.meta.env.DEV`, so a
 production build contains none of it (web app production build: 0 "halloween", 0 overlay colour values; controls found).

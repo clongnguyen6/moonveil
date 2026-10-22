@@ -46,6 +46,19 @@ While the player edits their look, call `scene.setLocalAppearanceOverride(draft)
 
 Test hook, gated: with `mountScene(slot, { debug: true })`, `scene.debugAppearance(seatId)` returns the appearance that avatar currently renders (`null` for unknown seats or when `debug` is off). Not a production surface; the harness enables it.
 
+## Theme (player opt-in, local only)
+
+- `mountScene(slot, { theme: 'normal' | 'halloween' })`, default `'normal'`. Change at runtime without remounting:
+  `await scene.setTheme('halloween' | 'normal')` (later calls win; resolves once shown, or if the overlay failed to
+  load, in which case the scene stays normal and a warning is logged).
+- The shell owns the choice (Settings "Theme", persisted locally). Never from the wire: `SceneInput` has no theme, the
+  server cannot set it, and it is never forced room-wide or activated by date.
+- `'halloween'` is a separate lazy chunk (`themes/halloween.ts`, dynamic import on first selection). Default users neither
+  download nor execute it; the default bundle carries only the tiny switch (`themes/index.ts`).
+- `'normal'` removes every decoration, glow, light and the plum night. Toggling back re-attaches without reloading.
+- Unchanged guarantees: static on `low` and reduced motion; labels above every decoration; seats, speaking rings and the
+  seated ring kept clear for 4-16 players (`test/halloween.test.ts`). Evidence: `docs/visual/halloween-scene/`.
+
 ## Resize and safe areas
 
 - The canvas fills the slot (`position:absolute; inset:0` as in layout.css). The scene observes the slot with `ResizeObserver` and resizes itself; `scene.resize()` exists for shells that prefer to drive it.

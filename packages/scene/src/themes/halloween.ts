@@ -1,4 +1,5 @@
-// "Cute Halloween" preview overlay (DEV-ONLY, see themes/index.ts). Loaded with a dynamic import behind the dev guard.
+// "Cute Halloween" theme overlay (player opt-in, see themes/index.ts). A separate lazy chunk: the scene imports this
+// module only when the theme is first chosen.
 // Everything is baked once; sprites are static. Per frame: nothing on `low` or reduced motion unless the night level
 // changed; on `high`, gentle pumpkin flicker, bulb twinkle and ornament sway.
 // Layers: pumpkins, ornaments and wires in the world (depth-sorted); leaves on the ground; glows in `emissive`;
@@ -9,7 +10,7 @@ import type { Lighting } from '../lighting.ts';
 import type { World } from '../world.ts';
 import { halloweenLayout, type HalloweenLayout } from './halloween-layout.ts';
 
-// Working palette (until docs/visual/halloween/PALETTE.md lands): warm, cosy, a little mysterious.
+// Palette (docs/visual/halloween/PALETTE.md, art-halloween 5333b83): warm, cosy, a little mysterious. One place to swap.
 export const HALLOWEEN = {
   pumpkin: 0xf08a24, pumpkinShade: 0xc9661b, pumpkinLight: 0xffb35a, stem: 0x6b8a3a, carve: 0x4a2412, carveGlow: 0xffd36b,
   bulbOrange: 0xffa040, bulbPurple: 0xb07ae8, wire: 0x3a2e2a,
