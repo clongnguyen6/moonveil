@@ -15,6 +15,8 @@ import type { CameraMode, Pose, PoseFrame, SafeArea, SceneAppearance, SceneHandl
 import { resolveQuality, renderProfile, readQualityEnv } from './quality.ts';
 import { layoutLabels, STAGE_ORDER, labelsAboveEffects, type LabelRect, type StageLayer } from './labels.ts';
 import { frameCamera } from './framing.ts';
+import { activeTheme, isDevBuild, THEME_NIGHT } from './themes/index.ts';
+import type { HalloweenOverlay } from './themes/halloween.ts';
 import { playersDiff, spawnPoint, effectiveAppearance } from './reconcile.ts';
 
 const SMALL_LABEL_FROM = 13;   // seats from which labels drop one size step (12 → 11 px)
@@ -32,7 +34,7 @@ function offHandle(input: SceneInput): SceneHandle {
   return {
     ready: Promise.resolve(), quality: 'off',
     setInput(next) { inp = next; }, setPoses() {}, setSpeaking() {}, on() { return () => {}; }, emote() {}, setSpeakingLocal() {},
-    async setAudio() {}, setCamera() {}, setSafeArea() {}, resize() {}, setLocalAppearanceOverride() {}, debugAppearance: () => null, debugCamera: () => null, debugLabels: () => null,
+    async setAudio() {}, setCamera() {}, setSafeArea() {}, resize() {}, setLocalAppearanceOverride() {}, debugAppearance: () => null, debugCamera: () => null, debugLabels: () => null, debugTheme: () => null,
     time: () => 0, perf: () => null, perfReset() {}, walkLocal() {}, localPose: () => null, night: () => (inp.phase === 'night' ? 1 : 0), destroy() {},
   };
 }
@@ -69,6 +71,10 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   let walkLocalReq: { x: number; y: number } | null = null;
   let emoteReq: string | null = null;
   const ambience = new Ambience();
+  const theme = activeTheme(opts.theme, isDevBuild());
+  const nightColors = theme ? THEME_NIGHT[theme] : { ambient: 0x3a3c92, wash: 0x6a5aa8 };
+  let themeCtor: (new (bank: TextureBank, animate: boolean) => HalloweenOverlay) | null = null;
+  let overlay: HalloweenOverlay | null = null;
 
   const ready = (async () => {
     const a = new Application();
@@ -77,8 +83,11 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       resolution: low ? 1 : Math.min(window.devicePixelRatio || 1, opts.resolution ?? 2), autoDensity: true,
       preference: 'webgl', powerPreference: 'high-performance',
     });
+    // dev-only theme overlay: imported only behind the dev-build guard, so production bundles never contain it
+    const ThemeOverlay = theme === 'halloween' && import.meta.env.DEV ? (await import('./themes/halloween.ts')).HalloweenOverlay : null;
     if (destroyed) { a.destroy(true); return; }
     app = a;
+    themeCtor = ThemeOverlay;
     a.ticker.maxFPS = x.fpsCap;
     // no frames while the document is hidden (background tab, headless page marked hidden)
     onVis = () => { if (document.hidden) a.ticker.stop(); else a.ticker.start(); };
@@ -123,7 +132,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     emissive = new Container(); fx = new Container();
     lighting = new Lighting(a.renderer, bank.light);
     vignette = new Sprite(bank.vignette); vignette.alpha = 0.9; vignette.visible = x.vignette;
-    nightTint = new Sprite(bank.light); nightTint.tint = 0x6a5aa8; nightTint.alpha = 0; nightTint.anchor.set(0.5); // soft purple wash at night
+    nightTint = new Sprite(bank.light); nightTint.tint = nightColors.wash; nightTint.alpha = 0; nightTint.anchor.set(0.5); // soft purple wash at night
     labelLayer = new Container(); labelLayer.sortableChildren = true;
     leaders = new Graphics(); leaders.zIndex = 100000; labelLayer.addChild(leaders);
     const layers: Record<StageLayer, Container> = { world: world.root, lighting: lighting.out, nightTint, emissive, fx, labels: labelLayer, vignette };
@@ -139,6 +148,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     postBulbs = world.lanternBulbs.map((p) => { const s = new Sprite(bank.dot); s.anchor.set(0.5); s.blendMode = 'add'; s.tint = 0xffe0a0; s.position.set(p.x, p.y); s.scale.set(0.6); s.alpha = 0; emissive.addChild(s); return s; });
     for (let i = 0; i < map.tents.length; i++) lanternLevel.push(0);
     fire = new Fire(emissive, fx, bank); fireflies = new Fireflies(emissive, bank); glints = new WaterGlints(emissive, bank); fog = new Fog(fx, bank);
+    if (themeCtor) { overlay = new themeCtor(bank, !low && !reducedMotion); overlay.attach(world, emissive, lighting); }   // static on low / reduced motion
 
     inputCtl = new Input(host);
     inputCtl.onSpeakKey = (down) => { localSpeaking = down; };
@@ -274,7 +284,9 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     world = new World(bank, map, x.ripples);
     a.stage.addChildAt(world.root, 0); world.root.label = 'world';
     for (const av of avatars.values()) world.objects.addChild(av.root);
+    overlay?.detach();
     old.root.destroy({ children: true });
+    overlay?.attach(world, emissive, lighting);
     for (const l of tentLights) l.destroy(); for (const b of tentBulbs) b.destroy();
     tentLights = map.tents.map((tn) => { const l = lighting.addLight(0xffa858, 1.0, 0); l.position.set(tn.lanternAt.x, tn.lanternAt.y + 20); return l; });
     tentBulbs = map.tents.map((tn) => { const s = new Sprite(bank.dot); s.anchor.set(0.5); s.blendMode = 'add'; s.tint = 0xffd890; s.position.set(tn.x + 4, tn.y - 34); s.scale.set(0.5); s.alpha = 0; emissive.addChild(s); return s; });
@@ -387,6 +399,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       fog.level = moonL * 0.45; fog.update(t);
     }
     fire.update(t, low ? 0 : dt, mixColor(0xffffff, 0x5a6090, n));   // dt 0: flames animate, pools emit nothing
+    overlay?.update(t, moonL);
     lighting.ambient = ambientColor(n);
     nightTint.alpha = 0.16 * moonL;
     labelLayer.tint = mixColor(0xffffff, 0xc8ccf0, moonL);   // labels sit above the lightmap: a light moonlit tint, still readable
@@ -424,7 +437,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
 
   function ambientColor(nl: number): number {
     const s = smooth(nl);
-    const day = 0xffffff, dusk = 0xe8a070, night = 0x3a3c92;
+    const day = 0xffffff, dusk = 0xe8a070, night = nightColors.ambient;
     return s < 0.5 ? mixColor(day, dusk, s * 2) : mixColor(dusk, night, (s - 0.5) * 2);
   }
 
@@ -449,6 +462,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       if (av && eff) av.setAppearance(eff);   // in place: position, pose, facing, intent untouched; nothing emitted
     },
     debugAppearance(seat) { return opts.debug ? (avatars.get(seat)?.appearance ?? null) : null; },
+    debugTheme() { return opts.debug ? { theme, animate: !!overlay?.animate, counts: overlay?.counts() ?? null } : null; },
     debugLabels() {
       if (!opts.debug || !app) return null;
       const order = app.stage.children.map((c) => c.label);

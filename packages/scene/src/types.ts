@@ -60,6 +60,8 @@ export interface SceneOptions {
   quality?: 'off' | 'low' | 'high' | 'auto';
   labelLayout?: boolean | 'v1';
   debug?: boolean;                // enables debug read hooks (debugAppearance); off in production
+  /** DEV-ONLY preview overlay ('halloween'); ignored outside a Vite dev build. Never set from the wire (themes/index.ts). */
+  theme?: 'halloween';
   // Experimental cost knobs for A/B measurement (harness only; defaults = current behaviour).
   experimental?: { antialias?: boolean; fpsCap?: number; lightmapOnChange?: boolean; ripples?: boolean; vignette?: boolean };   // default true: clamp on screen, lift ≤ 1 label height, leader line when displaced, smaller labels at 13+ seats; 'v1' = first version (lift ≤ 3, no leaders); false = off (captures only)
 }
@@ -90,6 +92,8 @@ export interface SceneHandle {
   debugAppearance(seat: SeatId): SceneAppearance | null;
   // debug: camera scale, smallest on-screen camper name label (px) and the screen box of visible campers (not ghosts) incl. labels; null when debug is off
   // debug: stage layer order, whether name labels sit above every effect layer, and how many labels are in the label layer
+  // debug: active dev theme overlay, whether it animates (high, no reduced motion) and its decoration counts; null when debug is off
+  debugTheme(): { theme: string | null; animate: boolean; counts: { pumpkins: number; bulbs: number; ornaments: number; leaves: number } | null } | null;
   debugLabels(): { order: string[]; aboveEffects: boolean; labels: number; inLabelLayer: number } | null;
   debugCamera(): { scale: number; labelPx: number; view: { w: number; h: number }; safe: SafeArea; avatars: { x0: number; y0: number; x1: number; y1: number } | null } | null;
   // dev/test helpers
