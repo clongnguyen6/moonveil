@@ -1,0 +1,729 @@
+{
+ "shots": [
+  {
+   "file": "phone-390x844-lobby-high-before.png",
+   "theme": {
+    "theme": null,
+    "animate": false,
+    "counts": null
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "phone-390x844-lobby-high-halloween.png",
+   "theme": {
+    "theme": "halloween",
+    "animate": true,
+    "counts": {
+     "pumpkins": 6,
+     "bulbs": 15,
+     "ornaments": 2,
+     "leaves": 42
+    }
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "phone-390x844-campfire-day-high-before.png",
+   "theme": {
+    "theme": null,
+    "animate": false,
+    "counts": null
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "phone-390x844-campfire-day-high-halloween.png",
+   "theme": {
+    "theme": "halloween",
+    "animate": true,
+    "counts": {
+     "pumpkins": 6,
+     "bulbs": 15,
+     "ornaments": 2,
+     "leaves": 42
+    }
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "phone-390x844-campfire-night-high-before.png",
+   "theme": {
+    "theme": null,
+    "animate": false,
+    "counts": null
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "phone-390x844-campfire-night-high-halloween.png",
+   "theme": {
+    "theme": "halloween",
+    "animate": true,
+    "counts": {
+     "pumpkins": 6,
+     "bulbs": 15,
+     "ornaments": 2,
+     "leaves": 42
+    }
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "phone-390x844-lobby-low-before.png",
+   "theme": {
+    "theme": null,
+    "animate": false,
+    "counts": null
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "phone-390x844-lobby-low-halloween.png",
+   "theme": {
+    "theme": "halloween",
+    "animate": false,
+    "counts": {
+     "pumpkins": 6,
+     "bulbs": 15,
+     "ornaments": 2,
+     "leaves": 42
+    }
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "phone-390x844-campfire-day-low-before.png",
+   "theme": {
+    "theme": null,
+    "animate": false,
+    "counts": null
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "phone-390x844-campfire-day-low-halloween.png",
+   "theme": {
+    "theme": "halloween",
+    "animate": false,
+    "counts": {
+     "pumpkins": 6,
+     "bulbs": 15,
+     "ornaments": 2,
+     "leaves": 42
+    }
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "phone-390x844-campfire-night-low-before.png",
+   "theme": {
+    "theme": null,
+    "animate": false,
+    "counts": null
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "phone-390x844-campfire-night-low-halloween.png",
+   "theme": {
+    "theme": "halloween",
+    "animate": false,
+    "counts": {
+     "pumpkins": 6,
+     "bulbs": 15,
+     "ornaments": 2,
+     "leaves": 42
+    }
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "laptop-1440x900-lobby-high-before.png",
+   "theme": {
+    "theme": null,
+    "animate": false,
+    "counts": null
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "laptop-1440x900-lobby-high-halloween.png",
+   "theme": {
+    "theme": "halloween",
+    "animate": true,
+    "counts": {
+     "pumpkins": 6,
+     "bulbs": 15,
+     "ornaments": 2,
+     "leaves": 42
+    }
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "laptop-1440x900-campfire-day-high-before.png",
+   "theme": {
+    "theme": null,
+    "animate": false,
+    "counts": null
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "laptop-1440x900-campfire-day-high-halloween.png",
+   "theme": {
+    "theme": "halloween",
+    "animate": true,
+    "counts": {
+     "pumpkins": 6,
+     "bulbs": 15,
+     "ornaments": 2,
+     "leaves": 42
+    }
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "laptop-1440x900-campfire-night-high-before.png",
+   "theme": {
+    "theme": null,
+    "animate": false,
+    "counts": null
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "laptop-1440x900-campfire-night-high-halloween.png",
+   "theme": {
+    "theme": "halloween",
+    "animate": true,
+    "counts": {
+     "pumpkins": 6,
+     "bulbs": 15,
+     "ornaments": 2,
+     "leaves": 42
+    }
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "laptop-1440x900-lobby-low-before.png",
+   "theme": {
+    "theme": null,
+    "animate": false,
+    "counts": null
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "laptop-1440x900-lobby-low-halloween.png",
+   "theme": {
+    "theme": "halloween",
+    "animate": false,
+    "counts": {
+     "pumpkins": 6,
+     "bulbs": 15,
+     "ornaments": 2,
+     "leaves": 42
+    }
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "laptop-1440x900-campfire-day-low-before.png",
+   "theme": {
+    "theme": null,
+    "animate": false,
+    "counts": null
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "laptop-1440x900-campfire-day-low-halloween.png",
+   "theme": {
+    "theme": "halloween",
+    "animate": false,
+    "counts": {
+     "pumpkins": 6,
+     "bulbs": 15,
+     "ornaments": 2,
+     "leaves": 42
+    }
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "laptop-1440x900-campfire-night-low-before.png",
+   "theme": {
+    "theme": null,
+    "animate": false,
+    "counts": null
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  },
+  {
+   "file": "laptop-1440x900-campfire-night-low-halloween.png",
+   "theme": {
+    "theme": "halloween",
+    "animate": false,
+    "counts": {
+     "pumpkins": 6,
+     "bulbs": 15,
+     "ornaments": 2,
+     "leaves": 42
+    }
+   },
+   "labels": {
+    "order": [
+     "world",
+     "lighting",
+     "nightTint",
+     "emissive",
+     "fx",
+     "labels",
+     "vignette"
+    ],
+    "aboveEffects": true,
+    "labels": 8,
+    "inLabelLayer": 8
+   },
+   "ok": true
+  }
+ ],
+ "perf": [
+  {
+   "quality": "low",
+   "theme": "none",
+   "n": 40,
+   "frame": {
+    "avg": 125.43,
+    "p95": 155,
+    "max": 164
+   },
+   "update": {
+    "avg": 0.11,
+    "p95": 0.2,
+    "max": 0.3
+   },
+   "lightmap": {
+    "avg": 0,
+    "p95": 0,
+    "max": 0
+   },
+   "render": {
+    "avg": 0.4,
+    "p95": 0.5,
+    "max": 0.5
+   }
+  },
+  {
+   "quality": "low",
+   "theme": "halloween",
+   "n": 13,
+   "frame": {
+    "avg": 397.26,
+    "p95": 1122.1,
+    "max": 1122.1
+   },
+   "update": {
+    "avg": 0.21,
+    "p95": 0.5,
+    "max": 0.5
+   },
+   "lightmap": {
+    "avg": 0,
+    "p95": 0,
+    "max": 0
+   },
+   "render": {
+    "avg": 0.48,
+    "p95": 0.7,
+    "max": 0.7
+   }
+  },
+  {
+   "quality": "high",
+   "theme": "none",
+   "n": 17,
+   "frame": {
+    "avg": 350.33,
+    "p95": 989.3,
+    "max": 989.3
+   },
+   "update": {
+    "avg": 0.36,
+    "p95": 0.8,
+    "max": 0.8
+   },
+   "lightmap": {
+    "avg": 0.13,
+    "p95": 0.3,
+    "max": 0.3
+   },
+   "render": {
+    "avg": 0.45,
+    "p95": 1.1,
+    "max": 1.1
+   }
+  },
+  {
+   "quality": "high",
+   "theme": "halloween",
+   "n": 19,
+   "frame": {
+    "avg": 296.01,
+    "p95": 663.7,
+    "max": 663.7
+   },
+   "update": {
+    "avg": 0.46,
+    "p95": 2.8,
+    "max": 2.8
+   },
+   "lightmap": {
+    "avg": 0.13,
+    "p95": 0.4,
+    "max": 0.4
+   },
+   "render": {
+    "avg": 0.54,
+    "p95": 1.3,
+    "max": 1.3
+   }
+  }
+ ],
+ "reducedMotion": {
+  "theme": "halloween",
+  "animate": false,
+  "counts": {
+   "pumpkins": 6,
+   "bulbs": 15,
+   "ornaments": 2,
+   "leaves": 42
+  }
+ },
+ "ghosts": "laptop-1440x900-ghosts-{day,night}-high-halloween.png"
+}

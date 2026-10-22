@@ -33,7 +33,7 @@ try {
     const page = await cr.newPage(ctxOpts);
     page.on('pageerror', (e) => { failed = true; console.error('pageerror', tag, quality, e.message); });
     for (const [name, scene] of Object.entries(SCENES)) for (const theme of ['', 'halloween']) {
-      const m = await open(page, { scene, quality, ...(theme ? { theme } : {}) }, scene === 'night' ? 4500 : 3000);
+      const m = await open(page, { scene, quality, ...(theme ? { theme } : {}) }, scene === 'night' ? 6000 : 5000);   // phase banners have faded
       const file = `${tag}-${name}-${quality}-${theme ? 'halloween' : 'before'}.png`;
       await page.screenshot({ path: join(out, file) });
       const ok = m.labels.aboveEffects && (!theme || (m.theme.theme === 'halloween' && m.theme.animate === (quality === 'high')));
