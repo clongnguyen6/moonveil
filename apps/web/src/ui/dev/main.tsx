@@ -1,5 +1,6 @@
 // DEV ENTRY: UI against the in-browser rules stub. Not shipped. Served by vite at /src/ui/dev/index.html.
 //   ?scenario=<name>  ?lang=vi|en  ?bar=0 (hide dev bar)  ?live=1 (real-time timers + bots)  ?mode=moderator
+//   ?theme=halloween (UI accents preview; dev only)
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { settingsStore } from '../../game/local-store.ts';
@@ -12,6 +13,11 @@ const q = new URLSearchParams(location.search);
 const lang = q.get('lang');
 if (lang === 'vi' || lang === 'en') settingsStore.set({ lang });
 if (q.get('sound') === '0') settingsStore.set({ sound: false });
+// ?theme=halloween: "Cute Halloween" UI accents, PREVIEW ONLY (dev entry; the production entry never loads it).
+if (q.get('theme') === 'halloween') {
+  document.documentElement.dataset.theme = 'halloween';
+  void import('../theme/halloween.css');
+}
 const live = q.get('live') === '1';
 const name = (q.get('scenario') ?? 'lobby') as ScenarioName;
 const room = SCENARIOS.includes(name) ? scenario(name, live ? { speed: 1, autoBots: true } : {}) : makeRoom(q.get('mode') === 'moderator' ? 'moderator' : 'automatic', { speed: 1, autoBots: true });

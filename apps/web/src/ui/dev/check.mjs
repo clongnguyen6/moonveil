@@ -513,6 +513,17 @@ await page.getByTestId('go-home').click(); await page.waitForTimeout(80);
 ok('Back to start: entry, no overlay, no note', (await page.getByTestId('entry').count()) === 1 && (await page.locator('[data-testid=conn][data-status=ended], [data-testid=left-note]').count()) === 0);
 await open('day');
 
+// 11o. Halloween preview theme (dev only): off by default, on only with ?theme=halloween; the night header (incl. the
+// flourish) is identical for every seat.
+await open('night-villager', '&lang=en');
+ok('halloween: off by default (no data-theme)', (await page.evaluate(() => document.documentElement.dataset.theme ?? null)) === null);
+const nightHead = async (sc) => { await open(sc, '&lang=en&theme=halloween'); await page.waitForTimeout(150); return page.evaluate(() => { const t = document.querySelector('.dock .panel-title'); return { theme: document.documentElement.dataset.theme, before: getComputedStyle(t, '::before').content, h: Math.round(t.getBoundingClientRect().height), surface: getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() }; }); };
+const hv = await nightHead('night-villager'), hw = await nightHead('night-wolf');
+ok(`halloween: on with ?theme=halloween; night header flourish identical for villager and wolf (${hv.before})`, hv.theme === 'halloween' && /🦇/.test(hv.before) && JSON.stringify(hv) === JSON.stringify(hw), JSON.stringify({ hv, hw }));
+await open('day', '&lang=en&theme=halloween'); await page.waitForTimeout(150);
+ok('halloween: day header shows the pumpkin', /🎃/.test(await page.evaluate(() => getComputedStyle(document.querySelector('.dock .panel-title'), '::before').content)));
+await open('day');
+
 // 11k. Chat overlay: always visible, names + content, channel labels, isolation, same footprint for every seat.
 // Sender consistency: every rendered message's name AND avatar come from the seat that sent it (stub chat log `from`).
 const senderMismatches = () => page.evaluate(() => {

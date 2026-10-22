@@ -9,6 +9,9 @@ import { chromium, devices, webkit } from '@playwright/test';
 const port = process.env.WEB_PORT ?? '4401';
 const base = `http://127.0.0.1:${port}/src/ui/dev/index.html`;
 const withWebkit = process.argv.includes('--webkit');
+// THEME=halloween: the same audit with the dev-only Halloween preview theme on (?theme=halloween)
+const THEME = process.env.THEME ? `&theme=${process.env.THEME}` : '';
+console.log(`[theme] ${process.env.THEME ?? 'default'}`);
 console.log('[scene] off');
 const SCENARIOS = ['entry', 'lobby', 'role', 'night-wolf', 'night-seer', 'night-villager', 'witch', 'hunter', 'day', 'vote', 'defense', 'confirm', 'ghost', 'ended', 'moderator', 'moderator-day'];
 const SHEETS = ['open-role', 'open-chat', 'open-help'];
@@ -86,7 +89,7 @@ async function run(browser, tag, ctxOpts, lang) {
   await ctx.addInitScript(() => { globalThis.__MOONVEIL_SCENE = 'off'; localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'vi', sound: false, reducedMotion: 'on', modNarration: true, ambience: false, scene: false })); });
   const page = await ctx.newPage();
   for (const sc of SCENARIOS) {
-    await page.goto(`${base}?scenario=${sc}&lang=${lang}&bar=0&sound=0`);
+    await page.goto(`${base}?scenario=${sc}&lang=${lang}&bar=0&sound=0${THEME}`);
     await page.waitForSelector('[data-testid=app]');
     await page.waitForTimeout(250);
     report(tag, sc, await page.evaluate(AUDIT));
