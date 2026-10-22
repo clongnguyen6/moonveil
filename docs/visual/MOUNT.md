@@ -49,8 +49,12 @@ Test hook, gated: with `mountScene(slot, { debug: true })`, `scene.debugAppearan
 ## Theme (player opt-in, local only)
 
 - `mountScene(slot, { theme: 'normal' | 'halloween' })`, default `'normal'`. Change at runtime without remounting:
-  `await scene.setTheme('halloween' | 'normal')` (later calls win; resolves once shown, or if the overlay failed to
-  load, in which case the scene stays normal and a warning is logged).
+  `const shown = await scene.setTheme('halloween' | 'normal')`.
+- Result = the theme actually SHOWN when the call settles (`'normal' | 'halloween'`; never rejects): `'halloween'`
+  means the overlay is attached (a call made before the scene is built waits for it); `'normal'` means no overlay
+  (chosen, superseded by a later call, or the chunk failed to load: a warning is logged and the next `'halloween'` call
+  retries). Later calls win; keep the UI in step with the result of the latest call.
+- `scene.themeApplied`: the same result for the mount option (`'normal'` when none was asked for).
 - The shell owns the choice (Settings "Theme", persisted locally). Never from the wire: `SceneInput` has no theme, the
   server cannot set it, and it is never forced room-wide or activated by date.
 - `'halloween'` is a separate lazy chunk (`themes/halloween.ts`, dynamic import on first selection). Default users neither

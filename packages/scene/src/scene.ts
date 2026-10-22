@@ -34,7 +34,7 @@ function offHandle(input: SceneInput): SceneHandle {
   return {
     ready: Promise.resolve(), quality: 'off',
     setInput(next) { inp = next; }, setPoses() {}, setSpeaking() {}, on() { return () => {}; }, emote() {}, setSpeakingLocal() {},
-    async setAudio() {}, setCamera() {}, setSafeArea() {}, resize() {}, setLocalAppearanceOverride() {}, debugAppearance: () => null, debugCamera: () => null, debugLabels: () => null, debugTheme: () => null, async setTheme() {},
+    async setAudio() {}, setCamera() {}, setSafeArea() {}, resize() {}, setLocalAppearanceOverride() {}, debugAppearance: () => null, debugCamera: () => null, debugLabels: () => null, debugTheme: () => null, themeApplied: Promise.resolve('normal'), async setTheme() { return 'normal'; },
     time: () => 0, perf: () => null, perfReset() {}, walkLocal() {}, localPose: () => null, night: () => (inp.phase === 'night' ? 1 : 0), destroy() {},
   };
 }
@@ -84,9 +84,9 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     overlay = o as HalloweenOverlay | null;
     nightColors = overlay ? overlay.night : BASE_NIGHT;
     if (nightTint) nightTint.tint = nightColors.wash;
-  });
-  const themeError = (e: unknown) => console.warn('[scene] theme overlay failed to load; staying on normal', e);
-  void themes.set(opts.theme).catch(themeError);   // starts the chunk download early when chosen; shows once built
+  }, (e) => console.warn('[scene] theme overlay failed to load; staying on normal', e));
+  // the mount option: download starts at once when chosen; resolves with the theme shown once the scene is built
+  const themeApplied = themes.set(opts.theme);
 
   const ready = (async () => {
     const a = new Application();
@@ -108,6 +108,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     build(a);
     if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(() => a.resize()); ro.observe(host); }
   })();
+  void ready.catch(() => themes.destroy());   // no scene graph will ever exist: pending theme calls settle as 'normal'
 
   // ---- scene graph (built once Pixi is ready) ----
   let map: MapLayout;
@@ -157,7 +158,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     postBulbs = world.lanternBulbs.map((p) => { const s = new Sprite(bank.dot); s.anchor.set(0.5); s.blendMode = 'add'; s.tint = 0xffe0a0; s.position.set(p.x, p.y); s.scale.set(0.6); s.alpha = 0; emissive.addChild(s); return s; });
     for (let i = 0; i < map.tents.length; i++) lanternLevel.push(0);
     fire = new Fire(emissive, fx, bank); fireflies = new Fireflies(emissive, bank); glints = new WaterGlints(emissive, bank); fog = new Fog(fx, bank);
-    void themes.sceneReady().catch(themeError);   // shows a theme chosen before the scene was built (sync if its code is loaded)
+    themes.sceneReady();   // a theme chosen before the scene was built attaches now
 
     inputCtl = new Input(host);
     inputCtl.onSpeakKey = (down) => { localSpeaking = down; };
@@ -471,7 +472,8 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       if (av && eff) av.setAppearance(eff);   // in place: position, pose, facing, intent untouched; nothing emitted
     },
     debugAppearance(seat) { return opts.debug ? (avatars.get(seat)?.appearance ?? null) : null; },
-    setTheme(theme) { return themes.set(theme).catch(themeError); },
+    themeApplied,
+    setTheme(theme) { return themes.set(theme); },
     debugTheme() { return opts.debug ? { theme: overlay?.id ?? null, animate: !!overlay?.animate, counts: overlay?.counts() ?? null } : null; },
     debugLabels() {
       if (!opts.debug || !app) return null;
