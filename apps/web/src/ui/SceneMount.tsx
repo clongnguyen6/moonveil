@@ -22,7 +22,10 @@ export function SceneMount({ s, topbarRef, micOn }: { s: SessionState; topbarRef
     if (!slot.current || !view) return;
     // debug read hooks (debugAppearance) only when the check environment asks for them; never in production
     const debug = (globalThis as { __MOONVEIL_SCENE_DEBUG?: boolean }).__MOONVEIL_SCENE_DEBUG === true;
-    const h = mountScene(slot.current, { input: toSceneInput(view, g), ...(debug ? { debug: true } : {}) });
+    // DEV-ONLY Halloween preview: the stub dev page sets data-theme for ?theme=halloween (ui/dev/main.tsx); production never
+    // does, the DEV guard drops this branch from the build, and the scene itself honours `theme` only in a dev build.
+    const theme = import.meta.env.DEV && document.documentElement.dataset.theme === 'halloween' ? { theme: 'halloween' as const } : {};
+    const h = mountScene(slot.current, { input: toSceneInput(view, g), ...(debug ? { debug: true } : {}), ...theme });
     scene.current = h;
     (globalThis as { __moonveilScene?: SceneHandle }).__moonveilScene = h; // test hook (debugAppearance / localPose)
     const off = h.on('move', (pose) => session.send({ t: 'move', x: Math.round(pose.x), y: Math.round(pose.y), facing: pose.facing, moving: pose.moving }));

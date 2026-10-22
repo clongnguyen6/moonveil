@@ -1,28 +1,28 @@
 /* "Cute Halloween" UI accents: PREVIEW ONLY. Loaded by the dev entry (ui/dev/main.tsx) for ?theme=halloween, never by the
    production entry, so it is not in the production build. Tokens only, plus one header flourish identical for every seat
-   (night uniformity unchanged). Starting palette: dark plum + warm pumpkin orange; replace with the art owner's
-   docs/visual/halloween/PALETTE.md when it lands. Text, chat and labels keep ≥ 4.5:1 (layout-check THEME=halloween). */
+   (night uniformity unchanged). Palette aligned with the scene's working palette (packages/scene/src/themes/halloween.ts: pumpkin #f08a24, light #ffb35a,
+   shade #c9661b; themes/index.ts night ambient #46346f, wash #7c4c9c) until docs/visual/halloween/PALETTE.md lands. Text, chat and labels keep ≥ 4.5:1 (layout-check THEME=halloween). */
 :root[data-theme="halloween"] {
-  --bg: #1d1424; --bg-2: #170f1d; --scene: linear-gradient(180deg, #3a2148 0%, #5a3058 45%, #2c2a24 100%);
-  --surface: rgba(44, 26, 50, .93); --surface-2: rgba(64, 38, 72, .93); --surface-3: rgba(84, 52, 94, .95);
-  --line: rgba(255, 214, 170, .14); --line-strong: rgba(255, 214, 170, .32);
-  --ink: #f8efe6; --ink-2: #e6d4e4; --ink-3: #c9b0cc; --ink-on-accent: #2a1206;
-  --accent: #f59a3c; --accent-2: #ffc27c; --accent-soft: rgba(245, 154, 60, .2);
-  --focus: 0 0 0 3px rgba(255, 194, 124, .7);
+  --bg: #1c1528; --bg-2: #161020; --scene: linear-gradient(180deg, #46346f 0%, #7c4c9c 45%, #2c2a24 100%);
+  --surface: rgba(42, 30, 62, .93); --surface-2: rgba(58, 42, 88, .93); --surface-3: rgba(76, 56, 114, .95);
+  --line: rgba(255, 179, 90, .14); --line-strong: rgba(255, 179, 90, .32);
+  --ink: #f8efe6; --ink-2: #e6d8ec; --ink-3: #c8b6dc; --ink-on-accent: #2a1206;
+  --accent: #f08a24; --accent-2: #ffb35a; --accent-soft: rgba(240, 138, 36, .2);
+  --focus: 0 0 0 3px rgba(255, 179, 90, .7);
 }
 :root[data-theme="halloween"][data-phase="night"] {
-  --bg: #120b1c; --bg-2: #0e0816; --scene: linear-gradient(180deg, #120a24 0%, #24143a 55%, #1c1626 100%);
-  --surface: rgba(30, 18, 44, .94); --surface-2: rgba(46, 28, 66, .94); --surface-3: rgba(64, 40, 90, .95);
-  --ink: #f1eaff; --ink-2: #d4c6ec; --ink-3: #b7a6d6;
-  --accent: #ff9f4a; --accent-2: #ffc994; --accent-soft: rgba(255, 159, 74, .18); --ink-on-accent: #2a1206;
-  --focus: 0 0 0 3px rgba(255, 201, 148, .65);
+  --bg: #120d1e; --bg-2: #0e0a18; --scene: linear-gradient(180deg, #1a1430 0%, #46346f 55%, #1c1626 100%);
+  --surface: rgba(30, 22, 50, .94); --surface-2: rgba(44, 33, 72, .94); --surface-3: rgba(62, 46, 100, .95);
+  --ink: #f1eaff; --ink-2: #d6caf0; --ink-3: #bcaee0;
+  --accent: #f08a24; --accent-2: #ffb35a; --accent-soft: rgba(240, 138, 36, .18); --ink-on-accent: #2a1206;
+  --focus: 0 0 0 3px rgba(255, 179, 90, .65);
 }
 :root[data-theme="halloween"][data-phase="ended"] { --bg: #1d1424; }
 /* ghosts keep their own pale-blue accent (it marks the dead seat's own view); only the panels turn plum */
 :root[data-theme="halloween"][data-phase="ghost"] {
-  --bg: #15111f; --surface: rgba(30, 24, 46, .93); --surface-2: rgba(44, 36, 66, .93); --surface-3: rgba(60, 50, 88, .95);
+  --bg: #15111f; --surface: rgba(30, 24, 48, .93); --surface-2: rgba(44, 36, 70, .93); --surface-3: rgba(60, 50, 94, .95);
 }
-:root[data-theme="halloween"] .chat-overlay { background: rgba(28, 14, 32, .62); border-color: rgba(255, 194, 124, .22); }
+:root[data-theme="halloween"] .chat-overlay { background: rgba(26, 18, 40, .62); border-color: rgba(255, 179, 90, .22); }
 /* tiny flourish: pumpkin by day, bat by night, same for every seat; decorative only (empty alt text for screen readers) */
 :root[data-theme="halloween"] .panel-title::before { content: "🎃\00a0" / ""; font-size: .8em; }
 :root[data-theme="halloween"][data-phase="night"] .panel-title::before { content: "🦇\00a0" / ""; }
