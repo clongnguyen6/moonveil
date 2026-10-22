@@ -10,16 +10,17 @@
   --accent: #f08a24; --accent-2: #ffb35a; --accent-soft: rgba(240, 138, 36, .2);
   --focus: 0 0 0 3px rgba(255, 179, 90, .7);
 }
-:root[data-theme="halloween"][data-phase="night"] {
+/* the phase skins also sit on .app[data-phase] (tokens.css matches any element), so override there too */
+:root[data-theme="halloween"][data-phase="night"], :root[data-theme="halloween"] [data-phase="night"] {
   --bg: #110e20; --bg-2: #0d0a19; --scene: linear-gradient(180deg, #181430 0%, #40387c 55%, #2a1f30 100%);
   --surface: rgba(28, 24, 52, .94); --surface-2: rgba(42, 36, 78, .94); --surface-3: rgba(60, 52, 112, .95);
   --ink: #f0ecff; --ink-2: #d4cdf0; --ink-3: #bab2e2;
   --accent: #f08a24; --accent-2: #ffb35a; --accent-soft: rgba(240, 138, 36, .18); --ink-on-accent: #2a1206;
   --focus: 0 0 0 3px rgba(255, 179, 90, .65);
 }
-:root[data-theme="halloween"][data-phase="ended"] { --bg: #1d1424; }
+:root[data-theme="halloween"][data-phase="ended"], :root[data-theme="halloween"] [data-phase="ended"] { --bg: #1d1424; }
 /* ghosts keep their own pale-blue accent (it marks the dead seat's own view); only the panels turn plum */
-:root[data-theme="halloween"][data-phase="ghost"] {
+:root[data-theme="halloween"][data-phase="ghost"], :root[data-theme="halloween"] [data-phase="ghost"] {
   --bg: #15111f; --surface: rgba(30, 24, 48, .93); --surface-2: rgba(44, 36, 70, .93); --surface-3: rgba(60, 50, 94, .95);
 }
 :root[data-theme="halloween"] .chat-overlay { background: rgba(30, 18, 32, .62); border-color: rgba(255, 179, 90, .22); }

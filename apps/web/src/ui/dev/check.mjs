@@ -517,9 +517,10 @@ await open('day');
 // flourish) is identical for every seat.
 await open('night-villager', '&lang=en');
 ok('halloween: off by default (no data-theme)', (await page.evaluate(() => document.documentElement.dataset.theme ?? null)) === null);
-const nightHead = async (sc) => { await open(sc, '&lang=en&theme=halloween'); await page.waitForTimeout(150); return page.evaluate(() => { const t = document.querySelector('.dock .panel-title'); return { theme: document.documentElement.dataset.theme, before: getComputedStyle(t, '::before').content, h: Math.round(t.getBoundingClientRect().height), surface: getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() }; }); };
+const nightHead = async (sc) => { await open(sc, '&lang=en&theme=halloween'); await page.waitForTimeout(150); return page.evaluate(() => { const t = document.querySelector('.dock .panel-title'); return { theme: document.documentElement.dataset.theme, before: getComputedStyle(t, '::before').content, h: Math.round(t.getBoundingClientRect().height), surface: getComputedStyle(t).getPropertyValue('--surface').trim(), accent: getComputedStyle(t).getPropertyValue('--accent').trim() }; }); };
 const hv = await nightHead('night-villager'), hw = await nightHead('night-wolf');
 ok(`halloween: on with ?theme=halloween; night header flourish identical for villager and wolf (${hv.before})`, hv.theme === 'halloween' && /🦇/.test(hv.before) && JSON.stringify(hv) === JSON.stringify(hw), JSON.stringify({ hv, hw }));
+ok(`halloween: the night panel itself uses the Halloween night tokens (surface ${hv.surface}, accent ${hv.accent})`, /rgba\(30, 22, 52|rgba\(28, 24, 52/.test(hv.surface) && hv.accent.toLowerCase() === '#f08a24', JSON.stringify(hv));
 await open('day', '&lang=en&theme=halloween'); await page.waitForTimeout(150);
 ok('halloween: day header shows the pumpkin', /🎃/.test(await page.evaluate(() => getComputedStyle(document.querySelector('.dock .panel-title'), '::before').content)));
 await open('day');
