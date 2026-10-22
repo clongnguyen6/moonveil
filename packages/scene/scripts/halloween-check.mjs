@@ -1,4 +1,4 @@
-// "Cute Halloween" preview evidence on the scene dev page (dev-only ?theme=halloween). Browser EMULATION.
+// "Cute Halloween" preview evidence on the scene dev page (?theme=halloween). Browser EMULATION.
 // Needs the browser lock. Starts the scene dev page on HALLOWEEN_PORT (default 4230). PNGs to --out (keep out of git;
 // convert a JPEG subset for docs). Also: theme on/off perf (?perf=1), reduced motion static check, label layer check.
 //   node scripts/env.mjs node packages/scene/scripts/halloween-check.mjs --out .cache/halloween

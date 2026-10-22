@@ -15,8 +15,8 @@ import type { CameraMode, Pose, PoseFrame, SafeArea, SceneAppearance, SceneHandl
 import { resolveQuality, renderProfile, readQualityEnv } from './quality.ts';
 import { layoutLabels, STAGE_ORDER, labelsAboveEffects, type LabelRect, type StageLayer } from './labels.ts';
 import { frameCamera } from './framing.ts';
-import { activeTheme } from './themes/index.ts';   // used only behind import.meta.env.DEV: dropped from production builds
-import type { HalloweenOverlay } from './themes/halloween.ts';
+import { ThemeController } from './themes/index.ts';
+import type { HalloweenOverlay } from './themes/halloween.ts';   // type only: the overlay itself is a lazy chunk
 import { playersDiff, spawnPoint, effectiveAppearance } from './reconcile.ts';
 
 const SMALL_LABEL_FROM = 13;   // seats from which labels drop one size step (12 → 11 px)
@@ -34,7 +34,7 @@ function offHandle(input: SceneInput): SceneHandle {
   return {
     ready: Promise.resolve(), quality: 'off',
     setInput(next) { inp = next; }, setPoses() {}, setSpeaking() {}, on() { return () => {}; }, emote() {}, setSpeakingLocal() {},
-    async setAudio() {}, setCamera() {}, setSafeArea() {}, resize() {}, setLocalAppearanceOverride() {}, debugAppearance: () => null, debugCamera: () => null, debugLabels: () => null, debugTheme: () => null,
+    async setAudio() {}, setCamera() {}, setSafeArea() {}, resize() {}, setLocalAppearanceOverride() {}, debugAppearance: () => null, debugCamera: () => null, debugLabels: () => null, debugTheme: () => null, async setTheme() {},
     time: () => 0, perf: () => null, perfReset() {}, walkLocal() {}, localPose: () => null, night: () => (inp.phase === 'night' ? 1 : 0), destroy() {},
   };
 }
@@ -71,9 +71,22 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   let walkLocalReq: { x: number; y: number } | null = null;
   let emoteReq: string | null = null;
   const ambience = new Ambience();
-  let nightColors = { ambient: 0x3a3c92, wash: 0x6a5aa8 };   // a dev theme overlay may replace these
-  let themeCtor: (new (bank: TextureBank, animate: boolean) => HalloweenOverlay) | null = null;
+  const BASE_NIGHT = { ambient: 0x3a3c92, wash: 0x6a5aa8 };
+  let nightColors: { ambient: number; wash: number } = BASE_NIGHT;   // a theme overlay may replace these
   let overlay: HalloweenOverlay | null = null;
+  // Player-chosen theme (themes/index.ts). The overlay module is a separate chunk, imported the first time 'halloween'
+  // is chosen; default users never load it. Static on low / reduced motion.
+  const themes = new ThemeController(async () => {
+    const { HalloweenOverlay } = await import('./themes/halloween.ts');
+    let inst: HalloweenOverlay | null = null;   // one per scene: textures bake once, toggling only re-attaches
+    return () => { inst ??= new HalloweenOverlay(bank, !low && !reducedMotion); inst.attach(world, emissive, lighting); return inst; };
+  }, (o) => {
+    overlay = o as HalloweenOverlay | null;
+    nightColors = overlay ? overlay.night : BASE_NIGHT;
+    if (nightTint) nightTint.tint = nightColors.wash;
+  });
+  const themeError = (e: unknown) => console.warn('[scene] theme overlay failed to load; staying on normal', e);
+  void themes.set(opts.theme).catch(themeError);   // starts the chunk download early when chosen; shows once built
 
   const ready = (async () => {
     const a = new Application();
@@ -82,12 +95,8 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       resolution: low ? 1 : Math.min(window.devicePixelRatio || 1, opts.resolution ?? 2), autoDensity: true,
       preference: 'webgl', powerPreference: 'high-performance',
     });
-    // dev-only theme overlay: every theme reference sits behind import.meta.env.DEV (replaced by `false` before
-    // tree-shaking), so a production build contains no theme code or strings
-    const ThemeOverlay = import.meta.env.DEV && activeTheme(opts.theme, true) === 'halloween' ? (await import('./themes/halloween.ts')).HalloweenOverlay : null;
     if (destroyed) { a.destroy(true); return; }
     app = a;
-    themeCtor = ThemeOverlay;
     a.ticker.maxFPS = x.fpsCap;
     // no frames while the document is hidden (background tab, headless page marked hidden)
     onVis = () => { if (document.hidden) a.ticker.stop(); else a.ticker.start(); };
@@ -148,10 +157,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     postBulbs = world.lanternBulbs.map((p) => { const s = new Sprite(bank.dot); s.anchor.set(0.5); s.blendMode = 'add'; s.tint = 0xffe0a0; s.position.set(p.x, p.y); s.scale.set(0.6); s.alpha = 0; emissive.addChild(s); return s; });
     for (let i = 0; i < map.tents.length; i++) lanternLevel.push(0);
     fire = new Fire(emissive, fx, bank); fireflies = new Fireflies(emissive, bank); glints = new WaterGlints(emissive, bank); fog = new Fog(fx, bank);
-    if (themeCtor) {   // static on low / reduced motion
-      overlay = new themeCtor(bank, !low && !reducedMotion); overlay.attach(world, emissive, lighting);
-      nightColors = overlay.night; nightTint.tint = nightColors.wash;
-    }
+    void themes.sceneReady().catch(themeError);   // shows a theme chosen before the scene was built (sync if its code is loaded)
 
     inputCtl = new Input(host);
     inputCtl.onSpeakKey = (down) => { localSpeaking = down; };
@@ -183,7 +189,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       tick(dt);
       frameNo++;
       lightMs = 0;
-      const lightKey = x.lightmapOnChange ? `${nightLevel.toFixed(3)}|${lanternLevel.join(',')}|${cam.x.toFixed(1)},${cam.y.toFixed(1)},${cam.scale.toFixed(4)}|${lastW}x${lastH}` : '';
+      const lightKey = x.lightmapOnChange ? `${overlay?.id ?? ''}|${nightLevel.toFixed(3)}|${lanternLevel.join(',')}|${cam.x.toFixed(1)},${cam.y.toFixed(1)},${cam.scale.toFixed(4)}|${lastW}x${lastH}` : '';
       const needLight = x.lightmapOnChange ? lightKey !== lastLightKey : (!low || frameNo % 2 === 0);
       if (needLight) { lastLightKey = lightKey; const l0 = performance.now(); lighting.render(cam); lightMs = performance.now() - l0; }
     });
@@ -465,6 +471,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       if (av && eff) av.setAppearance(eff);   // in place: position, pose, facing, intent untouched; nothing emitted
     },
     debugAppearance(seat) { return opts.debug ? (avatars.get(seat)?.appearance ?? null) : null; },
+    setTheme(theme) { return themes.set(theme).catch(themeError); },
     debugTheme() { return opts.debug ? { theme: overlay?.id ?? null, animate: !!overlay?.animate, counts: overlay?.counts() ?? null } : null; },
     debugLabels() {
       if (!opts.debug || !app) return null;
@@ -496,6 +503,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     night: () => nightLevel,
     destroy() {
       destroyed = true;
+      themes.destroy();
       ambience.disable();
       ro?.disconnect(); ro = null;
       if (onVis) { document.removeEventListener('visibilitychange', onVis); onVis = null; }

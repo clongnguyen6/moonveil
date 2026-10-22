@@ -1,5 +1,5 @@
 // Dev harness: runs the scene against the fixture stub server (no real server). Also the capture/perf target.
-// URL: ?theme=halloween (dev-only preview overlay)  ?outfit=<id>&variant=&hat=&front=&back=&color= (costume preview)  ?scene=lobby|seating|night|day|ghost|ended  ?quality=off|low|high|auto (default high)  ?labels=0|1|2 (off | v1: lift ≤3 no leaders | default v2)  ?n=4..16  ?viewer=moderator|s1..s16  ?cam=fit|tight  ?panel=0  ?audio=0  ?speak=0  ?perf=1
+// URL: ?theme=halloween (theme option; window.__moonveil.setTheme('normal'|'halloween') at runtime)  ?outfit=<id>&variant=&hat=&front=&back=&color= (costume preview)  ?scene=lobby|seating|night|day|ghost|ended  ?quality=off|low|high|auto (default high)  ?labels=0|1|2 (off | v1: lift ≤3 no leaders | default v2)  ?n=4..16  ?viewer=moderator|s1..s16  ?cam=fit|tight  ?panel=0  ?audio=0  ?speak=0  ?perf=1
 import { mountScene } from '../src/index.ts';
 import { phaseLabel } from '../src/choreo.ts';
 import { FakeServer, type FixtureScene } from '../fixtures/index.ts';
@@ -86,6 +86,7 @@ window.__moonveil = {
   debugCamera: () => scene.debugCamera(),
   debugLabels: () => scene.debugLabels(),
   debugTheme: () => scene.debugTheme(),
+  setTheme: (t: 'normal' | 'halloween') => scene.setTheme(t),
   setLook: (seat: string, patch: Record<string, string>) => { server.input = { ...server.input, players: server.input.players.map((p) => (p.seat === seat ? { ...p, appearance: { ...p.appearance, ...patch } } : p)) }; scene.setInput(server.input); },
   time: () => scene.time(),
   perf: () => scene.perf(),

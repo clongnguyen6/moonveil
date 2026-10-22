@@ -1,4 +1,4 @@
-// "Cute Halloween" preview theme: where decorations go. PURE (node-testable). Dev-only theme (themes/index.ts).
+// "Cute Halloween" preview theme: where decorations go. PURE (node-testable). Opt-in theme (themes/index.ts).
 // Rules: nothing on a seat, its speaking ring or the ring of seats around the fire; nothing on the fire pit,
 // the fire-ring dirt (leaves) or the stream. Labels are in their own layer above all of this (labels.ts STAGE_ORDER).
 import { FIRE, isWalkable, streamX, type MapLayout, type Pt } from '../map.ts';
