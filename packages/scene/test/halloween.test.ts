@@ -12,57 +12,61 @@ test('theme option: only the exact id selects halloween; everything else is norm
   assert.ok(!('theme' in input), 'the wire never carries a theme');
 });
 
-// fake overlay + loader: counts attaches/detaches and lets a test hold the "chunk download"
+// fake overlay + loader: logs load/attach/detach/shown/normal/error and lets a test hold or fail the "chunk download"
 function rig() {
   const log: string[] = [];
   let release!: () => void; let fail = false;
   const gate = () => new Promise<void>((ok, no) => { release = () => (fail ? no(new Error('chunk')) : ok()); });
   const ov = { id: 'halloween', night: { ambient: 1, wash: 2 }, detach: () => log.push('detach') };
-  const c = new ThemeController(async () => { log.push('load'); await gate(); return () => { log.push('attach'); return ov; }; }, (o) => log.push(o ? 'shown' : 'normal'));
-  return { c, log, release: () => release(), failNext: () => { fail = true; }, okNext: () => { fail = false; }, ov };
+  const c = new ThemeController(async () => { log.push('load'); await gate(); return () => { log.push('attach'); return ov; }; },
+    (o) => log.push(o ? 'shown' : 'normal'), () => log.push('error'));
+  return { c, log, release: () => release(), failNext: () => { fail = true; }, okNext: () => { fail = false; } };
 }
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
-test('theme controller: default normal loads nothing; choosing halloween loads once and shows after the scene is ready', async () => {
+test('setTheme success: resolves "halloween" only once the overlay is attached; default normal loads nothing', async () => {
   const { c, log, release } = rig();
-  await c.sceneReady();
-  assert.equal(c.theme, 'normal'); assert.equal(c.loads, 0); assert.deepEqual(log, []);
-  const p = c.set('halloween'); await tick(); release(); await p;
-  assert.deepEqual(log, ['load', 'attach', 'shown']); assert.equal(c.overlay?.id, 'halloween');
+  c.sceneReady();
+  assert.equal(await c.set('normal'), 'normal'); assert.equal(c.loads, 0); assert.deepEqual(log, []);
+  const p = c.set('halloween'); await tick(); release();
+  assert.equal(await p, 'halloween'); assert.deepEqual(log, ['load', 'attach', 'shown']); assert.equal(c.shown, 'halloween');
+  assert.equal(await c.set('normal'), 'normal'); assert.deepEqual(log.slice(-2), ['detach', 'normal']);
+  assert.equal(await c.set('halloween'), 'halloween', 'toggling back re-attaches'); assert.equal(c.loads, 1, 'no second load');
 });
 
-test('theme controller: switching back to normal removes it; again halloween re-attaches without a second load', async () => {
-  const { c, log, release } = rig();
-  await c.sceneReady();
-  const p = c.set('halloween'); await tick(); release(); await p;
-  await c.set('normal');
-  assert.equal(c.overlay, null); assert.deepEqual(log.slice(-2), ['detach', 'normal']);
-  await c.set('halloween');
-  assert.equal(c.loads, 1); assert.deepEqual(log.slice(-2), ['attach', 'shown']);
-});
-
-test('theme controller: a choice made before the scene is built waits; a newer choice wins over a pending load; destroy is final', async () => {
-  const a = rig();
-  const p = a.c.set('halloween'); await tick(); a.release(); await p;
-  assert.deepEqual(a.log, ['load'], 'loaded but not shown before the scene exists');
-  await a.c.sceneReady(); assert.deepEqual(a.log, ['load', 'attach', 'shown']);
-  const b = rig(); await b.c.sceneReady();
-  const q = b.c.set('halloween'); await tick(); await b.c.set('normal'); b.release(); await q;
-  assert.equal(b.c.overlay, null); assert.ok(!b.log.includes('attach'), 'stale load is not shown');
-  const d = rig(); await d.c.sceneReady();
-  const r = d.c.set('halloween'); await tick(); d.release(); await r;
-  d.c.destroy(); await d.c.set('halloween');
-  assert.equal(d.c.overlay, null); assert.deepEqual(d.log.slice(-2), ['detach', 'normal']);
-});
-
-test('theme controller: a failed chunk load leaves the scene normal and can be retried', async () => {
+test('setTheme failure: resolves "normal" (never rejects), reports the error, and the next "halloween" retries', async () => {
   const { c, log, release, failNext, okNext } = rig();
-  await c.sceneReady();
+  c.sceneReady();
   failNext(); const p = c.set('halloween'); await tick(); release();
-  await assert.rejects(p); assert.equal(c.overlay, null); assert.ok(!log.includes('shown'));
-  okNext(); const q = c.set('halloween'); await tick(); release(); await q;
-  const shown = (): { id: string } | null => c.overlay;   // re-read (TS narrowed it to null above)
-  assert.equal(c.loads, 2); assert.equal(shown()?.id, 'halloween');
+  assert.equal(await p, 'normal'); assert.ok(log.includes('error')); assert.ok(!log.includes('shown'));
+  okNext(); const q = c.set('halloween'); await tick(); release();
+  assert.equal(await q, 'halloween'); assert.equal(c.loads, 2);
+});
+
+test('setTheme before the scene is built: waits, resolves "halloween" only after the scene is ready and the overlay attached', async () => {
+  const { c, log, release } = rig();
+  let settled: string | null = null;
+  const p = c.set('halloween').then((v) => { settled = v; return v; }); await tick(); release(); await tick(); await tick();
+  assert.equal(settled, null, 'still waiting for the scene'); assert.deepEqual(log, ['load']);
+  c.sceneReady();
+  assert.equal(await p, 'halloween'); assert.deepEqual(log, ['load', 'attach', 'shown']);
+  // destroyed before it was ever built: pending calls settle as normal, nothing attaches
+  const d = rig(); const r = d.c.set('halloween'); await tick(); d.release(); await tick();
+  d.c.destroy(); assert.equal(await r, 'normal'); assert.ok(!d.log.includes('attach'));
+});
+
+test('overlapping setTheme calls: each resolves with what is shown when it settles; the last choice wins; one load', async () => {
+  const a = rig(); a.c.sceneReady();
+  const h = a.c.set('halloween'); await tick();
+  const n = a.c.set('normal');
+  a.release();
+  assert.deepEqual([await h, await n], ['normal', 'normal']); assert.ok(!a.log.includes('attach'), 'superseded load not shown');
+  const b = rig(); b.c.sceneReady();
+  const h1 = b.c.set('halloween'), h2 = b.c.set('halloween'); await tick(); b.release();
+  assert.deepEqual([await h1, await h2], ['halloween', 'halloween']); assert.equal(b.c.loads, 1);
+  assert.equal(b.log.filter((x) => x === 'attach').length, 1, 'attached once');
+  const n2 = b.c.set('normal'), h3 = b.c.set('halloween');
+  assert.deepEqual([await n2, await h3], ['halloween', 'halloween'], 'a quick normal->halloween ends shown');
 });
 
 test('decorations keep clear of seats, speaking rings, the seated ring, the fire ring dirt and the stream, for every room size', () => {

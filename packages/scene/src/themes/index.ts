@@ -14,7 +14,9 @@ export interface ThemeOverlayLike { readonly id: string; readonly night: { ambie
 export type OverlayLoader = () => Promise<() => ThemeOverlayLike>;
 
 // PURE state machine for the chosen theme: lazy load once, ignore stale loads after a newer choice, remove cleanly,
-// wait for the scene graph. `onChange` reports the overlay now shown (null = normal).
+// wait for the scene graph. `set()` resolves with the theme actually SHOWN when it settles ('halloween' = attached).
+// `onChange` reports the overlay now shown (null = normal); `onError` gets load/attach failures (scene stays normal,
+// the next 'halloween' choice retries).
 export class ThemeController {
   private want: SceneTheme = 'normal';
   private make: (() => ThemeOverlayLike) | null = null;
@@ -22,19 +24,30 @@ export class ThemeController {
   private active: ThemeOverlayLike | null = null;
   private ready = false;
   private dead = false;
+  private readyWait: Promise<void>;
+  private release!: () => void;
   private load: OverlayLoader;
   private onChange: (overlay: ThemeOverlayLike | null) => void;
-  loads = 0;   // times the overlay code was requested (at most once per scene)
+  private onError: (e: unknown) => void;
+  loads = 0;   // times the overlay code was requested (at most once per scene, plus retries after a failure)
 
-  constructor(load: OverlayLoader, onChange: (overlay: ThemeOverlayLike | null) => void) { this.load = load; this.onChange = onChange; }
+  constructor(load: OverlayLoader, onChange: (overlay: ThemeOverlayLike | null) => void, onError: (e: unknown) => void = () => {}) {
+    this.load = load; this.onChange = onChange; this.onError = onError;
+    this.readyWait = new Promise((r) => { this.release = r; });
+  }
 
-  get theme(): SceneTheme { return this.want; }
+  get theme(): SceneTheme { return this.want; }                         // chosen
+  get shown(): SceneTheme { return this.active ? 'halloween' : 'normal'; }   // on screen
   get overlay(): ThemeOverlayLike | null { return this.active; }
 
-  // the scene graph exists: apply a choice made before it was built
-  sceneReady(): Promise<void> { this.ready = true; return this.apply(); }
-  set(option: unknown): Promise<void> { this.want = normalizeTheme(option); return this.apply(); }
-  destroy() { this.dead = true; this.drop(); }
+  // the scene graph exists: a pending choice attaches now
+  sceneReady() { this.ready = true; this.release(); }
+  set(option: unknown): Promise<SceneTheme> {
+    this.want = normalizeTheme(option);
+    return this.apply().then(() => this.shown, (e: unknown) => { this.onError(e); return this.shown; });
+  }
+  // scene destroyed or never built: pending calls settle ('normal'), nothing attaches again
+  destroy() { this.dead = true; this.drop(); this.release(); }
 
   private drop() { if (this.active) { this.active.detach(); this.active = null; this.onChange(null); } }
 
@@ -45,8 +58,9 @@ export class ThemeController {
       this.loading ??= (async () => { this.loads++; this.make = await this.load(); })();
       try { await this.loading; } catch (e) { this.loading = null; throw e; }   // a failed load can be retried
     }
-    // a newer choice, a destroyed or unbuilt scene, or already shown: nothing to do
-    if (this.dead || this.want !== 'halloween' || !this.ready || this.active) return;
+    if (!this.ready) await this.readyWait;
+    // a newer choice, a destroyed scene, or already shown: nothing to do
+    if (this.dead || this.want !== 'halloween' || this.active) return;
     this.active = this.make!();
     this.onChange(this.active);
   }

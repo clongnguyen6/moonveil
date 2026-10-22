@@ -94,8 +94,12 @@ export interface SceneHandle {
   // debug: camera scale, smallest on-screen camper name label (px) and the screen box of visible campers (not ghosts) incl. labels; null when debug is off
   // debug: stage layer order, whether name labels sit above every effect layer, and how many labels are in the label layer
   // Switch the theme without remounting: 'halloween' lazy-loads the overlay once; 'normal' removes every decoration and
-  // the plum night. Resolves when the choice is shown (or failed to load: the scene stays normal). Later calls win.
-  setTheme(theme: 'normal' | 'halloween'): Promise<void>;
+  // the plum night. Resolves with the theme actually SHOWN when the call settles: 'halloween' = overlay attached (waits
+  // for the scene to be built); 'normal' = no overlay (chosen, superseded by a later call, or failed to load: a warning
+  // is logged and the next 'halloween' call retries). Never rejects.
+  setTheme(theme: 'normal' | 'halloween'): Promise<'normal' | 'halloween'>;
+  // Result of the mount option `theme`, same meaning as setTheme's result ('normal' when no theme was asked for).
+  readonly themeApplied: Promise<'normal' | 'halloween'>;
   // debug: active theme overlay, whether it animates (high, no reduced motion) and its decoration counts; null when debug is off
   debugTheme(): { theme: string | null; animate: boolean; counts: { pumpkins: number; bulbs: number; ornaments: number; leaves: number } | null } | null;
   debugLabels(): { order: string[]; aboveEffects: boolean; labels: number; inLabelLayer: number } | null;
