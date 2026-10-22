@@ -1,5 +1,5 @@
 // Dev harness: runs the scene against the fixture stub server (no real server). Also the capture/perf target.
-// URL: ?outfit=<id>&variant=&hat=&front=&back=&color= (costume preview)  ?scene=lobby|seating|night|day|ghost|ended  ?quality=off|low|high|auto (default high)  ?labels=0|1|2 (off | v1: lift ≤3 no leaders | default v2)  ?n=4..16  ?viewer=moderator|s1..s16  ?cam=fit|tight  ?panel=0  ?audio=0  ?speak=0  ?perf=1
+// URL: ?theme=halloween (dev-only preview overlay)  ?outfit=<id>&variant=&hat=&front=&back=&color= (costume preview)  ?scene=lobby|seating|night|day|ghost|ended  ?quality=off|low|high|auto (default high)  ?labels=0|1|2 (off | v1: lift ≤3 no leaders | default v2)  ?n=4..16  ?viewer=moderator|s1..s16  ?cam=fit|tight  ?panel=0  ?audio=0  ?speak=0  ?perf=1
 import { mountScene } from '../src/index.ts';
 import { phaseLabel } from '../src/choreo.ts';
 import { FakeServer, type FixtureScene } from '../fixtures/index.ts';
@@ -26,7 +26,7 @@ const host = document.getElementById('scene')!;
 const xs = new Set((q.get('x') ?? '').split(',').filter(Boolean));
 const fpsX = [...xs].find((k) => k.startsWith('fps'));
 const experimental = { antialias: xs.has('aa0') ? false : undefined, fpsCap: fpsX ? parseInt(fpsX.slice(3), 10) : undefined, lightmapOnChange: xs.has('lmc') || undefined, ripples: xs.has('rip0') ? false : undefined, vignette: xs.has('vig0') ? false : undefined };
-const scene: SceneHandle = mountScene(host, { experimental, debug: true, input: server.input, camera: (q.get('cam') as 'fit' | 'tight') || undefined, perf: q.get('perf') === '1', quality: (q.get('quality') as 'off' | 'low' | 'high' | 'auto') || 'high', labelLayout: q.get('labels') === '0' ? false : q.get('labels') === '1' ? 'v1' : true });
+const scene: SceneHandle = mountScene(host, { experimental, debug: true, ...(q.get('theme') === 'halloween' ? { theme: 'halloween' as const } : {}), input: server.input, camera: (q.get('cam') as 'fit' | 'tight') || undefined, perf: q.get('perf') === '1', quality: (q.get('quality') as 'off' | 'low' | 'high' | 'auto') || 'high', labelLayout: q.get('labels') === '0' ? false : q.get('labels') === '1' ? 'v1' : true });
 server.onPoses((f) => scene.setPoses(f));
 server.onSpeaking((s) => scene.setSpeaking(s));
 scene.on('move', (p: Pose) => { server.move(p.seat, p.x, p.y, p.facing); });
@@ -85,6 +85,7 @@ window.__moonveil = {
   debugAppearance: (seat: string) => scene.debugAppearance(seat),
   debugCamera: () => scene.debugCamera(),
   debugLabels: () => scene.debugLabels(),
+  debugTheme: () => scene.debugTheme(),
   setLook: (seat: string, patch: Record<string, string>) => { server.input = { ...server.input, players: server.input.players.map((p) => (p.seat === seat ? { ...p, appearance: { ...p.appearance, ...patch } } : p)) }; scene.setInput(server.input); },
   time: () => scene.time(),
   perf: () => scene.perf(),
