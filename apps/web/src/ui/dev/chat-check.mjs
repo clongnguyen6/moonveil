@@ -90,8 +90,10 @@ const contrastOk = (c) => ['.co-text', '.co-from', '.co-quiet'].every((k) => c[k
 // world coordinates (on('tap')), hence scale and offset; seats come from the scene's own createMap. Living seated
 // players cannot walk, so the taps move nobody.
 const seatsClear = async (p, label) => {
-  await p.page.waitForTimeout(1200);   // reduced motion = 4 fps; let the camera settle after a resize
-  const geo = await p.page.evaluate(() => {
+  // Wait for a settled camera: sample it every 600 ms (> 2 frames at the reduced-motion 4 fps) until two consecutive
+  // samples agree (scale, offset, slot size); fail loudly with the samples after 15 s. A fixed wait measured a camera
+  // that had not yet re-framed after a resize under heavy machine load.
+  const read = () => p.page.evaluate(() => {
     const h = globalThis.__moonveilScene, slot = document.querySelector('[data-testid=scene-slot]');
     if (!h || !slot) return null;
     const r = slot.getBoundingClientRect(), hits = [];
@@ -103,9 +105,19 @@ const seatsClear = async (p, label) => {
     const rel = (sel) => { const e = document.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { x: b.left - r.left, y: b.top - r.top, w: b.width, h: b.height }; };
     return { w: r.width, h: r.height, pts, hits, ov: rel('[data-testid=chat-overlay]'), bar: rel('.topbar'), safeBottom: Number(slot.dataset.safeBottom ?? 0), n: globalThis.__moonveil.getState().view.players.length };
   });
-  if (!geo || geo.hits.length !== 2) return ok(`${label}: campfire seats clear of the chat box`, false, `no scene camera ${JSON.stringify(geo)}`);
-  const [[x1, y1], [x2, y2]] = geo.pts, [w1, w2] = geo.hits;
-  const sc = (x2 - x1) / (w2.x - w1.x), cx = x1 - w1.x * sc, cy = y1 - w1.y * sc;
+  const camOf = (g) => { const [[x1, y1], [x2]] = g.pts, [w1, w2] = g.hits; const sc = (x2 - x1) / (w2.x - w1.x); return { sc, cx: x1 - w1.x * sc, cy: y1 - w1.y * sc }; };
+  const key = (g) => { const c = camOf(g); return `${c.sc.toFixed(4)}|${c.cx.toFixed(1)}|${c.cy.toFixed(1)}|${Math.round(g.w)}x${Math.round(g.h)}|${g.safeBottom}`; };
+  const samples = []; let geo = null, prev = null;
+  for (const t0 = Date.now(); Date.now() - t0 < 15000;) {
+    await p.page.waitForTimeout(600);
+    const g = await read();
+    if (!g || g.hits.length !== 2) return ok(`${label}: campfire seats clear of the chat box`, false, `no scene camera ${JSON.stringify(g)}`);
+    const k = key(g); samples.push(k);
+    if (k === prev) { geo = g; break; }
+    prev = k;
+  }
+  if (!geo) return ok(`${label}: camera settled before measuring (two equal samples within 15 s)`, false, JSON.stringify(samples));
+  const { sc, cx, cy } = camOf(geo);
   const label16 = 16;   // label box ≈ 16 CSS px on screen; allow one lift (layoutLabels max 1) above the base
   const bad = [];
   for (const s of createMap(geo.n).seats) {
