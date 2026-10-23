@@ -29,6 +29,12 @@ for (const [dev, vp] of [['laptop', LAPTOP], ['phone', PHONE]]) {
   for (const theme of ['', 'halloween']) S.push({ name: `memorials-${dev}${theme ? '-halloween' : ''}`, group: 'memorials', vp, q: { viewer: 's1', quality: 'high', ...(theme ? { theme } : {}) },
     start: 'night', steps: [{ at: 0, scene: 'day', dead: MULTI }, { at: 10, scene: 'night', dead: MULTI }], shots: [10, 19], check: 'memorials' });
 }
+// memorial layout at the UI's scene-slot sizes (top bar 56 px; 375x667 also the chat row 64 px), survivor and ghost view
+const SLOT375 = { viewport: { width: 375, height: 253 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, SLOT390 = { viewport: { width: 390, height: 428 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
+for (const [dev, vp, safe] of [['slot375x253', SLOT375, { top: 56, bottom: 64 }], ['slot390x428', SLOT390, { top: 56 }], ['laptop', LAPTOP, { top: 56 }]])
+  for (const theme of ['', 'halloween']) for (const viewer of ['s1', 's2'])
+    S.push({ name: `layout-${dev}${theme ? '-halloween' : ''}-${viewer === 's1' ? 'survivor' : 'ghost'}`, group: 'layout', vp, safe, q: { viewer, quality: 'high', ...(theme ? { theme } : {}) },
+      start: 'night', steps: [{ at: 0, scene: 'day', dead: MULTI }], shots: [10], check: 'layout' });
 S.push({ name: 'night-death-victim-laptop-high', group: 'night-death', vp: LAPTOP, q: { viewer: 's3', quality: 'high' }, start: 'night', steps: dawn(DEAD_NIGHT), shots: [2.0, 3.6, 9], check: 'night-victim' });
 for (const viewer of ['s1', 's4', 'moderator']) S.push({ name: `race-${viewer}-laptop-high`, group: 'race', vp: LAPTOP, q: { viewer, quality: 'high' }, start: 'night', steps: [{ at: 0, scene: 'day', dead: [] }, { at: 1.1, scene: 'day', dead: RACE }], shots: [5, 9], check: 'race' });
 S.push({ name: 'night-death-living-laptop-low', group: 'low', vp: LAPTOP, q: { viewer: 's1', quality: 'low' }, start: 'night', steps: dawn(DEAD_NIGHT), shots: [3.35, 9], check: 'night-living' });
@@ -48,6 +54,7 @@ try {
     page.on('pageerror', (e) => { failed = true; console.error('pageerror', sc.name, e.message); });
     await page.goto(`http://127.0.0.1:${port}/?${new URLSearchParams({ scene: sc.start, n: '8', audio: '0', panel: '0', speak: '0', ...sc.q })}`);
     await page.waitForFunction(() => window.__moonveil?.ready, null, { timeout: 60000 });
+    if (sc.safe) await page.evaluate((s) => window.__moonveil.setSafeArea?.(s), sc.safe);
     const T = () => page.evaluate(() => window.__moonveil.time());
     const until = (t) => page.waitForFunction((x) => window.__moonveil.time() >= x, t, { timeout: 180000, polling: 50 });
     await until((await T()) + (sc.start === 'day' ? 4 : 2));   // settled (seated / in tents)
@@ -72,10 +79,29 @@ try {
 } finally { vite.kill('SIGTERM'); report.load.push(execSync('uptime').toString().trim()); writeFileSync(join(out, 'dawn-check.json'), JSON.stringify(report, null, 1) + '\n'); }
 process.exit(failed ? 1 : 0);
 
+function hit(a, b) { return !!a && !!b && a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1; }   // hoisted: used by verdict() during the run
+// memorial names / stones vs camper labels, camper head boxes, stones and each other (screen boxes from debugSeats)
+function layoutOverlaps(smp) {
+  const bad = [], mem = smp.memorials ?? [], seats = Object.entries(smp.seats).filter(([, v]) => v.headBox);
+  for (const m of mem) {
+    for (const [s, v] of seats) {
+      if (hit(m.labelBox, v.labelBox)) bad.push(`${m.seat} name on ${s} label`);
+      if (hit(m.labelBox, v.headBox)) bad.push(`${m.seat} name on ${s} camper`);
+      if (hit(m.stoneBox, v.labelBox)) bad.push(`${s} label on ${m.seat} stone`);
+      if (hit(m.stoneBox, v.headBox)) bad.push(`${m.seat} stone on ${s} camper`);
+    }
+    for (const o of mem) if (o !== m) { if (hit(m.labelBox, o.labelBox) && m.seat < o.seat) bad.push(`${m.seat}/${o.seat} names`); if (hit(m.labelBox, o.stoneBox)) bad.push(`${m.seat} name on ${o.seat} stone`); }
+    if (hit(m.labelBox, m.stoneBox)) bad.push(`${m.seat} name on its stone`);
+  }
+  return bad;
+}
 function verdict(sc, samples) {
   if (!samples.length) return { ok: null, notes: [] };
   const notes = []; let ok = true;
   const fail = (m) => { ok = false; notes.push(m); };
+  if (samples.at(-1).memorials?.[0] && 'stoneBox' in samples.at(-1).memorials[0]) {   // builds with layout boxes
+    const bad = layoutOverlaps(samples.at(-1)); if (bad.length) fail(`overlaps: ${bad.slice(0, 4).join('; ')}`);
+  }
   const last = samples.at(-1);
   const memo = (smp) => (smp.memorials ?? []).map((m) => m.seat).sort().join(',');
   const named = (smp, seat) => (smp.memorials ?? []).find((m) => m.seat === seat)?.nameShown === true;
@@ -105,6 +131,11 @@ function verdict(sc, samples) {
     if (samples.some((s) => s.seats.s5.mode === 'ghost')) fail('living view drew a ghost');
     if (samples.some((s) => s.t < 0.55 && memo(s))) fail('memorial before the death fade ended');
     if (memo(last) !== 's5' || !named(last, 's5')) fail(`memorials at end: ${memo(last)}`);
+  } else if (sc.check === 'layout') {
+    const m = last.memorials ?? [];
+    if (m.map((x) => x.seat).sort().join(',') !== MULTI.join(',')) fail(`memorials ${memo(last)}`);
+    const hidden = m.filter((x) => !x.labelBox).map((x) => x.seat);
+    notes.push(`names placed ${m.length - hidden.length}/${m.length}${hidden.length ? ` (hidden: ${hidden.join(',')})` : ''}`);
   } else if (sc.check === 'memorials') {
     const day = samples.find((s) => s.t >= 9.5 && s.t < 10), night = last;
     for (const [when, smp] of [['day', day], ['night', night]]) {

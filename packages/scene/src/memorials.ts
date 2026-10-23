@@ -5,6 +5,7 @@ import { Container, Graphics, Text } from 'pixi.js';
 import { type TextureBank, type Baked, spriteOf } from './textures.ts';
 import { memorialAt } from './memorial.ts';
 import type { MapLayout } from './map.ts';
+import type { Box } from './boxes.ts';
 import type { Sprite } from 'pixi.js';
 
 export type MemorialVariant = 'normal' | 'halloween';
@@ -31,7 +32,12 @@ export function drawMemorial(variant: MemorialVariant): Graphics {
   return g;
 }
 
-interface Entry { stone: Sprite; label: Text; alpha: number; to: number; labelAt: { x: number; y: number }; index: number }
+export interface ScreenRect { x0: number; y0: number; x1: number; y1: number }
+interface Entry {
+  stone: Sprite; label: Text; alpha: number; to: number; labelAt: { x: number; y: number }; index: number;
+  box: Box;                                                       // stone box, world units (memorial.ts)
+  screen: { stone: ScreenRect | null; label: ScreenRect | null }; // last layout, scene-slot CSS px (debug read)
+}
 
 export class Memorials {
   private bank: TextureBank; private objects: Container; private labels: Container;
@@ -51,7 +57,7 @@ export class Memorials {
     label.anchor.set(0.5, 1); label.resolution = 2; label.position.set(at.labelAt.x, at.labelAt.y); label.zIndex = at.base.y;
     const a = fade ? 0 : 1; stone.alpha = a; label.alpha = a;
     this.objects.addChild(stone); this.labels.addChild(label);
-    this.entries.set(seat, { stone, label, alpha: a, to: 1, labelAt: at.labelAt, index });
+    this.entries.set(seat, { stone, label, alpha: a, to: 1, labelAt: at.labelAt, index, box: at.box, screen: { stone: null, label: null } });
   }
 
   setVariant(v: MemorialVariant) {

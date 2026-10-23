@@ -18,7 +18,8 @@ import { frameCamera } from './framing.ts';
 import { Staging } from './staging.ts';
 import { Wisps } from './wisps.ts';
 import { Memorials } from './memorials.ts';
-import { memorialNameShown, MEMORIAL_LABEL_GAP } from './memorial.ts';
+import { memorialNameShown, placeMemorialLabel } from './memorial.ts';
+import { seatBox } from './boxes.ts';
 import { ThemeController } from './themes/index.ts';
 import type { HalloweenOverlay } from './themes/halloween.ts';   // type only: the overlay itself is a lazy chunk
 import { playersDiff, spawnPoint, effectiveAppearance } from './reconcile.ts';
@@ -133,6 +134,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   let wisps: Wisps;
   let memorials: Memorials;   // stones + names at dead players' seats (memorial.ts; timing from staging)
   let labelPx = 12;           // seat label size of the last layout (memorial names follow it)
+  const lastLabelBox = new Map<string, { x0: number; y0: number; x1: number; y1: number }>();   // debug: last screen rects of camper labels
   let snap = true;
   const cam = { x: 0, y: 0, scale: 1 };
   let focusFraming = false;   // phone focus framing active (framing.ts): labels keep full size
@@ -378,19 +380,11 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     const vw = app.screen.width, vh = app.screen.height, sc = cam.scale;
     const size = !v1 && input.players.length >= SMALL_LABEL_FROM ? 11 : 12;
     labelPx = size;
+    const px = 1 / sc;   // one screen pixel in world units
+    const view = { w: vw, h: vh, top: safe.top, right: safe.right, bottom: safe.bottom, left: safe.left };
+    const toScreen = (b: { x0: number; y0: number; x1: number; y1: number }) => ({ x0: cam.x + b.x0 * sc, y0: cam.y + b.y0 * sc, x1: cam.x + b.x1 * sc, y1: cam.y + b.y1 * sc });
+    // 1. living (and ghost) labels: the existing resolver
     const rects: LabelRect[] = []; const byId = new Map<string, Avatar>();
-    // memorial names: one name per player (memorialNameShown): hidden while that player's ghost is visible close by
-    const memo = new Map<string, { x: number; y: number }>();
-    for (const [seat, e] of memorials.entries) {
-      const g = avatars.get(seat);
-      const shown = memorialNameShown(e.labelAt, g ? { visible: g.root.visible && g.mode === 'ghost', x: g.x, y: g.y } : null);
-      memorials.showName(seat, shown);
-      if (!shown) continue;
-      const sx = cam.x + e.labelAt.x * sc, sy = cam.y + e.labelAt.y * sc;
-      e.label.position.set(e.labelAt.x, e.labelAt.y);
-      if (sx < -60 || sx > vw + 60 || sy < -60 || sy > vh + 60) continue;
-      rects.push({ id: `m:${seat}`, x: sx, y: sy, w: e.label.width * sc, h: e.label.height * sc }); memo.set(`m:${seat}`, e.labelAt);
-    }
     for (const av of avatars.values()) {
       av.setLabelSize(size);
       if (!av.root.visible) continue;
@@ -398,17 +392,14 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       if (sx < -60 || sx > vw + 60 || sy < -60 || sy > vh + 60) { av.setLabelOffset(0, 0); continue; }   // off-screen avatar: leave it
       rects.push({ id: av.seat, x: sx, y: sy, w: av.label.width * sc, h: av.label.height * sc }); byId.set(av.seat, av);
     }
-    if (!rects.length) return;
-    const px = 1 / sc;   // one screen pixel in world units
-    for (const o of layoutLabels(rects, { w: vw, h: vh, top: safe.top, right: safe.right, bottom: safe.bottom, left: safe.left }, v1 ? 3 : undefined)) {
-      const m = memo.get(o.id);
-      if (m) {
-        const e = memorials.entries.get(o.id.slice(2))!;
-        e.label.position.set(m.x + o.dx / sc, m.y + o.dy / sc);
-        if (!v1 && o.displaced) leaders.moveTo(m.x + o.dx / sc, m.y + o.dy / sc + 2 * px).lineTo(m.x, m.y + MEMORIAL_LABEL_GAP).stroke({ width: px, color: 0xe4ded2, alpha: 0.45 });
-        continue;
-      }
+    const placed: { x0: number; y0: number; x1: number; y1: number }[] = [];   // screen rects later names must avoid
+    lastLabelBox.clear();
+    const stones = [...memorials.entries.values()].map((e) => toScreen(e.box));   // living labels keep off the stones too
+    if (rects.length) for (const o of layoutLabels(rects, view, v1 ? 3 : undefined, stones)) {
       const av = byId.get(o.id); if (!av) continue;
+      const r = rects.find((x) => x.id === o.id)!;
+      const lb = { x0: r.x - r.w / 2 + o.dx, y0: r.y - r.h + o.dy, x1: r.x + r.w / 2 + o.dx, y1: r.y + o.dy };
+      placed.push(lb); lastLabelBox.set(o.id, lb);
       av.setLabelOffset(o.dx / sc, o.dy / sc);
       if (!v1 && o.displaced) {
         // leader: from the label's bottom centre to just above the head, in the label's colour
@@ -416,7 +407,32 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
         leaders.moveTo(x0, y0).lineTo(x1, y1).stroke({ width: px, color: av.speaking ? 0xffe28a : 0xfff6e6, alpha: 0.55 });
       }
     }
+    // 2. memorial names: placed around their stone, clear of living labels, visible campers (head boxes), every stone
+    //    and names already placed (memorial.ts placeMemorialLabel); one name per player (memorialNameShown); no clear
+    //    spot = name hidden, never an overlap
+    for (const av of avatars.values()) if (av.root.visible) placed.push(toScreen(seatBox({ x: av.x, y: av.y })));
+    for (const e of memorials.entries.values()) { e.screen.stone = toScreen(e.box); placed.push(e.screen.stone); }
+    for (const [seat, e] of [...memorials.entries].sort((a, b) => a[1].index - b[1].index)) {
+      const g = avatars.get(seat);
+      let shown = memorialNameShown(e.labelAt, g ? { visible: g.root.visible && g.mode === 'ghost', x: g.x, y: g.y } : null);
+      e.screen.label = null;
+      if (shown) {
+        const w = e.label.width * sc, h = e.label.height * sc;
+        const spot = placeMemorialLabel(e.screen.stone!, w, h, placed, view);
+        if (spot) {
+          const r = spot.rect; e.screen.label = r; placed.push(r);
+          const wx = ((r.x0 + r.x1) / 2 - cam.x) / sc, wy = (r.y1 - cam.y) / sc;
+          e.label.position.set(wx, wy);
+          if (!v1 && spot.displaced) {   // leader: from the label point nearest the stone top to the stone top
+            const tx = (e.box.x0 + e.box.x1) / 2, ty = e.box.y0, lx0 = (r.x0 - cam.x) / sc, lx1 = (r.x1 - cam.x) / sc, ly0 = (r.y0 - cam.y) / sc, ly1 = (r.y1 - cam.y) / sc;
+            leaders.moveTo(clamp(tx, lx0, lx1), clamp(ty, ly0, ly1)).lineTo(tx, ty).stroke({ width: px, color: 0xe4ded2, alpha: 0.45 });
+          }
+        } else shown = false;
+      }
+      memorials.showName(seat, shown);
+    }
   }
+
 
   function ambientColor(nl: number): number {
     const s = smooth(nl);
@@ -450,9 +466,12 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     debugTheme() { return opts.debug ? { theme: overlay?.id ?? null, animate: !!overlay?.animate, counts: overlay?.counts() ?? null } : null; },
     debugSeats() {
       if (!opts.debug || !app) return null;
-      const seats: Record<string, { mode: string; alpha: number; intent: string | null; dying: boolean }> = {};
-      for (const [seat, av] of avatars) seats[seat] = { mode: av.mode, alpha: +av.alpha.toFixed(3), intent: staging.intent(seat) ?? null, dying: staging.dying(seat) };
-      const memo = [...memorials.entries].map(([seat, e]) => ({ seat, name: e.label.text, nameShown: e.label.visible, alpha: +e.alpha.toFixed(2) }));
+      const r = (b: { x0: number; y0: number; x1: number; y1: number } | null | undefined) => (b ? { x0: +b.x0.toFixed(1), y0: +b.y0.toFixed(1), x1: +b.x1.toFixed(1), y1: +b.y1.toFixed(1) } : null);
+      const sc = cam.scale, scr = (b: { x0: number; y0: number; x1: number; y1: number }) => ({ x0: cam.x + b.x0 * sc, y0: cam.y + b.y0 * sc, x1: cam.x + b.x1 * sc, y1: cam.y + b.y1 * sc });
+      const seats: Record<string, { mode: string; alpha: number; intent: string | null; dying: boolean; labelBox: ReturnType<typeof r>; headBox: ReturnType<typeof r> }> = {};
+      for (const [seat, av] of avatars) seats[seat] = { mode: av.mode, alpha: +av.alpha.toFixed(3), intent: staging.intent(seat) ?? null, dying: staging.dying(seat),
+        labelBox: av.root.visible ? r(lastLabelBox.get(seat)) : null, headBox: av.root.visible ? r(scr(seatBox({ x: av.x, y: av.y }))) : null };
+      const memo = [...memorials.entries].map(([seat, e]) => ({ seat, name: e.label.text, nameShown: e.label.visible, alpha: +e.alpha.toFixed(2), stoneBox: r(e.screen.stone), labelBox: e.label.visible ? r(e.screen.label) : null }));
       return { t: staging.now, seats, lanterns: lanternLevel.map((l) => +l.toFixed(2)), memorials: memo };
     },
     debugLabels() {

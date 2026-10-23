@@ -85,6 +85,14 @@ Phase changes animate inside the scene (walk to seats, night walk to tents ~7 s,
   rest of the match (also at the end; no role on it), cleared by the lobby / next match. One name per player: the
   memorial hides its name while that player's ghost is visible to this viewer within 130 units. Normal: a white flower;
   Halloween: a tiny pumpkin.
+- Memorial layout: each stone stands at the nearest clear spot by its seat (`memorialSpots`: outward / sideways from the
+  stump, never touching another seat's camper box, a pumpkin or another stone; seats never move). Camper labels are laid
+  out first and keep off the stones; then each memorial name is placed around its stone clear of camper labels, visible
+  campers, stones and other names (`placeMemorialLabel`; leader line when moved). No clear spot = the name is hidden,
+  never overlapping (only in very dense rings on the smallest slots, e.g. 375x667 with the chat row and many deaths).
+- Debug read (`debug: true`): `debugSeats().memorials[]` = `{ seat, name, nameShown, alpha, stoneBox, labelBox }` and
+  `debugSeats().seats[seat]` = `{ mode, alpha, intent, dying, labelBox, headBox }`; boxes `{ x0, y0, x1, y1 }` in
+  scene-slot CSS px (same space as `debugCamera`; add the slot's page offset), `null` when not visible / not shown.
 
 ## Decisions requested from the UI owner
 
