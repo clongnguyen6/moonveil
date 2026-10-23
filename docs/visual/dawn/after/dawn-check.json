@@ -1,0 +1,108 @@
+{
+ "load": [
+  "10:14  up 24 days,  2:27, 3 users, load averages: 15.63 14.31 13.68",
+  "10:20  up 24 days,  2:33, 3 users, load averages: 23.22 19.65 16.45"
+ ],
+ "runs": [
+  {
+   "name": "night-death-living-laptop-high",
+   "group": "night-death",
+   "ok": true,
+   "notes": [
+    "all seated at scene 8.6s / real 25.3s"
+   ],
+   "samples": 39
+  },
+  {
+   "name": "day-death-living-laptop-high",
+   "group": "day-death",
+   "ok": true,
+   "notes": [],
+   "samples": 5
+  },
+  {
+   "name": "night-death-living-phone-high",
+   "group": "night-death",
+   "ok": true,
+   "notes": [
+    "all seated at scene 8.6s / real 28.9s"
+   ],
+   "samples": 37
+  },
+  {
+   "name": "day-death-living-phone-high",
+   "group": "day-death",
+   "ok": true,
+   "notes": [],
+   "samples": 4
+  },
+  {
+   "name": "night-death-victim-laptop-high",
+   "group": "night-death",
+   "ok": true,
+   "notes": [],
+   "samples": 39
+  },
+  {
+   "name": "race-s1-laptop-high",
+   "group": "race",
+   "ok": true,
+   "notes": [
+    "end s4=hidden s8=hidden"
+   ],
+   "samples": 42
+  },
+  {
+   "name": "race-s4-laptop-high",
+   "group": "race",
+   "ok": true,
+   "notes": [
+    "end s4=ghost s8=ghost"
+   ],
+   "samples": 42
+  },
+  {
+   "name": "race-moderator-laptop-high",
+   "group": "race",
+   "ok": true,
+   "notes": [
+    "end s4=ghost s8=ghost"
+   ],
+   "samples": 42
+  },
+  {
+   "name": "night-death-living-laptop-low",
+   "group": "low",
+   "ok": true,
+   "notes": [
+    "all seated at scene 8.6s / real 12.5s"
+   ],
+   "samples": 42
+  },
+  {
+   "name": "day-death-living-laptop-low",
+   "group": "low",
+   "ok": true,
+   "notes": [],
+   "samples": 5
+  },
+  {
+   "name": "night-death-living-laptop-reduced-motion",
+   "group": "reduced",
+   "ok": true,
+   "notes": [
+    "all seated at scene 9s / real 12.7s"
+   ],
+   "samples": 15
+  },
+  {
+   "name": "night-death-living-laptop-high-halloween",
+   "group": "halloween",
+   "ok": true,
+   "notes": [
+    "all seated at scene 8.6s / real 29.1s"
+   ],
+   "samples": 42
+  }
+ ]
+}

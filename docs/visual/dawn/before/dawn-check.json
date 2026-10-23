@@ -1,0 +1,64 @@
+{
+ "load": [
+  "10:10  up 24 days,  2:23, 3 users, load averages: 12.51 11.88 12.85",
+  "10:14  up 24 days,  2:27, 3 users, load averages: 16.55 14.46 13.74"
+ ],
+ "runs": [
+  {
+   "name": "night-death-living-laptop-high",
+   "group": "night-death",
+   "ok": null,
+   "notes": [],
+   "samples": 0
+  },
+  {
+   "name": "day-death-living-laptop-high",
+   "group": "day-death",
+   "ok": null,
+   "notes": [],
+   "samples": 0
+  },
+  {
+   "name": "night-death-living-phone-high",
+   "group": "night-death",
+   "ok": null,
+   "notes": [],
+   "samples": 0
+  },
+  {
+   "name": "day-death-living-phone-high",
+   "group": "day-death",
+   "ok": null,
+   "notes": [],
+   "samples": 0
+  },
+  {
+   "name": "night-death-victim-laptop-high",
+   "group": "night-death",
+   "ok": null,
+   "notes": [],
+   "samples": 0
+  },
+  {
+   "name": "race-s1-laptop-high",
+   "group": "race",
+   "ok": null,
+   "notes": [],
+   "samples": 0
+  },
+  {
+   "name": "race-s4-laptop-high",
+   "group": "race",
+   "ok": null,
+   "notes": [],
+   "samples": 0
+  },
+  {
+   "name": "race-moderator-laptop-high",
+   "group": "race",
+   "ok": null,
+   "notes": [],
+   "samples": 0
+  }
+ ]
+}
