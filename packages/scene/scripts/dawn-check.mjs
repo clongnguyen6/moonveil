@@ -79,7 +79,7 @@ try {
 } finally { vite.kill('SIGTERM'); report.load.push(execSync('uptime').toString().trim()); writeFileSync(join(out, 'dawn-check.json'), JSON.stringify(report, null, 1) + '\n'); }
 process.exit(failed ? 1 : 0);
 
-const hit = (a, b) => !!a && !!b && a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+function hit(a, b) { return !!a && !!b && a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1; }   // hoisted: used by verdict() during the run
 // memorial names / stones vs camper labels, camper head boxes, stones and each other (screen boxes from debugSeats)
 function layoutOverlaps(smp) {
   const bad = [], mem = smp.memorials ?? [], seats = Object.entries(smp.seats).filter(([, v]) => v.headBox);
