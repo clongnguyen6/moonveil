@@ -159,7 +159,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
         </div>
         <ChatOverlay s={s} view={view} onHistory={() => open('chat')} />
         {overlay && (
-          <div className="overlay-announce announce-life" data-testid="announce" data-ms={overlay.ms} key={overlay.id} style={{ animationDuration: `${overlay.ms}ms` }} aria-hidden="true">
+          <div className="overlay-announce announce-life" data-testid="announce" data-ms={overlay.ms} key={overlay.id} aria-hidden="true">
             <div className="rise-in">
               <h2>{overlay.title}</h2>
               {overlay.body && <p className="hint" style={{ fontSize: 'var(--fs-3)' }}>{overlay.body}</p>}

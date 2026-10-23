@@ -65,7 +65,7 @@ export function SeatGrid({ view, g, enabled, selected, onSelect, seats, tags, sp
           >
             <Avatar p={p} dead={!sv.alive} speaking={isSpeaking} />
             <span className="meta">
-              <span className="nm"><span className="nm-name">{p.name}</span>{i === me && <span className="nm-you">&nbsp;({t('you')})</span>}</span>
+              <span className="nm"><span className="nm-name">{p.name}</span>{i === me && <span className="nm-you">({t('you')})</span>}</span>
               {sv.role && showRole(i) && <span className={`tag team-${sv.role === 'wolf' ? 'wolves' : 'village'}`}>{t.role(sv.role)}</span>}
             </span>
             <span className="right">

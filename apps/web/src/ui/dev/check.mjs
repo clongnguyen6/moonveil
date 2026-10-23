@@ -578,12 +578,18 @@ const dawn = async ({ heal, poison, view }) => {
   return { plan, at: await dawnProbe() };
 };
 const noRoleOrCause = (x) => !/wolf|wolves|seer|guard|witch|hunter|villager|poison|kill|heal|shot|executed|sói|phù thủy|thợ săn|tiên tri|bảo vệ|dân làng|giết|độc/i.test(x);
+// first dawn with full motion (Settings → Animations: Full), so the fade timing is real despite the reduced-motion context
+await page.evaluate(() => { const k = 'moonveil.ui.settings'; localStorage.setItem(k, JSON.stringify({ ...JSON.parse(localStorage.getItem(k) ?? '{}'), reducedMotion: 'off' })); });
 {
   const { plan, at } = await dawn({ heal: false, poison: true, view: 'survivor' });
   const names = `${plan.victim}, ${plan.poisoned}`;
   ok(`dawn (2 deaths, survivor): "Dawn | Did not wake up: ${names}" shown ${at.ms} ms`, at.overlay === `Dawn | Did not wake up: ${names}` && at.ms >= 4500, JSON.stringify(at));
   ok('dawn: one combined polite message "Day 1 · Discussion. Did not wake up: …" (not overwritten by the phase title)', at.live === `Day 1 · Discussion. Did not wake up: ${names}`, JSON.stringify(at.live));
   ok('dawn: the overlay never blocks the mic, Chat, Settings or the chat History button', Object.values(at.hits).every((h) => h === 'ok'), JSON.stringify(at.hits));
+  await page.waitForTimeout(400);
+  const op = await page.evaluate(() => Number(getComputedStyle(document.querySelector('[data-testid=announce]')).opacity));
+  const anim = await page.evaluate(() => getComputedStyle(document.querySelector('[data-testid=announce]')).animationName);
+  ok(`dawn: with motion on, the overlay is fully opaque by +700 ms (short fade-in, not stretched over its life; opacity ${op}, animation ${anim})`, op >= 0.99 && /fadeIn/.test(anim), JSON.stringify({ op, anim }));
   ok(`recap in the discussion panel: "Last night: ${names} did not wake up."`, at.step === 'day.discussion' && at.recap === `Last night: ${names} did not wake up.`, JSON.stringify(at));
   ok('dawn: no role or cause words in the overlay, recap or live message', noRoleOrCause(`${at.overlay} ${at.recap} ${at.live}`), JSON.stringify(at));
   ok(`clock unchanged: the countdown (${at.timer}) matches the server deadline`, at.endsAt !== null && Math.abs(at.timer - Math.ceil((at.endsAt - Date.now()) / 1000)) <= 2, JSON.stringify({ timer: at.timer, left: Math.ceil((at.endsAt - Date.now()) / 1000) }));
@@ -593,10 +599,14 @@ const noRoleOrCause = (x) => !/wolf|wolves|seer|guard|witch|hunter|villager|pois
   const vote = await dawnProbe();
   ok('recap also in the nomination panel', vote.step === 'day.vote' && vote.recap === at.recap, JSON.stringify(vote));
 }
+await page.evaluate(() => { const k = 'moonveil.ui.settings'; localStorage.setItem(k, JSON.stringify({ ...JSON.parse(localStorage.getItem(k) ?? '{}'), reducedMotion: 'system' })); });
 {
   const { plan, at } = await dawn({ heal: false, poison: true, view: 'poisoned' });
   ok(`dawn (2 deaths, the poisoned player watching): own-death wording "You did not wake up. Also: ${plan.victim}"`, at.overlay === `Dawn | You did not wake up. Also: ${plan.victim}` && at.live === `Day 1 · Discussion. You did not wake up. Also: ${plan.victim}`, JSON.stringify(at));
   ok('dawn (victim): recap in the ghost panel lists both, never a cause', at.recap === `Last night: ${plan.victim}, ${plan.poisoned} did not wake up.` && noRoleOrCause(`${at.overlay} ${at.recap}`), JSON.stringify(at));
+  // the dead player's own seat on a phone with the ✝ pill: full name and "(you)" (was "Bình (y…", then "B… (you)")
+  const own = await page.evaluate(() => { const y = document.querySelector('.seat-chip .nm-you'); const nm = y?.closest('.nm')?.querySelector('.nm-name'); return y ? { name: nm.textContent, you: y.textContent, nameFull: nm.scrollWidth <= nm.clientWidth + 1, youFull: y.scrollWidth <= y.clientWidth + 1 } : null; });
+  ok(`dead player's own seat (phone, ✝): full name and "(you)" (${own?.name} ${own?.you})`, !!own && own.name === plan.poisoned && own.nameFull && own.youFull, JSON.stringify(own));
 }
 {
   const { plan, at } = await dawn({ heal: false, poison: false, view: 'victim' });
@@ -620,10 +630,6 @@ await stub((r) => r.closeStep());
 await page.waitForTimeout(1100);
 { const at = await dawnProbe(); ok('reconnect: the dawn that happened while away is not replayed as a late overlay; recap shows it', at.step === 'day.discussion' && at.overlay === null && /^Last night: .+ did not wake up\.$/.test(at.recap ?? ''), JSON.stringify(at)); }
 ok('cues: a Hunter dying at dawn keeps the death cue before the attention cue (death never dropped)', JSON.stringify(orderCues(['death', 'attention'])) === '["death","attention"]' && JSON.stringify(orderCues(['death', 'attention', 'vote'])) === '["death","vote"]' && JSON.stringify(orderCues(['night', 'night'])) === '["night"]');
-// the dead player's own name is not truncated ("Bình (y…")
-await open('day', '&lang=en&theme=normal');
-await stub((r) => { const g = r.game; r.setViewer(g.seatIds[g.match.seats.find((s) => !s.alive).seat]); }); await page.waitForTimeout(250);
-{ const own = await page.evaluate(() => { const y = [...document.querySelectorAll('.seat-chip .nm-you')][0]; const chip = y?.closest('.seat-chip'); const nm = chip?.querySelector('.nm-name'); return y ? { you: y.textContent, youW: Math.round(y.getBoundingClientRect().width), youFull: y.scrollWidth <= y.clientWidth + 1, name: nm.textContent, nameFull: nm.scrollWidth <= nm.clientWidth + 1 } : null; }); ok(`dead player's own seat shows the full name and "(you)" (${own?.name}${own?.you})`, !!own && own.youFull && own.nameFull && own.youW > 0, JSON.stringify(own)); }
 await open('day');
 
 // 11k. Chat overlay: always visible, names + content, channel labels, isolation, same footprint for every seat.
