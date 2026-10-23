@@ -72,7 +72,12 @@ Test hook, gated: with `mountScene(slot, { debug: true })`, `scene.debugAppearan
 
 ## Timing and choreography
 
-Phase changes animate inside the scene (walk to seats, night walk to tents ~7 s, dawn). They are cosmetic: the shell opens its panels on the step change immediately. First `setInput` after mount, and any input after a reconnect, snaps without animation.
+Phase changes animate inside the scene (walk to seats, night walk to tents ~7 s, dawn). They are cosmetic: the shell opens its panels on the step change immediately. The first `setInput` after a mount (incl. a reload) snaps without animation; later inputs (also after a network reconnect without reload) animate from the current state.
+
+- Choreography runs on the scene clock (`src/staging.ts`); every pending step belongs to a seat and is cancelled when that seat's intent changes, so a death never lets a pending dawn step redraw the seat as alive. Under reduced motion the clock keeps real time (4 fps frames, same durations).
+- Dawn: survivors leave their tents at 2.5 + 0.3 x seat index s, fade in 0.5 s, walk to their seat; all lanterns go out. A night victim's tent stays closed: when it would have opened, its lantern gutters out and a faint wisp rises (public; a living view never draws the victim). The victim's own ghost leaves the tent then, at the door.
+- Day death (execution, shot): a 0.6 s fade where the camper is, with a wisp; then hidden for living views, a ghost for views entitled to ghosts (ghosts, moderator) and for the player.
+- `low`: no wisp, lantern straight out, same timing. Reduced motion: one static wisp, no lantern flicker.
 
 ## Decisions requested from the UI owner
 
