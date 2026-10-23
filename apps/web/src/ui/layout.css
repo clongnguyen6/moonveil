@@ -44,7 +44,10 @@ ul { padding: 0; list-style: none; }
 /* seat grid: equal cells for every role so night screens share one layout */
 .seat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--sp-2); }
 .seat-chip { display: flex; align-items: center; gap: var(--sp-2); min-height: 52px; padding: 6px 10px; text-align: left; cursor: pointer; width: 100%; }
-.seat-chip .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seat-chip .nm { font-weight: 600; display: flex; min-width: 0; white-space: nowrap; }
+.seat-chip .nm-name { overflow: hidden; text-overflow: ellipsis; min-width: 0; }   /* only the name may shorten; "(you)" always shows */
+.seat-chip .nm-you { flex-shrink: 0; }
+.recap { margin: 0; font-weight: 600; font-size: var(--fs-1); }
 .seat-chip .meta { display: flex; flex-direction: column; min-width: 0; }
 .seat-chip .right { margin-left: auto; display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .avatar { width: 32px; height: 32px; font-size: var(--fs-0); flex-shrink: 0; position: relative; }
@@ -81,7 +84,8 @@ ul { padding: 0; list-style: none; }
 .sheet .sheet-body { overflow: auto; padding: 0 var(--sp-4) max(var(--sp-4), env(safe-area-inset-bottom)); }
 .toasts { position: fixed; top: max(var(--sp-3), env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 30; display: flex; flex-direction: column; gap: var(--sp-2); pointer-events: none; width: min(92vw, 420px); }
 .toast { padding: var(--sp-3) var(--sp-4); animation: riseIn var(--dur-3) var(--ease) both; }
-.overlay-announce { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; text-align: center; padding: var(--sp-5); animation: fadeIn var(--dur-3) both; }
+/* below the top bar (2) and the chat box (3), click-through: an announcement never blocks a control */
+.overlay-announce { position: absolute; inset: 0; z-index: 1; pointer-events: none; display: grid; place-items: center; text-align: center; padding: var(--sp-5); animation: fadeIn var(--dur-3) both; }
 .conn-overlay { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); text-align: center; padding: var(--sp-5); }
 .conn-overlay .card { padding: var(--sp-5); max-width: 360px; }
 .conn-chip { position: fixed; right: var(--sp-2); bottom: max(var(--sp-2), env(safe-area-inset-bottom)); z-index: 15; opacity: .85; }

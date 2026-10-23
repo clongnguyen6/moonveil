@@ -4,7 +4,7 @@
 import type { Seat } from '@moonveil/rules';
 import { useEffect, useState } from 'react';
 import { act } from '../../game/commands.ts';
-import { action, aliveSeats, canSpeak, nameAt } from '../../game/select.ts';
+import { action, aliveSeats, canSpeak, dawnOfToday, nameAt } from '../../game/select.ts';
 import type { GameView, SeatId, SeatView } from '../../game/types.ts';
 import { Button, Timer } from '../components/index.tsx';
 import { SeatGrid } from '../components/SeatGrid.tsx';
@@ -34,12 +34,26 @@ function ballotTags(view: SeatView, g: GameView, votes: (Seat | 'skip' | 'yes' |
   return tags;
 }
 
+/** Persistent last-night recap for the day (public: who did not wake up, never why). Pure function of the snapshot, so
+ *  it is the same after a reload or a reconnect. */
+export function LastNight({ view, g }: { view: SeatView; g: GameView }) {
+  const t = useT();
+  const d = dawnOfToday(g);
+  if (!d) return null;
+  return (
+    <p className="recap" data-testid="last-night" data-dead={d.dead.length}>
+      {d.dead.length ? t('recapDied', { names: d.dead.map((s) => nameAt(view, g, s)).join(', ') }) : t('recapNobody')}
+    </p>
+  );
+}
+
 export function DiscussionPanel({ view, g, speaking }: P) {
   const t = useT();
   const living = aliveSeats(g).length;
   return (
     <section className="card panel rise-in" data-testid="day-discussion">
       <Head title={t('discussTitle')} view={view} right={<span className="pill">{t('livingCount', { n: living })}</span>} />
+      <LastNight view={view} g={g} />
       <p className="hint">{t('discussHint')}</p>
       <SeatGrid view={view} g={g} speaking={speaking} />
       <p className="muted" style={{ fontSize: 'var(--fs-0)' }}>{view.phaseEndsAt !== null ? t('discussCountdown') : ''}</p>
@@ -67,6 +81,7 @@ export function VotePanel({ view, g, speaking }: P) {
   return (
     <section className="card panel rise-in" data-testid="day-vote">
       <Head title={t('voteTitle')} view={view} right={<span className="pill" data-testid="voted-count">{t('votedCount', { n: votedCount, total: aliveSeats(g).length })}</span>} />
+      <LastNight view={view} g={g} />
       <p className="hint">{t('voteHint')}</p>
       <SeatGrid view={view} g={g} enabled={a?.targets ?? []} selected={sel} onSelect={a ? setSel : undefined} speaking={speaking} tags={targetTags} showDead={false} />
       <Ballots view={view} g={g} />
@@ -105,6 +120,7 @@ export function GhostPanel({ view, g, speaking, title }: P & { title: string }) 
   return (
     <section className="card panel rise-in" data-testid="ghost-panel" data-step={g.step.kind}>
       <Head title={title} view={view} right={<span className="pill">{t('livingCount', { n: living })}</span>} />
+      <LastNight view={view} g={g} />
       <p className="hint">{t('ghostWatch')}</p>
       <SeatGrid view={view} g={g} speaking={speaking} />
       <Ballots view={view} g={g} />

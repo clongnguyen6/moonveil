@@ -78,6 +78,7 @@ export const en = {
   hunterTitle: 'The Hunter falls', hunterYou: 'You are the Hunter. Take your shot.', hunterShootWho: 'Shoot one player, or let it pass.', hunterOthers: '{name} is the Hunter and may shoot.',
   hunterWaiting: 'Waiting for the shot…', hunterShot: '{by} shot {target}.', hunterNoShot: '{by} did not shoot.', hunterSubmitted: 'Shot locked.', hunterIso: 'Ghost chat opens after your turn.',
 
+  dawnYou: 'You did not wake up.', dawnYouAlso: 'You did not wake up. Also: {names}', recapDied: 'Last night: {names} did not wake up.', recapNobody: 'Last night: nobody died.', 
   dawnTitle: 'Dawn', dawnNobody: 'Everyone wakes up. Nobody died.', dawnDied: 'Did not wake up: {names}', dawnMourn: 'The camp falls silent.',
 
   discussTitle: 'Discussion', discussHint: 'Talk it out. Who seems off tonight?', discussCountdown: 'Nomination opens when time is up.',

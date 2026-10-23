@@ -2,8 +2,9 @@
 // Cues mark phase changes and attention; they never depend on secret state (every seat hears the same cue
 // for the same public event), so audio timing reveals nothing.
 import { settingsStore } from '../../game/local-store.ts';
+import { CUE_GAP_MS, orderCues } from './cue-order.ts';
 
-export type Cue = 'night' | 'dawn' | 'vote' | 'attention' | 'death' | 'victory' | 'defeat' | 'tap' | 'tick';
+export type Cue = import('./cue-order.ts').CueName;
 
 let ctx: AudioContext | null = null;
 function ac(): AudioContext | null {
@@ -28,6 +29,11 @@ function tone(c: AudioContext, at: number, f: number, dur: number, type: Oscilla
   o.connect(g).connect(c.destination);
   o.start(at);
   o.stop(at + dur + 0.05);
+}
+
+/** Play one batch of cues in order (see cue-order.ts), spaced so a later cue does not mask an earlier one. */
+export function playCues(cues: readonly Cue[]) {
+  orderCues(cues).forEach((c, i) => (i === 0 ? playCue(c) : setTimeout(() => playCue(c), i * CUE_GAP_MS)));
 }
 
 export function playCue(cue: Cue) {
