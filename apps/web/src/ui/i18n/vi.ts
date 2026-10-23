@@ -79,6 +79,7 @@ export const vi: Strings = {
   hunterTitle: 'Thợ săn ngã xuống', hunterYou: 'Bạn là Thợ săn. Hãy bắn.', hunterShootWho: 'Bắn một người, hoặc bỏ qua.', hunterOthers: '{name} là Thợ săn và có thể bắn.',
   hunterWaiting: 'Chờ phát súng…', hunterShot: '{by} đã bắn {target}.', hunterNoShot: '{by} không bắn.', hunterSubmitted: 'Đã khóa phát súng.', hunterIso: 'Chat ma mở sau lượt của bạn.',
 
+  dawnYou: 'Bạn không tỉnh dậy.', dawnYouAlso: 'Bạn không tỉnh dậy. Cùng với: {names}', recapDied: 'Đêm qua: {names} không tỉnh dậy.', recapNobody: 'Đêm qua: không ai chết.', 
   dawnTitle: 'Bình minh', dawnNobody: 'Mọi người thức dậy. Không ai chết.', dawnDied: 'Không tỉnh dậy: {names}', dawnMourn: 'Cả trại lặng im.',
 
   discussTitle: 'Thảo luận', discussHint: 'Bàn bạc đi. Ai đáng ngờ?', discussCountdown: 'Hết giờ sẽ mở đề cử.',

@@ -1,4 +1,4 @@
-// "Cute Halloween" theme overlay (player opt-in, see themes/index.ts). A separate lazy chunk: the scene imports this
+// "Cute Halloween" theme overlay (player opt-in, see theme-switch.ts). A separate lazy chunk: the scene imports this
 // module only when the theme is first chosen.
 // Everything is baked once; sprites are static. Per frame: nothing on `low` or reduced motion unless the night level
 // changed; on `high`, gentle pumpkin flicker, bulb twinkle and ornament sway.

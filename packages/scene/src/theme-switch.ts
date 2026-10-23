@@ -10,6 +10,14 @@ export function normalizeTheme(option: unknown): SceneTheme {
 
 // What an overlay must offer the scene. Structural, so this file imports nothing heavy (the default bundle carries only it).
 export interface ThemeOverlayLike { readonly id: string; readonly night: { ambient: number; wash: number }; detach(): void }
+// What the scene drives on a full overlay (themes/halloween.ts implements it). Structural, so default code needs no
+// import from themes/ (not even a type): the dynamic import() is the only path into that directory.
+export interface SceneThemeOverlay<World, Layer, Lights> extends ThemeOverlayLike {
+  readonly animate: boolean;
+  attach(world: World, emissive: Layer, lighting: Lights): void;
+  update(time: number, night: number): void;
+  counts(): { pumpkins: number; bulbs: number; ornaments: number; leaves: number };
+}
 // Loads the overlay code (dynamic import) and returns a factory that builds + attaches an overlay to the current scene.
 export type OverlayLoader = () => Promise<() => ThemeOverlayLike>;
 

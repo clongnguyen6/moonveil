@@ -2,6 +2,7 @@
 //   node scripts/env.mjs node apps/web/src/ui/dev/check.mjs   (vite on WEB_PORT, default 4401)
 import { chromium, devices } from '@playwright/test';
 import { OUTFITS } from '../../../../../packages/protocol/src/appearance.ts';
+import { orderCues } from '../audio/cue-order.ts';
 
 const port = process.env.WEB_PORT ?? '4401';
 const base = `http://127.0.0.1:${port}/src/ui/dev/index.html`;
@@ -548,6 +549,88 @@ await page.keyboard.press('Escape');
 page.off('request', onReq);
 await open('day', '&theme=normal');
 ok('theme: reset to Normal for the remaining checks', (await themeState()).theme === 'normal' && (await themeState()).setting === 'normal');
+
+// 11p. Dawn presentation (public data only): text for 0/1/2 deaths, own-death wording, one combined live message,
+// never blocking a control, the last-night recap in discussion and nomination (also on a fresh load and after a reconnect,
+// with no late overlay), no role or cause words, countdown = server deadline, death cue kept before attention.
+const dawnProbe = () => page.evaluate(() => {
+  const ann = document.querySelector('[data-testid=announce]');
+  const at = (sel) => { const b = document.querySelector(sel); if (!b) return 'absent'; const r = b.getBoundingClientRect(); const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return b === hit || b.contains(hit) ? 'ok' : `blocked by ${hit?.closest('[data-testid]')?.getAttribute('data-testid') ?? hit?.className}`; };
+  const timer = document.querySelector('[role=timer]');
+  return { step: document.querySelector('[data-testid=room]')?.dataset.step, overlay: ann ? ann.innerText.replace(/\n+/g, ' | ') : null, ms: ann ? Number(ann.dataset.ms) : null, live: document.querySelector('[data-testid=live]')?.textContent ?? '', recap: document.querySelector('[data-testid=last-night]')?.textContent ?? null, hits: { mic: at('[data-testid=voice] button'), chat: at('[data-testid=open-chat]'), settings: at('[data-testid=open-settings]'), history: at('[data-testid=chat-history]') }, timer: timer ? Number(timer.textContent.trim()) : null, endsAt: globalThis.__stub.phaseEndsAt };
+});
+// night.witch with the wolves' victim chosen; the witch heals or not, poisons someone or not; `view` = who watches dawn
+const dawn = async ({ heal, poison, view }) => {
+  await open('witch', '&lang=en&theme=normal'); await page.waitForTimeout(250);
+  const plan = await stub((r, h, po, v) => {
+    const g = r.game, seats = g.match.seats, idOf = (i) => g.seatIds[i], name = (i) => r.players.find((p) => p.id === idOf(i)).name;
+    const witch = seats.find((s) => s.role === 'witch').seat, victim = g.match.nightRec.victim;
+    const poisoned = seats.find((s) => s.alive && ![witch, victim].includes(s.seat) && !['wolf', 'hunter'].includes(s.role)).seat;
+    const survivor = seats.find((s) => s.alive && ![witch, victim, poisoned].includes(s.seat) && s.role !== 'hunter').seat;
+    r.drive({ type: 'witch.heal', seat: witch, use: h });
+    r.drive({ type: 'witch.poison', seat: witch, target: po ? poisoned : 'pass' });
+    r.setViewer(idOf(v === 'victim' ? victim : v === 'poisoned' ? poisoned : survivor));
+    return { victim: name(victim), poisoned: name(poisoned) };
+  }, heal, poison, view);
+  await page.waitForTimeout(200);
+  await stub((r) => r.closeStep());
+  await page.waitForTimeout(300);
+  return { plan, at: await dawnProbe() };
+};
+const noRoleOrCause = (x) => !/wolf|wolves|seer|guard|witch|hunter|villager|poison|kill|heal|shot|executed|sói|phù thủy|thợ săn|tiên tri|bảo vệ|dân làng|giết|độc/i.test(x);
+// first dawn with full motion (Settings → Animations: Full), so the fade timing is real despite the reduced-motion context
+await page.evaluate(() => { const k = 'moonveil.ui.settings'; localStorage.setItem(k, JSON.stringify({ ...JSON.parse(localStorage.getItem(k) ?? '{}'), reducedMotion: 'off' })); });
+{
+  const { plan, at } = await dawn({ heal: false, poison: true, view: 'survivor' });
+  const names = `${plan.victim}, ${plan.poisoned}`;
+  ok(`dawn (2 deaths, survivor): "Dawn | Did not wake up: ${names}" shown ${at.ms} ms`, at.overlay === `Dawn | Did not wake up: ${names}` && at.ms >= 4500, JSON.stringify(at));
+  ok('dawn: one combined polite message "Day 1 · Discussion. Did not wake up: …" (not overwritten by the phase title)', at.live === `Day 1 · Discussion. Did not wake up: ${names}`, JSON.stringify(at.live));
+  ok('dawn: the overlay never blocks the mic, Chat, Settings or the chat History button', Object.values(at.hits).every((h) => h === 'ok'), JSON.stringify(at.hits));
+  await page.waitForTimeout(400);
+  const op = await page.evaluate(() => Number(getComputedStyle(document.querySelector('[data-testid=announce]')).opacity));
+  const anim = await page.evaluate(() => getComputedStyle(document.querySelector('[data-testid=announce]')).animationName);
+  ok(`dawn: with motion on, the overlay is fully opaque by +700 ms (short fade-in, not stretched over its life; opacity ${op}, animation ${anim})`, op >= 0.99 && /fadeIn/.test(anim), JSON.stringify({ op, anim }));
+  ok(`recap in the discussion panel: "Last night: ${names} did not wake up."`, at.step === 'day.discussion' && at.recap === `Last night: ${names} did not wake up.`, JSON.stringify(at));
+  ok('dawn: no role or cause words in the overlay, recap or live message', noRoleOrCause(`${at.overlay} ${at.recap} ${at.live}`), JSON.stringify(at));
+  ok(`clock unchanged: the countdown (${at.timer}) matches the server deadline`, at.endsAt !== null && Math.abs(at.timer - Math.ceil((at.endsAt - Date.now()) / 1000)) <= 2, JSON.stringify({ timer: at.timer, left: Math.ceil((at.endsAt - Date.now()) / 1000) }));
+  await page.waitForTimeout(at.ms + 200);
+  ok('dawn overlay ends on its own; the recap stays', (await dawnProbe()).overlay === null && (await dawnProbe()).recap === at.recap);
+  await stub((r) => r.closeStep()); await page.waitForTimeout(250);
+  const vote = await dawnProbe();
+  ok('recap also in the nomination panel', vote.step === 'day.vote' && vote.recap === at.recap, JSON.stringify(vote));
+}
+await page.evaluate(() => { const k = 'moonveil.ui.settings'; localStorage.setItem(k, JSON.stringify({ ...JSON.parse(localStorage.getItem(k) ?? '{}'), reducedMotion: 'system' })); });
+{
+  const { plan, at } = await dawn({ heal: false, poison: true, view: 'poisoned' });
+  ok(`dawn (2 deaths, the poisoned player watching): own-death wording "You did not wake up. Also: ${plan.victim}"`, at.overlay === `Dawn | You did not wake up. Also: ${plan.victim}` && at.live === `Day 1 · Discussion. You did not wake up. Also: ${plan.victim}`, JSON.stringify(at));
+  ok('dawn (victim): recap in the ghost panel lists both, never a cause', at.recap === `Last night: ${plan.victim}, ${plan.poisoned} did not wake up.` && noRoleOrCause(`${at.overlay} ${at.recap}`), JSON.stringify(at));
+  // the dead player's own seat on a phone with the ✝ pill: full name and "(you)" (was "Bình (y…", then "B… (you)")
+  const own = await page.evaluate(() => { const y = document.querySelector('.seat-chip .nm-you'); const nm = y?.closest('.nm')?.querySelector('.nm-name'); return y ? { name: nm.textContent, you: y.textContent, nameFull: nm.scrollWidth <= nm.clientWidth + 1, youFull: y.scrollWidth <= y.clientWidth + 1 } : null; });
+  ok(`dead player's own seat (phone, ✝): full name and "(you)" (${own?.name} ${own?.you})`, !!own && own.name === plan.poisoned && own.nameFull && own.youFull, JSON.stringify(own));
+}
+{
+  const { plan, at } = await dawn({ heal: false, poison: false, view: 'victim' });
+  ok('dawn (1 death, that player): "You did not wake up."', at.overlay === 'Dawn | You did not wake up.' && at.ms === 4500, JSON.stringify(at));
+  const s1 = await dawn({ heal: false, poison: false, view: 'survivor' });
+  ok(`dawn (1 death, survivor): "Did not wake up: ${s1.plan.victim}"`, s1.at.overlay === `Dawn | Did not wake up: ${s1.plan.victim}` && s1.at.recap === `Last night: ${s1.plan.victim} did not wake up.`, JSON.stringify(s1.at));
+  void plan;
+}
+{
+  const { at } = await dawn({ heal: true, poison: false, view: 'survivor' });
+  ok('dawn (nobody): "Everyone wakes up. Nobody died." and the recap says so', at.overlay === 'Dawn | Everyone wakes up. Nobody died.' && at.ms === 3200 && at.recap === 'Last night: nobody died.' && at.live === 'Day 1 · Discussion. Everyone wakes up. Nobody died', JSON.stringify(at));
+}
+// fresh load in the day (like a reload): recap from the snapshot, no overlay replayed
+await open('day', '&lang=en&theme=normal'); await page.waitForTimeout(300);
+{ const at = await dawnProbe(); ok('fresh load during the day: recap shown from the state, no dawn overlay replayed', at.overlay === null && /^Last night: .+ did not wake up\.$/.test(at.recap ?? ''), JSON.stringify(at)); }
+// reconnect: dawn happens while the seat is disconnected → no late overlay after it reconnects, recap correct
+await open('witch', '&lang=en&theme=normal'); await page.waitForTimeout(250);
+await stub((r) => { const g = r.game, w = g.match.seats.find((s) => s.role === 'witch').seat; r.drive({ type: 'witch.heal', seat: w, use: false }); r.drive({ type: 'witch.poison', seat: w, target: 'pass' }); r.setViewer(g.seatIds[g.match.seats.find((s) => s.alive && s.role !== 'witch' && s.seat !== g.match.nightRec.victim).seat]); r.simulateReconnect(800); });
+await page.waitForTimeout(150);
+await stub((r) => r.closeStep());
+await page.waitForTimeout(1100);
+{ const at = await dawnProbe(); ok('reconnect: the dawn that happened while away is not replayed as a late overlay; recap shows it', at.step === 'day.discussion' && at.overlay === null && /^Last night: .+ did not wake up\.$/.test(at.recap ?? ''), JSON.stringify(at)); }
+ok('cues: a Hunter dying at dawn keeps the death cue before the attention cue (death never dropped)', JSON.stringify(orderCues(['death', 'attention'])) === '["death","attention"]' && JSON.stringify(orderCues(['death', 'attention', 'vote'])) === '["death","vote"]' && JSON.stringify(orderCues(['night', 'night'])) === '["night"]');
+await open('day');
 
 // 11k. Chat overlay: always visible, names + content, channel labels, isolation, same footprint for every seat.
 // Sender consistency: every rendered message's name AND avatar come from the seat that sent it (stub chat log `from`).

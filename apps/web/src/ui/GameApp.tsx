@@ -10,7 +10,7 @@ import { stalemateWarning } from '../game/approved.ts';
 import { SAVE_BOUND_MS, lookDraft, sameLook, useLookDraft } from '../game/look-draft.ts';
 import type { Session, SessionState } from '../game/session.ts';
 import { type GameView, type SeatView, stepFamily as famOf } from '../game/types.ts';
-import { type Cue, playCue, unlockAudio } from './audio/cues.ts';
+import { type Cue, playCues, unlockAudio } from './audio/cues.ts';
 import { Button, Sheet, Timer, type ToastItem, Toasts } from './components/index.tsx';
 import { type T, useT } from './i18n/index.ts';
 import { ConfirmPanel, DefensePanel, DiscussionPanel, GhostPanel, VotePanel } from './screens/Day.tsx';
@@ -64,7 +64,7 @@ function Root() {
     addEventListener('pointerdown', unlock, { once: true });
     return () => removeEventListener('pointerdown', unlock);
   }, []);
-  const { toasts, overlay, live } = useAnnouncer(view, g, t);
+  const { toasts, overlay, live } = useAnnouncer(view, g, t, s.status);
   useLookRules(s, view, t);
   const wake = useWakeLock(!!view && view.status === 'playing');
   // Theme (Settings): UI accents + scene overlay together, consistent on load failure (ui/theme/theme.ts)
@@ -159,7 +159,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
         </div>
         <ChatOverlay s={s} view={view} onHistory={() => open('chat')} />
         {overlay && (
-          <div className="overlay-announce announce-life" role="status" data-testid="announce" key={overlay.id}>
+          <div className="overlay-announce announce-life" data-testid="announce" data-ms={overlay.ms} key={overlay.id} aria-hidden="true">
             <div className="rise-in">
               <h2>{overlay.title}</h2>
               {overlay.body && <p className="hint" style={{ fontSize: 'var(--fs-3)' }}>{overlay.body}</p>}
@@ -197,7 +197,7 @@ function Match({ s, view, g, mic, open, overlay, wakeFailed, scene }: { s: Sessi
   );
 }
 
-interface Announcement { id: number; title: string; body?: string }
+interface Announcement { id: number; title: string; body?: string; ms: number }
 
 /** Look-editor rules that depend on the session: confirm on a matching snapshot, bound the pending save, discard on
  *  reconnect / seat or room change / leaving the lobby. Pure function of SessionState + the draft store. */
@@ -224,58 +224,75 @@ function useLookRules(s: SessionState, view: SeatView | null, t: T) {
 }
 
 /** Turns new public-log entries and step changes into toasts, overlays and audio cues. Public data only. */
-function useAnnouncer(view: SeatView | null, g: GameView | null, t: T) {
+// Dawn overlay length: names must be readable; it never blocks anything (click-through, under the top bar and chat box).
+const DAWN_NOBODY_MS = 3200;
+export const dawnMs = (deaths: number) => (deaths === 0 ? DAWN_NOBODY_MS : Math.min(7000, 4500 + 600 * (deaths - 1)));
+
+function useAnnouncer(view: SeatView | null, g: GameView | null, t: T, status: SessionState['status']) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [overlay, setOverlay] = useState<Announcement | null>(null);
   const [live, setLive] = useState('');
   const seen = useRef<{ code: string | null; log: number; step: string | null }>({ code: null, log: 0, step: null });
+  // After a reconnect the first snapshot is adopted silently (no late overlay for events missed while away; the last-night
+  // recap in the panels shows the dawn result). A reload starts fresh and is silent the same way.
+  const resync = useRef(false);
+  if (status === 'reconnecting' || status === 'connecting') resync.current = true;
   const idRef = useRef(0);
   const push = useCallback((text: string, kind?: ToastItem['kind']) => {
     const id = ++idRef.current;
-    setLive(text);
     setToasts((xs) => [...xs, { id, text, kind }].slice(-3));
     setTimeout(() => setToasts((xs) => xs.filter((x) => x.id !== id)), 3500);
   }, []);
   const show = useCallback((title: string, body?: string, ms = 3200) => {
     const id = ++idRef.current;
-    setLive(body ? `${title}. ${body}` : title);
-    setOverlay({ id, title, body });
+    setOverlay({ id, title, body, ms });
     setTimeout(() => setOverlay((o) => (o?.id === id ? null : o)), ms);
   }, []);
   useEffect(() => {
     if (!view || !g) return;
     const st = seen.current;
-    const fresh = st.code !== view.code;
-    if (fresh) {
-      // (Re)connect or new room: adopt the current state silently; never replay history as new events.
+    if (st.code !== view.code || resync.current) {
+      // (Re)connect, reload or new room: adopt the current state silently; never replay history as new announcements.
+      resync.current = false;
       seen.current = { code: view.code, log: g.publicLog.length, step: g.step.kind };
       return;
     }
     const cues: Cue[] = [];
+    const said: string[] = [];   // one polite live-region message per update: phase first, then what happened
+    const announce = (text: string) => { said.push(text); };
+    const me = g.me?.seat ?? null;
     for (const e of g.publicLog.slice(st.log)) {
       const n = (s: number | null) => nameAt(view, g, s);
       switch (e.t) {
-        case 'nightStart': cues.push('night'); show(t('annNight')); break;
-        case 'dawn': cues.push(e.dead.length ? 'death' : 'dawn'); show(t('dawnTitle'), e.dead.length ? t('dawnDied', { names: e.dead.map(n).join(', ') }) : t('dawnNobody')); break;
-        case 'nomination': push(e.accused === null ? t('voteNoTrialTie') : t('voteTrial', { name: n(e.accused) })); break;
-        case 'confirm': push(e.counted === 'moderator' ? t('confirmYesOnly', { yes: e.yes }) : t('confirmResult', { yes: e.yes, no: e.no ?? 0 })); break;
-        case 'executed': cues.push('death'); show(t('annExecuted', { name: n(e.seat) })); break;
-        case 'hunterTurn': cues.push('attention'); push(t('annHunter', { name: e.seats.map(n).join(', ') }), 'warn'); break;
-        case 'stalemateWarning': cues.push('attention'); push(t('stalemateWarning'), 'warn'); break;
-        case 'shot': if (e.target !== null) { cues.push('death'); show(t('annShot', { by: n(e.by), target: n(e.target) })); } else push(t('hunterNoShot', { by: n(e.by) })); break;
+        case 'nightStart': cues.push('night'); show(t('annNight')); announce(t('annNight')); break;
+        case 'dawn': {
+          cues.push(e.dead.length ? 'death' : 'dawn');
+          const others = e.dead.filter((s) => s !== me).map(n).join(', ');
+          const body = !e.dead.length ? t('dawnNobody') : me !== null && e.dead.includes(me) ? (others ? t('dawnYouAlso', { names: others }) : t('dawnYou')) : t('dawnDied', { names: others });
+          show(t('dawnTitle'), body, dawnMs(e.dead.length));
+          announce(body);
+          break;
+        }
+        case 'nomination': { const x = e.accused === null ? t('voteNoTrialTie') : t('voteTrial', { name: n(e.accused) }); push(x); announce(x); break; }
+        case 'confirm': { const x = e.counted === 'moderator' ? t('confirmYesOnly', { yes: e.yes }) : t('confirmResult', { yes: e.yes, no: e.no ?? 0 }); push(x); announce(x); break; }
+        case 'executed': { cues.push('death'); const x = t('annExecuted', { name: n(e.seat) }); show(x); announce(x); break; }
+        case 'hunterTurn': { cues.push('attention'); const x = t('annHunter', { name: e.seats.map(n).join(', ') }); push(x, 'warn'); announce(x); break; }
+        case 'stalemateWarning': cues.push('attention'); push(t('stalemateWarning'), 'warn'); announce(t('stalemateWarning')); break;
+        case 'shot': if (e.target !== null) { cues.push('death'); const x = t('annShot', { by: n(e.by), target: n(e.target) }); show(x); announce(x); } else { const x = t('hunterNoShot', { by: n(e.by) }); push(x); announce(x); } break;
         case 'ended': cues.push(g.outcome?.winner === 'wolves' ? (g.me?.role === 'wolf' ? 'victory' : 'defeat') : g.outcome?.winner === 'village' ? (g.me?.role === 'wolf' ? 'defeat' : 'victory') : 'dawn'); break;
         default: break;
       }
     }
     if (st.step !== g.step.kind) {
-      setLive(phaseTitle(t, g));
-      if (g.step.kind === 'day.vote') { cues.push('vote'); push(t('annVote')); }
-      if (g.step.kind === 'day.confirm') { cues.push('vote'); push(t('annConfirm')); }
-      if (g.step.kind === 'day.defense') push(t('annDefense'));
+      said.unshift(phaseTitle(t, g));
+      if (g.step.kind === 'day.vote') { cues.push('vote'); push(t('annVote')); said.push(t('annVote')); }
+      if (g.step.kind === 'day.confirm') { cues.push('vote'); push(t('annConfirm')); said.push(t('annConfirm')); }
+      if (g.step.kind === 'day.defense') { push(t('annDefense')); said.push(t('annDefense')); }
       if (g.me?.actions.length && famOf(g.step.kind) !== 'night') cues.push('attention');
     }
-    const last = cues.at(-1);
-    if (last) playCue(last);
+    const msg = [...new Set(said)].map((x) => x.replace(/[.\s]+$/, '')).join('. ');
+    if (msg) setLive(msg);
+    if (cues.length) playCues(cues);
     seen.current = { code: view.code, log: g.publicLog.length, step: g.step.kind };
   }, [view, g, t, push, show]);
   return { toasts, overlay, live };

@@ -1,0 +1,179 @@
+{
+ "load": [
+  "16:57  up  1:32, 2 users, load averages: 11.61 5.15 4.43",
+  "17:05  up  1:39, 2 users, load averages: 10.64 9.57 7.09"
+ ],
+ "runs": [
+  {
+   "name": "memorials-laptop",
+   "group": "memorials",
+   "ok": true,
+   "notes": [
+    "day s2,s5,s7 / night s2,s5,s7"
+   ],
+   "samples": 91
+  },
+  {
+   "name": "memorials-laptop-halloween",
+   "group": "memorials",
+   "ok": true,
+   "notes": [
+    "day s2,s5,s7 / night s2,s5,s7"
+   ],
+   "samples": 91
+  },
+  {
+   "name": "memorials-phone",
+   "group": "memorials",
+   "ok": true,
+   "notes": [
+    "day s2,s5,s7 / night s2,s5,s7"
+   ],
+   "samples": 90
+  },
+  {
+   "name": "memorials-phone-halloween",
+   "group": "memorials",
+   "ok": true,
+   "notes": [
+    "day s2,s5,s7 / night s2,s5,s7"
+   ],
+   "samples": 91
+  },
+  {
+   "name": "layout-slot375x253-survivor",
+   "group": "layout",
+   "ok": true,
+   "notes": [
+    "names placed 3/3"
+   ],
+   "samples": 37
+  },
+  {
+   "name": "layout-slot375x253-ghost",
+   "group": "layout",
+   "ok": true,
+   "notes": [
+    "names placed 3/3"
+   ],
+   "samples": 39
+  },
+  {
+   "name": "layout-slot375x253-halloween-survivor",
+   "group": "layout",
+   "ok": true,
+   "notes": [
+    "names placed 3/3"
+   ],
+   "samples": 37
+  },
+  {
+   "name": "layout-slot375x253-halloween-ghost",
+   "group": "layout",
+   "ok": true,
+   "notes": [
+    "names placed 3/3"
+   ],
+   "samples": 38
+  },
+  {
+   "name": "layout-slot390x428-survivor",
+   "group": "layout",
+   "ok": true,
+   "notes": [
+    "names placed 3/3"
+   ],
+   "samples": 50
+  },
+  {
+   "name": "layout-slot390x428-ghost",
+   "group": "layout",
+   "ok": true,
+   "notes": [
+    "names placed 3/3"
+   ],
+   "samples": 50
+  },
+  {
+   "name": "layout-slot390x428-halloween-survivor",
+   "group": "layout",
+   "ok": true,
+   "notes": [
+    "names placed 3/3"
+   ],
+   "samples": 50
+  },
+  {
+   "name": "layout-slot390x428-halloween-ghost",
+   "group": "layout",
+   "ok": true,
+   "notes": [
+    "names placed 3/3"
+   ],
+   "samples": 50
+  },
+  {
+   "name": "layout-laptop-survivor",
+   "group": "layout",
+   "ok": true,
+   "notes": [
+    "names placed 3/3"
+   ],
+   "samples": 51
+  },
+  {
+   "name": "layout-laptop-ghost",
+   "group": "layout",
+   "ok": true,
+   "notes": [
+    "names placed 3/3"
+   ],
+   "samples": 51
+  },
+  {
+   "name": "layout-laptop-halloween-survivor",
+   "group": "layout",
+   "ok": true,
+   "notes": [
+    "names placed 3/3"
+   ],
+   "samples": 51
+  },
+  {
+   "name": "layout-laptop-halloween-ghost",
+   "group": "layout",
+   "ok": true,
+   "notes": [
+    "names placed 3/3"
+   ],
+   "samples": 51
+  },
+  {
+   "name": "race-s1-laptop-high",
+   "group": "race",
+   "ok": true,
+   "notes": [
+    "end s4=hidden s8=hidden; memorials s4,s8; names s4:stone s8:stone"
+   ],
+   "samples": 42
+  },
+  {
+   "name": "race-s4-laptop-high",
+   "group": "race",
+   "ok": true,
+   "notes": [
+    "end s4=ghost s8=ghost; memorials s4,s8; names s4:stone s8:stone"
+   ],
+   "samples": 42
+  },
+  {
+   "name": "race-moderator-laptop-high",
+   "group": "race",
+   "ok": true,
+   "notes": [
+    "end s4=ghost s8=ghost; memorials s4,s8; names s4:stone s8:stone"
+   ],
+   "samples": 42
+  }
+ ]
+}

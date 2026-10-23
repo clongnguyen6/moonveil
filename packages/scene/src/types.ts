@@ -27,6 +27,8 @@ export interface SceneAppearance {
   back?: string;      // back item id ('none', 'backpack', or an outfit's id)
 }
 
+export interface DebugRect { x0: number; y0: number; x1: number; y1: number }   // debug reads: scene-slot CSS px
+
 export interface ScenePlayer { seat: SeatId; name: string; appearance: SceneAppearance; connected: boolean }
 // Public per the rules projection: alive flag and public death record. Empty in the lobby.
 export interface SceneSeatState { seat: SeatId; alive: boolean; death: { cause: string; night: number; day: number } | null }
@@ -102,6 +104,13 @@ export interface SceneHandle {
   readonly themeApplied: Promise<'normal' | 'halloween'>;
   // debug: active theme overlay, whether it animates (high, no reduced motion) and its decoration counts; null when debug is off
   debugTheme(): { theme: string | null; animate: boolean; counts: { pumpkins: number; bulbs: number; ornaments: number; leaves: number } | null } | null;
+  // debug: per seat, the mode/alpha drawn now, its intent and whether its death beat is playing; plus the scene clock and
+  // the tent lantern levels; null when debug is off
+  // seats: labelBox / headBox (camper box: stump + ring up to tall headgear) in scene-slot CSS px when the avatar is visible
+  debugSeats(): { t: number; seats: Record<string, { mode: string; alpha: number; intent: string | null; dying: boolean; labelBox: DebugRect | null; headBox: DebugRect | null }>; lanterns: number[];
+    // memorials: stoneBox / labelBox in scene-slot CSS px (same space as debugCamera; add the slot's page offset), labelBox
+    // null when the name is not shown (one-name policy, or no clear spot)
+    memorials: { seat: string; name: string; nameShown: boolean; alpha: number; stoneBox: DebugRect | null; labelBox: DebugRect | null }[] } | null;
   debugLabels(): { order: string[]; aboveEffects: boolean; labels: number; inLabelLayer: number } | null;
   debugCamera(): { scale: number; labelPx: number; view: { w: number; h: number }; safe: SafeArea; avatars: { x0: number; y0: number; x1: number; y1: number } | null } | null;
   // dev/test helpers

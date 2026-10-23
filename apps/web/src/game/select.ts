@@ -44,6 +44,17 @@ export function action<T extends AvailableAction['type']>(g: GameView, type: T):
   return (a as Extract<AvailableAction, { type: T }> | undefined) ?? null;
 }
 
+/** The public dawn report that opened the current day (night N's dawn opens day N), or null (night, day 0, no dawn yet).
+ *  Only the public seats list: never the cause. */
+export function dawnOfToday(g: GameView): { night: number; dead: Seat[] } | null {
+  if (!g.step.kind.startsWith('day.')) return null;
+  for (let i = g.publicLog.length - 1; i >= 0; i--) {
+    const e = g.publicLog[i]!;
+    if (e.t === 'dawn') return e.night === g.day ? { night: e.night, dead: [...e.dead] } : null;
+  }
+  return null;
+}
+
 export function aliveSeats(g: GameView): Seat[] {
   return g.seats.filter((s) => s.alive).map((s) => s.seat);
 }

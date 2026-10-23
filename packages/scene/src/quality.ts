@@ -34,6 +34,14 @@ export function frameCap(q: Quality, reducedMotion: boolean, automation = false)
   return 60;
 }
 
+// Scene-clock step for one frame. Long stalls are clamped (a background tab must not jump the choreography), but a
+// capped frame rate must not slow the clock: at 4 fps (reduced motion) a frame is 0.25 s and the step covers it, so dawn
+// takes the same real time in every mode.
+export function frameStep(deltaMs: number, fpsCap: number): number {
+  const limit = fpsCap > 0 ? Math.max(0.1, 1.25 / fpsCap) : 0.1;
+  return Math.min(limit, Math.max(0, deltaMs) / 1000);
+}
+
 // Render profile per mode. `high` is the baseline look (unchanged). `low` drops the costs measured to dominate
 // software WebGL (docs/visual/PERF.md): no MSAA, no masked ripple sprites, lightmap rendered only when its inputs
 // change (so no fire flicker), on top of the existing cuts (DPR 1, no particles/sway/fog).

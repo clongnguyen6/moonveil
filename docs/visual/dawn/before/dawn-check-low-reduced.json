@@ -1,0 +1,29 @@
+{
+ "load": [
+  "10:20  up 24 days,  2:34, 3 users, load averages: 22.89 19.72 16.53",
+  "10:22  up 24 days,  2:35, 3 users, load averages: 22.38 20.25 16.98"
+ ],
+ "runs": [
+  {
+   "name": "night-death-living-laptop-low",
+   "group": "low",
+   "ok": null,
+   "notes": [],
+   "samples": 0
+  },
+  {
+   "name": "day-death-living-laptop-low",
+   "group": "low",
+   "ok": null,
+   "notes": [],
+   "samples": 0
+  },
+  {
+   "name": "night-death-living-laptop-reduced-motion",
+   "group": "reduced",
+   "ok": null,
+   "notes": [],
+   "samples": 0
+  }
+ ]
+}

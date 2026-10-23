@@ -58,7 +58,7 @@ Test hook, gated: with `mountScene(slot, { debug: true })`, `scene.debugAppearan
 - The shell owns the choice (Settings "Theme", persisted locally). Never from the wire: `SceneInput` has no theme, the
   server cannot set it, and it is never forced room-wide or activated by date.
 - `'halloween'` is a separate lazy chunk (`themes/halloween.ts`, dynamic import on first selection). Default users neither
-  download nor execute it; the default bundle carries only the tiny switch (`themes/index.ts`).
+  download nor execute it; the default bundle carries only the tiny switch (`theme-switch.ts`).
 - `'normal'` removes every decoration, glow, light and the plum night. Toggling back re-attaches without reloading.
 - Unchanged guarantees: static on `low` and reduced motion; labels above every decoration; seats, speaking rings and the
   seated ring kept clear for 4-16 players (`test/halloween.test.ts`). Evidence: `docs/visual/halloween-scene/`.
@@ -72,7 +72,27 @@ Test hook, gated: with `mountScene(slot, { debug: true })`, `scene.debugAppearan
 
 ## Timing and choreography
 
-Phase changes animate inside the scene (walk to seats, night walk to tents ~7 s, dawn). They are cosmetic: the shell opens its panels on the step change immediately. First `setInput` after mount, and any input after a reconnect, snaps without animation.
+Phase changes animate inside the scene (walk to seats, night walk to tents ~7 s, dawn). They are cosmetic: the shell opens its panels on the step change immediately. The first `setInput` after a mount (incl. a reload) snaps without animation; later inputs (also after a network reconnect without reload) animate from the current state.
+
+- Choreography runs on the scene clock (`src/staging.ts`); every pending step belongs to a seat and is cancelled when that seat's intent changes, so a death never lets a pending dawn step redraw the seat as alive. Under reduced motion the clock keeps real time (4 fps frames, same durations).
+- Dawn: survivors leave their tents at 2.5 + 0.3 x seat index s, fade in 0.5 s, walk to their seat; all lanterns go out. A night victim's tent stays closed: when it would have opened, its lantern gutters out and a faint wisp rises (public; a living view never draws the victim). The victim's own ghost leaves the tent then, at the door.
+- Day death (execution, shot): a 0.6 s fade where the camper is, with a wisp; then hidden for living views, a ghost for views entitled to ghosts (ghosts, moderator) and for the player.
+- `low`: no wisp, lantern straight out, same timing. Reduced motion: one static wisp, no lantern flicker.
+- Memorial: a small headstone at a dead player's own seat with their display name (muted italic, laid out with the seat
+  labels, same size rule). Public only: seats the projection marks dead, not `death.cause === 'removed'` (removal is not a
+  gameplay death: no memorial, no wisp); never for disconnected seats or in the lobby. Appears when the death is shown:
+  night victim at its tent beat (dawn), day death when its fade ends; a reload shows the full set at once. Kept for the
+  rest of the match (also at the end; no role on it), cleared by the lobby / next match. One name per player: the
+  memorial hides its name while that player's ghost is visible to this viewer within 130 units. Normal: a white flower;
+  Halloween: a tiny pumpkin.
+- Memorial layout: each stone stands at the nearest clear spot by its seat (`memorialSpots`: outward / sideways from the
+  stump, never touching another seat's camper box, a pumpkin or another stone; seats never move). Camper labels are laid
+  out first and keep off the stones; then each memorial name is placed around its stone clear of camper labels, visible
+  campers, stones and other names (`placeMemorialLabel`; leader line when moved). No clear spot = the name is hidden,
+  never overlapping (only in very dense rings on the smallest slots, e.g. 375x667 with the chat row and many deaths).
+- Debug read (`debug: true`): `debugSeats().memorials[]` = `{ seat, name, nameShown, alpha, stoneBox, labelBox }` and
+  `debugSeats().seats[seat]` = `{ mode, alpha, intent, dying, labelBox, headBox }`; boxes `{ x0, y0, x1, y1 }` in
+  scene-slot CSS px (same space as `debugCamera`; add the slot's page offset), `null` when not visible / not shown.
 
 ## Decisions requested from the UI owner
 
