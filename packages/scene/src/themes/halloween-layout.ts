@@ -29,11 +29,9 @@ export const nearSeat = (map: MapLayout, p: Pt, d = SEAT_CLEAR): boolean => map.
 // Screen-space boxes (world units). A seated camper occupies its stump + speaking ring up to the top of tall headgear;
 // a pumpkin its own size. Decorations must not overlap any seat box, in front or behind (depth sort is not enough:
 // a pumpkin behind a seat would sit at the camper's head).
-export interface Box { x0: number; y0: number; x1: number; y1: number }
-export const seatBox = (s: Pt): Box => ({ x0: s.x - 30, y0: s.y - 108, x1: s.x + 30, y1: s.y + 18 });
+import { type Box, seatBox, boxesHit, BOX_MARGIN } from '../boxes.ts';
+export { type Box, seatBox, boxesHit, BOX_MARGIN };
 export const pumpkinBox = (p: Pick<Pumpkin, 'x' | 'y' | 'scale'>): Box => ({ x0: p.x - 16 * p.scale, y0: p.y - 28 * p.scale, x1: p.x + 16 * p.scale, y1: p.y + 5 });
-export const BOX_MARGIN = 8;
-export const boxesHit = (a: Box, b: Box, m = BOX_MARGIN): boolean => a.x0 - m < b.x1 && b.x0 - m < a.x1 && a.y0 - m < b.y1 && b.y0 - m < a.y1;
 export const onSeat = (map: MapLayout, b: Box): boolean => map.seats.some((s) => boxesHit(seatBox(s), b));
 
 // point on a sagging wire a→b at t (quadratic, lowest at the middle)

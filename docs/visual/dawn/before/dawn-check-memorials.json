@@ -1,0 +1,36 @@
+{
+ "load": [
+  "10:31  up 24 days,  2:44, 3 users, load averages: 32.54 23.84 19.25",
+  "10:35  up 24 days,  2:49, 3 users, load averages: 23.98 39.57 29.80"
+ ],
+ "runs": [
+  {
+   "name": "memorials-laptop",
+   "group": "memorials",
+   "ok": null,
+   "notes": [],
+   "samples": 0
+  },
+  {
+   "name": "memorials-laptop-halloween",
+   "group": "memorials",
+   "ok": null,
+   "notes": [],
+   "samples": 0
+  },
+  {
+   "name": "memorials-phone",
+   "group": "memorials",
+   "ok": null,
+   "notes": [],
+   "samples": 0
+  },
+  {
+   "name": "memorials-phone-halloween",
+   "group": "memorials",
+   "ok": null,
+   "notes": [],
+   "samples": 0
+  }
+ ]
+}
