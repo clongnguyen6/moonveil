@@ -78,6 +78,13 @@ Phase changes animate inside the scene (walk to seats, night walk to tents ~7 s,
 - Dawn: survivors leave their tents at 2.5 + 0.3 x seat index s, fade in 0.5 s, walk to their seat; all lanterns go out. A night victim's tent stays closed: when it would have opened, its lantern gutters out and a faint wisp rises (public; a living view never draws the victim). The victim's own ghost leaves the tent then, at the door.
 - Day death (execution, shot): a 0.6 s fade where the camper is, with a wisp; then hidden for living views, a ghost for views entitled to ghosts (ghosts, moderator) and for the player.
 - `low`: no wisp, lantern straight out, same timing. Reduced motion: one static wisp, no lantern flicker.
+- Memorial: a small headstone at a dead player's own seat with their display name (muted italic, laid out with the seat
+  labels, same size rule). Public only: seats the projection marks dead, not `death.cause === 'removed'` (removal is not a
+  gameplay death: no memorial, no wisp); never for disconnected seats or in the lobby. Appears when the death is shown:
+  night victim at its tent beat (dawn), day death when its fade ends; a reload shows the full set at once. Kept for the
+  rest of the match (also at the end; no role on it), cleared by the lobby / next match. One name per player: the
+  memorial hides its name while that player's ghost is visible to this viewer within 130 units. Normal: a white flower;
+  Halloween: a tiny pumpkin.
 
 ## Decisions requested from the UI owner
 

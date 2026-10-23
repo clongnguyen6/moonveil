@@ -17,6 +17,8 @@ import { layoutLabels, STAGE_ORDER, labelsAboveEffects, type LabelRect, type Sta
 import { frameCamera } from './framing.ts';
 import { Staging } from './staging.ts';
 import { Wisps } from './wisps.ts';
+import { Memorials } from './memorials.ts';
+import { memorialNameShown, MEMORIAL_LABEL_GAP } from './memorial.ts';
 import { ThemeController } from './themes/index.ts';
 import type { HalloweenOverlay } from './themes/halloween.ts';   // type only: the overlay itself is a lazy chunk
 import { playersDiff, spawnPoint, effectiveAppearance } from './reconcile.ts';
@@ -84,6 +86,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     return () => { inst ??= new HalloweenOverlay(bank, !low && !reducedMotion); inst.attach(world, emissive, lighting); return inst; };
   }, (o) => {
     overlay = o as HalloweenOverlay | null;
+    memorials?.setVariant(overlay ? 'halloween' : 'normal');
     nightColors = overlay ? overlay.night : BASE_NIGHT;
     if (nightTint) nightTint.tint = nightColors.wash;
   }, (e) => console.warn('[scene] theme overlay failed to load; staying on normal', e));
@@ -128,6 +131,8 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   const avatars = new Map<SeatId, Avatar>();
   let staging: Staging;   // per-seat choreography on the scene clock (staging.ts): steps cancelled on any intent change
   let wisps: Wisps;
+  let memorials: Memorials;   // stones + names at dead players' seats (memorial.ts; timing from staging)
+  let labelPx = 12;           // seat label size of the last layout (memorial names follow it)
   let snap = true;
   const cam = { x: 0, y: 0, scale: 1 };
   let focusFraming = false;   // phone focus framing active (framing.ts): labels keep full size
@@ -158,7 +163,11 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     postLights = world.lanternBulbs.map((p) => { const l = lighting.addLight(0xffb066, 1.4, 0); l.position.set(p.x, p.y + 10); return l; });
     postBulbs = world.lanternBulbs.map((p) => { const s = new Sprite(bank.dot); s.anchor.set(0.5); s.blendMode = 'add'; s.tint = 0xffe0a0; s.position.set(p.x, p.y); s.scale.set(0.6); s.alpha = 0; emissive.addChild(s); return s; });
     for (let i = 0; i < map.tents.length; i++) lanternLevel.push(0);
-    staging = new Staging({ lantern: (i, lv) => { if (i < lanternLevel.length) lanternLevel[i] = lv; }, wisp: (at) => wisps.spawn(at), spawn: (i) => spawnPoint(map, i) }, !low && !reducedMotion);
+    memorials = new Memorials(bank, world.objects, labelLayer);
+    staging = new Staging({
+      lantern: (i, lv) => { if (i < lanternLevel.length) lanternLevel[i] = lv; }, wisp: (at) => wisps.spawn(at), spawn: (i) => spawnPoint(map, i),
+      memorial: (seat, i, name, on, fade) => memorials.set(seat, i, name, on, fade, map),
+    }, !low && !reducedMotion);
     wisps = new Wisps(emissive, bank.lightSoft, low ? 'off' : reducedMotion ? 'static' : 'rise');
     fire = new Fire(emissive, fx, bank); fireflies = new Fireflies(emissive, bank); glints = new WaterGlints(emissive, bank); fog = new Fog(fx, bank);
     themes.sceneReady();   // a theme chosen before the scene was built attaches now
@@ -235,6 +244,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     world = new World(bank, map, x.ripples);
     a.stage.addChildAt(world.root, 0); world.root.label = 'world';
     for (const av of avatars.values()) world.objects.addChild(av.root);
+    memorials.attachTo(world.objects);
     overlay?.detach();
     old.root.destroy({ children: true });
     overlay?.attach(world, emissive, lighting);
@@ -286,6 +296,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     // per-seat steps and fades (scene clock), death-beat wisps
     staging.tick(dt);
     wisps.update(dt);
+    memorials.update(dt, clamp(1 / cam.scale, 1, 3.2) * (cam.scale < 0.65 && !focusFraming ? 0.8 : 1), labelPx);   // same scale rule as seat labels
     // lighting mix
     const target = nightLevelFor(input.phase);
     const d = target - nightLevel;
@@ -366,7 +377,20 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     const v1 = opts.labelLayout === 'v1';
     const vw = app.screen.width, vh = app.screen.height, sc = cam.scale;
     const size = !v1 && input.players.length >= SMALL_LABEL_FROM ? 11 : 12;
+    labelPx = size;
     const rects: LabelRect[] = []; const byId = new Map<string, Avatar>();
+    // memorial names: one name per player (memorialNameShown): hidden while that player's ghost is visible close by
+    const memo = new Map<string, { x: number; y: number }>();
+    for (const [seat, e] of memorials.entries) {
+      const g = avatars.get(seat);
+      const shown = memorialNameShown(e.labelAt, g ? { visible: g.root.visible && g.mode === 'ghost', x: g.x, y: g.y } : null);
+      memorials.showName(seat, shown);
+      if (!shown) continue;
+      const sx = cam.x + e.labelAt.x * sc, sy = cam.y + e.labelAt.y * sc;
+      e.label.position.set(e.labelAt.x, e.labelAt.y);
+      if (sx < -60 || sx > vw + 60 || sy < -60 || sy > vh + 60) continue;
+      rects.push({ id: `m:${seat}`, x: sx, y: sy, w: e.label.width * sc, h: e.label.height * sc }); memo.set(`m:${seat}`, e.labelAt);
+    }
     for (const av of avatars.values()) {
       av.setLabelSize(size);
       if (!av.root.visible) continue;
@@ -377,6 +401,13 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     if (!rects.length) return;
     const px = 1 / sc;   // one screen pixel in world units
     for (const o of layoutLabels(rects, { w: vw, h: vh, top: safe.top, right: safe.right, bottom: safe.bottom, left: safe.left }, v1 ? 3 : undefined)) {
+      const m = memo.get(o.id);
+      if (m) {
+        const e = memorials.entries.get(o.id.slice(2))!;
+        e.label.position.set(m.x + o.dx / sc, m.y + o.dy / sc);
+        if (!v1 && o.displaced) leaders.moveTo(m.x + o.dx / sc, m.y + o.dy / sc + 2 * px).lineTo(m.x, m.y + MEMORIAL_LABEL_GAP).stroke({ width: px, color: 0xe4ded2, alpha: 0.45 });
+        continue;
+      }
       const av = byId.get(o.id); if (!av) continue;
       av.setLabelOffset(o.dx / sc, o.dy / sc);
       if (!v1 && o.displaced) {
@@ -421,7 +452,8 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       if (!opts.debug || !app) return null;
       const seats: Record<string, { mode: string; alpha: number; intent: string | null; dying: boolean }> = {};
       for (const [seat, av] of avatars) seats[seat] = { mode: av.mode, alpha: +av.alpha.toFixed(3), intent: staging.intent(seat) ?? null, dying: staging.dying(seat) };
-      return { t: staging.now, seats, lanterns: lanternLevel.map((l) => +l.toFixed(2)) };
+      const memo = [...memorials.entries].map(([seat, e]) => ({ seat, name: e.label.text, nameShown: e.label.visible, alpha: +e.alpha.toFixed(2) }));
+      return { t: staging.now, seats, lanterns: lanternLevel.map((l) => +l.toFixed(2)), memorials: memo };
     },
     debugLabels() {
       if (!opts.debug || !app) return null;

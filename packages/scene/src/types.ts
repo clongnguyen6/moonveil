@@ -104,7 +104,8 @@ export interface SceneHandle {
   debugTheme(): { theme: string | null; animate: boolean; counts: { pumpkins: number; bulbs: number; ornaments: number; leaves: number } | null } | null;
   // debug: per seat, the mode/alpha drawn now, its intent and whether its death beat is playing; plus the scene clock and
   // the tent lantern levels; null when debug is off
-  debugSeats(): { t: number; seats: Record<string, { mode: string; alpha: number; intent: string | null; dying: boolean }>; lanterns: number[] } | null;
+  debugSeats(): { t: number; seats: Record<string, { mode: string; alpha: number; intent: string | null; dying: boolean }>; lanterns: number[];
+    memorials: { seat: string; name: string; nameShown: boolean; alpha: number }[] } | null;
   debugLabels(): { order: string[]; aboveEffects: boolean; labels: number; inLabelLayer: number } | null;
   debugCamera(): { scale: number; labelPx: number; view: { w: number; h: number }; safe: SafeArea; avatars: { x0: number; y0: number; x1: number; y1: number } | null } | null;
   // dev/test helpers

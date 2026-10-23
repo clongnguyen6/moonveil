@@ -25,7 +25,7 @@ class Fake implements Actor {
 // one viewer's scene: staging + fakes + the per-frame rules of scene.ts (remote ghosts: entitled pose -> ghost, else hidden)
 function world(viewer: SeatId | 'moderator', n = 8) {
   const map = createMap(n), lanterns = Array(n).fill(0) as number[], wisps: { t: number; at: Pt }[] = [];
-  const st = new Staging({ lantern: (i, lv) => { lanterns[i] = lv; }, wisp: (at) => wisps.push({ t: st.now, at }), spawn: () => ({ x: 0, y: 0 }) }, true);
+  const st = new Staging({ lantern: (i, lv) => { lanterns[i] = lv; }, wisp: (at) => wisps.push({ t: st.now, at }), spawn: () => ({ x: 0, y: 0 }), memorial: () => {} }, true);
   const actors = new Map<SeatId, Fake>(); for (let i = 0; i < n; i++) actors.set(seatId(i), new Fake());
   let input: SceneInput = makeInput('night', n, { viewer });
   const entitled = () => viewer === 'moderator' || input.seats.find((s) => s.seat === viewer)?.alive === false;
@@ -123,7 +123,7 @@ test('day death (execution): fade + wisp at the seat; living view then hidden (n
 
 test('reload / remount during dawn: snap to a consistent end state, nothing pending', () => {
   const map = createMap(8), lanterns = Array(8).fill(0.4) as number[];
-  const st = new Staging({ lantern: (i, lv) => { lanterns[i] = lv; }, wisp: () => {}, spawn: () => ({ x: 0, y: 0 }) }, true);
+  const st = new Staging({ lantern: (i, lv) => { lanterns[i] = lv; }, wisp: () => {}, spawn: () => ({ x: 0, y: 0 }), memorial: () => {} }, true);
   const actors = new Map<SeatId, Fake>(); for (let i = 0; i < 8; i++) actors.set(seatId(i), new Fake());
   const day = makeInput('day', 8, { viewer: seatId(0), dead: [S3] });
   st.apply(day, day, actors, map, true, () => false);
@@ -134,7 +134,7 @@ test('reload / remount during dawn: snap to a consistent end state, nothing pend
 
 test('low / reduced motion: the lantern goes straight out (no gutter flicker), same timing', () => {
   const map = createMap(8), lanterns = Array(8).fill(0.4) as number[], wisps: number[] = [];
-  const st = new Staging({ lantern: (i, lv) => { lanterns[i] = lv; }, wisp: () => wisps.push(st.now), spawn: () => ({ x: 0, y: 0 }) }, false);
+  const st = new Staging({ lantern: (i, lv) => { lanterns[i] = lv; }, wisp: () => wisps.push(st.now), spawn: () => ({ x: 0, y: 0 }), memorial: () => {} }, false);
   const actors = new Map<SeatId, Fake>(); for (let i = 0; i < 8; i++) actors.set(seatId(i), new Fake());
   const night = makeInput('night', 8, { viewer: seatId(0) }); st.apply(night, night, actors, map, true, () => false);
   st.apply(night, makeInput('day', 8, { viewer: seatId(0), dead: [S3] }), actors, map, false, () => false);

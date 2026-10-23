@@ -9,6 +9,7 @@ import type { AvatarMode } from './avatar.ts';
 import { intentFor, type SeatIntent } from './choreo.ts';
 import { FIRE, type MapLayout, type Pt } from './map.ts';
 import type { SceneInput, SeatId } from './types.ts';
+import { memorialEligible } from './memorial.ts';
 
 export interface Actor {
   mode: AvatarMode; alpha: number; x: number; y: number; facing: 1 | -1; speed: number;
@@ -19,6 +20,8 @@ export interface StageHooks {
   lantern(tent: number, level: number): void;    // tent lantern: 0 out, 0.4 lit inside at night, 1 bright
   wisp(at: Pt, where: 'tent' | 'seat'): void;     // public death beat effect; the scene decides how (quality, motion)
   spawn(index: number): Pt;                       // lobby spawn point for the local player
+  // memorial at a dead seat (memorial.ts): on once the death is public and shown, off for any other state; fade = animate
+  memorial(seat: SeatId, index: number, name: string, on: boolean, fade: boolean): void;
 }
 
 // timings (scene seconds)
@@ -42,6 +45,7 @@ export class Staging {
   private dyingSeats = new Set<SeatId>();
   private intents = new Map<SeatId, Kind>();
   private dawnAt = -Infinity;   // scene time of the latest night -> day change
+  private memorials = new Set<SeatId>();
   private hooks: StageHooks;
   private effects: boolean;      // false on low / reduced motion: no gutter flicker (lantern straight out)
 
@@ -49,8 +53,14 @@ export class Staging {
 
   intent(seat: SeatId): Kind | undefined { return this.intents.get(seat); }
   dying(seat: SeatId): boolean { return this.dyingSeats.has(seat); }
+  memorialSeats(): SeatId[] { return [...this.memorials].sort(); }
   pending(seat?: SeatId): number { return this.timers.filter((t) => !seat || t.seat === seat).length + (seat ? (this.fades.has(seat) ? 1 : 0) : this.fades.size); }
-  forget(seat: SeatId) { this.cancel(seat); this.intents.delete(seat); }
+  forget(seat: SeatId) { this.cancel(seat); this.intents.delete(seat); this.memorial(seat, -1, '', false, false); }
+  private memorial(seat: SeatId, index: number, name: string, on: boolean, fade: boolean) {
+    if (on === this.memorials.has(seat)) return;
+    if (on) this.memorials.add(seat); else this.memorials.delete(seat);
+    this.hooks.memorial(seat, index, name, on, fade);
+  }
 
   private after(seat: SeatId, sec: number, fn: () => void) { this.timers.push({ seat, at: this.now + sec, fn }); }
   private fade(seat: SeatId, a: Actor, to: number, sec: number, done?: () => void) { this.fades.set(seat, { a, to, speed: 1 / sec, done }); }
@@ -59,8 +69,9 @@ export class Staging {
     this.fades.delete(seat); this.dyingSeats.delete(seat);
   }
 
-  private tentBeat(i: number, map: MapLayout) {
+  private tentBeat(i: number, map: MapLayout, quiet = false) {
     const tent = map.tents[i] ?? map.tents[0]!;
+    if (quiet) { this.hooks.lantern(i, 0); return; }   // removed by the moderator: not a death, no beat
     if (this.effects) for (const [d, lv] of GUTTER) this.timers.push({ seat: `\u0000lantern${i}`, at: this.now + d, fn: () => this.hooks.lantern(i, lv) });
     else this.hooks.lantern(i, 0);
     this.hooks.wisp({ x: tent.x, y: tent.y - 60 }, 'tent');
@@ -79,6 +90,8 @@ export class Staging {
       this.cancel(p.seat);
       av.target = null; av.onArrive = null;
       const local = p.seat === next.me.seat, seat = p.seat;
+      const mourn = memorialEligible(next, seat);   // public death (not a removal)
+      if (intent.kind !== 'ghost') this.memorial(seat, idx, p.name, false, false);
       const tent = map.tents[idx] ?? map.tents[0]!;
       switch (intent.kind) {
         case 'free': {
@@ -123,6 +136,7 @@ export class Staging {
           const showGhost = () => { av.mode = 'ghost'; };
           if (snapNow || before === undefined || before === 'free' || before === 'absent') {
             this.hooks.lantern(idx, 0);
+            this.memorial(seat, idx, p.name, mourn, false);
             if (local) { av.mode = 'ghost'; av.alpha = 1; av.setPos(s.sit.x, s.sit.y); } else { av.alpha = 1; av.mode = hasPose(seat) ? 'ghost' : 'hidden'; }
             break;
           }
@@ -133,7 +147,8 @@ export class Staging {
             av.mode = 'hidden'; av.alpha = 0; av.setPos(tent.door.x, tent.door.y);
             const wait = before === 'tent' ? T.emerge(idx) : Math.max(0, this.dawnAt + T.emerge(idx) - this.now);
             this.after(seat, wait, () => {
-              this.tentBeat(idx, map);
+              this.tentBeat(idx, map, !mourn);
+              this.memorial(seat, idx, p.name, mourn, true);
               if (local) { showGhost(); av.alpha = 0; this.fade(seat, av, 1, T.ghostFade); }
             });
             break;
@@ -142,9 +157,10 @@ export class Staging {
           // the ghost for those entitled to see ghosts (and for the player)
           this.dyingSeats.add(seat);
           if (av.mode === 'walk') av.mode = 'idle';
-          this.hooks.wisp({ x: av.x, y: av.y - 40 }, 'seat');
+          if (mourn) this.hooks.wisp({ x: av.x, y: av.y - 40 }, 'seat');
           this.fade(seat, av, 0, T.deathFade, () => {
             this.dyingSeats.delete(seat);
+            this.memorial(seat, idx, p.name, mourn, true);
             av.mode = 'hidden';
             if (local) { showGhost(); this.fade(seat, av, 1, T.ghostFade); }
             else if (hasPose(seat)) { showGhost(); av.alpha = 1; }

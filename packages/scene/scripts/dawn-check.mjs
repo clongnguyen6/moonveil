@@ -19,18 +19,22 @@ const LAPTOP = { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 };
 const LIVING = ['idle', 'walk', 'seated'];
 const DEAD_NIGHT = ['s3'], RACE = ['s4', 's8'];
 
-// name, group, view, url query, steps (scene time after t0) and checks
+// name, group, view, url query, steps (scene time after t0: switch to scene with these dead seats), shots, checks
 const S = [];
+const dawn = (dead) => [{ at: 0, scene: 'day', dead }];
+const MULTI = ['s2', 's5', 's7'];
 for (const [dev, vp] of [['laptop', LAPTOP], ['phone', PHONE]]) {
-  S.push({ name: `night-death-living-${dev}-high`, group: 'night-death', vp, q: { viewer: 's1', quality: 'high' }, start: 'night', dawn: DEAD_NIGHT, shots: [2.0, 3.35, 9], check: 'night-living' });
-  S.push({ name: `day-death-living-${dev}-high`, group: 'day-death', vp, q: { viewer: 's1', quality: 'high' }, start: 'day', die: { at: 0, seats: ['s5'] }, shots: [0.3, 1.5], check: 'day-death' });
+  S.push({ name: `night-death-living-${dev}-high`, group: 'night-death', vp, q: { viewer: 's1', quality: 'high' }, start: 'night', steps: dawn(DEAD_NIGHT), shots: [2.0, 3.35, 9], check: 'night-living' });
+  S.push({ name: `day-death-living-${dev}-high`, group: 'day-death', vp, q: { viewer: 's1', quality: 'high' }, start: 'day', steps: [{ at: 0, scene: 'day', dead: ['s5'] }], shots: [0.3, 1.5], check: 'day-death' });
+  for (const theme of ['', 'halloween']) S.push({ name: `memorials-${dev}${theme ? '-halloween' : ''}`, group: 'memorials', vp, q: { viewer: 's1', quality: 'high', ...(theme ? { theme } : {}) },
+    start: 'night', steps: [{ at: 0, scene: 'day', dead: MULTI }, { at: 10, scene: 'night', dead: MULTI }], shots: [10, 19], check: 'memorials' });
 }
-S.push({ name: 'night-death-victim-laptop-high', group: 'night-death', vp: LAPTOP, q: { viewer: 's3', quality: 'high' }, start: 'night', dawn: DEAD_NIGHT, shots: [2.0, 3.6, 9], check: 'night-victim' });
-for (const viewer of ['s1', 's4', 'moderator']) S.push({ name: `race-${viewer}-laptop-high`, group: 'race', vp: LAPTOP, q: { viewer, quality: 'high' }, start: 'night', dawn: [], die: { at: 1.1, seats: RACE }, shots: [5, 9], check: 'race' });
-S.push({ name: 'night-death-living-laptop-low', group: 'low', vp: LAPTOP, q: { viewer: 's1', quality: 'low' }, start: 'night', dawn: DEAD_NIGHT, shots: [3.35, 9], check: 'night-living' });
-S.push({ name: 'day-death-living-laptop-low', group: 'low', vp: LAPTOP, q: { viewer: 's1', quality: 'low' }, start: 'day', die: { at: 0, seats: ['s5'] }, shots: [0.3, 1.5], check: 'day-death' });
-S.push({ name: 'night-death-living-laptop-reduced-motion', group: 'reduced', vp: LAPTOP, reduced: true, q: { viewer: 's1', quality: 'high' }, start: 'night', dawn: DEAD_NIGHT, shots: [3.35, 9], check: 'night-living' });
-S.push({ name: 'night-death-living-laptop-high-halloween', group: 'halloween', vp: LAPTOP, q: { viewer: 's1', quality: 'high', theme: 'halloween' }, start: 'night', dawn: DEAD_NIGHT, shots: [3.35, 9], check: 'night-living' });
+S.push({ name: 'night-death-victim-laptop-high', group: 'night-death', vp: LAPTOP, q: { viewer: 's3', quality: 'high' }, start: 'night', steps: dawn(DEAD_NIGHT), shots: [2.0, 3.6, 9], check: 'night-victim' });
+for (const viewer of ['s1', 's4', 'moderator']) S.push({ name: `race-${viewer}-laptop-high`, group: 'race', vp: LAPTOP, q: { viewer, quality: 'high' }, start: 'night', steps: [{ at: 0, scene: 'day', dead: [] }, { at: 1.1, scene: 'day', dead: RACE }], shots: [5, 9], check: 'race' });
+S.push({ name: 'night-death-living-laptop-low', group: 'low', vp: LAPTOP, q: { viewer: 's1', quality: 'low' }, start: 'night', steps: dawn(DEAD_NIGHT), shots: [3.35, 9], check: 'night-living' });
+S.push({ name: 'day-death-living-laptop-low', group: 'low', vp: LAPTOP, q: { viewer: 's1', quality: 'low' }, start: 'day', steps: [{ at: 0, scene: 'day', dead: ['s5'] }], shots: [0.3, 1.5], check: 'day-death' });
+S.push({ name: 'night-death-living-laptop-reduced-motion', group: 'reduced', vp: LAPTOP, reduced: true, q: { viewer: 's1', quality: 'high' }, start: 'night', steps: dawn(DEAD_NIGHT), shots: [3.35, 9], check: 'night-living' });
+S.push({ name: 'night-death-living-laptop-high-halloween', group: 'halloween', vp: LAPTOP, q: { viewer: 's1', quality: 'high', theme: 'halloween' }, start: 'night', steps: dawn(DEAD_NIGHT), shots: [3.35, 9], check: 'night-living' });
 
 const vite = spawn('npx', ['vite', '--port', String(port), '--strictPort', '--host', '127.0.0.1'], { cwd: pkg, stdio: ['ignore', 'pipe', 'pipe'] });
 await new Promise((ok, no) => { vite.stdout.on('data', (d) => { if (String(d).includes('Local')) ok(); }); vite.on('exit', (c) => no(new Error(`vite exited ${c}`))); });
@@ -48,14 +52,12 @@ try {
     const until = (t) => page.waitForFunction((x) => window.__moonveil.time() >= x, t, { timeout: 180000, polling: 50 });
     await until((await T()) + (sc.start === 'day' ? 4 : 2));   // settled (seated / in tents)
     const t0 = await T(), real0 = Date.now();
-    if (sc.start === 'night') await page.evaluate((d) => window.__moonveil.setScene('day', d), sc.dawn);   // dawn
-    const samples = []; const shots = [...sc.shots]; const end = Math.max(...sc.shots);
-    let died = false;
+    const samples = []; const shots = [...sc.shots]; const end = Math.max(...sc.shots); const steps = [...sc.steps];
     for (;;) {
       const t = (await T()) - t0;
-      if (sc.die && !died && t >= sc.die.at) { died = true; await page.evaluate((d) => window.__moonveil.setScene('day', d), sc.die.seats); }
+      while (steps.length && t >= steps[0].at) { const st = steps.shift(); await page.evaluate(([sn, d]) => window.__moonveil.setScene(sn, d), [st.scene, st.dead]); }
       const s = await page.evaluate(() => window.__moonveil.debugSeats?.() ?? null);
-      if (s) samples.push({ t: +(s.t - t0).toFixed(2), real: (Date.now() - real0) / 1000, seats: s.seats, lanterns: s.lanterns });
+      if (s) samples.push({ t: +(s.t - t0).toFixed(2), real: (Date.now() - real0) / 1000, seats: s.seats, lanterns: s.lanterns, memorials: s.memorials ?? [] });
       if (shots.length && t >= shots[0]) { const at = shots.shift(); await page.screenshot({ path: join(out, `${sc.name}-t${at}.png`) }); }
       if (t >= end && !shots.length) break;
       await page.waitForTimeout(100);
@@ -75,24 +77,43 @@ function verdict(sc, samples) {
   const notes = []; let ok = true;
   const fail = (m) => { ok = false; notes.push(m); };
   const last = samples.at(-1);
+  const memo = (smp) => (smp.memorials ?? []).map((m) => m.seat).sort().join(',');
+  const named = (smp, seat) => (smp.memorials ?? []).find((m) => m.seat === seat)?.nameShown === true;
   if (sc.check === 'night-living') {
     if (samples.some((s) => s.seats.s3.mode !== 'hidden')) fail('night victim drawn for a living view');
     if (last.lanterns[2] !== 0) fail(`victim lantern ${last.lanterns[2]}`);
     if (!['s1', 's2', 's4', 's5', 's6', 's7', 's8'].every((s) => last.seats[s].mode === 'seated')) fail('not everyone seated');
     const seatedReal = samples.find((s) => ['s1', 's2', 's4', 's5', 's6', 's7', 's8'].every((x) => s.seats[x].mode === 'seated'));
     if (seatedReal) notes.push(`all seated at scene ${seatedReal.t}s / real ${seatedReal.real.toFixed(1)}s`);
+    if (samples.some((s) => s.t < 3.0 && memo(s))) fail('memorial before the victim\u2019s tent beat');
+    if (memo(last) !== 's3' || !named(last, 's3')) fail(`memorials at end: ${memo(last)}`);
   } else if (sc.check === 'night-victim') {
     if (samples.some((s) => s.t < 3.0 && s.seats.s3.mode !== 'hidden')) fail('victim shown before its tent opens');
     if (last.seats.s3.mode !== 'ghost') fail(`victim end ${last.seats.s3.mode}`);
+    if (memo(last) !== 's3') fail(`memorials at end: ${memo(last)}`);
   } else if (sc.check === 'race') {
-    const bad = samples.filter((s) => s.t > sc.die.at + 0.15 && RACE.some((x) => LIVING.includes(s.seats[x].mode)));
+    const dieAt = sc.steps.at(-1).at;
+    const bad = samples.filter((s) => s.t > dieAt + 0.15 && RACE.some((x) => LIVING.includes(s.seats[x].mode)));
     if (bad.length) fail(`dead seat drawn alive at ${bad[0].t}s: ${RACE.map((x) => `${x}=${bad[0].seats[x].mode}`).join(' ')}`);
-    notes.push(`end ${RACE.map((x) => `${x}=${last.seats[x].mode}`).join(' ')}`);
+    notes.push(`end ${RACE.map((x) => `${x}=${last.seats[x].mode}`).join(' ')}; memorials ${memo(last)}; names ${RACE.map((x) => `${x}:${named(last, x) ? 'stone' : 'ghost'}`).join(' ')}`);
+    if (memo(last) !== RACE.join(',')) fail(`memorials at end: ${memo(last)}`);
+    if (sc.q.viewer === 's1' && !RACE.every((x) => named(last, x))) fail('living view: memorial names missing');
   } else if (sc.check === 'day-death') {
     const mid = samples.find((s) => s.t > 0.1 && s.t < 0.5);
     if (mid && !(mid.seats.s5.dying && mid.seats.s5.alpha < 1)) fail('no fade at the seat');
     if (last.seats.s5.mode !== 'hidden') fail(`after the fade ${last.seats.s5.mode}`);
     if (samples.some((s) => s.seats.s5.mode === 'ghost')) fail('living view drew a ghost');
+    if (samples.some((s) => s.t < 0.55 && memo(s))) fail('memorial before the death fade ended');
+    if (memo(last) !== 's5' || !named(last, 's5')) fail(`memorials at end: ${memo(last)}`);
+  } else if (sc.check === 'memorials') {
+    const day = samples.find((s) => s.t >= 9.5 && s.t < 10), night = last;
+    for (const [when, smp] of [['day', day], ['night', night]]) {
+      if (!smp) { fail(`no ${when} sample`); continue; }
+      if (memo(smp) !== MULTI.join(',')) fail(`${when}: memorials ${memo(smp)}`);
+      if (!MULTI.every((x) => named(smp, x))) fail(`${when}: a memorial name hidden in a living view`);
+      if (MULTI.some((x) => smp.seats[x].mode !== 'hidden')) fail(`${when}: a dead seat drawn for a living view`);
+    }
+    notes.push(`day ${day ? memo(day) : '-'} / night ${memo(night)}`);
   }
   return { ok, notes };
 }
