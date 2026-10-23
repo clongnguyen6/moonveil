@@ -532,7 +532,8 @@ await page.getByTestId('open-settings').click(); await page.waitForTimeout(150);
 await page.getByTestId('set-theme').selectOption('normal'); await page.waitForTimeout(200);
 ok('theme: Settings → Normal removes the stylesheet and data-theme at once', JSON.stringify(await themeState()) === JSON.stringify({ theme: 'normal', link: false, setting: 'normal', note: false }), JSON.stringify(await themeState()));
 await page.getByTestId('set-theme').selectOption('halloween'); await page.waitForFunction(() => document.documentElement.dataset.theme === 'halloween', null, { timeout: 5000 }).catch(() => {});
-ok('theme: Settings → Cute Halloween applies it again without a reload', (await themeState()).theme === 'halloween' && (await themeState()).link);
+ok('theme: Settings → Halloween applies it again without a reload', (await themeState()).theme === 'halloween' && (await themeState()).link);
+ok('theme: the choice reads "Normal" / "Halloween" (en)', JSON.stringify(await page.locator('[data-testid=set-theme] option').allTextContents()) === JSON.stringify(['Normal', 'Halloween']), JSON.stringify(await page.locator('[data-testid=set-theme] option').allTextContents()));
 await page.getByTestId('set-theme').selectOption('normal'); await page.waitForTimeout(200);
 // failed load: block the stylesheet, choose Halloween → stays Normal, setting reverts, note shown; then retry works
 await page.route(/halloween.*\.css/, (r) => r.abort());

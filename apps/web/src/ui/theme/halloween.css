@@ -1,4 +1,4 @@
-/* "Cute Halloween" UI accents (Settings → Theme, this device only; docs/ui/THEMES.md). Loaded lazily as a <link> by
+/* Halloween theme UI accents (Settings → Theme, this device only; docs/ui/THEMES.md). Loaded lazily as a <link> by
    ui/theme/theme.ts only when chosen, removed on Normal, so default users never download it. Active only under
    html[data-theme="halloween"], set once the scene overlay is shown too. Tokens only, plus one header flourish identical
    for every seat (night uniformity unchanged). Palette from the scene's (packages/scene/src/themes/halloween.ts HALLOWEEN:

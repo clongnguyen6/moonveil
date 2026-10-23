@@ -1,6 +1,6 @@
 // Theme setting in the real app (built dist on the real server; scene ON for 3 seats: phone high, laptop high, laptop low).
 //   node scripts/env.mjs node apps/web/src/ui/dev/theme-check.mjs      (builds dist; server on THEME_PORT, default 4467)
-// Proves: default Normal with no Halloween file requested; Settings → Cute Halloween applies UI + scene together, Normal
+// Proves: default Normal with no Halloween file requested; Settings → Halloween applies UI + scene together, Normal
 // removes both, at day and at night; persisted across a reload; low profile static; a failed scene-overlay download
 // keeps BOTH Normal (setting back to Normal, note shown) and a retry works; night header identical for wolf and non-wolf
 // with the theme on. Captures → docs/ui/screens-halloween/toggle/*.jpg (browser emulation).
@@ -91,7 +91,7 @@ const step = (p) => p.page.evaluate(() => document.querySelector('[data-testid=r
 const cycle = async (p, phase) => {
   await shot(p, `${phase}-1-normal`);
   await pick(p, 'halloween'); const on = await p.st();
-  ok(`${p.n} ${phase} (${await step(p)}): Settings → Cute Halloween shows UI accents AND the scene overlay`, on.ui === 'halloween' && on.link && sceneTheme(on) === 'halloween' && on.scene.counts?.pumpkins > 0, JSON.stringify(on));
+  ok(`${p.n} ${phase} (${await step(p)}): Settings → Halloween shows UI accents AND the scene overlay`, on.ui === 'halloween' && on.link && sceneTheme(on) === 'halloween' && on.scene.counts?.pumpkins > 0, JSON.stringify(on));
   await shot(p, `${phase}-2-halloween`);
   await pick(p, 'normal'); const off = await p.st();
   ok(`${p.n} ${phase}: Settings → Normal removes both (no stylesheet, no overlay)`, off.ui === 'normal' && !off.link && sceneTheme(off) === null && off.setting === 'normal', JSON.stringify(off));
