@@ -46,7 +46,7 @@ export class Memorials {
     const cur = this.entries.get(seat);
     if (!on) { if (cur) { cur.stone.destroy(); cur.label.destroy(); this.entries.delete(seat); } return; }
     const at = memorialAt(map, index); if (!at || cur) return;
-    const stone = spriteOf(this.texture(this.variant)); stone.position.set(at.base.x, at.base.y); stone.zIndex = at.base.y - 1;   // behind the empty stump
+    const stone = spriteOf(this.texture(this.variant)); stone.position.set(at.base.x, at.base.y); stone.zIndex = at.base.y;   // behind the empty stump (zIndex seat.y + 1), its foot hidden by it
     const label = new Text({ text: name, style: { fontFamily: 'ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, sans-serif', fontSize: 12, fontWeight: '600', fontStyle: 'italic', fill: 0xe4ded2, stroke: { color: 0x1a1410, width: 3 }, align: 'center' } });
     label.anchor.set(0.5, 1); label.resolution = 2; label.position.set(at.labelAt.x, at.labelAt.y); label.zIndex = at.base.y;
     const a = fade ? 0 : 1; stone.alpha = a; label.alpha = a;

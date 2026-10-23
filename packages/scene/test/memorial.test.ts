@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Staging, T, type Actor } from '../src/staging.ts';
-import { memorialAt, memorialEligible, memorialNameShown, GHOST_NEAR } from '../src/memorial.ts';
+import { memorialAt, memorialEligible, memorialNameShown, GHOST_NEAR, RAISE } from '../src/memorial.ts';
 import { createMap, MIN_PLAYERS, MAX_PLAYERS, type Pt } from '../src/map.ts';
 import { makeInput, seatId } from '../fixtures/index.ts';
 import { halloweenLayout, seatBox, pumpkinBox, boxesHit } from '../src/themes/halloween-layout.ts';
@@ -97,6 +97,14 @@ test('placement: each stone stays on its own seat, never over a camper behind it
       map.seats.forEach((o, j) => { if (j !== i && o.y < m.base.y) assert.ok(!boxesHit(m.box, seatBox(o), 0), `${n}: stone ${i} would cover the camper at seat ${j}`); });
       for (const p of pumpkins) assert.ok(!boxesHit(m.box, pumpkinBox(p), 2), `${n}: stone ${i} overlaps a pumpkin`);
     });
+  }
+});
+
+test('visibility: the stone stands raised behind its stump (full raise up to 10 players; dense rings only as far as clear)', () => {
+  for (let n = MIN_PLAYERS; n <= MAX_PLAYERS; n++) {
+    const map = createMap(n), raises = map.seats.map((_, i) => memorialAt(map, i)!.raise);
+    assert.ok(raises.every((r) => r >= RAISE.min && r <= RAISE.max), `${n}: ${raises}`);
+    if (n <= 10) assert.ok(raises.every((r) => r === RAISE.max), `${n}: full raise expected, got ${raises}`);
   }
 });
 
