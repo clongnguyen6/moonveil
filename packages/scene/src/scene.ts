@@ -12,9 +12,11 @@ import { createMap, frameRect, FIRE, WORLD, inWorld, type MapLayout } from './ma
 import { intentFor, canMove, nightLevelFor, type SeatIntent } from './choreo.ts';
 import { lerp, clamp, mixColor, smooth } from './rng.ts';
 import type { CameraMode, Pose, PoseFrame, SafeArea, SceneAppearance, SceneHandle, SceneInput, SceneOptions, SeatId, PerfStats } from './types.ts';
-import { resolveQuality, renderProfile, readQualityEnv } from './quality.ts';
+import { resolveQuality, renderProfile, readQualityEnv, frameStep } from './quality.ts';
 import { layoutLabels, STAGE_ORDER, labelsAboveEffects, type LabelRect, type StageLayer } from './labels.ts';
 import { frameCamera } from './framing.ts';
+import { Staging } from './staging.ts';
+import { Wisps } from './wisps.ts';
 import { ThemeController } from './themes/index.ts';
 import type { HalloweenOverlay } from './themes/halloween.ts';   // type only: the overlay itself is a lazy chunk
 import { playersDiff, spawnPoint, effectiveAppearance } from './reconcile.ts';
@@ -34,7 +36,7 @@ function offHandle(input: SceneInput): SceneHandle {
   return {
     ready: Promise.resolve(), quality: 'off',
     setInput(next) { inp = next; }, setPoses() {}, setSpeaking() {}, on() { return () => {}; }, emote() {}, setSpeakingLocal() {},
-    async setAudio() {}, setCamera() {}, setSafeArea() {}, resize() {}, setLocalAppearanceOverride() {}, debugAppearance: () => null, debugCamera: () => null, debugLabels: () => null, debugTheme: () => null, themeApplied: Promise.resolve('normal'), async setTheme() { return 'normal'; },
+    async setAudio() {}, setCamera() {}, setSafeArea() {}, resize() {}, setLocalAppearanceOverride() {}, debugAppearance: () => null, debugCamera: () => null, debugLabels: () => null, debugSeats: () => null, debugTheme: () => null, themeApplied: Promise.resolve('normal'), async setTheme() { return 'normal'; },
     time: () => 0, perf: () => null, perfReset() {}, walkLocal() {}, localPose: () => null, night: () => (inp.phase === 'night' ? 1 : 0), destroy() {},
   };
 }
@@ -124,9 +126,8 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   const lanternLevel: number[] = [];
   let inputCtl: Input;
   const avatars = new Map<SeatId, Avatar>();
-  const intents = new Map<SeatId, SeatIntent['kind']>();
-  const fades: { a: Avatar; to: number; speed: number; done?: () => void }[] = [];
-  const timers: { t: number; fn: () => void }[] = [];
+  let staging: Staging;   // per-seat choreography on the scene clock (staging.ts): steps cancelled on any intent change
+  let wisps: Wisps;
   let snap = true;
   const cam = { x: 0, y: 0, scale: 1 };
   let focusFraming = false;   // phone focus framing active (framing.ts): labels keep full size
@@ -157,6 +158,8 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     postLights = world.lanternBulbs.map((p) => { const l = lighting.addLight(0xffb066, 1.4, 0); l.position.set(p.x, p.y + 10); return l; });
     postBulbs = world.lanternBulbs.map((p) => { const s = new Sprite(bank.dot); s.anchor.set(0.5); s.blendMode = 'add'; s.tint = 0xffe0a0; s.position.set(p.x, p.y); s.scale.set(0.6); s.alpha = 0; emissive.addChild(s); return s; });
     for (let i = 0; i < map.tents.length; i++) lanternLevel.push(0);
+    staging = new Staging({ lantern: (i, lv) => { if (i < lanternLevel.length) lanternLevel[i] = lv; }, wisp: (at) => wisps.spawn(at), spawn: (i) => spawnPoint(map, i) }, !low && !reducedMotion);
+    wisps = new Wisps(emissive, bank.lightSoft, low ? 'off' : reducedMotion ? 'static' : 'rise');
     fire = new Fire(emissive, fx, bank); fireflies = new Fireflies(emissive, bank); glints = new WaterGlints(emissive, bank); fog = new Fog(fx, bank);
     themes.sceneReady();   // a theme chosen before the scene was built attaches now
 
@@ -180,7 +183,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     applyInput(input, true);
     let lastW = 0, lastH = 0;
     a.ticker.add((tk) => {
-      const dt = Math.min(0.1, tk.deltaMS / 1000);
+      const dt = frameStep(tk.deltaMS, x.fpsCap);   // scene clock: real time even at the reduced-motion 4 fps cap
       t += dt;
       const vw = a.screen.width, vh = a.screen.height;
       if (vw !== lastW || vh !== lastH) { lighting.resize(vw, vh); lastW = vw; lastH = vh; }
@@ -197,11 +200,6 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   }
   let lightMs = 0;
 
-  function after(sec: number, fn: () => void) { timers.push({ t: sec, fn }); }
-  function fade(av: Avatar, to: number, sec: number, done?: () => void) {
-    const i = fades.findIndex((f) => f.a === av); if (i >= 0) fades.splice(i, 1);
-    fades.push({ a: av, to, speed: 1 / sec, done });
-  }
 
   // Reconcile avatars and intents with a new snapshot. `snapNow` = place without animation (first input, reconnect).
   function applyInput(next: SceneInput, snapNow: boolean) {
@@ -222,68 +220,11 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
       } else av.setAppearance(effectiveAppearance(next, p.seat, localOverride) ?? p.appearance);   // no-op when unchanged; keeps the local draft
       av.setName(p.name + (next.reveal?.[p.seat] ? ` · ${next.reveal[p.seat]}` : ''));
     }
-    for (const seat of diff.removed) { const av = avatars.get(seat); if (av) { av.destroy(); avatars.delete(seat); intents.delete(seat); poses.drop(seat); } }
-    for (const [seat, av] of avatars) if (!next.players.some((p) => p.seat === seat)) { av.destroy(); avatars.delete(seat); intents.delete(seat); poses.drop(seat); }
+    for (const seat of diff.removed) { const av = avatars.get(seat); if (av) { av.destroy(); avatars.delete(seat); staging.forget(seat); poses.drop(seat); } }
+    for (const [seat, av] of avatars) if (!next.players.some((p) => p.seat === seat)) { av.destroy(); avatars.delete(seat); staging.forget(seat); poses.drop(seat); }
     const nightNow = nightLevelFor(next.phase);
     if (snapNow) nightLevel = nightNow;
-    // intents
-    const phaseChanged = prev.phase !== next.phase;
-    for (const p of next.players) {
-      const av = avatars.get(p.seat)!;
-      const intent = intentFor(next, p.seat);
-      const before = intents.get(p.seat);
-      if (before === intent.kind && !(snapNow)) continue;
-      intents.set(p.seat, intent.kind);
-      av.target = null; av.onArrive = null;
-      const i = fades.findIndex((f) => f.a === av); if (i >= 0) fades.splice(i, 1);
-      const local = p.seat === next.me.seat;
-      switch (intent.kind) {
-        case 'free': {
-          av.mode = 'idle'; av.alpha = 1;
-          if (local && (snapNow || before === undefined)) { const sp = spawnPoint(map, next.players.indexOf(p)); av.setPos(sp.x, sp.y); }
-          if (!local) av.mode = poses.has(p.seat) ? 'idle' : 'hidden';
-          break;
-        }
-        case 'seat': {
-          const seat = map.seats[intent.index] ?? map.seats[0]!;
-          const face: 1 | -1 = seat.sit.x < FIRE.x ? 1 : -1;
-          const fromTent = before === 'tent';
-          if (snapNow || !fromTent && before === undefined || before === 'ghost') { av.mode = 'seated'; av.alpha = 1; av.setPos(seat.sit.x, seat.sit.y); av.facing = face; break; }
-          const idx = intent.index;
-          if (fromTent) {
-            const tent = map.tents[idx] ?? map.tents[0]!;
-            av.mode = 'hidden'; av.alpha = 0; av.setPos(tent.door.x, tent.door.y);
-            after(2.5 + idx * 0.3, () => { av.mode = 'idle'; lanternLevel[idx] = 0; fade(av, 1, 0.5); after(0.4, () => av.walkTo(seat.sit.x, seat.sit.y, () => { av.mode = 'seated'; av.facing = face; })); });
-          } else {
-            if (av.mode === 'hidden') { av.setPos(seat.sit.x, seat.sit.y + 160); }
-            av.mode = 'idle'; av.alpha = 1;
-            after(idx * 0.1, () => av.walkTo(seat.sit.x, seat.sit.y, () => { av.mode = 'seated'; av.facing = face; }));
-          }
-          break;
-        }
-        case 'tent': {
-          const idx = intent.index; const tent = map.tents[idx] ?? map.tents[0]!;
-          if (snapNow) { av.mode = 'hidden'; av.alpha = 0; av.setPos(tent.door.x, tent.door.y); lanternLevel[idx] = 0.4; break; }
-          av.mode = 'idle'; av.alpha = 1;
-          if (before === undefined) av.setPos(map.seats[idx]?.sit.x ?? FIRE.x, map.seats[idx]?.sit.y ?? FIRE.y + 150);
-          after(1.2 + idx * 0.25, () => av.walkTo(tent.door.x, tent.door.y, () => {
-            lanternLevel[idx] = 1;
-            fade(av, 0, 0.5, () => { av.mode = 'hidden'; });
-            after(1.6, () => { lanternLevel[idx] = 0.4; });
-          }));
-          break;
-        }
-        case 'ghost': {
-          av.mode = 'ghost'; av.alpha = 1; av.speed = 150;
-          if (local) { if (snapNow || before !== 'ghost') { const s = map.seats[next.players.indexOf(p)] ?? map.seats[0]!; av.setPos(s.sit.x, s.sit.y); } }
-          else if (!poses.has(p.seat)) av.mode = 'hidden';
-          break;
-        }
-        case 'absent': av.mode = 'hidden'; break;
-      }
-    }
-    if (phaseChanged && next.phase !== 'night') for (let i = 0; i < lanternLevel.length; i++) if (lanternLevel[i] === 0.4 && !snapNow) { /* dawn: lanterns go out as players emerge */ }
-    if (next.phase !== 'night' && snapNow) lanternLevel.fill(0);
+    staging.apply(prev, next, avatars, map, snapNow, (seat) => poses.has(seat));
     snap = false;
   }
 
@@ -342,14 +283,9 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   }
 
   function tick(dt: number) {
-    // timers and fades
-    for (const tm of timers) tm.t -= dt;
-    const due = timers.filter((x) => x.t <= 0); for (let i = timers.length - 1; i >= 0; i--) if (timers[i]!.t <= 0) timers.splice(i, 1);
-    for (const d of due) d.fn();
-    for (const f of fades.slice()) {
-      const av = f.a; av.alpha = av.alpha < f.to ? Math.min(f.to, av.alpha + dt * f.speed) : Math.max(f.to, av.alpha - dt * f.speed);
-      if (av.alpha === f.to) { const i = fades.indexOf(f); if (i >= 0) fades.splice(i, 1); f.done?.(); }
-    }
+    // per-seat steps and fades (scene clock), death-beat wisps
+    staging.tick(dt);
+    wisps.update(dt);
     // lighting mix
     const target = nightLevelFor(input.phase);
     const d = target - nightLevel;
@@ -364,18 +300,24 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     for (const p of input.players) {
       const av = avatars.get(p.seat)!;
       const local = p.seat === meSeat;
-      const kind = intents.get(p.seat);
+      const kind = staging.intent(p.seat);
       av.speaking = speakingSet.has(p.seat) || (local && localSpeaking);
       if (kind === 'ghost' || kind === 'free') {
         if (local) {
-          if (walkLocalReq) { if (av.mode === 'ghost' || world.walkable(walkLocalReq.x, walkLocalReq.y)) av.walkTo(walkLocalReq.x, walkLocalReq.y); walkLocalReq = null; }
-          av.update(dt, labelScale, localMayMove ? inputCtl.dir : undefined, av.mode === 'ghost' ? undefined : world.walkable);
+          const free = localMayMove && av.mode !== 'hidden';   // a dead player's ghost waits in the tent until dawn opens it
+          if (walkLocalReq) { if (free && (av.mode === 'ghost' || world.walkable(walkLocalReq.x, walkLocalReq.y))) av.walkTo(walkLocalReq.x, walkLocalReq.y); walkLocalReq = null; }
+          av.update(dt, labelScale, free ? inputCtl.dir : undefined, av.mode === 'ghost' ? undefined : world.walkable);
           if (av.mode === 'ghost' && !inWorld(av.x, av.y)) { av.x = clamp(av.x, -200, WORLD.w + 200); av.y = clamp(av.y, -200, WORLD.h + 200); }
         } else {
           const s = poses.sample(p.seat, now);
-          if (s && poses.fresh(p.seat, now)) { if (av.mode === 'hidden') av.mode = kind === 'free' ? 'idle' : 'ghost'; av.applyPose(s.x, s.y, s.facing, s.moving, dt, labelScale); }
+          const dying = staging.dying(p.seat);   // death beat: the fade at the seat plays out first
+          if (s && poses.fresh(p.seat, now) && !dying) {
+            // an entitled pose of a dead seat is always drawn as a ghost, whatever mode a transition left behind
+            if (kind === 'ghost') { if (av.mode !== 'ghost') { av.mode = 'ghost'; av.alpha = 1; } } else if (av.mode === 'hidden') av.mode = 'idle';
+            av.applyPose(s.x, s.y, s.facing, s.moving, dt, labelScale);
+          }
           else if (s && kind === 'free') { av.applyPose(s.x, s.y, s.facing, false, dt, labelScale); }   // lobby: stale = frozen in place
-          else if (kind === 'ghost') { av.mode = 'hidden'; av.update(dt, labelScale); }                   // ghosts vanish when no entitled pose arrives
+          else if (kind === 'ghost') { if (!dying) av.mode = 'hidden'; av.update(dt, labelScale); }       // ghosts vanish when no entitled pose arrives
           else av.update(dt, labelScale);
         }
       } else av.update(dt, labelScale, undefined, world.walkable);
@@ -387,7 +329,7 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     // emit own pose at ≤10 Hz when it changed
     const me = avatars.get(meSeat);
     moveAcc += dt;
-    if (me && localMayMove && moveAcc >= 1 / MOVE_SEND_HZ) {
+    if (me && localMayMove && me.mode !== 'hidden' && moveAcc >= 1 / MOVE_SEND_HZ) {   // nothing sent while still in the tent
       moveAcc = 0;
       const pose: Pose = { seat: meSeat, x: Math.round(me.x), y: Math.round(me.y), facing: me.facing, moving: me.mode === 'walk' || (!!inputCtl.dir.x || !!inputCtl.dir.y) };
       if (!lastSent || lastSent.x !== pose.x || lastSent.y !== pose.y || lastSent.facing !== pose.facing || lastSent.moving !== pose.moving) { lastSent = pose; for (const cb of listeners.move) cb(pose); }
@@ -475,6 +417,12 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
     themeApplied,
     setTheme(theme) { return themes.set(theme); },
     debugTheme() { return opts.debug ? { theme: overlay?.id ?? null, animate: !!overlay?.animate, counts: overlay?.counts() ?? null } : null; },
+    debugSeats() {
+      if (!opts.debug || !app) return null;
+      const seats: Record<string, { mode: string; alpha: number; intent: string | null; dying: boolean }> = {};
+      for (const [seat, av] of avatars) seats[seat] = { mode: av.mode, alpha: +av.alpha.toFixed(3), intent: staging.intent(seat) ?? null, dying: staging.dying(seat) };
+      return { t: staging.now, seats, lanterns: lanternLevel.map((l) => +l.toFixed(2)) };
+    },
     debugLabels() {
       if (!opts.debug || !app) return null;
       const order = app.stage.children.map((c) => c.label);

@@ -85,6 +85,7 @@ window.__moonveil = {
   debugAppearance: (seat: string) => scene.debugAppearance(seat),
   debugCamera: () => scene.debugCamera(),
   debugLabels: () => scene.debugLabels(),
+  debugSeats: () => scene.debugSeats(),
   debugTheme: () => scene.debugTheme(),
   setTheme: (t: 'normal' | 'halloween') => scene.setTheme(t),
   setLook: (seat: string, patch: Record<string, string>) => { server.input = { ...server.input, players: server.input.players.map((p) => (p.seat === seat ? { ...p, appearance: { ...p.appearance, ...patch } } : p)) }; scene.setInput(server.input); },
