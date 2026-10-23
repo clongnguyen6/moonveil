@@ -40,3 +40,25 @@ branch at ab7a683 (memorials included). `packages/scene/scripts/dawn-check.mjs` 
 - **Perceptual, untested**: whether the small stone reads as a memorial at phone scale (the name carries identity; in
   11-16 player rings some side stones stand lower behind their stump), whether the tent beat is noticed at a glance on a phone, whether the 2.5-8 s dawn pacing
   matches the UI announcement, whether players read the wisp as "this seat died" (no role or cause shown, by design).
+
+## Memorial layout fix (visual-memorial-fix)
+
+Prompted by the UI owner's combined captures (game-ui-dawn 407f06d): a memorial name stacked on a camper label and a
+stone half-hidden behind the camper in front at phone size. Now stones stand at the nearest clear spot by their seat
+(never touching another seat's camper, in front or behind, a pumpkin or another stone), camper labels keep off stones,
+and memorial names are placed around their stone clear of camper labels, campers, stones and other names (leader line
+when moved; hidden rather than overlapping when nothing is clear).
+
+- `layout/layout-{slot375x253,slot390x428,laptop}[-halloween]-{survivor,ghost}-t10.jpg`: 3 dead seats at the UI's
+  scene-slot sizes (top bar 56 px; 375x667 also the chat row 64 px), dev page, Chromium emulation. `layout/dawn-check.json`:
+  every run asserts with the real screen boxes from `debugSeats()` that no memorial name or stone overlaps a camper label,
+  a camper (head box), a stone or another name: all OK, 3/3 names placed in every run. Memorial and race after-frames
+  refreshed with the new stone spots.
+- Unit tests (`test/memorial.test.ts`, node mirror of the label pass in `test/helpers/label-sim.ts`, 4-16 players, four
+  death sets): zero overlaps and every name shown at 390x844, laptop and the whole-camp ghost view; negative control
+  (names placed without obstacles) is caught.
+- **Limits at 375x667 with the chat row (133 px of camp):** (1) with heavy death sets a few memorial names are hidden
+  rather than overlapping (5 of 54 with every third seat dead, 8 of 84 with all but two dead; none with 1-2 deaths);
+  (2) **pre-existing, not from this bundle:** the camper-label resolver already leaves 19 camper-label overlaps there
+  with no deaths at all (rooms of 10+); there, two camper labels can touch a stone. Known limit for the owner.
+- Not shown: the real UI (top bar, chat row, panels) with these memorials; the UI owner's exact assertion on the merged SHA.

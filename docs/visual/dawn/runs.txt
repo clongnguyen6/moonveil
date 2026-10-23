@@ -47,3 +47,27 @@ rc=0
 end 15:14  up 24 days,  7:27, 2 users, load averages: 15.14 12.65 8.72
 
 clock under load ~19-21 (9 s of scene time, reduced motion / low): 7011b14 23.7 s / 12.2 s real; aa53701 9.3 s / 9.7 s real
+
+# memorial layout fix (5837525)
+memorial-fix on 5837525 start 16:57  up  1:32, 2 users, load averages: 7.05 4.16 4.08
+memorials-laptop: OK day s2,s5,s7 / night s2,s5,s7
+memorials-laptop-halloween: OK day s2,s5,s7 / night s2,s5,s7
+memorials-phone: OK day s2,s5,s7 / night s2,s5,s7
+memorials-phone-halloween: OK day s2,s5,s7 / night s2,s5,s7
+layout-slot375x253-survivor: OK names placed 3/3
+layout-slot375x253-ghost: OK names placed 3/3
+layout-slot375x253-halloween-survivor: OK names placed 3/3
+layout-slot375x253-halloween-ghost: OK names placed 3/3
+layout-slot390x428-survivor: OK names placed 3/3
+layout-slot390x428-ghost: OK names placed 3/3
+layout-slot390x428-halloween-survivor: OK names placed 3/3
+layout-slot390x428-halloween-ghost: OK names placed 3/3
+layout-laptop-survivor: OK names placed 3/3
+layout-laptop-ghost: OK names placed 3/3
+layout-laptop-halloween-survivor: OK names placed 3/3
+layout-laptop-halloween-ghost: OK names placed 3/3
+race-s1-laptop-high: OK end s4=hidden s8=hidden; memorials s4,s8; names s4:stone s8:stone
+race-s4-laptop-high: OK end s4=ghost s8=ghost; memorials s4,s8; names s4:stone s8:stone
+race-moderator-laptop-high: OK end s4=ghost s8=ghost; memorials s4,s8; names s4:stone s8:stone
+rc=0
+end 17:05  up  1:39, 2 users, load averages: 10.64 9.57 7.09
