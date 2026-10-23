@@ -39,9 +39,11 @@ for (const [i, n] of NAMES.entries()) {
 const [L, P, LOW] = ps; const FAY = ps[8];
 // choose in Settings, then wait for the result (applied, or the failure note): the first Halloween choice downloads and
 // builds the scene overlay, which takes a few seconds under load
-const pick = async (p, theme) => {
+// `orNote`: only the deliberately blocked attempt may end its wait on the failure note; the note from that attempt is
+// still on screen when the retry starts, so the retry must wait for the applied theme itself
+const pick = async (p, theme, orNote = false) => {
   await p.page.getByTestId('open-settings').click(); await p.page.getByTestId('set-theme').selectOption(theme); await p.page.keyboard.press('Escape');
-  await p.page.waitForFunction((t) => (document.documentElement.dataset.theme ?? 'normal') === t || !!document.querySelector('[data-testid=theme-note]'), theme, { timeout: 20000 }).catch(() => {});
+  await p.page.waitForFunction(([t, n]) => (document.documentElement.dataset.theme ?? 'normal') === t || (n && !!document.querySelector('[data-testid=theme-note]')), [theme, orNote], { timeout: 20000 }).catch(() => {});
   await p.page.waitForTimeout(800);
 };
 const shot = (p, name) => p.page.screenshot({ path: `${out}/${p.phone ? 'phone' : 'laptop'}-${name}-${p.q}.jpg`, type: 'jpeg', quality: 78 });
@@ -64,7 +66,7 @@ await pick(P, 'normal');
 // lobby: failed scene-overlay download on a scene that never loaded it (stylesheet allowed, overlay chunk blocked)
 const blockOverlay = (u) => u.pathname.endsWith(`/${sceneChunk}`);
 await FAY.page.route(blockOverlay, (r) => r.abort());
-await pick(FAY, 'halloween'); const failed = await FAY.st();
+await pick(FAY, 'halloween', true); const failed = await FAY.st();
 ok('scene overlay fails to load: UI stays Normal too, setting back to Normal, note shown', failed.ui === 'normal' && !failed.link && sceneTheme(failed) === null && failed.setting === 'normal' && failed.note && FAY.reqs.some((r) => r === sceneChunk), JSON.stringify({ failed, reqs: FAY.reqs }));
 await FAY.page.unroute(blockOverlay);
 await pick(FAY, 'halloween'); const retry = await FAY.st();
