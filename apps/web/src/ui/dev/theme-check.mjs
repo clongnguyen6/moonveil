@@ -26,15 +26,18 @@ if (BASE) {
   const tag = `T${Date.now().toString(36).slice(-4).toUpperCase()}`;
   const mk = async (name, dev, q) => {
     const ctx = await browser.newContext({ ...dev, reducedMotion: 'reduce', locale: 'en-US' });
-    await ctx.addInitScript((qq) => { globalThis.__MOONVEIL_SCENE = qq; globalThis.__MOONVEIL_SCENE_DEBUG = true; localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'en', sound: false, reducedMotion: 'on', scene: true })); }, q);
+    // first load only: a reload must keep the player's saved choice (the persistence check)
+    await ctx.addInitScript((qq) => { globalThis.__MOONVEIL_SCENE = qq; globalThis.__MOONVEIL_SCENE_DEBUG = true; if (!localStorage.getItem('moonveil.ui.settings')) localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'en', sound: false, reducedMotion: 'on', scene: true })); }, q);
     const page = await ctx.newPage(); const reqs = [];
     page.on('request', (r) => { if (/halloween/i.test(r.url())) reqs.push(r.url().split('/').pop()); });
     const p = { name, q, phone: !!dev.isMobile, ctx, page, reqs, st: () => page.evaluate(() => ({ ui: document.documentElement.dataset.theme ?? 'normal', link: !!document.getElementById('moonveil-theme-halloween'), setting: JSON.parse(localStorage.getItem('moonveil.ui.settings') ?? '{}').theme ?? 'normal', scene: globalThis.__moonveilScene?.debugTheme?.() ?? null, note: !!document.querySelector('[data-testid=theme-note]') })) };
     pages.push(p); return p;
   };
   const sceneTheme = (s) => s.scene?.theme ?? null;
-  const settle = (p, theme) => p.page.waitForFunction((t) => (document.documentElement.dataset.theme ?? 'normal') === t || !!document.querySelector('[data-testid=theme-note]'), theme, { timeout: 30000 }).catch(() => {});
-  const pick = async (p, theme) => { await p.page.getByTestId('open-settings').click(); await p.page.getByTestId('set-theme').selectOption(theme); await p.page.keyboard.press('Escape'); await settle(p, theme); await p.page.waitForTimeout(800); };
+  // wait for the applied theme; `orNote` also accepts the failure note (only for the deliberately blocked attempt; a note
+  // still showing from that attempt must not end the retry's wait early)
+  const settle = (p, theme, orNote = false) => p.page.waitForFunction(([t, n]) => (document.documentElement.dataset.theme ?? 'normal') === t || (n && !!document.querySelector('[data-testid=theme-note]')), [theme, orNote], { timeout: 30000 }).catch(() => {});
+  const pick = async (p, theme, orNote = false) => { await p.page.getByTestId('open-settings').click(); await p.page.getByTestId('set-theme').selectOption(theme); await p.page.keyboard.press('Escape'); await settle(p, theme, orNote); await p.page.waitForTimeout(800); };
   const shot = (p, name) => p.page.screenshot({ path: `${out}/${p.phone ? 'phone' : 'laptop'}-${name}-${p.q}.jpg`, type: 'jpeg', quality: 75 });
   // block only the scene overlay chunk: any halloween-*.js whose body defines the overlay (works without knowing the build's file names)
   const blockOverlay = async (route) => { const r = await route.fetch(); const body = await r.text(); if (body.includes('HalloweenOverlay') && !body.includes('createRoot')) return route.abort(); return route.fulfill({ response: r, body }); };
@@ -72,7 +75,7 @@ if (BASE) {
     await F.page.goto(`${BASE}/r/${code}`); await F.page.getByTestId('name').fill(`${tag}-Fay`); await F.page.getByTestId('join').click(); await F.page.waitForSelector('[data-testid=room]', { timeout: 30000 });
     await F.page.waitForTimeout(2500);
     await F.page.route(/halloween-[^/]*\.js(\?|$)/, blockOverlay);
-    await pick(F, 'halloween'); const failed = await F.st();
+    await pick(F, 'halloween', true); const failed = await F.st();
     ok('blocked overlay chunk (fresh page): UI stays Normal too, setting back to Normal, note shown', failed.ui === 'normal' && !failed.link && sceneTheme(failed) === null && failed.setting === 'normal' && failed.note, JSON.stringify(failed));
     await shot(F, '4-failed-note');
     await F.page.unroute(/halloween-[^/]*\.js(\?|$)/, blockOverlay);
