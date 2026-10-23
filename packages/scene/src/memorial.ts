@@ -3,7 +3,7 @@
 // from the moment that death is public (staging.ts decides when). A static prop, never a ghost position.
 import { FIRE, isWalkable, type MapLayout, type Pt } from './map.ts';
 import { type Box, seatBox, boxesHit } from './boxes.ts';
-import { halloweenLayout, pumpkinBox } from './themes/halloween-layout.ts';   // pure placement only (no drawing): stone spots are the same in both themes
+import { pumpkinSpots, pumpkinBox } from './props-layout.ts';   // theme-neutral: stone spots are the same in every theme
 import type { SceneInput, SeatId } from './types.ts';
 
 export type MemorialBox = Box;
@@ -20,7 +20,7 @@ export interface Spot { base: Pt; box: Box; offset: number; clear: boolean }
 const cache = new WeakMap<MapLayout, Spot[]>();
 export function memorialSpots(map: MapLayout): Spot[] {
   const hit = cache.get(map); if (hit) return hit;
-  const pumpkins = halloweenLayout(map).pumpkins.map(pumpkinBox);
+  const pumpkins = pumpkinSpots(map).map(pumpkinBox);
   // candidates: r = outward from the fire, t = sideways, raise = up behind the stump; nearest first
   const cands: { r: number; t: number; raise: number; cost: number }[] = [];
   for (let r = 0; r <= 98; r += 14) for (let t = -56; t <= 56; t += 14) for (const raise of [14, 8, 2])
