@@ -20,8 +20,7 @@ import { Wisps } from './wisps.ts';
 import { Memorials } from './memorials.ts';
 import { memorialNameShown, placeMemorialLabel } from './memorial.ts';
 import { seatBox } from './boxes.ts';
-import { ThemeController } from './themes/index.ts';
-import type { HalloweenOverlay } from './themes/halloween.ts';   // type only: the overlay itself is a lazy chunk
+import { ThemeController, type SceneThemeOverlay } from './theme-switch.ts';
 import { playersDiff, spawnPoint, effectiveAppearance } from './reconcile.ts';
 
 const SMALL_LABEL_FROM = 13;   // seats from which labels drop one size step (12 → 11 px)
@@ -78,15 +77,16 @@ export function mountScene(host: HTMLElement, opts: SceneOptions): SceneHandle {
   const ambience = new Ambience();
   const BASE_NIGHT = { ambient: 0x3a3c92, wash: 0x6a5aa8 };
   let nightColors: { ambient: number; wash: number } = BASE_NIGHT;   // a theme overlay may replace these
-  let overlay: HalloweenOverlay | null = null;
-  // Player-chosen theme (themes/index.ts). The overlay module is a separate chunk, imported the first time 'halloween'
+  type Overlay = SceneThemeOverlay<World, Container, Lighting>;
+  let overlay: Overlay | null = null;
+  // Player-chosen theme (theme-switch.ts). The overlay module is a separate chunk, imported the first time 'halloween'
   // is chosen; default users never load it. Static on low / reduced motion.
   const themes = new ThemeController(async () => {
     const { HalloweenOverlay } = await import('./themes/halloween.ts');
-    let inst: HalloweenOverlay | null = null;   // one per scene: textures bake once, toggling only re-attaches
+    let inst: Overlay | null = null;   // one per scene: textures bake once, toggling only re-attaches
     return () => { inst ??= new HalloweenOverlay(bank, !low && !reducedMotion); inst.attach(world, emissive, lighting); return inst; };
   }, (o) => {
-    overlay = o as HalloweenOverlay | null;
+    overlay = o as Overlay | null;
     memorials?.setVariant(overlay ? 'halloween' : 'normal');
     nightColors = overlay ? overlay.night : BASE_NIGHT;
     if (nightTint) nightTint.tint = nightColors.wash;

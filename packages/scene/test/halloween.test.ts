@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeTheme, ThemeController } from '../src/themes/index.ts';
+import { normalizeTheme, ThemeController } from '../src/theme-switch.ts';
 import { halloweenLayout, inSeatRing, nearSeat, onSeat, pumpkinBox, seatBox, boxesHit, SEAT_CLEAR, FIRE_DIRT } from '../src/themes/halloween-layout.ts';
 import { createMap, FIRE, isWalkable, streamX, MIN_PLAYERS, MAX_PLAYERS } from '../src/map.ts';
 import { toSceneInput } from '../src/adapter.ts';

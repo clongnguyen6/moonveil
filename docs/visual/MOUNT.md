@@ -58,7 +58,7 @@ Test hook, gated: with `mountScene(slot, { debug: true })`, `scene.debugAppearan
 - The shell owns the choice (Settings "Theme", persisted locally). Never from the wire: `SceneInput` has no theme, the
   server cannot set it, and it is never forced room-wide or activated by date.
 - `'halloween'` is a separate lazy chunk (`themes/halloween.ts`, dynamic import on first selection). Default users neither
-  download nor execute it; the default bundle carries only the tiny switch (`themes/index.ts`).
+  download nor execute it; the default bundle carries only the tiny switch (`theme-switch.ts`).
 - `'normal'` removes every decoration, glow, light and the plum night. Toggling back re-attaches without reloading.
 - Unchanged guarantees: static on `low` and reduced motion; labels above every decoration; seats, speaking rings and the
   seated ring kept clear for 4-16 players (`test/halloween.test.ts`). Evidence: `docs/visual/halloween-scene/`.
