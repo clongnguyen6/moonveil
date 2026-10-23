@@ -2,7 +2,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Staging, T, type Actor } from '../src/staging.ts';
-import { memorialAt, memorialEligible, memorialNameShown, GHOST_NEAR, RAISE } from '../src/memorial.ts';
+import { memorialEligible, memorialNameShown, memorialSpots, GHOST_NEAR } from '../src/memorial.ts';
+import { simulate, VIEWS, DEAD_SETS, hit } from './helpers/label-sim.ts';
 import { createMap, MIN_PLAYERS, MAX_PLAYERS, type Pt } from '../src/map.ts';
 import { makeInput, seatId } from '../fixtures/index.ts';
 import { halloweenLayout, seatBox, pumpkinBox, boxesHit } from '../src/themes/halloween-layout.ts';
@@ -86,26 +87,56 @@ test('next match / lobby clear every memorial', () => {
   assert.equal(memorialEligible(makeInput('lobby', 8), S3), false);
 });
 
-// Seat boxes of neighbours already overlap at the ring's sides (seats stacked ~50-100 units apart), so the rule is about
-// covering: depth sorting draws a stone over campers sitting behind it (smaller y) and under campers in front of it.
-test('placement: each stone stays on its own seat, never over a camper behind it (head, body, ring), clear of pumpkins, 4-16 players', () => {
+test('stone spots: every seat has a clear spot near it; no stone touches another seat\u2019s camper (in front or behind), a pumpkin or another stone, 4-16 players', () => {
   for (let n = MIN_PLAYERS; n <= MAX_PLAYERS; n++) {
-    const map = createMap(n), pumpkins = halloweenLayout(map).pumpkins;
-    map.seats.forEach((s, i) => {
-      const m = memorialAt(map, i)!;
-      assert.ok(boxesHit(m.box, seatBox(s), 0), `${n}: stone on its own seat`);
-      map.seats.forEach((o, j) => { if (j !== i && o.y < m.base.y) assert.ok(!boxesHit(m.box, seatBox(o), 0), `${n}: stone ${i} would cover the camper at seat ${j}`); });
-      for (const p of pumpkins) assert.ok(!boxesHit(m.box, pumpkinBox(p), 2), `${n}: stone ${i} overlaps a pumpkin`);
+    const map = createMap(n), spots = memorialSpots(map), pumpkins = halloweenLayout(map).pumpkins;
+    spots.forEach((sp, i) => {
+      assert.ok(sp.clear, `${n}: seat ${i} has no clear spot`);
+      assert.ok(sp.offset <= 100, `${n}: seat ${i} stone ${sp.offset.toFixed(0)} units from its seat`);
+      map.seats.forEach((o, j) => { if (j !== i) assert.ok(!boxesHit(sp.box, seatBox(o.sit), 0), `${n}: stone ${i} touches the camper at seat ${j}`); });
+      for (const p of pumpkins) assert.ok(!boxesHit(sp.box, pumpkinBox(p), 2), `${n}: stone ${i} touches a pumpkin`);
+      spots.forEach((q, j) => { if (j !== i) assert.ok(!boxesHit(sp.box, q.box, 2), `${n}: stones ${i} and ${j} touch`); });
     });
   }
 });
 
-test('visibility: the stone stands raised behind its stump (full raise up to 10 players; dense rings only as far as clear)', () => {
-  for (let n = MIN_PLAYERS; n <= MAX_PLAYERS; n++) {
-    const map = createMap(n), raises = map.seats.map((_, i) => memorialAt(map, i)!.raise);
-    assert.ok(raises.every((r) => r >= RAISE.min && r <= RAISE.max), `${n}: ${raises}`);
-    if (n <= 10) assert.ok(raises.every((r) => r === RAISE.max), `${n}: full raise expected, got ${raises}`);
+// Label pass in node (test/helpers/label-sim.ts mirrors scene.ts layoutNameLabels with the real framing, resolver and
+// placer): phone 390x844 (focus framing), laptop, phone whole-camp (ghost view); 375x667 with the chat row separately.
+const overlaps = (r: ReturnType<typeof simulate>) => {
+  const bad: string[] = [];
+  r.names.forEach((nm, k) => {
+    if (!nm) return;
+    if (r.living.some((l) => hit(nm, l))) bad.push(`name ${r.dead[k]} on a living label`);
+    if (r.heads.some((h) => hit(nm, h))) bad.push(`name ${r.dead[k]} on a camper`);
+    if (r.stones.some((st) => hit(nm, st))) bad.push(`name ${r.dead[k]} on a stone`);
+    r.names.forEach((o, m) => { if (o && m > k && hit(nm, o)) bad.push(`names ${r.dead[k]} / ${r.dead[m]}`); });
+  });
+  r.stones.forEach((st, k) => { if (r.living.some((l) => hit(st, l))) bad.push(`living label on stone ${r.dead[k]}`); if (r.heads.some((h) => hit(st, h))) bad.push(`stone ${r.dead[k]} on a camper`); });
+  return bad;
+};
+
+test('memorial names and stones never overlap living labels, campers, stones or each other; every name shown (390x844, laptop, whole camp)', () => {
+  for (const v of VIEWS.filter((x) => x.name !== 'phone-375x667')) for (let n = MIN_PLAYERS; n <= MAX_PLAYERS; n++) for (const d of DEAD_SETS(n)) {
+    const r = simulate(n, d, v);
+    assert.deepEqual(overlaps(r), [], `${v.name} n${n} dead ${d}`);
+    assert.ok(r.names.every(Boolean), `${v.name} n${n} dead ${d}: a name had no clear spot`);
   }
+});
+
+test('375x667 with the chat row (133 px of camp): names never overlap anything; with 1-2 deaths every name shows; heavier: hidden, not overlapping', () => {
+  const v = VIEWS.find((x) => x.name === 'phone-375x667')!;
+  for (let n = MIN_PLAYERS; n <= MAX_PLAYERS; n++) for (const d of DEAD_SETS(n)) {
+    const r = simulate(n, d, v);
+    assert.deepEqual(overlaps(r).filter((b) => b.startsWith('name')), [], `n${n} dead ${d}`);
+    assert.deepEqual(overlaps(r).filter((b) => b.includes('on a camper')), [], `n${n} dead ${d}`);
+    if (d.length <= 2) assert.ok(r.names.every(Boolean), `n${n} dead ${d}: a name hidden`);
+  }
+});
+
+test('negative control: placing names without obstacles produces overlaps the check catches', () => {
+  let caught = 0;
+  for (const v of VIEWS) for (let n = MIN_PLAYERS; n <= MAX_PLAYERS; n++) for (const d of DEAD_SETS(n)) caught += overlaps(simulate(n, d, v, true, true)).length;
+  assert.ok(caught > 0);
 });
 
 test('one name per player: the memorial name hides while that player’s ghost is visible close by, shows otherwise', () => {

@@ -8,10 +8,11 @@ const PAD = 4;
 export const DEFAULT_MAX_LIFT = 1;   // at most this many label heights of upward nudge (v1 used 3)
 const LEADER_THRESHOLD = 6;          // px of displacement from which a leader line is drawn
 
-export function layoutLabels(labels: readonly LabelRect[], vp: Viewport, maxLift = DEFAULT_MAX_LIFT): LabelOffset[] {
+// fixed: screen rects labels must also keep off (e.g. memorial stones); they never move
+export function layoutLabels(labels: readonly LabelRect[], vp: Viewport, maxLift = DEFAULT_MAX_LIFT, fixed: readonly { x0: number; y0: number; x1: number; y1: number }[] = []): LabelOffset[] {
   const minX = vp.left + PAD, maxX = vp.w - vp.right - PAD, minY = vp.top + PAD, maxY = vp.h - vp.bottom - PAD;
   // 1. clamp into the visible area
-  const placed: { id: string; l: number; r: number; t: number; b: number; ox: number; oy: number }[] = [];
+  const placed: { id: string; l: number; r: number; t: number; b: number; ox: number; oy: number }[] = fixed.map((f) => ({ id: '#fixed', l: f.x0 - 2, r: f.x1 + 2, t: f.y0 - 2, b: f.y1 + 2, ox: 0, oy: 0 }));   // +2 px: a gap, not a touch
   const out: LabelOffset[] = [];
   // process from the bottom of the screen upward so lower labels keep their place and upper ones move up
   const order = [...labels].sort((a, b) => b.y - a.y);
