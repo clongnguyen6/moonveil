@@ -1,8 +1,8 @@
 // Dawn UI + scene together (stub, scene ON at `high`, scene debug hooks; needs the lock). A dawn with 2 deaths (wolves'
 // victim + Witch poison), survivor and victim views, phone + laptop, Normal + Halloween: the UI announcement over the
 // camp at +0.6 s, then the recap with the scene's memorials once both headstones are shown. Also measures, at phone
-// sizes (390x844, 375x667), survivor and ghost views, each memorial's stone + name (exact boxes from the scene's debug
-// read) against the top bar, chat row, dock and living campers' labels/heads.
+// sizes (390x844, 375x667) and laptop (1440x900), survivor and ghost views, each memorial's stone + name (exact boxes from the scene's debug
+// read) against the top bar, chat row, dock, living campers' labels/heads and the other memorials.
 //   node scripts/env.mjs node apps/web/src/ui/dev/capture-dawn-combined.mjs      (vite on WEB_PORT, default 4401)
 // → docs/ui/screens-dawn/combined/<phone|laptop>-<normal|halloween>-<survivor|victim>-<1-dawn|2-memorials>.jpg
 // Limits: browser emulation; boxes are the scene's own layout boxes (debugSeats, needs __MOONVEIL_SCENE_DEBUG), not pixels.
@@ -56,10 +56,17 @@ const exactLayout = async (page, label) => {
     for (const [k, u] of Object.entries(d.ui)) if (hit(box, u)) vsUi.push(`${m.name} ${part} × ${k}`);
     for (const c of d.living) for (const [cp, cb] of [['label', c.label], ['head', c.head]]) if (hit(box, cb)) vsLiving.push(`${m.name} ${part} × ${c.name} ${cp}`);
   }
+  const vsMem = [];
+  for (let i = 0; i < d.memorials.length; i++) for (let j = i + 1; j < d.memorials.length; j++) {
+    const a = d.memorials[i], b = d.memorials[j];
+    for (const [pa, ba] of [['stone', a.stone], ['name', a.label]]) for (const [pb, bb] of [['stone', b.stone], ['name', b.label]]) if (hit(ba, bb)) vsMem.push(`${a.name} ${pa} × ${b.name} ${pb}`);
+  }
+  for (const m of d.memorials) if (hit(m.stone, m.label)) vsMem.push(`${m.name} stone × own name`);
   for (let i = 0; i < d.living.length; i++) for (let j = i + 1; j < d.living.length; j++) if (hit(d.living[i].label, d.living[j].label)) known.push(`${d.living[i].name}×${d.living[j].name}`);
   const hidden = d.memorials.filter((m) => !m.nameShown).map((m) => m.name);
   ok(`${label}: ${d.memorials.length} memorials (names shown ${d.memorials.length - hidden.length}${hidden.length ? `, hidden ${hidden.join(',')}` : ''}) clear of the top bar, chat row and dock`, d.memorials.length > 0 && vsUi.length === 0, JSON.stringify(vsUi));
   ok(`${label}: memorial stones + names clear of ${d.living.length} living campers' labels and heads`, d.memorials.length > 0 && vsLiving.length === 0, JSON.stringify(vsLiving));
+  ok(`${label}: memorial stones + names clear of each other`, vsMem.length === 0, JSON.stringify(vsMem));
   if (known.length) console.log(`KNOWN ${label}: pre-existing camper-label overlaps (out of scope): ${known.join(', ')}`);
   await page.screenshot({ path: `${out}/${label.replace(/[^a-z0-9]+/gi, '-')}-layout.jpg`, type: 'jpeg', quality: 76 });
 };
@@ -92,7 +99,7 @@ for (const [dev, opts] of Object.entries(sizes)) {
         await page.setViewportSize({ width: 375, height: 667 });
         await exactLayout(page, `${theme} ${who} phone 375x667`);
         await page.setViewportSize(opts.viewport);
-      }
+      } else await exactLayout(page, `${theme} ${who} laptop 1440x900`);
     }
   }
   await ctx.close();
