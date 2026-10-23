@@ -1,5 +1,6 @@
 // Theme setting in the real app (built dist on the real server; scene ON for 3 seats: phone high, laptop high, laptop low).
 //   node scripts/env.mjs node apps/web/src/ui/dev/theme-check.mjs      (builds dist; server on THEME_PORT, default 4467)
+//   ... --base=<url>   LIVE MODE: own fresh room only, no build/server, no voice, no match (see below)
 // Proves: default Normal with no Halloween file requested; Settings → Halloween applies UI + scene together, Normal
 // removes both, at day and at night; persisted across a reload; low profile static; a failed scene-overlay download
 // keeps BOTH Normal (setting back to Normal, note shown) and a retry works; night header identical for wolf and non-wolf
@@ -7,6 +8,88 @@
 import { spawn } from 'node:child_process';
 import { mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import { chromium } from '@playwright/test';
+
+// ---------------------------------------------------------------------------------------------------------------------
+// LIVE MODE (post-deploy proof):  node scripts/env.mjs node apps/web/src/ui/dev/theme-check.mjs --base=https://www.moonveil.id.vn
+// Read-only towards everyone else: creates ONE fresh automatic room, 3 pages of its own (laptop high, phone high, a fresh
+// low page for the failure case), never joins voice, never starts a match, every page leaves (the room closes when its
+// last seat leaves) and the browser closes. Captures go to .cache/theme-live/ (not committed). Exits 1 on any failure;
+// stops at once with "Settings has no Theme row" on a build without the theme.
+const BASE = process.argv.find((a) => a.startsWith('--base='))?.slice('--base='.length).replace(/\/$/, '');
+if (BASE) {
+  const out = `.cache/theme-live/${new Date().toISOString().replace(/[:.]/g, '-')}`;
+  mkdirSync(out, { recursive: true });
+  let fails = 0; const ok = (n, c, extra = '') => { console.log(`${c ? 'PASS' : 'FAIL'}  ${n}${c ? '' : '  ' + extra}`); if (!c) fails++; };
+  console.log(`[live] ${BASE} · captures → ${out} · scene on (high, high, low) · no voice`);
+  const browser = await chromium.launch();
+  const pages = [];
+  const tag = `T${Date.now().toString(36).slice(-4).toUpperCase()}`;
+  const mk = async (name, dev, q) => {
+    const ctx = await browser.newContext({ ...dev, reducedMotion: 'reduce', locale: 'en-US' });
+    await ctx.addInitScript((qq) => { globalThis.__MOONVEIL_SCENE = qq; globalThis.__MOONVEIL_SCENE_DEBUG = true; localStorage.setItem('moonveil.ui.settings', JSON.stringify({ lang: 'en', sound: false, reducedMotion: 'on', scene: true })); }, q);
+    const page = await ctx.newPage(); const reqs = [];
+    page.on('request', (r) => { if (/halloween/i.test(r.url())) reqs.push(r.url().split('/').pop()); });
+    const p = { name, q, phone: !!dev.isMobile, ctx, page, reqs, st: () => page.evaluate(() => ({ ui: document.documentElement.dataset.theme ?? 'normal', link: !!document.getElementById('moonveil-theme-halloween'), setting: JSON.parse(localStorage.getItem('moonveil.ui.settings') ?? '{}').theme ?? 'normal', scene: globalThis.__moonveilScene?.debugTheme?.() ?? null, note: !!document.querySelector('[data-testid=theme-note]') })) };
+    pages.push(p); return p;
+  };
+  const sceneTheme = (s) => s.scene?.theme ?? null;
+  const settle = (p, theme) => p.page.waitForFunction((t) => (document.documentElement.dataset.theme ?? 'normal') === t || !!document.querySelector('[data-testid=theme-note]'), theme, { timeout: 30000 }).catch(() => {});
+  const pick = async (p, theme) => { await p.page.getByTestId('open-settings').click(); await p.page.getByTestId('set-theme').selectOption(theme); await p.page.keyboard.press('Escape'); await settle(p, theme); await p.page.waitForTimeout(800); };
+  const shot = (p, name) => p.page.screenshot({ path: `${out}/${p.phone ? 'phone' : 'laptop'}-${name}-${p.q}.jpg`, type: 'jpeg', quality: 75 });
+  // block only the scene overlay chunk: any halloween-*.js whose body defines the overlay (works without knowing the build's file names)
+  const blockOverlay = async (route) => { const r = await route.fetch(); const body = await r.text(); if (body.includes('HalloweenOverlay') && !body.includes('createRoot')) return route.abort(); return route.fulfill({ response: r, body }); };
+  let code = null;
+  try {
+    const L = await mk(`${tag}-An`, { viewport: { width: 1440, height: 900 } }, 'high');
+    await L.page.goto(`${BASE}/`); await L.page.getByTestId('name').fill(`${tag}-An`); await L.page.getByTestId('create-automatic').click(); await L.page.waitForSelector('[data-testid=room-code]', { timeout: 30000 });
+    code = (await L.page.getByTestId('room-code').textContent()).trim();
+    console.log(`[live] own room ${code}`);
+    const P = await mk(`${tag}-Binh`, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, 'high');
+    await P.page.goto(`${BASE}/r/${code}`); await P.page.getByTestId('name').fill(`${tag}-Binh`); await P.page.getByTestId('join').click(); await P.page.waitForSelector('[data-testid=room]', { timeout: 30000 });
+    await L.page.waitForTimeout(2500);
+    // precheck: a build with the theme has the Settings row
+    await L.page.getByTestId('open-settings').click();
+    const hasRow = (await L.page.getByTestId('set-theme').count()) === 1;
+    await L.page.keyboard.press('Escape');
+    if (!hasRow) { ok('Settings has no Theme row', false, 'this deploy does not contain the Halloween theme (Settings → Theme missing)'); throw new Error('no-theme-row'); }
+    for (const p of [L, P]) { const s = await p.st(); ok(`${p.name}: default Normal (UI, setting, scene) and no Halloween chunk or CSS requested`, s.ui === 'normal' && !s.link && s.setting === 'normal' && sceneTheme(s) === null && p.reqs.length === 0, JSON.stringify({ s, reqs: p.reqs })); }
+    for (const p of [L, P]) {
+      await shot(p, '1-normal');
+      await pick(p, 'halloween'); const on = await p.st();
+      ok(`${p.name}: Settings → Halloween shows the UI theme AND the scene overlay`, on.ui === 'halloween' && on.link && sceneTheme(on) === 'halloween' && on.scene.counts?.pumpkins > 0, JSON.stringify(on));
+      await shot(p, '2-halloween');
+    }
+    await P.page.reload(); await P.page.waitForSelector('[data-testid=room]', { timeout: 30000 }); await settle(P, 'halloween'); await P.page.waitForTimeout(800);
+    const re = await P.st();
+    ok('reload: the choice persists; UI + scene Halloween again', re.setting === 'halloween' && re.ui === 'halloween' && sceneTheme(re) === 'halloween', JSON.stringify(re));
+    for (const p of [L, P]) {
+      await pick(p, 'normal'); const off = await p.st();
+      ok(`${p.name}: Settings → Normal removes both (no stylesheet, no overlay)`, off.ui === 'normal' && !off.link && sceneTheme(off) === null && off.setting === 'normal', JSON.stringify(off));
+      await shot(p, '3-normal-again');
+    }
+    // fresh isolated page that never loaded the overlay: block the overlay chunk → both stay Normal + note; retry works
+    const F = await mk(`${tag}-Fay`, { viewport: { width: 1280, height: 800 } }, 'low');
+    await F.page.goto(`${BASE}/r/${code}`); await F.page.getByTestId('name').fill(`${tag}-Fay`); await F.page.getByTestId('join').click(); await F.page.waitForSelector('[data-testid=room]', { timeout: 30000 });
+    await F.page.waitForTimeout(2500);
+    await F.page.route(/halloween-[^/]*\.js(\?|$)/, blockOverlay);
+    await pick(F, 'halloween'); const failed = await F.st();
+    ok('blocked overlay chunk (fresh page): UI stays Normal too, setting back to Normal, note shown', failed.ui === 'normal' && !failed.link && sceneTheme(failed) === null && failed.setting === 'normal' && failed.note, JSON.stringify(failed));
+    await shot(F, '4-failed-note');
+    await F.page.unroute(/halloween-[^/]*\.js(\?|$)/, blockOverlay);
+    await pick(F, 'halloween'); const retry = await F.st();
+    ok('retry after the failure: UI + scene Halloween', retry.ui === 'halloween' && sceneTheme(retry) === 'halloween' && !retry.note, JSON.stringify(retry));
+    await pick(F, 'normal');
+  } catch (e) {
+    if (e.message !== 'no-theme-row') { fails++; console.log(`FAIL  live run aborted: ${e.message}`); }
+  } finally {
+    // leave the room from every page (host last), then close everything
+    for (const p of [...pages].reverse()) await p.page.getByTestId('leave').click({ timeout: 5000 }).then(() => p.page.waitForSelector('[data-testid=entry]', { timeout: 10000 })).catch(() => {});
+    if (code) { const left = await Promise.all(pages.map((p) => p.page.locator('[data-testid=room]').count().catch(() => 0))); console.log(`[live] left room ${code}: ${left.every((n) => n === 0) ? 'all pages out' : 'NOT all pages left ' + JSON.stringify(left)}`); }
+    await browser.close();
+  }
+  console.log(fails ? `${fails} FAILED` : 'ALL PASS'); process.exit(fails ? 1 : 0);
+}
+// ---------------------------------------------------------------------------------------------------------------------
 const port = Number(process.env.THEME_PORT ?? 4467), base = `http://127.0.0.1:${port}`;
 const out = 'docs/ui/screens-halloween/toggle';
 mkdirSync(out, { recursive: true });
