@@ -9,8 +9,9 @@ by panel titles, and pumpkins, string lights, ghost ornaments and leaves in the 
   server, never forced on a room, and never switched on by the date.
 - **Same game.** Cosmetic only: rules, roles, costumes, chat, controls and sizes are unchanged, and it looks the same for
   every role (also at night). Text keeps ≥ 4.5:1 contrast and controls stay ≥ 44 px.
-- **Nothing extra for default players.** The Halloween stylesheet (~1.4 KB) and the camp decorations (~7.5 KB) are
-  separate files, downloaded only the first time someone chooses Halloween.
+- **Nothing extra for default players.** The Halloween stylesheet (~1.4 KB) and the camp decorations (~6.5 KB) are
+  separate files, downloaded only the first time someone chooses Halloween. Memorial stones use theme-neutral spot
+  maths (in the default bundle), so a stone sits in the same place in both themes.
 - **Slow devices and reduced motion.** On the `low` scene profile and with reduced motion the decorations are static (no
   flicker or sway). With the camp scene turned off, only the panel colours change.
 - **If it can't load** (e.g. a dropped connection): everything stays Normal, the setting goes back to *Normal*, and a
