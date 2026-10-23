@@ -1,7 +1,7 @@
 {
  "load": [
-  "10:14  up 24 days,  2:27, 3 users, load averages: 15.63 14.31 13.68",
-  "10:20  up 24 days,  2:33, 3 users, load averages: 23.22 19.65 16.45"
+  "15:06  up 24 days,  7:20, 2 users, load averages: 5.05 4.81 4.51",
+  "15:14  up 24 days,  7:27, 2 users, load averages: 15.14 12.65 8.72"
  ],
  "runs": [
   {
@@ -9,7 +9,7 @@
    "group": "night-death",
    "ok": true,
    "notes": [
-    "all seated at scene 8.6s / real 25.3s"
+    "all seated at scene 8.6s / real 16.9s"
    ],
    "samples": 39
   },
@@ -21,11 +21,29 @@
    "samples": 5
   },
   {
+   "name": "memorials-laptop",
+   "group": "memorials",
+   "ok": true,
+   "notes": [
+    "day s2,s5,s7 / night s2,s5,s7"
+   ],
+   "samples": 91
+  },
+  {
+   "name": "memorials-laptop-halloween",
+   "group": "memorials",
+   "ok": true,
+   "notes": [
+    "day s2,s5,s7 / night s2,s5,s7"
+   ],
+   "samples": 91
+  },
+  {
    "name": "night-death-living-phone-high",
    "group": "night-death",
    "ok": true,
    "notes": [
-    "all seated at scene 8.6s / real 28.9s"
+    "all seated at scene 8.6s / real 17.9s"
    ],
    "samples": 37
   },
@@ -35,6 +53,24 @@
    "ok": true,
    "notes": [],
    "samples": 4
+  },
+  {
+   "name": "memorials-phone",
+   "group": "memorials",
+   "ok": true,
+   "notes": [
+    "day s2,s5,s7 / night s2,s5,s7"
+   ],
+   "samples": 90
+  },
+  {
+   "name": "memorials-phone-halloween",
+   "group": "memorials",
+   "ok": true,
+   "notes": [
+    "day s2,s5,s7 / night s2,s5,s7"
+   ],
+   "samples": 90
   },
   {
    "name": "night-death-victim-laptop-high",
@@ -48,7 +84,7 @@
    "group": "race",
    "ok": true,
    "notes": [
-    "end s4=hidden s8=hidden"
+    "end s4=hidden s8=hidden; memorials s4,s8; names s4:stone s8:stone"
    ],
    "samples": 42
   },
@@ -57,7 +93,7 @@
    "group": "race",
    "ok": true,
    "notes": [
-    "end s4=ghost s8=ghost"
+    "end s4=ghost s8=ghost; memorials s4,s8; names s4:stone s8:stone"
    ],
    "samples": 42
   },
@@ -66,7 +102,7 @@
    "group": "race",
    "ok": true,
    "notes": [
-    "end s4=ghost s8=ghost"
+    "end s4=ghost s8=ghost; memorials s4,s8; names s4:stone s8:stone"
    ],
    "samples": 42
   },
@@ -75,32 +111,32 @@
    "group": "low",
    "ok": true,
    "notes": [
-    "all seated at scene 8.6s / real 12.5s"
+    "all seated at scene 8.68s / real 9.9s"
    ],
-   "samples": 42
+   "samples": 38
   },
   {
    "name": "day-death-living-laptop-low",
    "group": "low",
    "ok": true,
    "notes": [],
-   "samples": 5
+   "samples": 8
   },
   {
    "name": "night-death-living-laptop-reduced-motion",
    "group": "reduced",
    "ok": true,
    "notes": [
-    "all seated at scene 9s / real 12.7s"
+    "all seated at scene 8.5s / real 8.5s"
    ],
-   "samples": 15
+   "samples": 37
   },
   {
    "name": "night-death-living-laptop-high-halloween",
    "group": "halloween",
    "ok": true,
    "notes": [
-    "all seated at scene 8.6s / real 29.1s"
+    "all seated at scene 8.6s / real 17.6s"
    ],
    "samples": 42
   }

@@ -18,20 +18,32 @@ night-death-living-laptop-reduced-motion: n/a (no debugSeats)
 rc=0
 end 10:22  up 24 days,  2:35, 3 users, load averages: 22.38 20.25 16.98
 
-after on aa53701 start 10:14  up 24 days,  2:27, 3 users, load averages: 15.63 14.31 13.68
-night-death-living-laptop-high: OK all seated at scene 8.6s / real 25.3s
-day-death-living-laptop-high: OK 
-night-death-living-phone-high: OK all seated at scene 8.6s / real 28.9s
-day-death-living-phone-high: OK 
-night-death-victim-laptop-high: OK 
-race-s1-laptop-high: OK end s4=hidden s8=hidden
-race-s4-laptop-high: OK end s4=ghost s8=ghost
-race-moderator-laptop-high: OK end s4=ghost s8=ghost
-night-death-living-laptop-low: OK all seated at scene 8.6s / real 12.5s
-day-death-living-laptop-low: OK 
-night-death-living-laptop-reduced-motion: OK all seated at scene 9s / real 12.7s
-night-death-living-laptop-high-halloween: OK all seated at scene 8.6s / real 29.1s
+before-memorials on 7011b14 start 10:31  up 24 days,  2:44, 3 users, load averages: 32.54 23.84 19.25
+memorials-laptop: n/a (no debugSeats) 
+memorials-laptop-halloween: n/a (no debugSeats) 
+memorials-phone: n/a (no debugSeats) 
+memorials-phone-halloween: n/a (no debugSeats) 
 rc=0
-end 10:20  up 24 days,  2:33, 3 users, load averages: 23.22 19.65 16.45
+end 10:35  up 24 days,  2:49, 3 users, load averages: 23.98 39.57 29.80
+
+after on ab7a683 start 15:06  up 24 days,  7:20, 2 users, load averages: 5.05 4.81 4.51
+night-death-living-laptop-high: OK all seated at scene 8.6s / real 16.9s
+day-death-living-laptop-high: OK 
+memorials-laptop: OK day s2,s5,s7 / night s2,s5,s7
+memorials-laptop-halloween: OK day s2,s5,s7 / night s2,s5,s7
+night-death-living-phone-high: OK all seated at scene 8.6s / real 17.9s
+day-death-living-phone-high: OK 
+memorials-phone: OK day s2,s5,s7 / night s2,s5,s7
+memorials-phone-halloween: OK day s2,s5,s7 / night s2,s5,s7
+night-death-victim-laptop-high: OK 
+race-s1-laptop-high: OK end s4=hidden s8=hidden; memorials s4,s8; names s4:stone s8:stone
+race-s4-laptop-high: OK end s4=ghost s8=ghost; memorials s4,s8; names s4:stone s8:stone
+race-moderator-laptop-high: OK end s4=ghost s8=ghost; memorials s4,s8; names s4:stone s8:stone
+night-death-living-laptop-low: OK all seated at scene 8.68s / real 9.9s
+day-death-living-laptop-low: OK 
+night-death-living-laptop-reduced-motion: OK all seated at scene 8.5s / real 8.5s
+night-death-living-laptop-high-halloween: OK all seated at scene 8.6s / real 17.6s
+rc=0
+end 15:14  up 24 days,  7:27, 2 users, load averages: 15.14 12.65 8.72
 
 clock under load ~19-21 (9 s of scene time, reduced motion / low): 7011b14 23.7 s / 12.2 s real; aa53701 9.3 s / 9.7 s real

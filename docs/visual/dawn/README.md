@@ -2,7 +2,7 @@
 
 Scene dev page, fixtures only (no server, no voice, no live room), 8 players. Playwright **Chromium emulation**, headless,
 software WebGL, shared machine under load 12-23 (`runs.txt`); not real devices. "before" = live 7011b14, "after" = this
-branch. `packages/scene/scripts/dawn-check.mjs` drives every scenario on the **scene clock** and asserts per-seat state
+branch at ab7a683 (memorials included). `packages/scene/scripts/dawn-check.mjs` drives every scenario on the **scene clock** and asserts per-seat state
 (`debugSeats()`); old builds have no hook: captures only. Times in file names = scene seconds after dawn (or after the death).
 
 | scenario | files | what it shows |
@@ -13,6 +13,7 @@ branch. `packages/scene/scripts/dawn-check.mjs` drives every scenario on the **s
 | day death (execution) | `*/day-death-living-{laptop,phone}-high-t0.3/t1.5` | before: gone in one frame. after: fading at the seat with a wisp at 0.3 s, absent at 1.5 s |
 | low / reduced motion | `*/night-death-living-laptop-{low,reduced-motion}-*`, `*/day-death-living-laptop-low-*` | after: lantern straight out, no wisp (low) / one static wisp (reduced motion), same choreography |
 | Halloween theme | `after/night-death-living-laptop-high-halloween-*` | same beat with the overlay on |
+| memorials, 3 dead seats (s2, s5, s7 at dawn), day then the next night | `*/memorials-{laptop,phone}[-halloween]-t10/t19`, `compare/memorial-stone-laptop-zoom` | before: empty seats. after: a small headstone behind each dead seat's stump with the display name (muted italic), kept through the night; Halloween: tiny pumpkin instead of the flower |
 
 ## Limits
 
@@ -26,7 +27,16 @@ branch. `packages/scene/scripts/dawn-check.mjs` drives every scenario on the **s
   and laptop, high, low, reduced motion, Halloween. Clock in the browser (reduced motion): 9 s of scene time took 23.7 s
   real before vs 9.3 s after. Under heavy load `high` itself runs slower than real time (software WebGL below 10 fps hits
   the stall clamp): a test-machine effect, not a product timing claim.
+- **Memorials, unit tests** (`test/memorial.test.ts`): public dead only (not disconnected, not removed: no memorial and
+  no wisp for `death.cause === 'removed'`), night victim only from its tent beat, day death only after its fade, Hunter at
+  dawn + shot target (both, nothing pending), reload places all at once, lobby / next match clear them, one name per
+  player (hidden while that ghost is visible within 130 units), the stone never covers a camper behind it and never
+  touches a pumpkin (4-16 players), full raise up to 10 players. Negative controls: showing a night victim's memorial at
+  once, or treating removal as death, each fail their test.
+- **Memorials, captures + assertions**: memorial set over time and names shown in every after scenario, 3 dead seats
+  through day and night on phone and laptop, Normal and Halloween.
 - **Not shown here**: the real server flow (Hunter step, real poses) and the UI overlay together with the scene (UI owner's
   combined set); reload during dawn is unit-tested (snap), not captured.
-- **Perceptual, untested**: whether the tent beat is noticed at a glance on a phone, whether the 2.5-8 s dawn pacing
+- **Perceptual, untested**: whether the small stone reads as a memorial at phone scale (the name carries identity; in
+  11-16 player rings some side stones stand lower behind their stump), whether the tent beat is noticed at a glance on a phone, whether the 2.5-8 s dawn pacing
   matches the UI announcement, whether players read the wisp as "this seat died" (no role or cause shown, by design).
